@@ -20,6 +20,9 @@ pub enum EngineError {
     #[error("erro manipulando o PDF: {0}")]
     Pdf(String),
 
+    #[error("erro manipulando o modelo 3D: {0}")]
+    Model3d(String),
+
     #[error("non se atopou ffmpeg no sistema; instálao ou indica a súa ruta")]
     FfmpegNotFound,
 
