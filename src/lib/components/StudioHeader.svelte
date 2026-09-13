@@ -1,15 +1,16 @@
 <script lang="ts">
-  import { goTo } from "../router";
+  import Icon from "./Icon.svelte";
 
   export let title: string;
+  export let icon: string;
   export let accent: string = "var(--accent-conversor)";
 </script>
 
 <header class="header">
-  <button class="back" on:click={() => goTo("inicio")} title="Volver ao inicio" aria-label="Volver ao inicio">
-    ←
-  </button>
-  <span class="title" style={`color:${accent}`}>{title}</span>
+  <span class="icon-badge" style={`color:${accent}; background:color-mix(in srgb, ${accent} 16%, transparent)`}>
+    <Icon name={icon} size={17} />
+  </span>
+  <span class="title">{title}</span>
   <div class="spacer"></div>
   <slot name="actions" />
 </header>
@@ -18,28 +19,23 @@
   .header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 1rem;
+    gap: 0.65rem;
+    padding: 0.7rem 1.1rem;
     border-bottom: 1px solid var(--border);
     background: var(--bg-elevated);
   }
-  .back {
-    background: transparent;
-    border: 1px solid var(--border-strong);
-    color: var(--text);
+  .icon-badge {
+    width: 1.9rem;
+    height: 1.9rem;
     border-radius: var(--radius-sm);
-    width: 2rem;
-    height: 2rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
-  .back:hover {
-    border-color: var(--text-faint);
-  }
   .title {
-    font-weight: 700;
-    font-size: 1.05rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
   }
   .spacer {
     flex: 1;

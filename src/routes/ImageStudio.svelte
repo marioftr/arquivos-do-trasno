@@ -5,7 +5,7 @@
 <StudioPlaceholder
   title="Trasno Imaxe"
   accent="var(--accent-imaxe)"
-  icona="🖼️"
+  icon="image"
   features={[
     "Capas, opacidade, modos de fusión",
     "Recorte, redimensionado e lenzo axustable",

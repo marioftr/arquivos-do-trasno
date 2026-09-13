@@ -5,7 +5,7 @@
 <StudioPlaceholder
   title="Trasno PDF"
   accent="var(--accent-pdf)"
-  icona="📄"
+  icon="document"
   features={[
     "Vista previa e organización de páxinas (arrastrar para reordenar)",
     "Unir, dividir e rotar PDF — xa funcional dende o motor",

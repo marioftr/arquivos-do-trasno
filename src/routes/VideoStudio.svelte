@@ -5,7 +5,7 @@
 <StudioPlaceholder
   title="Trasno Vídeo"
   accent="var(--accent-video)"
-  icona="🎬"
+  icon="video"
   features={[
     "Liña de tempo con varios planos e pistas de son",
     "Recortar, xuntar clips e cambiar de formato",

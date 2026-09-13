@@ -1,84 +1,59 @@
 <script lang="ts">
-  import { goTo } from "../lib/router";
+  import { open } from "@tauri-apps/plugin-dialog";
+  import Icon from "../lib/components/Icon.svelte";
+  import { openInConverter } from "../lib/router";
 
-  const modulos = [
-    {
-      id: "imaxe" as const,
-      nome: "Trasno Imaxe",
-      accent: "var(--accent-imaxe)",
-      icona: "🖼️",
-      descricion: "Deseña, retoca e compón con capas.",
-    },
-    {
-      id: "audio" as const,
-      nome: "Trasno Audio",
-      accent: "var(--accent-audio)",
-      icona: "🎚️",
-      descricion: "Edita voces e mestura o teu podcast.",
-    },
-    {
-      id: "pdf" as const,
-      nome: "Trasno PDF",
-      accent: "var(--accent-pdf)",
-      icona: "📄",
-      descricion: "Revisa, organiza e asina documentos.",
-    },
-    {
-      id: "video" as const,
-      nome: "Trasno Vídeo",
-      accent: "var(--accent-video)",
-      icona: "🎬",
-      descricion: "Monta planos, escenas e son.",
-    },
+  async function abrirFicheiro() {
+    const selected = await open({ multiple: true });
+    if (!selected) return;
+    const paths = Array.isArray(selected) ? selected : [selected];
+    openInConverter(paths);
+  }
+
+  const categorias = [
+    { label: "Imaxe", icon: "image", accent: "var(--accent-imaxe)" },
+    { label: "Audio", icon: "audio", accent: "var(--accent-audio)" },
+    { label: "PDF", icon: "document", accent: "var(--accent-pdf)" },
+    { label: "Vídeo", icon: "video", accent: "var(--accent-video)" },
+    { label: "3D", icon: "layers", accent: "var(--accent-conversor)" },
   ];
 </script>
 
 <div class="home scrollbar-thin">
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo">🔥</span>
-      <span class="name">Trasno</span>
-    </div>
-    <div class="actions">
-      <button class="btn">📁 Abrir ficheiro</button>
-      <button class="btn">⬇️ Instalar neste equipo</button>
-    </div>
-  </header>
-
-  <section class="intro">
+  <div class="hero">
     <h1>Que queres crear hoxe?</h1>
-    <p class="muted">Un só espazo · catro estudos · un conversor universal. Mesma linguaxe, mesmos xestos.</p>
-  </section>
+    <p class="muted">Catro estudos, un conversor universal, a mesma aplicación.</p>
 
-  <section class="grid">
-    {#each modulos as m}
-      <div class="card modulo" style={`--accent:${m.accent}`}>
-        <div class="icona">{m.icona}</div>
-        <h2 style={`color:${m.accent}`}>{m.nome}</h2>
-        <p class="muted">{m.descricion}</p>
-        <button class="btn abrir" on:click={() => goTo(m.id)}>› Abrir</button>
-      </div>
-    {/each}
-  </section>
-
-  <section class="card conversor-destacado">
-    <div class="conversor-texto">
-      <h2 style="color: var(--accent-conversor)">🔁 Conversor universal</h2>
-      <p class="muted">
-        Converte imaxes, audio, vídeo, documentos e modelos 3D entre formatos —
-        PNG→JPEG, WAV→MP3, MOV→MP4, e moito máis — sen abrir ningún dos estudos.
-      </p>
+    <div class="hero-actions">
+      <button class="btn primary" on:click={abrirFicheiro}>
+        <Icon name="folder" size={16} />
+        Abrir ficheiro
+      </button>
     </div>
-    <button class="btn primary" on:click={() => goTo("conversor")}>Abrir conversor</button>
-  </section>
+  </div>
 
-  <footer class="footer">
-    <span class="muted">Imaxe · Audio · PDF · Vídeo</span>
-    <span class="muted">Trasno Docs chega máis adiante.</span>
-  </footer>
+  <section class="card converter-panel">
+    <div class="converter-icon">
+      <Icon name="convert" size={22} />
+    </div>
+    <div class="converter-body">
+      <h2>Conversor universal</h2>
+      <p class="muted">
+        Converte entre formatos de imaxe, audio, vídeo, PDF e modelos 3D — sen abrir ningún estudo.
+      </p>
+      <ul class="chip-row">
+        {#each categorias as c}
+          <li class="chip" style={`color:${c.accent}`}>
+            <Icon name={c.icon} size={14} />
+            {c.label}
+          </li>
+        {/each}
+      </ul>
+    </div>
+  </section>
 
   <section class="recentes">
-    <h3 class="muted">RECENTES</h3>
+    <h3 class="muted">Recentes</h3>
     <div class="card recentes-baleiro muted">Aínda non abriches ningún ficheiro.</div>
   </section>
 </div>
@@ -88,114 +63,88 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 1.25rem 1.5rem 2rem;
+    padding: 2.2rem 2rem 2rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.75rem;
+    max-width: 760px;
   }
 
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 800;
-    font-size: 1.2rem;
-  }
-
-  .logo {
-    filter: drop-shadow(0 0 6px rgba(110, 214, 90, 0.4));
-  }
-
-  .actions {
-    display: flex;
-    gap: 0.6rem;
-  }
-
-  .intro h1 {
-    margin: 0 0 0.35rem;
-    font-size: 1.8rem;
-  }
-
-  .intro p {
-    margin: 0;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1rem;
-  }
-
-  .modulo {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    border-top: 2px solid var(--accent);
-  }
-
-  .modulo .icona {
+  .hero h1 {
+    margin: 0 0 0.3rem;
     font-size: 1.6rem;
+    font-weight: 650;
   }
 
-  .modulo h2 {
+  .hero p {
     margin: 0;
-    font-size: 1.1rem;
   }
 
-  .modulo p {
-    margin: 0 0 0.5rem;
-    flex: 1;
+  .hero-actions {
+    margin-top: 1.1rem;
   }
 
-  .abrir {
-    align-self: flex-start;
-  }
-
-  .conversor-destacado {
+  .converter-panel {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
     gap: 1rem;
-    flex-wrap: wrap;
-    border: 1px solid var(--accent-conversor);
-    background: linear-gradient(135deg, rgba(79, 179, 245, 0.08), var(--bg-card));
+    align-items: flex-start;
   }
 
-  .conversor-texto h2 {
-    margin: 0 0 0.25rem;
-  }
-
-  .conversor-texto p {
-    margin: 0;
-    max-width: 46ch;
-  }
-
-  .footer {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .recentes h3 {
-    margin: 0 0 0.5rem;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-  }
-
-  .recentes-baleiro {
-    min-height: 90px;
+  .converter-icon {
+    width: 2.6rem;
+    height: 2.6rem;
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--accent-conversor) 16%, transparent);
+    color: var(--accent-conversor);
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .converter-body h2 {
+    margin: 0 0 0.3rem;
+    font-size: 1rem;
+  }
+
+  .converter-body p {
+    margin: 0;
+    max-width: 52ch;
+  }
+
+  .chip-row {
+    list-style: none;
+    margin: 0.9rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    font-size: 0.78rem;
+  }
+
+  .recentes h3 {
+    margin: 0 0 0.6rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .recentes-baleiro {
+    min-height: 84px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
   }
 </style>
