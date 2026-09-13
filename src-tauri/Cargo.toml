@@ -1,0 +1,27 @@
+[package]
+name = "trasno"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Trasno: estudio multimedia (imaxe, audio, PDF, vídeo) e conversor universal de ficheiros"
+default-run = "trasno"
+
+[lib]
+name = "trasno_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+trasno-engine = { path = "../crates/trasno-engine" }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
