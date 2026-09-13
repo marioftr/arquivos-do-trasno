@@ -40,6 +40,12 @@ pub const DOCUMENT_EXTS: &[&str] = &["pdf"];
 
 pub const MODEL3D_EXTS: &[&str] = &["obj", "stl", "ply", "gltf", "glb", "fbx"];
 
+/// Subconxunto de `MODEL3D_EXTS` que o motor sabe realmente converter hoxe
+/// (malla de triángulos: vértices + caras). glTF/GLB/FBX recoñécense para
+/// detectar a categoría do ficheiro pero a conversión queda para máis
+/// adiante (formatos binarios/JSON máis complexos, con materiais e escenas).
+pub const MODEL3D_ENGINE_SUPPORTED: &[&str] = &["obj", "stl", "ply"];
+
 pub fn extension_of(path: &std::path::Path) -> Option<String> {
     path.extension()
         .and_then(|e| e.to_str())

@@ -20,6 +20,7 @@ pub mod ffmpeg;
 pub mod formats;
 pub mod image_convert;
 pub mod integrity;
+pub mod model3d;
 pub mod pdf;
 
 pub use error::{EngineError, Result};
@@ -67,6 +68,9 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
         | (Category::Video, Category::Imaxe) => {
             ffmpeg::convert_media(input, output, options.overwrite, &[])?
         }
+        (Category::Modelo3d, Category::Modelo3d) => {
+            model3d::convert_model3d(input, output, options.overwrite)?
+        }
         (from, to) => {
             return Err(EngineError::UnsupportedConversion {
                 from: format!("{from:?}"),
@@ -92,7 +96,7 @@ pub fn suggested_targets(input: &Path) -> Vec<&'static str> {
         Category::Audio => formats::AUDIO_EXTS.to_vec(),
         Category::Video => formats::VIDEO_EXTS.to_vec(),
         Category::Documento => formats::DOCUMENT_EXTS.to_vec(),
-        Category::Modelo3d => formats::MODEL3D_EXTS.to_vec(),
+        Category::Modelo3d => formats::MODEL3D_ENGINE_SUPPORTED.to_vec(),
         Category::Descoñecido => Vec::new(),
     }
 }

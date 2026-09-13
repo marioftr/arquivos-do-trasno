@@ -32,7 +32,9 @@ export function targetsForCategory(category: Category): string[] {
     case "documento":
       return ["pdf"];
     case "modelo3d":
-      return ["obj", "stl", "ply", "gltf", "glb"];
+      // De momento só mallas simples; gltf/glb/fbx recoñécense pero aínda
+      // non se poden converter (ver crates/trasno-engine/src/model3d.rs).
+      return ["obj", "stl", "ply"];
     default:
       return [];
   }
