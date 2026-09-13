@@ -1,0 +1,29 @@
+## Rust
+/target/
+crates/**/target/
+src-tauri/target/
+**/*.rs.bk
+Cargo.lock.bak
+
+## Node / frontend
+node_modules/
+dist/
+.vite/
+*.local
+
+## Tauri
+src-tauri/gen/
+src-tauri/WixTools/
+
+## Sistema operativo / editores
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+## Ficheiros temporais da app (conversións en curso, etc.)
+*.tmp
+*.part
+/tmp-trasno/

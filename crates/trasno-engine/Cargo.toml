@@ -1,0 +1,23 @@
+[package]
+name = "trasno-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Motor de conversión e manipulación de ficheiros (imaxe, audio, vídeo, PDF) de Trasno"
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = [
+    "png", "jpeg", "gif", "bmp", "ico", "tiff", "webp", "pnm", "tga", "qoi", "avif",
+] }
+lopdf = "0.36"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+sha2 = "0.10"
+tempfile = "3"
+which = "7"
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+tempfile = "3"
