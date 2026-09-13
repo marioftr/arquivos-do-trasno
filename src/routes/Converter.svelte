@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { open, save } from "@tauri-apps/plugin-dialog";
   import StudioHeader from "../lib/components/StudioHeader.svelte";
+  import Icon from "../lib/components/Icon.svelte";
   import * as engine from "../lib/engine";
   import { extensionOf, targetsForCategory, withExtension, CATEGORY_LABELS } from "../lib/formats";
   import type { Category } from "../lib/engine";
+  import { pendingFiles } from "../lib/router";
 
   interface Item {
     path: string;
@@ -17,14 +20,10 @@
   let items: Item[] = [];
   let ffmpegOk: boolean | null = null;
   let quality = 85;
-  let overwrite = false;
 
   engine.ffmpegAvailable().then((v) => (ffmpegOk = v));
 
-  async function engadirFicheiros() {
-    const selected = await open({ multiple: true });
-    if (!selected) return;
-    const paths = Array.isArray(selected) ? selected : [selected];
+  async function addPaths(paths: string[]) {
     for (const path of paths) {
       const category = await engine.detectCategory(path);
       const targets = targetsForCategory(category);
@@ -32,6 +31,20 @@
       const targetExt = targets.find((t) => t !== currentExt) ?? targets[0] ?? "";
       items = [...items, { path, category, targetExt, status: "pendente" }];
     }
+  }
+
+  onMount(() => {
+    const initial = $pendingFiles;
+    if (initial.length) {
+      addPaths(initial);
+      pendingFiles.set([]);
+    }
+  });
+
+  async function engadirFicheiros() {
+    const selected = await open({ multiple: true });
+    if (!selected) return;
+    await addPaths(Array.isArray(selected) ? selected : [selected]);
   }
 
   function quitar(index: number) {
@@ -55,7 +68,6 @@
     items = [...items];
 
     const defaultOutput = withExtension(item.path, item.targetExt);
-    let outputPath = defaultOutput;
     try {
       const chosen = await save({ defaultPath: defaultOutput });
       if (!chosen) {
@@ -63,9 +75,8 @@
         items = [...items];
         return;
       }
-      outputPath = chosen;
 
-      const result = await engine.convertFile(item.path, outputPath, {
+      const result = await engine.convertFile(item.path, chosen, {
         overwrite: true,
         quality: item.category === "imaxe" ? quality : undefined,
       });
@@ -85,18 +96,24 @@
   }
 </script>
 
-<StudioHeader title="Conversor universal" accent="var(--accent-conversor)" />
+<StudioHeader title="Conversor universal" icon="convert" accent="var(--accent-conversor)" />
 
 <div class="body scrollbar-thin">
   {#if ffmpegOk === false}
     <div class="aviso card">
-      ⚠️ Non se atopou <code>ffmpeg</code> neste equipo. As imaxes conviértense igualmente (motor propio en Rust),
-      pero para audio e vídeo hai que instalar ffmpeg e volver abrir a aplicación.
+      <Icon name="warning" size={17} />
+      <span>
+        Non se atopou <code>ffmpeg</code> neste equipo. As imaxes conviértense igualmente (motor propio en Rust),
+        pero para audio e vídeo hai que instalar ffmpeg e volver abrir a aplicación.
+      </span>
     </div>
   {/if}
 
   <div class="toolbar">
-    <button class="btn primary" on:click={engadirFicheiros}>+ Engadir ficheiros</button>
+    <button class="btn primary" on:click={engadirFicheiros}>
+      <Icon name="plus" size={15} />
+      Engadir ficheiros
+    </button>
     <button class="btn" on:click={converterTodo} disabled={items.length === 0}>Converter todo</button>
     <label class="calidade">
       Calidade imaxe
@@ -107,7 +124,7 @@
 
   {#if items.length === 0}
     <div class="card baleiro muted">
-      Arrastra ou engade PNG, WAV, MP4, PDF... e escolle a que formato os queres converter.
+      Engade unha imaxe, un audio, un vídeo, un PDF ou un modelo 3D, e escolle a que formato o queres converter.
     </div>
   {:else}
     <div class="lista">
@@ -118,7 +135,7 @@
             <div class="muted categoria">{CATEGORY_LABELS[item.category]} · {extensionOf(item.path) || "?"}</div>
           </div>
 
-          <div class="frecha muted">→</div>
+          <Icon name="arrow-right" size={15} strokeWidth={1.6} />
 
           <select bind:value={item.targetExt} disabled={item.status === "convertendo"}>
             {#each targetsForCategory(item.category) as ext}
@@ -132,13 +149,15 @@
             {:else if item.status === "convertendo"}
               <span class="muted">Convertendo…</span>
             {:else if item.status === "feito"}
-              <span class="ok">✓ Feito</span>
+              <span class="ok"><Icon name="check" size={15} /> Feito</span>
             {:else if item.status === "erro"}
-              <span class="erro" title={item.error}>✗ Erro</span>
+              <span class="erro" title={item.error}><Icon name="warning" size={15} /> Erro</span>
             {/if}
           </div>
 
-          <button class="btn quitar" on:click={() => quitar(i)} title="Quitar da lista">✕</button>
+          <button class="btn quitar" on:click={() => quitar(i)} title="Quitar da lista" aria-label="Quitar da lista">
+            <Icon name="close" size={15} />
+          </button>
         </div>
       {/each}
     </div>
@@ -150,7 +169,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 1rem 1.25rem 2rem;
+    padding: 1.1rem 1.25rem 2rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -158,6 +177,14 @@
 
   .aviso {
     border-color: var(--accent-pdf);
+    color: var(--accent-pdf);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .aviso span {
+    color: var(--text);
   }
 
   .toolbar {
@@ -192,11 +219,13 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
+    color: var(--text-faint);
   }
 
   .info {
     flex: 1;
     min-width: 0;
+    color: var(--text);
   }
 
   .nome {
@@ -222,6 +251,14 @@
     text-align: center;
   }
 
+  .ok,
+  .erro {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.86rem;
+  }
+
   .ok {
     color: var(--accent-imaxe);
   }
@@ -234,6 +271,7 @@
     background: transparent;
     border: none;
     color: var(--text-faint);
+    padding: 0.3rem;
   }
 
   .quitar:hover {

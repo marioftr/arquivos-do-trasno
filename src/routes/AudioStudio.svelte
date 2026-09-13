@@ -5,7 +5,7 @@
 <StudioPlaceholder
   title="Trasno Audio"
   accent="var(--accent-audio)"
-  icona="🎚️"
+  icon="audio"
   features={[
     "Liña de tempo multipista para mesturar voz e música",
     "Recorte, fundidos de entrada/saída e normalización",

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentView } from "./lib/router";
+  import Sidebar from "./lib/components/Sidebar.svelte";
   import Home from "./routes/Home.svelte";
   import Converter from "./routes/Converter.svelte";
   import ImageStudio from "./routes/ImageStudio.svelte";
@@ -7,6 +8,8 @@
   import PdfStudio from "./routes/PdfStudio.svelte";
   import VideoStudio from "./routes/VideoStudio.svelte";
 </script>
+
+<Sidebar />
 
 <main class="shell">
   {#if $currentView === "inicio"}
@@ -27,6 +30,7 @@
 <style>
   .shell {
     flex: 1;
+    min-width: 0;
     min-height: 0;
     display: flex;
     flex-direction: column;
