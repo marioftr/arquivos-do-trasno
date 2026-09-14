@@ -30,6 +30,10 @@ export async function ffmpegAvailable(): Promise<boolean> {
   return invoke("ffmpeg_available");
 }
 
+export async function fileSize(path: string): Promise<number> {
+  return invoke("file_size", { path });
+}
+
 export async function convertFile(
   input: string,
   output: string,
