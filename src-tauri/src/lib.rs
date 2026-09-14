@@ -11,6 +11,7 @@ pub fn run() {
             commands::suggested_targets,
             commands::ffmpeg_available,
             commands::file_size,
+            commands::image_dimensions,
             commands::convert_file,
             commands::trim_media,
             commands::concat_media,

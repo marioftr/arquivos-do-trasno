@@ -40,6 +40,11 @@ pub fn file_size(path: String) -> Result<u64, String> {
 }
 
 #[tauri::command]
+pub fn image_dimensions(path: String) -> Result<(u32, u32), String> {
+    trasno_engine::image_convert::image_dimensions(&PathBuf::from(path)).map_err(to_err)
+}
+
+#[tauri::command]
 pub fn convert_file(
     input: String,
     output: String,

@@ -23,6 +23,9 @@
     showOptions: boolean;
     resizeW: number | null;
     resizeH: number | null;
+    keepRatio: boolean;
+    origW?: number;
+    origH?: number;
     bitrateKbps: number | null;
   }
 
@@ -58,6 +61,7 @@
         showOptions: false,
         resizeW: null,
         resizeH: null,
+        keepRatio: true,
         bitrateKbps: DEFAULT_BITRATE[category] ?? null,
       };
       items = [...items, item];
@@ -65,6 +69,12 @@
       engine.fileSize(path).then((s) => updateItem(path, { sizeBytes: s })).catch(() => {});
       if (category === "documento") {
         engine.pdfPageCount(path).then((n) => updateItem(path, { pageCount: n })).catch(() => {});
+      }
+      if (category === "imaxe") {
+        engine
+          .imageDimensions(path)
+          .then(([w, h]) => updateItem(path, { origW: w, origH: h }))
+          .catch(() => {});
       }
     }
   }
@@ -179,6 +189,28 @@
 
   function toggleOpcions(index: number) {
     items[index] = { ...items[index], showOptions: !items[index].showOptions };
+    items = [...items];
+  }
+
+  function updateResizeW(index: number, raw: string) {
+    const item = items[index];
+    const w = raw === "" ? null : Number(raw);
+    let h = item.resizeH;
+    if (w !== null && item.keepRatio && item.origW && item.origH) {
+      h = Math.max(1, Math.round((w * item.origH) / item.origW));
+    }
+    items[index] = { ...item, resizeW: w, resizeH: h };
+    items = [...items];
+  }
+
+  function updateResizeH(index: number, raw: string) {
+    const item = items[index];
+    const h = raw === "" ? null : Number(raw);
+    let w = item.resizeW;
+    if (h !== null && item.keepRatio && item.origW && item.origH) {
+      w = Math.max(1, Math.round((h * item.origW) / item.origH));
+    }
+    items[index] = { ...item, resizeW: w, resizeH: h };
     items = [...items];
   }
 </script>
@@ -296,10 +328,29 @@
             {#if item.showOptions && item.category === "imaxe"}
               <div class="opcions-panel muted">
                 Redimensionar (opcional):
-                <input class="num-input" type="number" min="1" placeholder="ancho" bind:value={item.resizeW} />
+                <input
+                  class="num-input"
+                  type="number"
+                  min="1"
+                  placeholder="ancho"
+                  value={item.resizeW ?? ""}
+                  on:input={(e) => updateResizeW(i, e.currentTarget.value)}
+                />
                 ×
-                <input class="num-input" type="number" min="1" placeholder="alto" bind:value={item.resizeH} />
-                px — deixa baleiro para manter o tamaño orixinal.
+                <input
+                  class="num-input"
+                  type="number"
+                  min="1"
+                  placeholder="alto"
+                  value={item.resizeH ?? ""}
+                  on:input={(e) => updateResizeH(i, e.currentTarget.value)}
+                />
+                px
+                <label class="check-inline">
+                  <input type="checkbox" bind:checked={item.keepRatio} />
+                  manter proporción
+                </label>
+                — deixa baleiro para manter o tamaño orixinal.
               </div>
             {:else if item.showOptions && (item.category === "audio" || item.category === "video")}
               <div class="opcions-panel muted">
@@ -511,5 +562,11 @@
 
   .opcions-panel input[type="range"] {
     width: 10em;
+  }
+
+  .check-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
   }
 </style>
