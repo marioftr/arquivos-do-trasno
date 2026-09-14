@@ -9,7 +9,12 @@ export default defineConfig(async () => ({
     port: 1420,
     strictPort: true,
     watch: {
-      ignored: ["**/src-tauri/**", "**/crates/**"],
+      // "target/" é onde Rust escribe os binarios de compilación (é un
+      // workspace, así que vive na raíz do repo, non dentro de
+      // src-tauri/). Se Vite intenta vixiar eses ficheiros mentres Cargo
+      // os está escribindo, en Windows provoca un EBUSY que tira abaixo
+      // "npm run tauri dev" enteiro.
+      ignored: ["**/src-tauri/**", "**/crates/**", "**/target/**"],
     },
   },
   envPrefix: ["VITE_", "TAURI_"],
