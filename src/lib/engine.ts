@@ -16,6 +16,7 @@ export interface ConvertOptions {
   overwrite?: boolean;
   quality?: number;
   resize?: [number, number];
+  bitrateKbps?: number;
 }
 
 export async function detectCategory(path: string): Promise<Category> {
@@ -45,6 +46,7 @@ export async function convertFile(
     overwrite: options.overwrite ?? false,
     quality: options.quality ?? null,
     resize: options.resize ?? null,
+    bitrateKbps: options.bitrateKbps ?? null,
   });
 }
 

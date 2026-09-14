@@ -21,7 +21,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   descoñecido: "Descoñecido",
 };
 
-export function targetsForCategory(category: Category): string[] {
+export function targetsForCategory(category: Category, sourceExt?: string): string[] {
   switch (category) {
     case "imaxe":
       return IMAGE_TARGETS;
@@ -30,7 +30,8 @@ export function targetsForCategory(category: Category): string[] {
     case "video":
       return VIDEO_TARGETS;
     case "documento":
-      return ["pdf"];
+      // Un PDF extrae o seu texto; un .txt maquétase nun PDF sinxelo.
+      return sourceExt === "pdf" ? ["txt"] : ["pdf"];
     case "modelo3d":
       // De momento só mallas simples; gltf/glb/fbx recoñécense pero aínda
       // non se poden converter (ver crates/trasno-engine/src/model3d.rs).

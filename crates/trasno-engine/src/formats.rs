@@ -36,7 +36,11 @@ pub const VIDEO_EXTS: &[&str] = &[
     "mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "mpg", "mpeg", "gif",
 ];
 
-pub const DOCUMENT_EXTS: &[&str] = &["pdf"];
+/// Extensións recoñecidas como categoría "documento". As saídas posibles
+/// dependen da orixe (ver `trasno_engine::suggested_targets`): un .pdf
+/// convértese a .txt (extracto de texto) e un .txt a .pdf (maquetación
+/// sinxela). Formatos ricos (DOCX/ODT) quedan para unha fase posterior.
+pub const DOCUMENT_EXTS: &[&str] = &["pdf", "txt"];
 
 pub const MODEL3D_EXTS: &[&str] = &["obj", "stl", "ply", "gltf", "glb", "fbx"];
 

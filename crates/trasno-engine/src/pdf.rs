@@ -3,8 +3,8 @@
 //! a/desde PDF quedan para unha fase posterior (documentadas no ROADMAP).
 
 use crate::error::{EngineError, Result};
-use crate::integrity::assert_non_empty_file;
-use lopdf::{Document, ObjectId};
+use crate::integrity::{assert_non_empty_file, AtomicOutput};
+use lopdf::{dictionary, Document, Object, ObjectId, Stream};
 use std::path::{Path, PathBuf};
 
 fn load(path: &Path) -> Result<Document> {
@@ -228,6 +228,172 @@ pub fn page_count(input: &Path) -> Result<u32> {
     Ok(doc.get_pages().len() as u32)
 }
 
+// Xeometría dunha páxina A4 en puntos (1/72"), coa que se compón un PDF de
+// texto plano cando se converte .txt -> .pdf.
+const PAGE_WIDTH: f64 = 595.0;
+const PAGE_HEIGHT: f64 = 842.0;
+const MARGIN: f64 = 50.0;
+const FONT_SIZE: f64 = 10.0;
+const LINE_HEIGHT: f64 = 14.0;
+const CHARS_PER_LINE: usize = 90;
+
+/// Escapa unha liña para un literal PDF `( ... )`, codificando en
+/// WinAnsiEncoding (cobre ASCII e as vogais acentuadas/ñ/ü do galego).
+/// Calquera outro carácter substitúese por '?' para non xerar bytes que
+/// corrompesen o PDF.
+fn escape_pdf_line(line: &str) -> Vec<u8> {
+    let mut out = Vec::with_capacity(line.len() + 4);
+    for ch in line.chars() {
+        let byte = if (ch as u32) < 256 { ch as u32 as u8 } else { b'?' };
+        if matches!(byte, b'(' | b')' | b'\\') {
+            out.push(b'\\');
+        }
+        out.push(byte);
+    }
+    out
+}
+
+/// Envolve unha liña de texto en varias, ningunha máis longa que
+/// `max_chars`, rompendo por palabras cando é posible (e por caracteres
+/// cando unha palabra soa xa supera o límite).
+fn wrap_line(line: &str, max_chars: usize) -> Vec<String> {
+    if line.is_empty() {
+        return vec![String::new()];
+    }
+    let max_chars = max_chars.max(1);
+    let mut out = Vec::new();
+    let mut current = String::new();
+    for word in line.split(' ') {
+        let mut remaining = word;
+        loop {
+            let sep_len = usize::from(!current.is_empty());
+            let fits = current.chars().count() + sep_len + remaining.chars().count() <= max_chars;
+            if fits {
+                if sep_len == 1 {
+                    current.push(' ');
+                }
+                current.push_str(remaining);
+                break;
+            }
+            if !current.is_empty() {
+                out.push(std::mem::take(&mut current));
+                continue;
+            }
+            // `current` está baleira e `remaining` por si só xa supera o
+            // límite: hai que partila por caracteres.
+            let head: String = remaining.chars().take(max_chars).collect();
+            let head_chars = head.chars().count();
+            let byte_offset = remaining
+                .char_indices()
+                .nth(head_chars)
+                .map(|(i, _)| i)
+                .unwrap_or(remaining.len());
+            out.push(head);
+            remaining = &remaining[byte_offset..];
+            if remaining.is_empty() {
+                break;
+            }
+        }
+    }
+    out.push(current);
+    out
+}
+
+/// Convirte un ficheiro de texto plano (UTF-8) nun PDF sinxelo (unha fonte
+/// estándar Courier, sen incrustar, paxinado automaticamente). Pensado para
+/// notas ou texto simple, non para reproducir formato de documentos ricos
+/// (Word/ODT quedan para unha fase posterior con motor de renderizado).
+pub fn text_to_pdf(input: &Path, output: &Path, overwrite: bool) -> Result<PathBuf> {
+    if !input.is_file() {
+        return Err(EngineError::InputNotFound(input.to_path_buf()));
+    }
+    let text = std::fs::read_to_string(input)
+        .map_err(|e| EngineError::Pdf(format!("non se puido ler o ficheiro de texto: {e}")))?;
+
+    let mut wrapped_lines: Vec<String> = Vec::new();
+    for raw_line in text.lines() {
+        wrapped_lines.extend(wrap_line(raw_line, CHARS_PER_LINE));
+    }
+    if wrapped_lines.is_empty() {
+        wrapped_lines.push(String::new());
+    }
+
+    let lines_per_page = (((PAGE_HEIGHT - 2.0 * MARGIN) / LINE_HEIGHT) as usize).max(1);
+    let mut doc = Document::with_version("1.5");
+
+    let font_id = doc.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type1",
+        "BaseFont" => "Courier",
+        "Encoding" => "WinAnsiEncoding",
+    });
+
+    let mut page_ids: Vec<ObjectId> = Vec::new();
+    for chunk in wrapped_lines.chunks(lines_per_page) {
+        let mut content = Vec::new();
+        content.extend_from_slice(
+            format!(
+                "BT /F1 {FONT_SIZE} Tf {LINE_HEIGHT} TL {MARGIN} {} Td\n",
+                PAGE_HEIGHT - MARGIN
+            )
+            .as_bytes(),
+        );
+        for (i, line) in chunk.iter().enumerate() {
+            if i > 0 {
+                content.extend_from_slice(b"T*\n");
+            }
+            content.push(b'(');
+            content.extend(escape_pdf_line(line));
+            content.extend_from_slice(b") Tj\n");
+        }
+        content.extend_from_slice(b"ET");
+
+        let content_id = doc.add_object(Stream::new(dictionary! {}, content));
+        let page_id = doc.add_object(dictionary! {
+            "Type" => "Page",
+            "MediaBox" => vec![0.into(), 0.into(), PAGE_WIDTH.into(), PAGE_HEIGHT.into()],
+            "Contents" => content_id,
+            "Resources" => dictionary! {
+                "Font" => dictionary! { "F1" => font_id },
+            },
+        });
+        page_ids.push(page_id);
+    }
+
+    let pages_id = doc.add_object(dictionary! {
+        "Type" => "Pages",
+        "Kids" => page_ids.iter().map(|id| Object::Reference(*id)).collect::<Vec<_>>(),
+        "Count" => page_ids.len() as i64,
+    });
+    for page_id in &page_ids {
+        if let Ok(dict) = doc.get_object_mut(*page_id).and_then(|o| o.as_dict_mut()) {
+            dict.set("Parent", Object::Reference(pages_id));
+        }
+    }
+    let catalog_id = doc.add_object(dictionary! {
+        "Type" => "Catalog",
+        "Pages" => pages_id,
+    });
+    doc.trailer.set("Root", catalog_id);
+
+    save_atomically(&mut doc, output, overwrite)
+}
+
+/// Extrae o texto de tódalas páxinas dun PDF a un ficheiro `.txt` (UTF-8).
+/// Non intenta recompor a maquetación orixinal, só o contido textual.
+pub fn pdf_to_text(input: &Path, output: &Path, overwrite: bool) -> Result<PathBuf> {
+    let doc = load(input)?;
+    let page_numbers: Vec<u32> = doc.get_pages().into_keys().collect();
+    let text = doc
+        .extract_text(&page_numbers)
+        .map_err(|e| EngineError::Pdf(format!("non se puido extraer o texto: {e}")))?;
+
+    let mut out = AtomicOutput::new(output, overwrite)?;
+    out.write_all(text.as_bytes())?;
+    out.commit()?;
+    Ok(output.to_path_buf())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -350,5 +516,49 @@ mod tests {
             let dict = doc.get_object(page_id).unwrap().as_dict().unwrap();
             assert_eq!(dict.get(b"Rotate").unwrap().as_i64().unwrap(), 0);
         }
+    }
+
+    #[test]
+    fn wrap_line_respecta_o_limite_e_non_perde_texto() {
+        let orixinal = "unha liña bastante longa que hai que envolver en varias partes máis curtas";
+        let partes = wrap_line(orixinal, 20);
+        assert!(partes.iter().all(|p| p.chars().count() <= 20));
+        assert_eq!(partes.join(" "), orixinal);
+    }
+
+    #[test]
+    fn wrap_line_parte_palabras_moi_longas() {
+        let partes = wrap_line("supercalifragilisticoexpialidoso", 10);
+        assert!(partes.iter().all(|p| p.chars().count() <= 10));
+        assert_eq!(partes.concat(), "supercalifragilisticoexpialidoso");
+    }
+
+    #[test]
+    fn texto_a_pdf_e_volta_conserva_o_contido() {
+        let dir = tempfile::tempdir().unwrap();
+        let txt = dir.path().join("nota.txt");
+        std::fs::write(&txt, "Ola trasno!\nSegunda liña con ñ e á.\n").unwrap();
+
+        let pdf = dir.path().join("nota.pdf");
+        text_to_pdf(&txt, &pdf, false).unwrap();
+        assert_eq!(page_count(&pdf).unwrap(), 1);
+
+        let extraido = dir.path().join("volta.txt");
+        pdf_to_text(&pdf, &extraido, false).unwrap();
+        let contido = std::fs::read_to_string(&extraido).unwrap();
+        assert!(contido.contains("Ola trasno!"));
+        assert!(contido.contains("Segunda liña con"));
+    }
+
+    #[test]
+    fn texto_a_pdf_paxina_cando_hai_moitas_liñas() {
+        let dir = tempfile::tempdir().unwrap();
+        let txt = dir.path().join("longo.txt");
+        let contido = "liña\n".repeat(200);
+        std::fs::write(&txt, contido).unwrap();
+
+        let pdf = dir.path().join("longo.pdf");
+        text_to_pdf(&txt, &pdf, false).unwrap();
+        assert!(page_count(&pdf).unwrap() > 1, "200 liñas teñen que ocupar máis dunha páxina");
     }
 }

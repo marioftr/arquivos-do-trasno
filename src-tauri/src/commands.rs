@@ -46,11 +46,13 @@ pub fn convert_file(
     overwrite: bool,
     quality: Option<u8>,
     resize: Option<(u32, u32)>,
+    bitrate_kbps: Option<u32>,
 ) -> Result<ConvertResult, String> {
     let options = ConvertOptions {
         overwrite,
         quality,
         resize,
+        bitrate_kbps,
     };
     trasno_engine::convert_file(&PathBuf::from(input), &PathBuf::from(output), &options)
         .map(|r| ConvertResult {

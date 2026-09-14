@@ -34,6 +34,9 @@ pub struct ConvertOptions {
     pub overwrite: bool,
     pub quality: Option<u8>,
     pub resize: Option<(u32, u32)>,
+    /// Só para audio/vídeo (delegado en ffmpeg): bitrate obxectivo en kbps.
+    /// `None` deixa que ffmpeg escolla o seu bitrate por defecto.
+    pub bitrate_kbps: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -66,10 +69,35 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
         | (Category::Audio, Category::Video)
         | (Category::Imaxe, Category::Video)
         | (Category::Video, Category::Imaxe) => {
-            ffmpeg::convert_media(input, output, options.overwrite, &[])?
+            let mut extra_args: Vec<String> = Vec::new();
+            if dst_category == Category::Audio && src_category == Category::Video {
+                // Sen isto, ffmpeg tenta meter tamén o stream de vídeo nun
+                // contedor que só admite audio (mp3, flac...) e falla.
+                extra_args.push("-vn".to_string());
+            }
+            if let Some(kbps) = options.bitrate_kbps {
+                let flag = if dst_category == Category::Audio { "-b:a" } else { "-b:v" };
+                extra_args.push(flag.to_string());
+                extra_args.push(format!("{kbps}k"));
+            }
+            ffmpeg::convert_media(input, output, options.overwrite, &extra_args)?
         }
         (Category::Modelo3d, Category::Modelo3d) => {
             model3d::convert_model3d(input, output, options.overwrite)?
+        }
+        (Category::Documento, Category::Documento) => {
+            let in_ext = formats::extension_of(input).unwrap_or_default();
+            let out_ext = formats::extension_of(output).unwrap_or_default();
+            match (in_ext.as_str(), out_ext.as_str()) {
+                ("txt", "pdf") => pdf::text_to_pdf(input, output, options.overwrite)?,
+                ("pdf", "txt") => pdf::pdf_to_text(input, output, options.overwrite)?,
+                _ => {
+                    return Err(EngineError::UnsupportedConversion {
+                        from: in_ext,
+                        to: out_ext,
+                    })
+                }
+            }
         }
         (from, to) => {
             return Err(EngineError::UnsupportedConversion {
@@ -95,7 +123,10 @@ pub fn suggested_targets(input: &Path) -> Vec<&'static str> {
         Category::Imaxe => formats::IMAGE_ENCODE.to_vec(),
         Category::Audio => formats::AUDIO_EXTS.to_vec(),
         Category::Video => formats::VIDEO_EXTS.to_vec(),
-        Category::Documento => formats::DOCUMENT_EXTS.to_vec(),
+        Category::Documento => match formats::extension_of(input).as_deref() {
+            Some("pdf") => vec!["txt"],
+            _ => vec!["pdf"],
+        },
         Category::Modelo3d => formats::MODEL3D_ENGINE_SUPPORTED.to_vec(),
         Category::Descoñecido => Vec::new(),
     }
@@ -116,6 +147,22 @@ mod tests {
         let report = convert_file(&input, &output, &ConvertOptions::default()).unwrap();
         assert!(report.bytes_written > 0);
         assert_eq!(report.category, Category::Imaxe);
+    }
+
+    #[test]
+    fn dispatch_texto_a_pdf_e_pdf_a_texto() {
+        let dir = tempfile::tempdir().unwrap();
+        let txt = dir.path().join("nota.txt");
+        std::fs::write(&txt, "Ola dende o trasno!").unwrap();
+
+        let pdf = dir.path().join("nota.pdf");
+        let report = convert_file(&txt, &pdf, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.category, Category::Documento);
+
+        let volta = dir.path().join("volta.txt");
+        convert_file(&pdf, &volta, &ConvertOptions::default()).unwrap();
+        let contido = std::fs::read_to_string(&volta).unwrap();
+        assert!(contido.contains("Ola dende o trasno!"));
     }
 
     #[test]
