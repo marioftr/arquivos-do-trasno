@@ -13,8 +13,19 @@ use std::path::{Path, PathBuf};
 pub struct ImageConvertOptions {
     /// Calidade JPEG/WebP con perdas, de 1 a 100. `None` usa o valor por defecto.
     pub quality: Option<u8>,
-    /// Redimensionar antes de gardar, mantendo a proporción se só se indica un lado.
+    /// Redimensionar antes de gardar ao ancho×alto exactos indicados (pode
+    /// deformar a imaxe se a proporción non coincide coa orixinal; a UI
+    /// ofrece "manter proporción" calculando o lado que falta primeiro).
     pub resize: Option<(u32, u32)>,
+}
+
+/// Le só as dimensións dunha imaxe (cabeceira, sen decodificar os píxeles),
+/// para que a UI poida ofrecer "manter proporción" ao redimensionar.
+pub fn image_dimensions(path: &Path) -> Result<(u32, u32)> {
+    if !path.is_file() {
+        return Err(EngineError::InputNotFound(path.to_path_buf()));
+    }
+    image::image_dimensions(path).map_err(EngineError::Image)
 }
 
 fn format_from_ext(ext: &str) -> Result<ImageFormat> {
@@ -57,7 +68,10 @@ pub fn convert_image(
     let mut img = image::open(input)?;
 
     if let Some((w, h)) = options.resize {
-        img = img.resize(w, h, image::imageops::FilterType::Lanczos3);
+        if w == 0 || h == 0 {
+            return Err(EngineError::EmptyOrCorruptOutput);
+        }
+        img = img.resize_exact(w, h, image::imageops::FilterType::Lanczos3);
     }
 
     if img.width() == 0 || img.height() == 0 {
@@ -125,6 +139,34 @@ mod tests {
         let output = dir.path().join("destino.ppm");
         let result = convert_image(&input, &output, false, &Default::default()).unwrap();
         assert!(result.exists());
+    }
+
+    #[test]
+    fn redimensiona_a_medidas_exactas_ainda_que_deforme() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("orixe.png");
+        // Orixe cadrada (10x10): pedir 20x10 non mantén proporción, así que
+        // isto comproba que se respectan as medidas EXACTAS pedidas.
+        image::DynamicImage::ImageRgb8(image::RgbImage::new(10, 10))
+            .save(&input)
+            .unwrap();
+        let output = dir.path().join("destino.png");
+        let opts = ImageConvertOptions { quality: None, resize: Some((20, 10)) };
+        let result = convert_image(&input, &output, false, &opts).unwrap();
+
+        let decoded = image::open(&result).unwrap();
+        assert_eq!(decoded.width(), 20);
+        assert_eq!(decoded.height(), 10);
+    }
+
+    #[test]
+    fn le_dimensions_sen_decodificar_todo() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("orixe.png");
+        image::DynamicImage::ImageRgb8(image::RgbImage::new(32, 18))
+            .save(&input)
+            .unwrap();
+        assert_eq!(image_dimensions(&input).unwrap(), (32, 18));
     }
 
     #[test]

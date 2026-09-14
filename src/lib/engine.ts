@@ -35,6 +35,10 @@ export async function fileSize(path: string): Promise<number> {
   return invoke("file_size", { path });
 }
 
+export async function imageDimensions(path: string): Promise<[number, number]> {
+  return invoke("image_dimensions", { path });
+}
+
 export async function convertFile(
   input: string,
   output: string,
