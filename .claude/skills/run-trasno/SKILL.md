@@ -58,7 +58,8 @@ webkit2gtk process, not a headless render.
 | `type TEXT` | type literal text (e.g. a file path) |
 | `key KEY` | send a key or chord, e.g. `Return`, `ctrl+l` |
 | `opendlg PATH` | for an already-open GTK file/save dialog: `Ctrl+L`, type `PATH`, `Return` — jumps straight to that path instead of clicking through folders |
-| `quit` | kill the app (leaves Xvfb running) |
+| `quit` | kill the app only — the driver REPL stays open, `launch` starts a fresh instance |
+| `exit` | kill the app and leave the driver (Xvfb keeps running) |
 
 ## Clicking without a DOM
 
@@ -74,13 +75,23 @@ any UI edit before trusting old coordinates. As of this writing, at
 home screen is around (1066, 448); the home button grid starts around
 y≈220-320.
 
-## Native file dialogs (open/save)
+## Native file dialogs (open/save/pick-folder)
 
 Trasno uses `tauri-plugin-dialog`, which opens a real GTK file chooser —
 not a web `<input type=file>`. Clicking through folders is slow and
 fragile; instead, once the dialog is on screen, use `opendlg <path>` (or
 manually `key ctrl+l`, `type <path>`, `key Return`) to jump straight to
-an absolute path. This works for both "Open" and "Save" dialogs.
+an absolute path.
+
+- **Open / Save dialogs**: `opendlg <path>` reliably selects/confirms
+  the file directly (one `Return` after typing is enough).
+- **"Select a folder" dialogs** (`open({directory:true})`, e.g. Trasno's
+  "Escoller cartafol de saída"): the location-bar trick only *searches*
+  for that path — it does not confirm it. You need a second step:
+  `key Return` again (or `click` directly on the matching row in the
+  list) to actually navigate into it, and only then is the "Open"
+  button enabled — click it (or the dialog won't close). Budget two
+  round trips, not one, for folder pickers.
 
 ## Gotchas
 

@@ -15,7 +15,8 @@
 #   type TEXTO         escribe TEXTO (delay entre teclas)
 #   key TECLA          preme unha tecla/combinación (ex: Return, ctrl+l)
 #   opendlg RUTA       abre un diálogo GTK xa aberto: Ctrl+L, escribe RUTA, Return
-#   quit               mata a app e o Xvfb, sae do driver
+#   quit               mata a app (o driver segue aceso; 'launch' relánzaa)
+#   exit               mata a app e sae do driver (non toca o Xvfb)
 #
 # Uso típico (dende a raíz do repo):
 #   tmux new-session -d -s trasno -x 1280 -y 800
@@ -110,7 +111,8 @@ cmd_opendlg() {
 cmd_quit() {
   [ -n "$APP_PID" ] && kill "$APP_PID" 2>/dev/null
   pkill -f "$BIN_PATH" 2>/dev/null
-  echo "app pechada (Xvfb déixase acesa; mátaa á man se xa non fai falta)"
+  APP_PID=""
+  echo "app pechada (o driver segue aceso; 'launch' relánzaa, 'exit' pecha o driver)"
 }
 
 echo "driver de Trasno — 'help' para ver comandos"
@@ -126,8 +128,9 @@ while IFS= read -r line; do
     type) cmd_type "$@" ;;
     key) cmd_key "$@" ;;
     opendlg) cmd_opendlg "$@" ;;
-    quit) cmd_quit; break ;;
-    help) echo "comandos: build launch ss click type key opendlg quit" ;;
+    quit) cmd_quit ;;
+    exit) cmd_quit; break ;;
+    help) echo "comandos: build launch ss click type key opendlg quit exit" ;;
     "") ;;
     *) echo "descoñecido: $cmd (proba 'help')" ;;
   esac

@@ -6,8 +6,8 @@
   export let accent: string = "var(--accent-conversor)";
 </script>
 
-<header class="header">
-  <span class="icon-badge" style={`color:${accent}; background:color-mix(in srgb, ${accent} 16%, transparent)`}>
+<header class="header" style={`--accent:${accent}`}>
+  <span class="icon" style={`color:${accent}`}>
     <Icon name={icon} size={17} />
   </span>
   <span class="title">{title}</span>
@@ -19,22 +19,19 @@
   .header {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.55rem;
     padding: 0.7rem 1.1rem;
     border-bottom: 1px solid var(--border);
+    box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--accent) 45%, transparent);
     background: var(--bg-elevated);
   }
-  .icon-badge {
-    width: 1.9rem;
-    height: 1.9rem;
-    border-radius: var(--radius-sm);
+  .icon {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
   }
   .title {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     color: var(--text);
   }
   .spacer {

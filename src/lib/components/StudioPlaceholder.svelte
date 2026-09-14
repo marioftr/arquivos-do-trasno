@@ -14,25 +14,27 @@
 <StudioHeader {title} {icon} {accent} />
 
 <div class="body scrollbar-thin">
-  <div class="card intro">
-    <span class="badge" style={`color:${accent}; background:color-mix(in srgb, ${accent} 16%, transparent)`}>
-      <Icon name={icon} size={22} />
-    </span>
-    <h2>{title} está en construción</h2>
-    <p class="muted">
-      Este estudo forma parte da folla de ruta de Trasno. Mentres se desenvolve, xa podes usar o
-      <button class="link" on:click={() => goTo(conversorView)}>conversor universal</button>
-      para cambiar de formato os teus ficheiros desta categoría.
-    </p>
-  </div>
+  <div class="content">
+    <div class="card intro">
+      <h2>
+        <span style={`color:${accent}`}><Icon name={icon} size={17} /></span>
+        {title} está en obras
+      </h2>
+      <p class="muted">
+        Este estudo aínda non ten mans (ou gadoupas). Mentres tanto, o
+        <button class="link" on:click={() => goTo(conversorView)}>conversor universal</button>
+        xa che cambia o formato destes ficheiros.
+      </p>
+    </div>
 
-  <div class="card">
-    <h3 class="muted">Previsto para este estudo</h3>
-    <ul>
-      {#each features as f}
-        <li>{f}</li>
-      {/each}
-    </ul>
+    <div class="card">
+      <h3 class="muted">Previsto para este estudo</h3>
+      <ul>
+        {#each features as f}
+          <li>{f}</li>
+        {/each}
+      </ul>
+    </div>
   </div>
 </div>
 
@@ -40,30 +42,27 @@
   .body {
     flex: 1;
     min-height: 0;
+    width: 100%;
     overflow-y: auto;
     padding: 1.1rem 1.25rem 2rem;
+  }
+  .content {
+    max-width: 640px;
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    max-width: 640px;
   }
   .intro {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.6rem;
-  }
-  .badge {
-    width: 2.6rem;
-    height: 2.6rem;
-    border-radius: var(--radius-md);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    gap: 0.5rem;
   }
   .intro h2 {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
   .intro p {
     margin: 0;
@@ -76,6 +75,13 @@
     text-decoration: underline;
     font: inherit;
     cursor: pointer;
+  }
+  h3 {
+    margin: 0 0 0.6rem;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
   }
   ul {
     margin: 0;

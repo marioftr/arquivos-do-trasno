@@ -10,6 +10,7 @@ pub fn run() {
             commands::detect_category,
             commands::suggested_targets,
             commands::ffmpeg_available,
+            commands::file_size,
             commands::convert_file,
             commands::trim_media,
             commands::concat_media,

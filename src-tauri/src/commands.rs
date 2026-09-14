@@ -33,6 +33,13 @@ pub fn ffmpeg_available() -> bool {
 }
 
 #[tauri::command]
+pub fn file_size(path: String) -> Result<u64, String> {
+    std::fs::metadata(&path)
+        .map(|m| m.len())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn convert_file(
     input: String,
     output: String,
