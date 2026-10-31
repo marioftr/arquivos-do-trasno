@@ -164,3 +164,8 @@ export async function sha256(path: string): Promise<string> {
 export async function revealInFolder(path: string): Promise<void> {
   return invoke("reveal_in_folder", { path });
 }
+
+/** Copia lixeira que o visor sabe amosar (PNG, MP4 pequeno ou MP3). */
+export async function makePreview(path: string): Promise<string> {
+  return invoke("make_preview", { path });
+}

@@ -65,7 +65,7 @@
     <span class="brand"><BrandMark size={20} /> Arquivos do Trasno</span>
     <span class="grow"></span>
     {#if ffmpegOk === false && needsFfmpeg}
-      <span class="aviso"><Icon name="warning" size={14} /> Falta ffmpeg: o audio e o vídeo non se poden converter neste equipo.</span>
+      <span class="aviso"><Icon name="warning" size={14} /> Falta ffmpeg (instálao con «winget install ffmpeg» ou pon ffmpeg.exe e ffprobe.exe ao carón da app).</span>
     {/if}
   </header>
 

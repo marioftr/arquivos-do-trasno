@@ -294,3 +294,119 @@ pub fn reveal_in_folder(path: String) -> Result<(), String> {
     }
     Ok(())
 }
+
+/// Como `allow_view`, pero para o cartafol dun modelo 3D: as texturas e os
+/// materiais viven ao seu carón. Só lectura; non se amplía a ningún outro sitio.
+#[tauri::command]
+pub fn allow_view_dir(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    use tauri::Manager;
+    let p = PathBuf::from(&path);
+    let dir = p.parent().ok_or("ruta sen cartafol")?;
+    app.asset_protocol_scope()
+        .allow_directory(dir, true)
+        .map_err(|e| e.to_string())?;
+    app.asset_protocol_scope()
+        .allow_file(&p)
+        .map_err(|e| e.to_string())
+}
+
+fn preview_dir() -> PathBuf {
+    std::env::temp_dir().join("arquivos-do-trasno-previsualizacions")
+}
+
+/// Borra as vistas previas de execucións anteriores.
+pub fn clean_previews() {
+    let _ = std::fs::remove_dir_all(preview_dir());
+}
+
+/// Xera unha copia lixeira que o visor si sabe amosar (PNG para imaxes que o
+/// navegador non le; MP4 pequeno ou MP3 para audio e vídeo). O orixinal non
+/// se toca.
+#[tauri::command]
+pub async fn make_preview(path: String) -> Result<String, String> {
+    blocking(move || {
+        let input = PathBuf::from(&path);
+        let category = trasno_engine::formats::category_of_path(&input);
+        let dir = preview_dir();
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let stem = format!("{:x}", {
+            use std::hash::{Hash, Hasher};
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            path.hash(&mut h);
+            h.finish()
+        });
+        let out = match category {
+            Category::Imaxe => {
+                let out = dir.join(format!("{stem}.png"));
+                if !out.exists() {
+                    trasno_engine::convert_file(&input, &out, &ConvertOptions { overwrite: true, ..Default::default() })
+                        .map_err(to_err)?;
+                }
+                out
+            }
+            Category::Video => {
+                let out = dir.join(format!("{stem}.mp4"));
+                if !out.exists() {
+                    let args: Vec<String> = ["-vf", "scale=-2:480", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "30", "-c:a", "aac", "-b:a", "96k", "-pix_fmt", "yuv420p"]
+                        .iter().map(|s| s.to_string()).collect();
+                    trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
+                }
+                out
+            }
+            Category::Audio => {
+                let out = dir.join(format!("{stem}.mp3"));
+                if !out.exists() {
+                    let args: Vec<String> = ["-vn", "-b:a", "128k"].iter().map(|s| s.to_string()).collect();
+                    trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
+                }
+                out
+            }
+            _ => return Err("este tipo de ficheiro non ten vista previa alternativa".into()),
+        };
+        Ok(out.to_string_lossy().to_string())
+    })
+    .await
+}
+
+fn percent_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%' && i + 2 < b.len() {
+            if let Ok(v) = u8::from_str_radix(&s[i + 1..i + 3], 16) {
+                out.push(v);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(b[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).to_string()
+}
+
+/// Garda bytes xerados na interface (p. ex. un modelo 3D exportado) de forma
+/// atómica: temporal, validación e `rename`. Nunca pisa o ficheiro de orixe.
+#[tauri::command]
+pub fn write_bytes(request: tauri::ipc::Request<'_>) -> Result<(), String> {
+    let header = |name: &str| -> Result<String, String> {
+        request
+            .headers()
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .map(percent_decode)
+            .ok_or_else(|| format!("falta a cabeceira {name}"))
+    };
+    let path = PathBuf::from(header("x-path")?);
+    let source = PathBuf::from(header("x-source")?);
+    let overwrite = header("x-overwrite").map(|v| v == "1").unwrap_or(false);
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err("a petición non traía datos".into());
+    };
+    trasno_engine::integrity::ensure_distinct(&[source.as_path()], &path).map_err(to_err)?;
+    let mut out = trasno_engine::integrity::AtomicOutput::new(&path, overwrite).map_err(to_err)?;
+    out.write_all(bytes).map_err(to_err)?;
+    out.commit().map_err(to_err)?;
+    Ok(())
+}

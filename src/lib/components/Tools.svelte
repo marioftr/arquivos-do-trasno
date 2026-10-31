@@ -5,6 +5,7 @@
   import type { Category } from "../engine";
   import type { FileEntry } from "../files";
   import Icon from "./Icon.svelte";
+  import { convertModel } from "../model3d";
   import InfoSection from "./tools/InfoSection.svelte";
   import ImageEditSection from "./tools/ImageEditSection.svelte";
   import MediaEditSection from "./tools/MediaEditSection.svelte";
@@ -124,6 +125,17 @@
     };
   }
 
+  const ENGINE_3D = ["obj", "stl", "ply"];
+
+  /** 3D: o motor Rust para OBJ/STL/PLY entre si; o resto, polo visor (three.js). */
+  async function convertOne(f: FileEntry, out: string, overwrite: boolean): Promise<{ output_path: string; bytes_written: number }> {
+    if (f.category === "modelo3d" && !(ENGINE_3D.includes(f.ext) && ENGINE_3D.includes(targetExt))) {
+      const bytes = await convertModel(f.path, f.ext, out, targetExt, overwrite);
+      return { output_path: out, bytes_written: bytes };
+    }
+    return engine.convertFile(f.path, out, { ...optionsFor(f, !multi), overwrite });
+  }
+
   async function convertSingle() {
     const f = first!;
     const out = await save({ defaultPath: withExtension(f.path, targetExt) });
@@ -133,7 +145,7 @@
       return;
     }
     await guard(TRASNO.convertendo, async () => {
-      const r = await engine.convertFile(f.path, out, { ...optionsFor(f, true), overwrite: true });
+      const r = await convertOne(f, out, true);
       return `${TRASNO.listo} ${fileNameOf(r.output_path)} · ${formatBytes(r.bytes_written)}`;
     });
   }
@@ -166,7 +178,7 @@
           const name = targetExt === f.ext ? `${base}-trasno.${targetExt}` : `${base}.${targetExt}`;
           const out = await join(dir, name);
           if (samePath(out, f.path)) throw new Error("coincidiría co orixinal");
-          const r = await engine.convertFile(f.path, out, { ...optionsFor(f, false), overwrite: false });
+          const r = await convertOne(f, out, false);
           const before = f.size ? ` (${formatBytes(f.size)} → ${formatBytes(r.bytes_written)})` : "";
           results[i] = { name: f.name, state: "feito", text: before };
         } catch (e) {
@@ -417,9 +429,6 @@
       </section>
     {/if}
 
-    {#if category === "modelo3d" && first && !["obj", "stl", "ply"].includes(first.ext)}
-      <p class="muted tiny">O trasno pode ver os {first.ext.toUpperCase()}, pero aínda non os sabe converter.</p>
-    {/if}
 
     {#if !multi && first}
       <InfoSection file={first} />

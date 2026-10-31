@@ -1,5 +1,6 @@
 <script lang="ts">
   import { viewUrl, type FileEntry } from "../../files";
+  import * as engine from "../../engine";
 
   export let file: FileEntry;
 
@@ -8,22 +9,47 @@
 
   $: load(file.path);
 
+  let preparing = false;
+  let triedPreview = false;
+
   async function load(path: string) {
     failed = false;
+    triedPreview = false;
+    preparing = false;
     url = await viewUrl(path);
+  }
+
+  // Formatos que o navegador non reproduce (MKV, AVI, AIFF...): o trasno prepara
+  // unha copia lixeira temporal. O ficheiro orixinal non se modifica.
+  async function prepare() {
+    if (triedPreview) {
+      failed = true;
+      return;
+    }
+    triedPreview = true;
+    preparing = true;
+    try {
+      url = await viewUrl(await engine.makePreview(file.path));
+    } catch {
+      failed = true;
+    } finally {
+      preparing = false;
+    }
   }
 </script>
 
 <div class="wrap">
-  {#if failed}
-    <p class="muted msg">O visor non reproduce o formato {file.ext.toUpperCase()}. Convértese a MP4 ou MP3 e xa se ve.</p>
+  {#if preparing}
+    <p class="muted msg">O trasno está preparando unha vista previa de {file.ext.toUpperCase()}…</p>
+  {:else if failed}
+    <p class="muted msg">O trasno non puido preparar a vista previa (¿falta ffmpeg?).</p>
   {:else if url && file.category === "video"}
     <!-- svelte-ignore a11y_media_has_caption -->
-    <video src={url} controls on:error={() => (failed = true)}></video>
+    <video src={url} controls on:error={prepare}></video>
   {:else if url}
     <div class="audio">
       <div class="nome">{file.name}</div>
-      <audio src={url} controls on:error={() => (failed = true)}></audio>
+      <audio src={url} controls on:error={prepare}></audio>
     </div>
   {/if}
 </div>

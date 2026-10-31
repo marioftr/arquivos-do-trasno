@@ -33,9 +33,9 @@ export function targetsForCategory(category: Category, sourceExt?: string): stri
       // Un PDF extrae o seu texto; un .txt maquétase nun PDF sinxelo.
       return sourceExt === "pdf" ? ["txt"] : ["pdf"];
     case "modelo3d":
-      // De momento só mallas simples; gltf/glb/fbx recoñécense pero aínda
-      // non se poden converter (ver crates/trasno-engine/src/model3d.rs).
-      return ["obj", "stl", "ply"];
+      // O motor Rust lé OBJ/STL/PLY; FBX e glTF léense e escríbense a través
+      // do visor (three.js). Ver lib/model3d.ts e Tools.svelte.
+      return ["glb", "obj", "stl", "ply"].filter((t) => t !== sourceExt);
     default:
       return [];
   }

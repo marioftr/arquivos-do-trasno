@@ -1,5 +1,6 @@
 <script lang="ts">
   import { viewUrl, imageEdit, type FileEntry } from "../../files";
+  import * as engine from "../../engine";
 
   export let file: FileEntry;
 
@@ -14,24 +15,41 @@
     ? `transform: rotate(${e.rotate}deg) scale(${e.flipH ? -1 : 1}, ${e.flipV ? -1 : 1}); filter: brightness(${1 + e.brightness / 100}) contrast(${1 + e.contrast / 100}) grayscale(${e.grayscale ? 1 : 0}) invert(${e.invert ? 1 : 0}) blur(${e.blur}px);`
     : "";
 
+  let triedPreview = false;
+
   async function load(path: string) {
     failed = false;
+    triedPreview = false;
     fit = true;
     zoom = 100;
     url = await viewUrl(path);
+  }
+
+  // O navegador non le TIFF, TGA, QOI, PPM...: o trasno fai un PNG temporal para velo.
+  async function onError() {
+    if (triedPreview) {
+      failed = true;
+      return;
+    }
+    triedPreview = true;
+    try {
+      url = await viewUrl(await engine.makePreview(file.path));
+    } catch {
+      failed = true;
+    }
   }
 </script>
 
 <div class="wrap">
   <div class="stage scrollbar-thin" class:fit>
     {#if failed}
-      <p class="muted msg">O visor non pode mostrar o formato {file.ext.toUpperCase()}, pero o trasno si pode convertilo.</p>
+      <p class="muted msg">O trasno non puido preparar unha vista previa de {file.ext.toUpperCase()}.</p>
     {:else if url}
       <img
         src={url}
         alt={file.name}
         style={(fit ? "" : `width:${((file.width ?? 0) * zoom) / 100}px;`) + preview}
-        on:error={() => (failed = true)}
+        on:error={onError}
       />
     {/if}
   </div>

@@ -2,12 +2,8 @@
   import { onMount, onDestroy } from "svelte";
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-  import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
-  import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-  import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
-  import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
-  import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader.js";
-  import { viewUrl, type FileEntry } from "../../files";
+  import type { FileEntry } from "../../files";
+  import { loadModel, fallbackMaterial } from "../../model3d";
 
   export let file: FileEntry;
 
@@ -26,7 +22,7 @@
   let grid = true;
   let stats = "";
 
-  const fallback = new THREE.MeshStandardMaterial({ color: 0xb8bcc6, roughness: 0.6, metalness: 0.1, side: THREE.DoubleSide });
+  const fallback = fallbackMaterial();
 
   onMount(() => {
     scene = new THREE.Scene();
@@ -97,33 +93,12 @@
     model?.traverse((o: any) => materialsOf(o).forEach((m: any) => (m.wireframe = on)));
   }
 
-  async function parse(url: string, ext: string): Promise<THREE.Object3D> {
-    switch (ext) {
-      case "fbx":
-        return new FBXLoader().loadAsync(url);
-      case "glb":
-      case "gltf":
-        return (await new GLTFLoader().loadAsync(url)).scene;
-      case "obj":
-        return new OBJLoader().loadAsync(url);
-      case "stl":
-        return new THREE.Mesh(await new STLLoader().loadAsync(url), fallback.clone());
-      case "ply": {
-        const geo = await new PLYLoader().loadAsync(url);
-        geo.computeVertexNormals();
-        return new THREE.Mesh(geo, fallback.clone());
-      }
-      default:
-        throw new Error(`formato ${ext} sen visor`);
-    }
-  }
-
   async function load(f: FileEntry) {
     status = "O trasno está abrindo o modelo…";
     stats = "";
     clear();
     try {
-      const obj = await parse(await viewUrl(f.path), f.ext);
+      const obj = await loadModel(f.path, f.ext);
       let meshes = 0;
       let tris = 0;
       obj.traverse((o: any) => {
