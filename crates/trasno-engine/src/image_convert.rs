@@ -105,6 +105,124 @@ pub fn convert_image(
     }
 }
 
+/// Edicións non destrutivas dunha imaxe. Sempre se escribe nun ficheiro novo.
+#[derive(Debug, Clone, Default)]
+pub struct ImageEdits {
+    /// Xiro en sentido horario: 0, 90, 180 ou 270 graos.
+    pub rotate: u16,
+    pub flip_h: bool,
+    pub flip_v: bool,
+    pub grayscale: bool,
+    pub invert: bool,
+    /// De -100 a 100 (0 non cambia nada).
+    pub brightness: i32,
+    /// De -100 a 100 (0 non cambia nada).
+    pub contrast: f32,
+    /// Desenfoque gaussiano (sigma); 0 non desenfoca.
+    pub blur: f32,
+    /// Recorte (x, y, ancho, alto) en píxeles da imaxe orixinal.
+    pub crop: Option<(u32, u32, u32, u32)>,
+    pub quality: Option<u8>,
+    pub resize: Option<(u32, u32)>,
+}
+
+/// Aplica as edicións en orde fixa (recorte, xiro/volteo, cor, desenfoque,
+/// tamaño) e garda o resultado cas mesmas garantías que `convert_image`.
+pub fn edit_image(
+    input: &Path,
+    output: &Path,
+    overwrite: bool,
+    edits: &ImageEdits,
+) -> Result<PathBuf> {
+    use image::imageops;
+    if !input.is_file() {
+        return Err(EngineError::InputNotFound(input.to_path_buf()));
+    }
+    crate::integrity::ensure_distinct(&[input], output)?;
+    let dst_ext = formats::extension_of(output).ok_or_else(|| EngineError::UnsupportedConversion {
+        from: "imaxe".into(),
+        to: "(sen extensión)".into(),
+    })?;
+    let dst_format = format_from_ext(&dst_ext)?;
+    let mut img = image::open(input)?;
+
+    if let Some((x, y, w, h)) = edits.crop {
+        if w == 0 || h == 0 || x >= img.width() || y >= img.height() {
+            return Err(EngineError::IntegrityCheck("o recorte cae fóra da imaxe".into()));
+        }
+        let w = w.min(img.width() - x);
+        let h = h.min(img.height() - y);
+        img = img.crop_imm(x, y, w, h);
+    }
+    img = match edits.rotate % 360 {
+        90 => img.rotate90(),
+        180 => img.rotate180(),
+        270 => img.rotate270(),
+        0 => img,
+        _ => return Err(EngineError::IntegrityCheck("o xiro ten que ser 0, 90, 180 ou 270".into())),
+    };
+    if edits.flip_h {
+        img = img.fliph();
+    }
+    if edits.flip_v {
+        img = img.flipv();
+    }
+    if edits.grayscale {
+        img = image::DynamicImage::ImageLuma8(img.to_luma8()).to_rgba8().into();
+    }
+    if edits.brightness != 0 {
+        img = img.brighten(edits.brightness.clamp(-100, 100) * 255 / 100);
+    }
+    if edits.contrast != 0.0 {
+        img = img.adjust_contrast(edits.contrast.clamp(-100.0, 100.0));
+    }
+    if edits.invert {
+        img.invert();
+    }
+    if edits.blur > 0.0 {
+        img = img.blur(edits.blur.min(50.0));
+    }
+    if let Some((w, h)) = edits.resize {
+        if w == 0 || h == 0 {
+            return Err(EngineError::EmptyOrCorruptOutput);
+        }
+        img = image::DynamicImage::from(imageops::resize(&img, w, h, imageops::FilterType::Lanczos3));
+    }
+    write_verified(&img, output, overwrite, dst_format, edits.quality)
+}
+
+/// Garda `img` de forma atómica e comproba que se pode reabrir.
+fn write_verified(
+    img: &image::DynamicImage,
+    output: &Path,
+    overwrite: bool,
+    format: ImageFormat,
+    quality: Option<u8>,
+) -> Result<PathBuf> {
+    // JPEG non admite canle alfa.
+    let img = if format == ImageFormat::Jpeg && img.color().has_alpha() {
+        image::DynamicImage::ImageRgb8(img.to_rgb8())
+    } else {
+        img.clone()
+    };
+    let mut out = AtomicOutput::new(output, overwrite)?;
+    match (format, quality) {
+        (ImageFormat::Jpeg, Some(q)) => {
+            let mut enc = image::codecs::jpeg::JpegEncoder::new_with_quality(out.as_file_mut(), q.clamp(1, 100));
+            enc.encode_image(&img)?;
+        }
+        _ => img.write_to(&mut std::io::BufWriter::new(out.as_file_mut()), format)?,
+    }
+    let final_path = out.commit()?;
+    match image::open(&final_path) {
+        Ok(check) if check.width() == img.width() && check.height() == img.height() => Ok(final_path),
+        _ => {
+            let _ = std::fs::remove_file(&final_path);
+            Err(EngineError::EmptyOrCorruptOutput)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -180,5 +298,18 @@ mod tests {
         std::fs::write(&output, b"xa existo").unwrap();
         let err = convert_image(&input, &output, false, &Default::default()).unwrap_err();
         assert!(matches!(err, EngineError::DestinationExists(_)));
+    }
+
+    #[test]
+    fn edita_xira_e_recorta() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("orixe.png");
+        image::DynamicImage::ImageRgb8(image::RgbImage::new(20, 10)).save(&input).unwrap();
+        let output = dir.path().join("editada.png");
+        let edits = ImageEdits { rotate: 90, crop: Some((0, 0, 10, 10)), ..Default::default() };
+        let r = edit_image(&input, &output, false, &edits).unwrap();
+        let d = image::open(r).unwrap();
+        assert_eq!((d.width(), d.height()), (10, 10));
+        assert!(edit_image(&input, &input, true, &edits).is_err());
     }
 }

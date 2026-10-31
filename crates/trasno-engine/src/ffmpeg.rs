@@ -95,7 +95,7 @@ pub fn convert_media(
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("out");
-    let temp_path = dir.join(format!(".trasno-{}.{}.part", uuid::Uuid::new_v4(), ext));
+    let temp_path = dir.join(format!(".trasno-{}.part.{}", uuid::Uuid::new_v4(), ext));
 
     let mut args: Vec<std::ffi::OsString> = vec![
         std::ffi::OsString::from("-i"),
@@ -226,7 +226,7 @@ pub fn concat_media(inputs: &[PathBuf], output_final: &Path, overwrite: bool) ->
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("out");
-    let temp_path = dir.join(format!(".trasno-{}.{}.part", uuid::Uuid::new_v4(), ext));
+    let temp_path = dir.join(format!(".trasno-{}.part.{}", uuid::Uuid::new_v4(), ext));
 
     let args: Vec<std::ffi::OsString> = vec![
         "-f".into(),
@@ -261,4 +261,87 @@ pub fn concat_media(inputs: &[PathBuf], output_final: &Path, overwrite: bool) ->
 
     std::fs::rename(&temp_path, output_final).map_err(EngineError::Io)?;
     Ok(output_final.to_path_buf())
+}
+
+/// Operacións sinxelas de edición sobre audio/vídeo, todas cara un ficheiro
+/// novo (nunca se toca o orixinal).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MediaOp {
+    /// Garda un só fotograma (imaxe) no segundo indicado.
+    Frame(f64),
+    /// Factor de velocidade (0.25 a 4.0); 2.0 é o dobre de rápido.
+    Speed(f64),
+    /// Quita a pista de audio dun vídeo sen recodificar a imaxe.
+    Mute,
+    /// Multiplicador de volume (0.0 a 4.0).
+    Volume(f64),
+    /// Cambia a altura do vídeo (en píxeles, par) mantendo a proporción.
+    ScaleHeight(u32),
+}
+
+pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has_video: bool) -> Result<PathBuf> {
+    let bad = |m: &str| Err(EngineError::IntegrityCheck(m.into()));
+    let mut args: Vec<String> = Vec::new();
+    match op {
+        MediaOp::Frame(at) => {
+            if !at.is_finite() || at < 0.0 {
+                return bad("o instante do fotograma non é válido");
+            }
+            args.extend(["-ss".into(), at.to_string(), "-frames:v".into(), "1".into()]);
+        }
+        MediaOp::Speed(f) => {
+            if !f.is_finite() || !(0.25..=4.0).contains(&f) {
+                return bad("a velocidade ten que estar entre 0,25 e 4");
+            }
+            if has_video {
+                args.extend(["-filter:v".into(), format!("setpts=PTS/{f}")]);
+            }
+            // atempo só admite 0,5 a 2: encadéase para chegar ao resto.
+            let mut chain = Vec::new();
+            let mut rest = f;
+            while rest > 2.0 {
+                chain.push("atempo=2.0".to_string());
+                rest /= 2.0;
+            }
+            while rest < 0.5 {
+                chain.push("atempo=0.5".to_string());
+                rest /= 0.5;
+            }
+            chain.push(format!("atempo={rest}"));
+            args.extend(["-filter:a".into(), chain.join(",")]);
+        }
+        MediaOp::Mute => args.extend(["-an".into(), "-c:v".into(), "copy".into()]),
+        MediaOp::Volume(v) => {
+            if !v.is_finite() || !(0.0..=4.0).contains(&v) {
+                return bad("o volume ten que estar entre 0 e 4");
+            }
+            args.extend(["-af".into(), format!("volume={v}")]);
+            if has_video {
+                args.extend(["-c:v".into(), "copy".into()]);
+            }
+        }
+        MediaOp::ScaleHeight(h) => {
+            if !(16..=8640).contains(&h) {
+                return bad("a altura non é válida");
+            }
+            args.extend(["-vf".into(), format!("scale=-2:{}", h - h % 2)]);
+        }
+    }
+    convert_media(input, output, overwrite, &args)
+}
+
+/// Información de ffprobe (formato e pistas) como JSON.
+pub fn probe(path: &Path) -> Result<serde_json::Value> {
+    if !path.is_file() {
+        return Err(EngineError::InputNotFound(path.to_path_buf()));
+    }
+    let mut cmd = Command::new(ffprobe_path()?);
+    hide_console(&mut cmd);
+    let out = cmd
+        .args(["-v", "error", "-print_format", "json", "-show_format", "-show_streams"])
+        .arg(path)
+        .output()
+        .map_err(EngineError::Io)?;
+    check_success(&out)?;
+    serde_json::from_slice(&out.stdout).map_err(|e| EngineError::IntegrityCheck(e.to_string()))
 }

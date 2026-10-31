@@ -383,6 +383,61 @@ pub fn text_to_pdf(input: &Path, output: &Path, overwrite: bool) -> Result<PathB
     save_atomically(&mut doc, output, overwrite)
 }
 
+/// Xunta varias imaxes nun só PDF (unha por páxina, co tamaño da imaxe a
+/// 96 ppp). Cada imaxe incrústase como RGB comprimido sen perdas.
+pub fn images_to_pdf(inputs: &[PathBuf], output: &Path, overwrite: bool) -> Result<PathBuf> {
+    if inputs.is_empty() {
+        return Err(EngineError::Pdf("non se indicou ningunha imaxe".into()));
+    }
+    let refs: Vec<&Path> = inputs.iter().map(|p| p.as_path()).collect();
+    ensure_distinct(&refs, output)?;
+    let mut doc = Document::with_version("1.5");
+    let mut page_ids: Vec<ObjectId> = Vec::new();
+    for path in inputs {
+        if !path.is_file() {
+            return Err(EngineError::InputNotFound(path.clone()));
+        }
+        let rgb = image::open(path)?.to_rgb8();
+        let (w, h) = (rgb.width(), rgb.height());
+        let mut img_stream = Stream::new(
+            dictionary! {
+                "Type" => "XObject",
+                "Subtype" => "Image",
+                "Width" => w as i64,
+                "Height" => h as i64,
+                "ColorSpace" => "DeviceRGB",
+                "BitsPerComponent" => 8,
+            },
+            rgb.into_raw(),
+        );
+        let _ = img_stream.compress();
+        let img_id = doc.add_object(img_stream);
+        let (pw, ph) = (w as f32 * 0.75, h as f32 * 0.75);
+        let content = format!("q {pw} 0 0 {ph} 0 0 cm /Im1 Do Q").into_bytes();
+        let content_id = doc.add_object(Stream::new(dictionary! {}, content));
+        let page_id = doc.add_object(dictionary! {
+            "Type" => "Page",
+            "MediaBox" => vec![0.into(), 0.into(), pw.into(), ph.into()],
+            "Contents" => content_id,
+            "Resources" => dictionary! { "XObject" => dictionary! { "Im1" => img_id } },
+        });
+        page_ids.push(page_id);
+    }
+    let pages_id = doc.add_object(dictionary! {
+        "Type" => "Pages",
+        "Kids" => page_ids.iter().map(|id| Object::Reference(*id)).collect::<Vec<_>>(),
+        "Count" => page_ids.len() as i64,
+    });
+    for page_id in &page_ids {
+        if let Ok(dict) = doc.get_object_mut(*page_id).and_then(|o| o.as_dict_mut()) {
+            dict.set("Parent", Object::Reference(pages_id));
+        }
+    }
+    let catalog_id = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+    doc.trailer.set("Root", catalog_id);
+    save_atomically(&mut doc, output, overwrite)
+}
+
 /// Extrae o texto de tódalas páxinas dun PDF a un ficheiro `.txt` (UTF-8).
 /// Non intenta recompor a maquetación orixinal, só o contido textual.
 pub fn pdf_to_text(input: &Path, output: &Path, overwrite: bool) -> Result<PathBuf> {
