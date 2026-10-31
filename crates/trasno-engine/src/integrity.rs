@@ -89,7 +89,7 @@ pub fn ensure_distinct(inputs: &[&Path], output: &Path) -> Result<()> {
     let out = resolve(output);
     if inputs.iter().any(|i| resolve(i) == out) {
         return Err(EngineError::IntegrityCheck(
-            "o ficheiro de destino é o mesmo que o de orixe; escolle outro nome".into(),
+            "O destino sería o propio ficheiro de orixe e iso estragaríao; escolle outro nome.".into(),
         ));
     }
     Ok(())

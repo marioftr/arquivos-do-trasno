@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { errText } from "../../errors";
   import { onMount } from "svelte";
   import { open, save } from "@tauri-apps/plugin-dialog";
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
-  import { fileNameOf, formatBytes, withExtension, TRASNO } from "../../formats";
+  import { fileNameOf, formatBytes, withExtension, TRASNO, fallo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
@@ -37,12 +38,13 @@
   ];
 
   const form = createForm({
-    mode: "quality" as "quality" | "size",
+    mode: "quality" as "quality" | "bitrate" | "size",
     quality: 75,
     maxSide: null as number | null,
     crf: 28,
     maxHeight: 0,
     audioKbps: 128,
+    videoKbps: 2000,
     sizeValue: 10,
     unit: "MB",
   });
@@ -57,7 +59,7 @@
 
   $: v = $form;
   $: targetBytes = Math.max(1, Math.round((v.sizeValue || 1) * (UNITS.find((u) => u.id === v.unit)?.mult ?? 1)));
-  $: paramsKey = `${v.mode}|${v.quality}|${v.maxSide}|${v.crf}|${v.maxHeight}|${v.audioKbps}`;
+  $: paramsKey = `${v.mode}|${v.quality}|${v.maxSide}|${v.crf}|${v.maxHeight}|${v.audioKbps}|${v.videoKbps}`;
   $: invalidate(paramsKey);
   $: if (isImage && !multi && v.mode === "quality") scheduleImageEstimate(paramsKey);
 
@@ -87,7 +89,7 @@
     try {
       estimate = await engine.estimateVideo(first.path, v.crf, v.maxHeight || undefined, v.audioKbps);
     } catch (e) {
-      job.say(false, String(e));
+      job.say(false, errText(e));
     } finally {
       estimating = false;
     }
@@ -111,7 +113,7 @@
     const done = await engine.compressVideo(
       f.path,
       out,
-      { crf: v.crf, targetBytes: v.mode === "size" ? targetBytes : undefined, maxHeight: v.maxHeight || undefined, audioKbps: v.audioKbps },
+      { crf: v.crf, targetBytes: v.mode === "size" ? targetBytes : undefined, maxHeight: v.maxHeight || undefined, audioKbps: v.audioKbps, videoKbps: v.mode === "bitrate" ? v.videoKbps : undefined },
       overwrite,
     );
     return await engine.fileSize(done);
@@ -124,12 +126,12 @@
     const out = await save({ defaultPath: withExtension(`${stem}${tr("-comprimido")}`, outExt()) });
     if (!out) return;
     if (samePath(out, first.path)) {
-      job.say(false, tr("Non se sobrescribe o ficheiro orixinal. Escolle outro nome."));
+      job.say(false, tr("Non vou sobrescribir o ficheiro orixinal. Escolle outro nome."));
       return;
     }
-    await job.run(TRASNO.comprimindo, TRASNO.tropezouComprimindo, async () => {
+    await job.run(TRASNO.comprimindo, fallo("comprimindo"), async () => {
       const bytes = await compressOne(first, out, true);
-      return tr("¡Feito! {from} → {to} ({pct}).", { from: formatBytes(first.size ?? 0), to: formatBytes(bytes), pct: pct(first.size ?? 0, bytes) });
+      return tr("Listo! O trasno deixou o ficheiro en {to} ({pct}; antes eran {from}).", { from: formatBytes(first.size ?? 0), to: formatBytes(bytes), pct: pct(first.size ?? 0, bytes) });
     });
   }
 
@@ -157,13 +159,13 @@
           const dot = f.name.lastIndexOf(".");
           const base = dot > 0 ? f.name.slice(0, dot) : f.name;
           const out = await join(dir, `${base}${tr("-comprimido")}.${outExt()}`);
-          if (samePath(out, f.path)) throw new Error(tr("coincidiría co orixinal"));
+          if (samePath(out, f.path)) throw new Error(tr("Coincidiría co ficheiro orixinal."));
           const bytes = await compressOne(f, out, false);
           before += f.size ?? 0;
           after += bytes;
           results[i] = { name: f.name, state: "feito", text: `${formatBytes(f.size ?? 0)} → ${formatBytes(bytes)}` };
         } catch (e) {
-          results[i] = { name: f.name, state: "erro", text: String(e) };
+          results[i] = { name: f.name, state: "erro", text: errText(e) };
         }
         results = results;
       }
@@ -172,8 +174,8 @@
     await Promise.all(Array.from({ length: Math.min(isImage ? 3 : 1, selection.length) }, worker));
     const bad = results.filter((r) => r.state === "erro").length;
     job.say(!bad, bad
-      ? tr("¡Vaites! {bad} de {total} ficheiros escapáronlle ao trasno.", { bad, total: selection.length })
-      : tr("¡Feito! {n} ficheiros comprimidos en {dir}: {from} → {to}.", { n: selection.length, dir: fileNameOf(dir), from: formatBytes(before), to: formatBytes(after) }));
+      ? tr("Vaites! {bad} de {total} ficheiros escapáronlle ao trasno.", { bad, total: selection.length })
+      : tr("Feito! O trasno comprimiu {n} ficheiros en {dir}: de {from} a {to}.", { n: selection.length, dir: fileNameOf(dir), from: formatBytes(before), to: formatBytes(after) }));
     job.busy.set(false);
   }
 </script>
@@ -182,10 +184,16 @@
   <FormBar {form} />
 
   <Segmented
-    options={[
-      { value: "quality", label: $t("Por calidade") },
-      { value: "size", label: $t("Tamaño máximo") },
-    ]}
+    options={isImage
+      ? [
+          { value: "quality", label: $t("Por calidade") },
+          { value: "size", label: $t("Tamaño máximo") },
+        ]
+      : [
+          { value: "quality", label: $t("Por calidade") },
+          { value: "bitrate", label: $t("Por bitrate") },
+          { value: "size", label: $t("Tamaño máximo") },
+        ]}
     bind:value={$form.mode}
   />
 
@@ -199,6 +207,8 @@
         {multi ? $t("Cada ficheiro quedará por debaixo de {size}.", { size: `${v.sizeValue} ${v.unit}` }) : $t("O resultado quedará por debaixo de {size}.", { size: `${v.sizeValue} ${v.unit}` })}
       </p>
       {#if tooSmall}<p class="warn">{$t("Aviso: con este tamaño o vídeo quedará con moi pouca calidade.")}</p>{/if}
+    {:else if v.mode === "bitrate" && !isImage}
+      <Slider label={$t("Bitrate de vídeo")} unit="kbps" min={200} max={12000} step={100} bind:value={$form.videoKbps} def={form.defaults.videoKbps} hint={$t("Cantidade de datos por segundo da imaxe: máis alto = máis calidade e máis peso")} />
     {:else if isImage}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} />
     {:else}
@@ -225,11 +235,14 @@
       {#if v.mode === "size"}
         <span class="est-main">≤ {v.sizeValue} {v.unit}</span>
         <span class="muted">{$t("orixinal {orig}, {pct}", { orig: formatBytes(first.size ?? 0), pct: pct(first.size ?? 0, targetBytes) })}</span>
+      {:else if v.mode === "bitrate" && !isImage && first.duration}
+        <span class="est-main">≈ {formatBytes(((v.videoKbps + v.audioKbps) * 1000 * first.duration) / 8)}</span>
+        <span class="muted">{$t("orixinal {orig}, {pct}", { orig: formatBytes(first.size ?? 0), pct: pct(first.size ?? 0, ((v.videoKbps + v.audioKbps) * 1000 * first.duration) / 8) })}</span>
       {:else if estimate !== null}
         <span class="est-main">≈ {formatBytes(estimate)}</span>
         <span class="muted">{$t("orixinal {orig}, {pct}", { orig: formatBytes(first.size ?? 0), pct: pct(first.size ?? 0, estimate) })}</span>
         {#if !isImage}<span class="muted tiny">{$t("Estimación por mostra: pode variar un pouco.")}</span>{/if}
-      {:else if !isImage}
+      {:else if !isImage && v.mode === "quality"}
         <button class="btn" on:click={estimateVideo} disabled={estimating || $busy}>{estimating ? $t("Estimando…") : $t("Estimar o tamaño")}</button>
       {:else}
         <span class="muted">{$t("Estimando…")}</span>

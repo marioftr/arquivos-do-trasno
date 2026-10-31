@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errText } from "../../errors";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
   import { formatBytes } from "../../formats";
@@ -49,7 +50,7 @@
     try {
       hash = await engine.sha256(file.path);
     } catch (e) {
-      hash = `${tr("erro")}: ${e}`;
+      hash = `${tr("erro")}: ${errText(e)}`;
     } finally {
       hashing = false;
     }

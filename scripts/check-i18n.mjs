@@ -33,12 +33,17 @@ for (const file of walk(root)) {
   // Indirectos: valores de TRASNO e CATEGORY_LABELS en formats.ts
   if (rel.endsWith("formats.ts")) {
     for (const block of ["TRASNO", "CATEGORY_LABELS"]) {
-      const b = src.match(new RegExp(`${block}[^=]*=\\s*\\{([\\s\\S]*?)\\n\\};`));
+      const b = src.match(new RegExp(`const ${block}\\b[^=]*=\\s*\\{([\\s\\S]*?)\\n\\};`));
       if (b) for (const m of b[1].matchAll(new RegExp(String.raw`:\s*${str}`, "g"))) add(unesc(m[1]), rel);
+    }
+    // Listas de frases do trasno (éxito e fallo)
+    for (const block of ["TRASNO_LISTO", "TRASNO_FALLO"]) {
+      const b = src.match(new RegExp(`const ${block}\\b[^=]*=\\s*[\\[{]([\\s\\S]*?)\\n[\\]}];`));
+      if (b) for (const m of b[1].matchAll(new RegExp(str, "g"))) add(unesc(m[1]), rel);
     }
   }
   // Predefinidos de calidade (Tools): label e hint
-  if (rel.endsWith("Tools.svelte")) {
+  if (rel.endsWith("ConvertSection.svelte")) {
     for (const m of src.matchAll(new RegExp(String.raw`label:\s*${str}\s*,\s*value:\s*\d+\s*,\s*hint:\s*${str}`, "g"))) {
       add(unesc(m[1]), rel);
       add(unesc(m[2]), rel);
@@ -63,6 +68,23 @@ for (const file of walk(root)) {
   }
   // Sufixos de nome de ficheiro da edición de audio e vídeo
   if (rel.endsWith("MediaEditSection.svelte")) for (const m of src.matchAll(new RegExp(String.raw`run\(\s*${str}`, "g"))) if (m[1].startsWith("-")) add(unesc(m[1]), rel);
+}
+
+// Textos que nacen en Rust: plantillas de erro, detalles e mensaxes dos comandos.
+const rustFiles = [
+  ...readdirSync(new URL("../crates/trasno-engine/src", import.meta.url)).filter((f) => f.endsWith(".rs")).map((f) => new URL(`../crates/trasno-engine/src/${f}`, import.meta.url)),
+  new URL("../src-tauri/src/commands.rs", import.meta.url),
+];
+for (const url of rustFiles) {
+  const src = readFileSync(url, "utf8");
+  const where = url.pathname.split("/").slice(-1)[0];
+  if (where === "error.rs") {
+    for (const m of src.matchAll(new RegExp(String.raw`=>\s*\(\s*${str}`, "g"))) add(unesc(m[1]), where);
+    for (const m of src.matchAll(new RegExp(String.raw`\n\s+${str},\n\s+json!`, "g"))) add(unesc(m[1]), where);
+  }
+  for (const m of src.matchAll(new RegExp(String.raw`EngineError::(?:IntegrityCheck|Pdf|Model3d)\(\s*${str}`, "g"))) add(unesc(m[1]), where);
+  for (const m of src.matchAll(new RegExp(String.raw`\bbad\(\s*${str}`, "g"))) add(unesc(m[1]), where);
+  for (const m of src.matchAll(new RegExp(String.raw`\bmsg\(\s*${str}`, "g"))) add(unesc(m[1]), where);
 }
 
 const placeholders = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(",");

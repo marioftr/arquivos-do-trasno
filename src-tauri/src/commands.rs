@@ -7,7 +7,12 @@ use std::path::PathBuf;
 use trasno_engine::{Category, ConvertOptions};
 
 fn to_err(e: trasno_engine::EngineError) -> String {
-    e.to_string()
+    e.wire()
+}
+
+/// Mensaxe propia da aplicación nunha forma que a interface pode traducir.
+fn msg(template: &str, params: serde_json::Value) -> String {
+    format!("@@{}", serde_json::json!({ "k": template, "p": params }))
 }
 
 /// Executa traballo pesado fóra do fío da interface, para que a xanela non
@@ -249,7 +254,7 @@ pub async fn media_edit(
         "mute" => MediaOp::Mute,
         "volume" => MediaOp::Volume(value),
         "scale" => MediaOp::ScaleHeight(value.max(0.0) as u32),
-        other => return Err(format!("operación descoñecida: {other}")),
+        other => return Err(msg("Non coñezo a operación «{op}».", serde_json::json!({ "op": other }))),
     };
     blocking(move || {
         trasno_engine::ffmpeg::media_edit(&PathBuf::from(input), &PathBuf::from(output), overwrite, op, has_video)
@@ -274,7 +279,7 @@ pub async fn sha256(path: String) -> Result<String, String> {
 pub fn reveal_in_folder(path: String) -> Result<(), String> {
     let p = PathBuf::from(&path);
     if !p.exists() {
-        return Err("o ficheiro xa non existe".into());
+        return Err(msg("O ficheiro xa non existe.", serde_json::json!({})));
     }
     #[cfg(windows)]
     {
@@ -301,7 +306,7 @@ pub fn reveal_in_folder(path: String) -> Result<(), String> {
 pub fn allow_view_dir(app: tauri::AppHandle, path: String) -> Result<(), String> {
     use tauri::Manager;
     let p = PathBuf::from(&path);
-    let dir = p.parent().ok_or("ruta sen cartafol")?;
+    let dir = p.parent().ok_or_else(|| msg("A ruta non ten cartafol.", serde_json::json!({})))?;
     app.asset_protocol_scope()
         .allow_directory(dir, true)
         .map_err(|e| e.to_string())?;
@@ -361,7 +366,7 @@ pub async fn make_preview(path: String) -> Result<String, String> {
                 }
                 out
             }
-            _ => return Err("este tipo de ficheiro non ten vista previa alternativa".into()),
+            _ => return Err(msg("Para este tipo de ficheiro non hai vista previa alternativa.", serde_json::json!({}))),
         };
         Ok(out.to_string_lossy().to_string())
     })
@@ -402,7 +407,7 @@ pub fn write_bytes(request: tauri::ipc::Request<'_>) -> Result<(), String> {
     let source = PathBuf::from(header("x-source")?);
     let overwrite = header("x-overwrite").map(|v| v == "1").unwrap_or(false);
     let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
-        return Err("a petición non traía datos".into());
+        return Err(msg("A petición chegou sen datos.", serde_json::json!({})));
     };
     trasno_engine::integrity::ensure_distinct(&[source.as_path()], &path).map_err(to_err)?;
     let mut out = trasno_engine::integrity::AtomicOutput::new(&path, overwrite).map_err(to_err)?;
@@ -445,9 +450,10 @@ pub async fn compress_video(
     target_bytes: Option<u64>,
     max_height: Option<u32>,
     audio_kbps: u32,
+    video_kbps: Option<u32>,
 ) -> Result<String, String> {
     blocking(move || {
-        let o = trasno_engine::compress::VideoCompress { crf, target_bytes, max_height, audio_kbps };
+        let o = trasno_engine::compress::VideoCompress { crf, target_bytes, max_height, audio_kbps, video_kbps };
         trasno_engine::compress::compress_video(&PathBuf::from(input), &PathBuf::from(output), overwrite, &o)
             .map(|p| p.to_string_lossy().to_string())
             .map_err(to_err)

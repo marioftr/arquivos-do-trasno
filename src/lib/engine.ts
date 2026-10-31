@@ -2,7 +2,7 @@
 // Mantense todo tipado para que o resto da UI non teña que saber nada de
 // invoke() nin de nomes de comandos en cru.
 
-import { invoke } from "@tauri-apps/api/core";
+import { call } from "./errors";
 
 export type Category = "imaxe" | "audio" | "video" | "documento" | "modelo3d" | "descoñecido";
 
@@ -20,23 +20,23 @@ export interface ConvertOptions {
 }
 
 export async function detectCategory(path: string): Promise<Category> {
-  return invoke("detect_category", { path });
+  return call("detect_category", { path });
 }
 
 export async function suggestedTargets(path: string): Promise<string[]> {
-  return invoke("suggested_targets", { path });
+  return call("suggested_targets", { path });
 }
 
 export async function ffmpegAvailable(): Promise<boolean> {
-  return invoke("ffmpeg_available");
+  return call("ffmpeg_available");
 }
 
 export async function fileSize(path: string): Promise<number> {
-  return invoke("file_size", { path });
+  return call("file_size", { path });
 }
 
 export async function imageDimensions(path: string): Promise<[number, number]> {
-  return invoke("image_dimensions", { path });
+  return call("image_dimensions", { path });
 }
 
 export async function convertFile(
@@ -44,7 +44,7 @@ export async function convertFile(
   output: string,
   options: ConvertOptions = {},
 ): Promise<ConvertResult> {
-  return invoke("convert_file", {
+  return call("convert_file", {
     input,
     output,
     overwrite: options.overwrite ?? false,
@@ -61,7 +61,7 @@ export async function trimMedia(
   endSeconds: number | null,
   overwrite = false,
 ): Promise<string> {
-  return invoke("trim_media", {
+  return call("trim_media", {
     input,
     output,
     overwrite,
@@ -71,11 +71,11 @@ export async function trimMedia(
 }
 
 export async function concatMedia(inputs: string[], output: string, overwrite = false): Promise<string> {
-  return invoke("concat_media", { inputs, output, overwrite });
+  return call("concat_media", { inputs, output, overwrite });
 }
 
 export async function pdfMerge(inputs: string[], output: string, overwrite = false): Promise<string> {
-  return invoke("pdf_merge", { inputs, output, overwrite });
+  return call("pdf_merge", { inputs, output, overwrite });
 }
 
 export async function pdfExtractPages(
@@ -84,7 +84,7 @@ export async function pdfExtractPages(
   output: string,
   overwrite = false,
 ): Promise<string> {
-  return invoke("pdf_extract_pages", { input, pages, output, overwrite });
+  return call("pdf_extract_pages", { input, pages, output, overwrite });
 }
 
 export async function pdfRotate(
@@ -94,15 +94,15 @@ export async function pdfRotate(
   output: string,
   overwrite = false,
 ): Promise<string> {
-  return invoke("pdf_rotate", { input, page, degrees, output, overwrite });
+  return call("pdf_rotate", { input, page, degrees, output, overwrite });
 }
 
 export async function pdfPageCount(input: string): Promise<number> {
-  return invoke("pdf_page_count", { input });
+  return call("pdf_page_count", { input });
 }
 
 export async function startupFiles(): Promise<string[]> {
-  return invoke("startup_files");
+  return call("startup_files");
 }
 
 export interface ImageEdits {
@@ -120,11 +120,11 @@ export interface ImageEdits {
 }
 
 export async function editImage(input: string, output: string, edits: ImageEdits, overwrite = false): Promise<string> {
-  return invoke("edit_image", { input, output, overwrite, edits });
+  return call("edit_image", { input, output, overwrite, edits });
 }
 
 export async function imagesToPdf(inputs: string[], output: string, overwrite = false): Promise<string> {
-  return invoke("images_to_pdf", { inputs, output, overwrite });
+  return call("images_to_pdf", { inputs, output, overwrite });
 }
 
 export type MediaOp = "frame" | "speed" | "mute" | "volume" | "scale";
@@ -137,7 +137,7 @@ export async function mediaEdit(
   hasVideo: boolean,
   overwrite = false,
 ): Promise<string> {
-  return invoke("media_edit", { input, output, overwrite, op, value, hasVideo });
+  return call("media_edit", { input, output, overwrite, op, value, hasVideo });
 }
 
 export interface MediaInfo {
@@ -154,20 +154,20 @@ export interface MediaInfo {
 }
 
 export async function probeMedia(path: string): Promise<MediaInfo> {
-  return invoke("probe_media", { path });
+  return call("probe_media", { path });
 }
 
 export async function sha256(path: string): Promise<string> {
-  return invoke("sha256", { path });
+  return call("sha256", { path });
 }
 
 export async function revealInFolder(path: string): Promise<void> {
-  return invoke("reveal_in_folder", { path });
+  return call("reveal_in_folder", { path });
 }
 
 /** Copia lixeira que o visor sabe amosar (PNG, MP4 pequeno ou MP3). */
 export async function makePreview(path: string): Promise<string> {
-  return invoke("make_preview", { path });
+  return call("make_preview", { path });
 }
 
 export interface ImageCompressReport {
@@ -183,7 +183,7 @@ export async function compressImage(
   opts: { quality?: number; targetBytes?: number; maxSide?: number },
   overwrite = false,
 ): Promise<ImageCompressReport> {
-  return invoke("compress_image", {
+  return call("compress_image", {
     input,
     output,
     overwrite,
@@ -194,7 +194,7 @@ export async function compressImage(
 }
 
 export async function estimateImage(input: string, quality: number, maxSide?: number): Promise<number> {
-  return invoke("estimate_image", { input, quality, maxSide: maxSide ?? null });
+  return call("estimate_image", { input, quality, maxSide: maxSide ?? null });
 }
 
 export interface VideoCompressOpts {
@@ -202,10 +202,11 @@ export interface VideoCompressOpts {
   targetBytes?: number;
   maxHeight?: number;
   audioKbps: number;
+  videoKbps?: number;
 }
 
 export async function compressVideo(input: string, output: string, o: VideoCompressOpts, overwrite = false): Promise<string> {
-  return invoke("compress_video", {
+  return call("compress_video", {
     input,
     output,
     overwrite,
@@ -213,9 +214,10 @@ export async function compressVideo(input: string, output: string, o: VideoCompr
     targetBytes: o.targetBytes ?? null,
     maxHeight: o.maxHeight ?? null,
     audioKbps: o.audioKbps,
+    videoKbps: o.videoKbps ?? null,
   });
 }
 
 export async function estimateVideo(input: string, crf: number, maxHeight: number | undefined, audioKbps: number): Promise<number> {
-  return invoke("estimate_video", { input, crf, maxHeight: maxHeight ?? null, audioKbps });
+  return call("estimate_video", { input, crf, maxHeight: maxHeight ?? null, audioKbps });
 }

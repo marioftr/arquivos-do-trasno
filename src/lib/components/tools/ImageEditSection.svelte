@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
   import { imageEdit, type FileEntry } from "../../files";
-  import { fileNameOf, TRASNO, IMAGE_TARGETS } from "../../formats";
+  import { fileNameOf, TRASNO, fallo, listo, IMAGE_TARGETS } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
@@ -59,7 +60,7 @@
     try {
       const out = await askOutput(file, `-${tr("editada")}`, f.ext);
       if (!out) return;
-      await job.run(TRASNO.traballando, TRASNO.tropezouEditando, async () => {
+      await job.run(TRASNO.traballando, fallo("editando"), async () => {
         const done = await engine.editImage(
           file.path,
           out,
@@ -77,10 +78,10 @@
           },
           true,
         );
-        return `${tr(TRASNO.listo)} ${fileNameOf(done)}`;
+        return `${listo()} ${fileNameOf(done)}`;
       });
     } catch (e) {
-      job.say(false, `${tr(TRASNO.tropezouEditando)}\n${e}`);
+      job.say(false, `${fallo("editando")}\n${errText(e)}`);
     }
   }
 </script>

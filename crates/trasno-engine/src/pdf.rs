@@ -91,7 +91,7 @@ fn save_atomically(doc: &mut Document, output: &Path, overwrite: bool) -> Result
 pub fn merge_pdfs(inputs: &[PathBuf], output: &Path, overwrite: bool) -> Result<PathBuf> {
     if inputs.len() < 2 {
         return Err(EngineError::Pdf(
-            "fan falta polo menos dous PDF para unir".into(),
+            "Necesito polo menos dous PDF para unilos.".into(),
         ));
     }
 
@@ -170,16 +170,14 @@ pub fn extract_pages(
     let mut doc = load(input)?;
     flatten_inherited_page_attributes(&mut doc);
     if page_numbers.is_empty() {
-        return Err(EngineError::Pdf("non se indicou ningunha páxina".into()));
+        return Err(EngineError::Pdf("Indica polo menos unha páxina.".into()));
     }
 
     let all_pages = doc.get_pages();
     let total = all_pages.len() as u32;
     for &n in page_numbers {
         if n == 0 || n > total {
-            return Err(EngineError::Pdf(format!(
-                "a páxina {n} non existe (o documento ten {total})"
-            )));
+            return Err(EngineError::PageMissing { page: n, total });
         }
     }
 
@@ -208,7 +206,7 @@ pub fn rotate_pages(
     let normalized = degrees.rem_euclid(360);
     if normalized % 90 != 0 {
         return Err(EngineError::Pdf(
-            "a rotación ten que ser un múltiplo de 90 graos".into(),
+            "A rotación ten que ser un múltiplo de 90°.".into(),
         ));
     }
 
@@ -312,7 +310,7 @@ pub fn text_to_pdf(input: &Path, output: &Path, overwrite: bool) -> Result<PathB
         return Err(EngineError::InputNotFound(input.to_path_buf()));
     }
     let text = std::fs::read_to_string(input)
-        .map_err(|e| EngineError::Pdf(format!("non se puido ler o ficheiro de texto: {e}")))?;
+        .map_err(|e| EngineError::TextReadFailed(e.to_string()))?;
 
     let mut wrapped_lines: Vec<String> = Vec::new();
     for raw_line in text.lines() {
@@ -387,7 +385,7 @@ pub fn text_to_pdf(input: &Path, output: &Path, overwrite: bool) -> Result<PathB
 /// 96 ppp). Cada imaxe incrústase como RGB comprimido sen perdas.
 pub fn images_to_pdf(inputs: &[PathBuf], output: &Path, overwrite: bool) -> Result<PathBuf> {
     if inputs.is_empty() {
-        return Err(EngineError::Pdf("non se indicou ningunha imaxe".into()));
+        return Err(EngineError::Pdf("Indica polo menos unha imaxe.".into()));
     }
     let refs: Vec<&Path> = inputs.iter().map(|p| p.as_path()).collect();
     ensure_distinct(&refs, output)?;
@@ -445,7 +443,7 @@ pub fn pdf_to_text(input: &Path, output: &Path, overwrite: bool) -> Result<PathB
     let page_numbers: Vec<u32> = doc.get_pages().into_keys().collect();
     let text = doc
         .extract_text(&page_numbers)
-        .map_err(|e| EngineError::Pdf(format!("non se puido extraer o texto: {e}")))?;
+        .map_err(|e| EngineError::TextExtractFailed(e.to_string()))?;
 
     let mut out = AtomicOutput::new(output, overwrite)?;
     out.write_all(text.as_bytes())?;
@@ -540,7 +538,7 @@ mod tests {
 
         let output = dir.path().join("extracto.pdf");
         let err = extract_pages(&input, &[5], &output, false).unwrap_err();
-        assert!(matches!(err, EngineError::Pdf(_)));
+        assert!(matches!(err, EngineError::PageMissing { page: 5, total: 2 }));
     }
 
     #[test]

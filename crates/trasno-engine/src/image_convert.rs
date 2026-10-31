@@ -148,7 +148,7 @@ pub fn edit_image(
 
     if let Some((x, y, w, h)) = edits.crop {
         if w == 0 || h == 0 || x >= img.width() || y >= img.height() {
-            return Err(EngineError::IntegrityCheck("o recorte cae fóra da imaxe".into()));
+            return Err(EngineError::IntegrityCheck("O recorte queda fóra da imaxe.".into()));
         }
         let w = w.min(img.width() - x);
         let h = h.min(img.height() - y);
@@ -159,7 +159,7 @@ pub fn edit_image(
         180 => img.rotate180(),
         270 => img.rotate270(),
         0 => img,
-        _ => return Err(EngineError::IntegrityCheck("o xiro ten que ser 0, 90, 180 ou 270".into())),
+        _ => return Err(EngineError::IntegrityCheck("O xiro só pode ser de 0°, 90°, 180° ou 270°.".into())),
     };
     if edits.flip_h {
         img = img.fliph();

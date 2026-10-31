@@ -172,7 +172,7 @@ fn comprimir_video_por_calidade_e_por_tamano_maximo() {
     let src_size = std::fs::metadata(&src).unwrap().len();
 
     let by_crf = dir.path().join("crf.mp4");
-    compress::compress_video(&src, &by_crf, false, &compress::VideoCompress { crf: 32, target_bytes: None, max_height: Some(240), audio_kbps: 64 }).unwrap();
+    compress::compress_video(&src, &by_crf, false, &compress::VideoCompress { crf: 32, target_bytes: None, max_height: Some(240), audio_kbps: 64, video_kbps: None }).unwrap();
     let crf_size = std::fs::metadata(&by_crf).unwrap().len();
     assert!(crf_size < src_size, "{crf_size} !< {src_size}");
     let info = ffmpeg::probe(&by_crf).unwrap();
@@ -180,7 +180,7 @@ fn comprimir_video_por_calidade_e_por_tamano_maximo() {
 
     let target = 250_000u64;
     let by_size = dir.path().join("size.mp4");
-    compress::compress_video(&src, &by_size, false, &compress::VideoCompress { crf: 28, target_bytes: Some(target), max_height: None, audio_kbps: 64 }).unwrap();
+    compress::compress_video(&src, &by_size, false, &compress::VideoCompress { crf: 28, target_bytes: Some(target), max_height: None, audio_kbps: 64, video_kbps: None }).unwrap();
     let got = std::fs::metadata(&by_size).unwrap().len();
     assert!(got <= target, "{got} > {target}");
     assert!(got > target / 3, "demasiado lonxe do obxectivo: {got}");
@@ -190,10 +190,32 @@ fn comprimir_video_por_calidade_e_por_tamano_maximo() {
 
     // Obxectivo imposible: erro claro, sen ficheiro.
     let tiny = dir.path().join("tiny.mp4");
-    assert!(compress::compress_video(&src, &tiny, false, &compress::VideoCompress { crf: 28, target_bytes: Some(2_000), max_height: None, audio_kbps: 64 }).is_err());
+    assert!(compress::compress_video(&src, &tiny, false, &compress::VideoCompress { crf: 28, target_bytes: Some(2_000), max_height: None, audio_kbps: 64, video_kbps: None }).is_err());
     assert!(!tiny.exists());
 
     // Estimación razoable do modo por calidade.
     let est = compress::estimate_video_bytes(&src, 32, Some(240), 64).unwrap();
     assert!(est > crf_size / 3 && est < crf_size * 3, "est {est} real {crf_size}");
+}
+
+#[test]
+fn comprimir_video_por_bitrate_da_imaxe() {
+    if !ffmpeg::is_available() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("src.mp4");
+    let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+        .args(["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=25:duration=6"])
+        .args(["-c:v", "libx264", "-b:v", "4000k", "-pix_fmt", "yuv420p"])
+        .arg(&src)
+        .status()
+        .unwrap();
+    assert!(st.success());
+    let out = dir.path().join("b.mp4");
+    compress::compress_video(&src, &out, false, &compress::VideoCompress { crf: 28, target_bytes: None, max_height: None, audio_kbps: 64, video_kbps: Some(300) }).unwrap();
+    let bytes = std::fs::metadata(&out).unwrap().len() as f64;
+    // ~300 kbps durante 6 s = ~225 KB (con marxe).
+    assert!(bytes < 400_000.0 && bytes > 50_000.0, "{bytes}");
+    assert!(compress::compress_video(&src, &dir.path().join("c.mp4"), false, &compress::VideoCompress { crf: 28, target_bytes: None, max_height: None, audio_kbps: 64, video_kbps: Some(5) }).is_err());
 }

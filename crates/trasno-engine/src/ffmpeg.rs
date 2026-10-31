@@ -149,7 +149,7 @@ pub fn convert_media(
             if !probe.status.success() {
                 let _ = std::fs::remove_file(&temp_path);
                 return Err(EngineError::IntegrityCheck(
-                    "ffprobe non puido ler o ficheiro convertido".into(),
+                    "O ficheiro convertido non se pode ler; descarteino para non deixarche un ficheiro roto.".into(),
                 ));
             }
         }
@@ -170,12 +170,12 @@ pub fn trim_media(
     end_seconds: Option<f64>,
 ) -> Result<PathBuf> {
     if !start_seconds.is_finite() || start_seconds < 0.0 {
-        return Err(EngineError::IntegrityCheck("o inicio do recorte non é válido".into()));
+        return Err(EngineError::IntegrityCheck("O inicio do corte non é válido.".into()));
     }
     if let Some(end) = end_seconds {
         if !end.is_finite() || end <= start_seconds {
             return Err(EngineError::IntegrityCheck(
-                "o fin do recorte ten que ser posterior ao inicio".into(),
+                "O fin do corte ten que vir despois do inicio.".into(),
             ));
         }
     }
@@ -194,7 +194,7 @@ pub fn trim_media(
 pub fn concat_media(inputs: &[PathBuf], output_final: &Path, overwrite: bool) -> Result<PathBuf> {
     if inputs.is_empty() {
         return Err(EngineError::IntegrityCheck(
-            "non se indicou ningún ficheiro para xuntar".into(),
+            "Falta indicar que ficheiros hai que xuntar.".into(),
         ));
     }
     for i in inputs {
@@ -205,7 +205,7 @@ pub fn concat_media(inputs: &[PathBuf], output_final: &Path, overwrite: bool) ->
         // nome permitiría inxectar directivas alleas.
         if i.to_string_lossy().contains(['\n', '\r']) {
             return Err(EngineError::IntegrityCheck(
-                "un nome de ficheiro contén saltos de liña".into(),
+                "Un dos nomes de ficheiro ten un salto de liña e non é seguro usalo.".into(),
             ));
         }
     }
@@ -297,13 +297,13 @@ pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has
     match op {
         MediaOp::Frame(at) => {
             if !at.is_finite() || at < 0.0 {
-                return bad("o instante do fotograma non é válido");
+                return bad("O instante do fotograma non é válido.");
             }
             args.extend(["-ss".into(), at.to_string(), "-frames:v".into(), "1".into()]);
         }
         MediaOp::Speed(f) => {
             if !f.is_finite() || !(0.25..=4.0).contains(&f) {
-                return bad("a velocidade ten que estar entre 0,25 e 4");
+                return bad("A velocidade ten que estar entre 0,25 e 4.");
             }
             if has_video {
                 args.extend(["-filter:v".into(), format!("setpts=PTS/{f}")]);
@@ -325,7 +325,7 @@ pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has
         MediaOp::Mute => args.extend(["-an".into(), "-c:v".into(), "copy".into()]),
         MediaOp::Volume(v) => {
             if !v.is_finite() || !(0.0..=4.0).contains(&v) {
-                return bad("o volume ten que estar entre 0 e 4");
+                return bad("O volume ten que estar entre 0 e 4.");
             }
             args.extend(["-af".into(), format!("volume={v}")]);
             if has_video {
@@ -334,7 +334,7 @@ pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has
         }
         MediaOp::ScaleHeight(h) => {
             if !(16..=8640).contains(&h) {
-                return bad("a altura non é válida");
+                return bad("A altura non é válida.");
             }
             args.extend(["-vf".into(), format!("scale=-2:{}", h - h % 2)]);
         }

@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { errText } from "../../errors";
   import { onMount } from "svelte";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
-  import { fileNameOf, TRASNO, AUDIO_TARGETS } from "../../formats";
+  import { fileNameOf, TRASNO, fallo, listo, AUDIO_TARGETS } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
@@ -34,9 +35,9 @@
     try {
       const out = await askOutput(file, tr(suffix), ext);
       if (!out) return;
-      await job.run(TRASNO.traballando, TRASNO.tropezouEditando, async () => `${tr(TRASNO.listo)} ${fileNameOf(await work(out))}`);
+      await job.run(TRASNO.traballando, fallo("editando"), async () => `${listo()} ${fileNameOf(await work(out))}`);
     } catch (e) {
-      job.say(false, `${tr(TRASNO.tropezouEditando)}\n${e}`);
+      job.say(false, `${fallo("editando")}\n${errText(e)}`);
     }
   }
 

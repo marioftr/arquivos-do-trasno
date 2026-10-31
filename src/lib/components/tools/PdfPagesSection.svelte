@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { errText } from "../../errors";
   import { onMount } from "svelte";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
-  import { fileNameOf, TRASNO } from "../../formats";
+  import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
@@ -35,7 +36,7 @@
       } else if (/^\d+$/.test(p)) pages.push(Number(p));
       else throw new Error(tr("«{p}» non é unha páxina válida", { p }));
     }
-    if (!pages.length) throw new Error(tr("indica algunha páxina"));
+    if (!pages.length) throw new Error(tr("Indica algunha páxina."));
     return pages;
   }
 
@@ -44,9 +45,9 @@
       const pages = parsePages($form.pageSpec);
       const out = await askOutput(file, `-${tr("paxinas")}`, "pdf");
       if (!out) return;
-      await job.run(TRASNO.traballando, TRASNO.tropezouEditando, async () => `${tr(TRASNO.listo)} ${fileNameOf(await engine.pdfExtractPages(file.path, pages, out, true))}`);
+      await job.run(TRASNO.traballando, fallo("editando"), async () => `${listo()} ${fileNameOf(await engine.pdfExtractPages(file.path, pages, out, true))}`);
     } catch (e) {
-      job.say(false, String(e instanceof Error ? e.message : e));
+      job.say(false, errText(e));
     }
   }
 
@@ -55,11 +56,11 @@
       const out = await askOutput(file, `-${tr("rotado")}`, "pdf");
       if (!out) return;
       const f = $form;
-      await job.run(TRASNO.traballando, TRASNO.tropezouEditando, async () =>
-        `${tr(TRASNO.listo)} ${fileNameOf(await engine.pdfRotate(file.path, f.rotateAll ? null : f.rotatePage, f.degrees, out, true))}`,
+      await job.run(TRASNO.traballando, fallo("editando"), async () =>
+        `${listo()} ${fileNameOf(await engine.pdfRotate(file.path, f.rotateAll ? null : f.rotatePage, f.degrees, out, true))}`,
       );
     } catch (e) {
-      job.say(false, `${tr(TRASNO.tropezouEditando)}\n${e}`);
+      job.say(false, `${fallo("editando")}\n${errText(e)}`);
     }
   }
 </script>

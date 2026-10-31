@@ -2,7 +2,10 @@
 // conversor comparten isto: o que se ve é exactamente o que se converte.
 
 import * as THREE from "three";
-import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { call } from "./errors";
+import { writable, get } from "svelte/store";
+import { viewUrl } from "./files";
 import { tr } from "./i18n";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -45,7 +48,7 @@ export interface LoadedModel {
 }
 
 export async function loadModelDetailed(path: string, ext: string): Promise<LoadedModel> {
-  await invoke("allow_view_dir", { path });
+  await call("allow_view_dir", { path });
   const url = convertFileSrc(path);
   const { dir, sep } = split(path);
 
@@ -60,7 +63,8 @@ export async function loadModelDetailed(path: string, ext: string): Promise<Load
   };
   const finish = async (obj: THREE.Object3D): Promise<LoadedModel> => {
     await Promise.race([idle, new Promise((r) => setTimeout(r, 8000))]);
-    const notes = repairMaterials(obj);
+    const importNotes = await applyImports(obj, path, ext);
+    const notes = [...importNotes, ...repairMaterials(obj)];
     return { obj, missing: [...new Set(missing)], notes };
   };
   manager.setURLModifier((u) => {
@@ -102,7 +106,7 @@ export async function loadModelDetailed(path: string, ext: string): Promise<Load
       return finish(new THREE.Mesh(geo, fallbackMaterial()));
     }
     default:
-      throw new Error(tr("formato {ext} sen visor", { ext }));
+      throw new Error(tr("Non teño visor para o formato {ext}.", { ext }));
   }
 }
 
@@ -132,6 +136,8 @@ export function materialsOf(o: any): any[] {
 }
 
 export interface MaterialReport {
+  /** O material en si, para poder isolalo no visor. */
+  ref: any;
   name: string;
   color?: string;
   slots: { slot: string; label: string; ok: boolean }[];
@@ -146,6 +152,7 @@ export function inspectMaterials(obj: THREE.Object3D): MaterialReport[] {
       if (seen.has(m)) continue;
       seen.add(m);
       out.push({
+        ref: m,
         name: m.name || tr("(sen nome)"),
         color: m.color ? `#${m.color.getHexString()}` : undefined,
         slots: TEXTURE_SLOTS.filter(({ slot }) => m[slot]).map(({ slot, label }) => ({ slot, label, ok: textureOk(m[slot]) })),
@@ -275,14 +282,14 @@ async function exportBytes(obj: THREE.Object3D, ext: string): Promise<Uint8Array
           (res) => resolve(typeof res === "string" ? new TextEncoder().encode(res) : new Uint8Array(res as ArrayBuffer)),
           { binary: true },
         );
-        setTimeout(() => reject(new Error(tr("a exportación PLY non respondeu"))), 60_000);
+        setTimeout(() => reject(new Error(tr("A exportación a PLY non respondeu."))), 60_000);
       });
     case "glb": {
       const buf = (await new GLTFExporter().parseAsync(obj, { binary: true })) as ArrayBuffer;
       return new Uint8Array(buf);
     }
     default:
-      throw new Error(tr("non se pode exportar a {ext}", { ext }));
+      throw new Error(tr("Non sei exportar a {ext}.", { ext }));
   }
 }
 
@@ -298,8 +305,97 @@ export async function convertModel(input: string, inputExt: string, output: stri
   obj.traverse((o: any) => {
     o.geometry?.dispose?.();
   });
-  await invoke("write_bytes", bytes, {
+  await call("write_bytes", bytes, {
     headers: { "x-path": enc(output), "x-source": enc(input), "x-overwrite": overwrite ? "1" : "0" },
   });
   return bytes.byteLength;
+}
+
+// ---------------------------------------------------------------- texturas importadas
+
+/** Textura que o usuario engadiu a un modelo (non vai dentro do ficheiro do modelo). */
+export interface TextureImport {
+  slot: string;
+  path: string;
+  /** Índice do material (na lista de `inspectMaterials`) ou null para todos. */
+  material: number | null;
+}
+
+export const textureImports = writable<Record<string, TextureImport[]>>({});
+
+export function addTextureImport(model: string, t: TextureImport) {
+  textureImports.update((all) => ({ ...all, [model]: [...(all[model] ?? []), t] }));
+}
+
+export function removeTextureImport(model: string, index: number) {
+  textureImports.update((all) => ({ ...all, [model]: (all[model] ?? []).filter((_, i) => i !== index) }));
+}
+
+const NEEDS_STANDARD = new Set(["roughnessMap", "metalnessMap"]);
+
+function uniqueMaterials(obj: THREE.Object3D): any[] {
+  const seen = new Set<any>();
+  const list: any[] = [];
+  obj.traverse((o: any) => {
+    for (const m of materialsOf(o)) {
+      if (!seen.has(m)) {
+        seen.add(m);
+        list.push(m);
+      }
+    }
+  });
+  return list;
+}
+
+/** Cambia un material por outro (en todas as mallas que o usan). */
+function swapMaterial(obj: THREE.Object3D, from: any, to: any) {
+  obj.traverse((o: any) => {
+    if (Array.isArray(o.material)) o.material = o.material.map((m: any) => (m === from ? to : m));
+    else if (o.material === from) o.material = to;
+  });
+}
+
+/** Aplica as texturas que o usuario importou para este modelo. */
+export async function applyImports(obj: THREE.Object3D, modelPath: string, ext: string): Promise<string[]> {
+  const imports = get(textureImports)[modelPath] ?? [];
+  const notes: string[] = [];
+  if (!imports.length) return notes;
+
+  let hasUv = true;
+  obj.traverse((o: any) => {
+    if (o.isMesh && !o.geometry?.attributes?.uv) hasUv = false;
+  });
+  if (!hasUv) notes.push(tr("Algunhas mallas non teñen coordenadas UV: a textura non se verá nelas"));
+
+  for (const imp of imports) {
+    try {
+      const tex = await new THREE.TextureLoader().loadAsync(await viewUrl(imp.path));
+      tex.colorSpace = imp.slot === "map" || imp.slot === "emissiveMap" ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+      // glTF usa as UV sen voltear; o resto (FBX, OBJ...) voltéaas.
+      tex.flipY = !(ext === "glb" || ext === "gltf");
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      const mats = uniqueMaterials(obj);
+      const targets = imp.material === null ? mats : mats[imp.material] ? [mats[imp.material]] : [];
+      for (let m of targets) {
+        if (NEEDS_STANDARD.has(imp.slot) && !m.isMeshStandardMaterial) {
+          const up = new THREE.MeshStandardMaterial({
+            color: m.color ?? 0xffffff,
+            map: m.map ?? null,
+            normalMap: m.normalMap ?? null,
+            side: THREE.DoubleSide,
+            name: m.name,
+          });
+          swapMaterial(obj, m, up);
+          m = up;
+        }
+        m[imp.slot] = tex;
+        if (imp.slot === "map" && m.color) m.color.set(0xffffff);
+        if (imp.slot === "alphaMap") m.transparent = true;
+        m.needsUpdate = true;
+      }
+    } catch (e) {
+      notes.push(tr("Non se puido cargar a textura {name}", { name: imp.path.split(/[\\/]/).pop() ?? imp.path }));
+    }
+  }
+  return notes;
 }

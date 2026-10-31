@@ -13,7 +13,7 @@ export async function askOutput(f: FileEntry, suffix: string, ext: string = f.ex
   const out = await save({ defaultPath: withExtension(`${stem}${suffix}`, ext) });
   if (!out) return null;
   if (samePath(out, f.path)) {
-    throw new Error(tr("non se sobrescribe o ficheiro orixinal; escolle outro nome"));
+    throw new Error(tr("Non vou sobrescribir o ficheiro orixinal. Escolle outro nome."));
   }
   return out;
 }

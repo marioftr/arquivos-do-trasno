@@ -10,6 +10,7 @@
   import MediaEditSection from "./tools/MediaEditSection.svelte";
   import TrimSection from "./tools/TrimSection.svelte";
   import PdfPagesSection from "./tools/PdfPagesSection.svelte";
+  import PdfImagesSection from "./tools/PdfImagesSection.svelte";
   import MergeSection from "./tools/MergeSection.svelte";
   import InfoSection from "./tools/InfoSection.svelte";
 
@@ -43,7 +44,7 @@
         return [tab("convert", "Converter"), tab("edit", "Editar"), tab("trim", "Cortar"), tab("info", "Información")];
       case "documento":
         return pdf
-          ? [tab("convert", "Converter"), tab("pages", "Páxinas"), tab("info", "Información")]
+          ? [tab("convert", "Converter"), tab("images", "Imaxes"), tab("pages", "Páxinas"), tab("info", "Información")]
           : [tab("convert", "Converter"), tab("info", "Información")];
       default:
         return [tab("convert", "Converter"), tab("info", "Información")];
@@ -84,6 +85,8 @@
           <MediaEditSection file={first} />
         {:else if current === "trim" && first}
           <TrimSection file={first} />
+        {:else if current === "images" && first}
+          <PdfImagesSection file={first} />
         {:else if current === "pages" && first}
           <PdfPagesSection file={first} />
         {:else if current === "merge"}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errText } from "../../errors";
   import { onMount } from "svelte";
   import { open, save } from "@tauri-apps/plugin-dialog";
   import { join } from "@tauri-apps/api/path";
@@ -9,7 +10,7 @@
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
-  import { targetsForCategory, withExtension, fileNameOf, formatBytes, TRASNO } from "../../formats";
+  import { targetsForCategory, withExtension, fileNameOf, formatBytes, AUDIO_TARGETS, TRASNO, fallo, listo } from "../../formats";
   import { samePath } from "./shared";
   import Icon from "../Icon.svelte";
   import Slider from "../ui/Slider.svelte";
@@ -39,6 +40,7 @@
     targetExt: targets.find((x) => x !== first.ext) ?? targets[0] ?? "",
     quality: 85,
     bitrate: category === "audio" ? 192 : category === "video" ? 4000 : 0,
+    audioBitrate: 192,
     resizeW: null as number | null,
     resizeH: null as number | null,
     keepRatio: true,
@@ -83,11 +85,17 @@
     if (f.category === "modelo3d" && !(ENGINE_3D.includes(f.ext) && ENGINE_3D.includes(v.targetExt))) {
       return { output_path: out, bytes_written: await convertModel(f.path, f.ext, out, v.targetExt, overwrite) };
     }
+    if (f.category === "imaxe" && v.targetExt === "pdf") {
+      const done = await engine.imagesToPdf([f.path], out, overwrite);
+      return { output_path: done, bytes_written: await engine.fileSize(done) };
+    }
+    // Un vídeo que se converte só a audio leva o bitrate de audio.
+    const toAudio = f.category === "video" && AUDIO_TARGETS.includes(v.targetExt);
     return engine.convertFile(f.path, out, {
       overwrite,
       quality: f.category === "imaxe" ? v.quality : undefined,
       resize: f.category === "imaxe" ? resizeFor(f) : undefined,
-      bitrateKbps: isMedia && v.bitrate ? v.bitrate : undefined,
+      bitrateKbps: toAudio ? v.audioBitrate : isMedia && v.bitrate ? v.bitrate : undefined,
     });
   }
 
@@ -95,12 +103,12 @@
     const out = await save({ defaultPath: withExtension(first.path, $form.targetExt) });
     if (!out) return;
     if (samePath(out, first.path)) {
-      job.say(false, tr("Non se sobrescribe o ficheiro orixinal. Escolle outro nome."));
+      job.say(false, tr("Non vou sobrescribir o ficheiro orixinal. Escolle outro nome."));
       return;
     }
-    await job.run(TRASNO.convertendo, TRASNO.tropezouConvertendo, async () => {
+    await job.run(TRASNO.convertendo, fallo("convertendo"), async () => {
       const r = await convertOne(first, out, true);
-      return `${tr(TRASNO.listo)} ${fileNameOf(r.output_path)} · ${formatBytes(r.bytes_written)}`;
+      return `${listo()} ${fileNameOf(r.output_path)} · ${formatBytes(r.bytes_written)}`;
     });
   }
 
@@ -128,11 +136,11 @@
           const base = dot > 0 ? f.name.slice(0, dot) : f.name;
           // Mesmo formato (p. ex. comprimir un JPG): outro nome, nunca o orixinal.
           const out = await join(dir, ext === f.ext ? `${base}-trasno.${ext}` : `${base}.${ext}`);
-          if (samePath(out, f.path)) throw new Error(tr("coincidiría co orixinal"));
+          if (samePath(out, f.path)) throw new Error(tr("Coincidiría co ficheiro orixinal."));
           const r = await convertOne(f, out, false);
           results[i] = { name: f.name, state: "feito", text: f.size ? `${formatBytes(f.size)} → ${formatBytes(r.bytes_written)}` : formatBytes(r.bytes_written) };
         } catch (e) {
-          results[i] = { name: f.name, state: "erro", text: String(e) };
+          results[i] = { name: f.name, state: "erro", text: errText(e) };
         }
         results = results;
       }
@@ -140,8 +148,8 @@
     await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT, selection.length) }, worker));
     const bad = results.filter((r) => r.state === "erro").length;
     job.say(!bad, bad
-      ? tr("¡Vaites! {bad} de {total} ficheiros escapáronlle ao trasno.", { bad, total: selection.length })
-      : tr("¡Feito! {n} ficheiros gardados en {dir}.", { n: selection.length, dir: fileNameOf(dir) }));
+      ? tr("Vaites! {bad} de {total} ficheiros escapáronlle ao trasno.", { bad, total: selection.length })
+      : tr("Feito! O trasno gardou os {n} ficheiros en {dir} sen perder nin un.", { n: selection.length, dir: fileNameOf(dir) }));
     job.busy.set(false);
   }
 </script>
@@ -158,7 +166,9 @@
       disabled={$busy}
     />
 
-    {#if category === "imaxe"}
+    {#if category === "imaxe" && $form.targetExt === "pdf"}
+      <p class="group-note">{$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")}</p>
+    {:else if category === "imaxe"}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto = mellor imaxe e máis peso (só JPG)")} />
       <Segmented options={PRESETS.map((p) => ({ value: p.value, label: $t(p.label), hint: $t(p.hint) }))} bind:value={$form.quality} />
       {#if multi}
@@ -170,6 +180,9 @@
         </div>
         <Toggle label={$t("Manter proporción")} bind:checked={$form.keepRatio} />
       {/if}
+    {:else if category === "video" && AUDIO_TARGETS.includes($form.targetExt)}
+      <p class="group-note">{$t("Só se garda o son do vídeo.")}</p>
+      <Slider label={$t("Bitrate de audio")} unit="kbps" min={32} max={320} step={8} bind:value={$form.audioBitrate} def={form.defaults.audioBitrate} hint={$t("Máis alto = máis calidade e máis tamaño")} />
     {:else if isMedia}
       <Slider
         label={category === "audio" ? $t("Bitrate de audio") : $t("Bitrate de vídeo")}

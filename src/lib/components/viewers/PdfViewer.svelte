@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errText } from "../../errors";
   import { onDestroy } from "svelte";
   import * as pdfjs from "pdfjs-dist";
   import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -34,7 +35,7 @@
       }
       doc = loaded;
     } catch (e) {
-      error = String(e);
+      error = errText(e);
     }
   }
 
@@ -70,7 +71,7 @@
 
 <div class="wrap">
   {#if error}
-    <p class="muted msg">{$t("Non se puido abrir o PDF: {error}", { error })}</p>
+    <p class="muted msg">{$t("Non puiden abrir o PDF: {error}", { error })}</p>
   {:else}
     <div class="pages scrollbar-thin" bind:this={container}></div>
   {/if}

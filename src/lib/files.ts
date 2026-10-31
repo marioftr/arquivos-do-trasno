@@ -2,7 +2,8 @@
 // cales están marcados para operacións en lote (unir, comprimir varios...).
 
 import { writable, get } from "svelte/store";
-import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { call } from "./errors";
 import * as engine from "./engine";
 import type { Category } from "./engine";
 import { extensionOf, fileNameOf } from "./formats";
@@ -120,6 +121,6 @@ export function moveFile(path: string, delta: -1 | 1) {
 
 /** URL que o visor pode cargar. Só funciona despois de `allow_view`. */
 export async function viewUrl(path: string): Promise<string> {
-  await invoke("allow_view", { path });
+  await call("allow_view", { path });
   return convertFileSrc(path);
 }

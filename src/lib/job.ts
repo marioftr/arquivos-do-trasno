@@ -3,6 +3,7 @@
 
 import { writable, type Writable } from "svelte/store";
 import { tr } from "./i18n";
+import { errText } from "./errors";
 
 export interface JobMessage {
   ok: boolean;
@@ -34,7 +35,7 @@ export function createJob(): Job {
         const done = await job();
         if (done) message.set({ ok: true, text: done });
       } catch (e) {
-        message.set({ ok: false, text: `${tr(fail)}\n${e}` });
+        message.set({ ok: false, text: `${tr(fail)}\n${errText(e)}` });
       } finally {
         busy.set(false);
       }

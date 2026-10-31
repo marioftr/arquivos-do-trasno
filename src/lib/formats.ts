@@ -1,6 +1,6 @@
 // Espello, en TypeScript, do rexistro de formatos de trasno-engine
 // (crates/trasno-engine/src/formats.rs). Mantense sinxelo e sincronizado a
-// man por agora; se medra moito pasaráse a xerar dende Rust.
+// man por agora; se medra moito pasarase a xerar dende Rust.
 
 import type { Category } from "./engine";
 
@@ -24,13 +24,15 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 export function targetsForCategory(category: Category, sourceExt?: string): string[] {
   switch (category) {
     case "imaxe":
-      return IMAGE_TARGETS;
+      // Unha imaxe tamén pode ser un PDF dunha páxina.
+      return [...IMAGE_TARGETS, "pdf"];
     case "audio":
       return AUDIO_TARGETS;
     case "video":
-      return VIDEO_TARGETS;
+      // Un vídeo tamén se pode converter só ao seu audio.
+      return [...VIDEO_TARGETS, ...AUDIO_TARGETS];
     case "documento":
-      // Un PDF extrae o seu texto; un .txt maquétase nun PDF sinxelo.
+      // Un PDF dá o seu texto (e as súas páxinas como imaxes, na pestana Imaxes); un .txt maquétase nun PDF sinxelo.
       return sourceExt === "pdf" ? ["txt"] : ["pdf"];
     case "modelo3d":
       // O motor Rust lé OBJ/STL/PLY; FBX e glTF léense e escríbense a través
@@ -41,20 +43,50 @@ export function targetsForCategory(category: Category, sourceExt?: string): stri
   }
 }
 
+import { tr } from "./i18n";
+
+/** Frases de éxito: ao azar, para que non soen sempre igual. */
+export const TRASNO_LISTO = [
+  "Feito! O trasno rematou o seu traballo sen atopar ningún problema.",
+  "Listo! O trasno deixou todo en orde e sen un só tropezo.",
+  "Xa está! O trasno cumpriu o encargo e ata lle sobrou tempo para un café.",
+  "Traballo rematado! O trasno bótalle unha ollada e dáo por bo.",
+  "Todo correcto! O trasno recolleu as ferramentas e volveu ao seu recuncho.",
+];
+
+/** Frases de fallo por tipo de traballo (tamén ao azar). */
+export const TRASNO_FALLO: Record<string, string[]> = {
+  convertendo: [
+    "Vaites! O trasno tropezou durante a conversión.",
+    "Ouh! Algo se torceu mentres o trasno convertía.",
+    "Caramba! A conversión escapóuselle das mans ao trasno.",
+  ],
+  unindo: ["Vaites! O trasno tropezou ao unir os ficheiros.", "Ouh! Os ficheiros non se deixaron coser polo trasno."],
+  editando: [
+    "Vaites! O trasno tropezou durante a edición.",
+    "Ouh! A ferramenta do trasno escorregou mentres editaba.",
+    "Caramba! Algo saíu mal na edición.",
+  ],
+  comprimindo: ["Vaites! O trasno tropezou durante a compresión.", "Ouh! A compresión resistiuse ao trasno."],
+};
+
+export function fallo(kind: keyof typeof TRASNO_FALLO | string): string {
+  const list = TRASNO_FALLO[kind] ?? TRASNO_FALLO.editando;
+  return tr(list[Math.floor(Math.random() * list.length)]);
+}
+
+export function listo(): string {
+  return tr(TRASNO_LISTO[Math.floor(Math.random() * TRASNO_LISTO.length)]);
+}
+
 /** Frases do trasno, o duende que fai o traballo de fondo. O texto en galego
  * é a chave de tradución: pásase por `tr()` / `$t()` ao amosalo. */
 export const TRASNO = {
   traballando: "O trasno arremanga e ponse a traballar…",
-  convertendo: "O trasno está convertendo… ¡xa case!",
+  convertendo: "O trasno está convertendo… xa case!",
   unindo: "O trasno está cosendo os ficheiros…",
-  listo: "¡Feito! O trasno rematou.",
-  tropezou: "¡Vaites! O trasno tropezou",
-  tropezouConvertendo: "¡Vaites! O trasno tropezou durante a conversión.",
-  tropezouUnindo: "¡Vaites! O trasno tropezou ao unir os ficheiros.",
-  tropezouEditando: "¡Vaites! O trasno tropezou durante a edición.",
   abrindo: "O trasno está abrindo o modelo…",
-  comprimindo: "O trasno está comprimindo… ¡paciencia!",
-  tropezouComprimindo: "¡Vaites! O trasno tropezou durante a compresión.",
+  comprimindo: "O trasno está comprimindo… paciencia!",
 };
 
 export function extensionOf(path: string): string {

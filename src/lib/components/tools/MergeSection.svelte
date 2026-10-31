@@ -4,7 +4,7 @@
   import * as engine from "../../engine";
   import type { Category } from "../../engine";
   import type { FileEntry } from "../../files";
-  import { fileNameOf, TRASNO } from "../../formats";
+  import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createJob } from "../../job";
   import { samePath } from "./shared";
@@ -29,16 +29,16 @@
     if (!out) return;
     const inputs = selection.map((s) => s.path);
     if (inputs.some((p) => samePath(p, out))) {
-      job.say(false, tr("Non se sobrescribe un dos ficheiros de orixe. Escolle outro nome."));
+      job.say(false, tr("Non vou sobrescribir un dos ficheiros de orixe. Escolle outro nome."));
       return;
     }
-    await job.run(TRASNO.unindo, TRASNO.tropezouUnindo, async () => {
+    await job.run(TRASNO.unindo, fallo("unindo"), async () => {
       const done = isPdf
         ? await engine.pdfMerge(inputs, out, true)
         : category === "imaxe"
           ? await engine.imagesToPdf(inputs, out, true)
           : await engine.concatMedia(inputs, out, true);
-      return `${tr(TRASNO.listo)} ${fileNameOf(done)}`;
+      return `${listo()} ${fileNameOf(done)}`;
     });
   }
 </script>

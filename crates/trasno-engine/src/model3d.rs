@@ -73,7 +73,7 @@ fn read_obj(path: &Path) -> Result<Mesh> {
 
     if mesh.vertices.is_empty() {
         return Err(EngineError::Model3d(
-            "o ficheiro OBJ non contén ningún vértice".into(),
+            "O OBJ non ten ningún vértice.".into(),
         ));
     }
     Ok(mesh)
@@ -177,7 +177,7 @@ fn read_stl_ascii(bytes: &[u8]) -> Result<Mesh> {
 
     if mesh.faces.is_empty() {
         return Err(EngineError::Model3d(
-            "non se atopou ningún triángulo no STL".into(),
+            "Non atopei ningún triángulo no STL.".into(),
         ));
     }
     Ok(mesh)
@@ -217,7 +217,7 @@ fn read_ply(path: &Path) -> Result<Mesh> {
     loop {
         line.clear();
         if reader.read_line(&mut line)? == 0 {
-            return Err(EngineError::Model3d("cabeceira PLY incompleta".into()));
+            return Err(EngineError::Model3d("A cabeceira do PLY está incompleta.".into()));
         }
         let trimmed = line.trim().to_string();
         let is_end = trimmed == "end_header";
@@ -228,14 +228,14 @@ fn read_ply(path: &Path) -> Result<Mesh> {
     }
 
     if !header_lines.first().map(|l| l == "ply").unwrap_or(false) {
-        return Err(EngineError::Model3d("non é un ficheiro PLY válido".into()));
+        return Err(EngineError::Model3d("Isto non é un PLY válido.".into()));
     }
     if header_lines
         .iter()
         .any(|l| l.starts_with("format") && !l.contains("ascii"))
     {
         return Err(EngineError::Model3d(
-            "só se soporta PLY en formato ASCII, non binario".into(),
+            "De momento só lin PLY en ASCII, non en binario.".into(),
         ));
     }
 
@@ -261,14 +261,14 @@ fn read_ply(path: &Path) -> Result<Mesh> {
     for _ in 0..vertex_count {
         let l = lines
             .next()
-            .ok_or_else(|| EngineError::Model3d("faltan liñas de vértices no PLY".into()))??;
+            .ok_or_else(|| EngineError::Model3d("Faltan liñas de vértices no PLY.".into()))??;
         let coords: Vec<f32> = l
             .split_whitespace()
             .take(3)
             .filter_map(|s| s.parse().ok())
             .collect();
         if coords.len() != 3 {
-            return Err(EngineError::Model3d("liña de vértice PLY malformada".into()));
+            return Err(EngineError::Model3d("Hai unha liña de vértice mal formada no PLY.".into()));
         }
         mesh.vertices.push([coords[0], coords[1], coords[2]]);
     }
@@ -276,7 +276,7 @@ fn read_ply(path: &Path) -> Result<Mesh> {
     for _ in 0..face_count {
         let l = lines
             .next()
-            .ok_or_else(|| EngineError::Model3d("faltan liñas de caras no PLY".into()))??;
+            .ok_or_else(|| EngineError::Model3d("Faltan liñas de caras no PLY.".into()))??;
         let nums: Vec<u32> = l.split_whitespace().filter_map(|s| s.parse().ok()).collect();
         if let Some((&n, indices)) = nums.split_first() {
             if indices.len() as u32 >= n {
@@ -349,12 +349,11 @@ pub fn convert_model3d(input: &Path, output: &Path, overwrite: bool) -> Result<P
     if !MODEL3D_ENGINE_SUPPORTED.contains(&src_ext.as_str())
         || !MODEL3D_ENGINE_SUPPORTED.contains(&dst_ext.as_str())
     {
-        return Err(EngineError::Model3d(format!(
-            "de momento só se converten mallas simples ({}), non {} → {}",
-            MODEL3D_ENGINE_SUPPORTED.join("/"),
-            src_ext,
-            dst_ext
-        )));
+        return Err(EngineError::Model3dUnsupported {
+            formats: MODEL3D_ENGINE_SUPPORTED.join("/"),
+            from: src_ext,
+            to: dst_ext,
+        });
     }
 
     let mesh = read_mesh(input, &src_ext)?;
@@ -480,6 +479,6 @@ mod tests {
 
         let gltf_path = dir.path().join("cubo.gltf");
         let err = convert_model3d(&obj_path, &gltf_path, false).unwrap_err();
-        assert!(matches!(err, EngineError::Model3d(_)));
+        assert!(matches!(err, EngineError::Model3dUnsupported { .. }));
     }
 }

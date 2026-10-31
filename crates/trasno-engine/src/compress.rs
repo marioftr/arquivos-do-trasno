@@ -135,7 +135,7 @@ pub fn compress_image(
                 }
             }
             found.ok_or_else(|| {
-                EngineError::IntegrityCheck("non hai xeito de que a imaxe caiba nese tamaño".into())
+                EngineError::IntegrityCheck("Non hai maneira de que a imaxe caiba en tan pouco espazo; proba cun tamaño maior.".into())
             })?
         }
     };
@@ -167,6 +167,8 @@ pub struct VideoCompress {
     /// Altura máxima en píxeles (só reduce).
     pub max_height: Option<u32>,
     pub audio_kbps: u32,
+    /// Bitrate fixo da imaxe (kbps), nunha soa pasada. Ignórase se hai `target_bytes`.
+    pub video_kbps: Option<u32>,
 }
 
 fn scale_filter(max_height: Option<u32>) -> Option<String> {
@@ -186,7 +188,7 @@ fn inspect(input: &Path) -> Result<Streams> {
         .as_str()
         .and_then(|s| s.parse::<f64>().ok())
         .filter(|d| *d > 0.0)
-        .ok_or_else(|| EngineError::IntegrityCheck("non se puido saber a duración do vídeo".into()))?;
+        .ok_or_else(|| EngineError::IntegrityCheck("Non souben ler a duración do vídeo.".into()))?;
     let has_audio = info["streams"]
         .as_array()
         .map(|s| s.iter().any(|x| x["codec_type"] == "audio"))
@@ -245,6 +247,17 @@ pub fn compress_video(input: &Path, output: &Path, overwrite: bool, o: &VideoCom
     let vf = scale_filter(o.max_height);
     let audio_kbps = o.audio_kbps.clamp(32, 320);
 
+    if o.target_bytes.is_none() {
+        if let Some(vk) = o.video_kbps {
+            if !(50..=100_000).contains(&vk) {
+                return Err(EngineError::IntegrityCheck("O bitrate do vídeo non é válido.".into()));
+            }
+            let mut args = x264_common(None, Some(vk), &vf);
+            args.extend(["-maxrate".into(), format!("{}k", vk * 3 / 2), "-bufsize".into(), format!("{}k", vk * 2)]);
+            args.extend(["-c:a".into(), "aac".into(), "-b:a".into(), format!("{audio_kbps}k"), "-movflags".into(), "+faststart".into()]);
+            return ffmpeg::convert_media(input, output, overwrite, &args);
+        }
+    }
     let Some(target) = o.target_bytes else {
         let mut args = x264_common(Some(o.crf), None, &vf);
         args.extend(["-c:a".into(), "aac".into(), "-b:a".into(), format!("{audio_kbps}k"), "-movflags".into(), "+faststart".into()]);
@@ -280,7 +293,7 @@ pub fn compress_video(input: &Path, output: &Path, overwrite: bool, o: &VideoCom
         if v_kbps < 30.0 {
             cleanup();
             return Err(EngineError::IntegrityCheck(
-                "o tamaño obxectivo é demasiado pequeno para esta duración".into(),
+                "Ese tamaño é demasiado pequeno para a duración do vídeo; proba cun valor maior.".into(),
             ));
         }
         let vk = v_kbps as u32;
@@ -325,7 +338,7 @@ pub fn compress_video(input: &Path, output: &Path, overwrite: bool, o: &VideoCom
     if size > target {
         cleanup();
         return Err(EngineError::IntegrityCheck(
-            "non se conseguiu baixar do tamaño pedido; proba con menos resolución ou un tamaño maior".into(),
+            "Non conseguín baixar ese tamaño; proba con menos resolución ou cun límite maior.".into(),
         ));
     }
     if let Ok(bin) = ffmpeg::ffprobe_path() {
@@ -333,7 +346,7 @@ pub fn compress_video(input: &Path, output: &Path, overwrite: bool, o: &VideoCom
         let ok = cmd.args(["-v", "error", "-show_entries", "format=duration"]).arg(&temp).output().map(|p| p.status.success()).unwrap_or(true);
         if !ok {
             cleanup();
-            return Err(EngineError::IntegrityCheck("ffprobe non puido ler o ficheiro comprimido".into()));
+            return Err(EngineError::IntegrityCheck("O ficheiro comprimido non se pode ler; descarteino para non deixarche un ficheiro roto.".into()));
         }
     }
     let renamed = std::fs::rename(&temp, output);
