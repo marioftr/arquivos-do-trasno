@@ -12,18 +12,30 @@ use crate::integrity::{assert_non_empty_file, ensure_distinct};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-pub fn ffmpeg_path() -> Result<PathBuf> {
-    if let Ok(p) = std::env::var("TRASNO_FFMPEG_PATH") {
+/// Busca un binario de ffmpeg: variable de contorno, despois ao carón do
+/// executable da app (`ffmpeg.exe` ou `ffmpeg/ffmpeg.exe`, para levalo
+/// portable) e por último o PATH do sistema.
+fn find_tool(name: &str, env: &str) -> Result<PathBuf> {
+    if let Ok(p) = std::env::var(env) {
         return Ok(PathBuf::from(p));
     }
-    which::which("ffmpeg").map_err(|_| EngineError::FfmpegNotFound)
+    if let Some(dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(|p| p.to_path_buf())) {
+        let file = format!("{name}{}", std::env::consts::EXE_SUFFIX);
+        for candidate in [dir.join(&file), dir.join("ffmpeg").join(&file), dir.join("bin").join(&file)] {
+            if candidate.is_file() {
+                return Ok(candidate);
+            }
+        }
+    }
+    which::which(name).map_err(|_| EngineError::FfmpegNotFound)
+}
+
+pub fn ffmpeg_path() -> Result<PathBuf> {
+    find_tool("ffmpeg", "TRASNO_FFMPEG_PATH")
 }
 
 pub fn ffprobe_path() -> Result<PathBuf> {
-    if let Ok(p) = std::env::var("TRASNO_FFPROBE_PATH") {
-        return Ok(PathBuf::from(p));
-    }
-    which::which("ffprobe").map_err(|_| EngineError::FfmpegNotFound)
+    find_tool("ffprobe", "TRASNO_FFPROBE_PATH")
 }
 
 pub fn is_available() -> bool {
