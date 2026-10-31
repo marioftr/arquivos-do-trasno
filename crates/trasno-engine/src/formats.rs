@@ -15,12 +15,11 @@ pub enum Category {
     Descoñecido,
 }
 
-/// Formatos de imaxe que sabemos decodificar E codificar coa crate `image`
-/// (as listas non son simétricas augas arriba: HEIC/AVIF de lectura, por
-/// exemplo, requiren códecs adicionais que se engadirán máis adiante).
+/// Formatos de imaxe que sabemos decodificar coa crate `image`. HEIC e AVIF
+/// requiren códecs adicionais e quedan para máis adiante.
 pub const IMAGE_DECODE: &[&str] = &[
     "png", "jpg", "jpeg", "gif", "bmp", "ico", "tiff", "tif", "webp", "pnm", "pbm", "pgm", "ppm",
-    "tga", "qoi", "avif",
+    "tga", "qoi",
 ];
 
 pub const IMAGE_ENCODE: &[&str] = &[

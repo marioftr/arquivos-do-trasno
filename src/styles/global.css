@@ -131,3 +131,36 @@ a {
   background: var(--border-strong);
   border-radius: 4px;
 }
+
+/* Aparencia de aplicación de escritorio, non de páxina web. */
+body {
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+
+input,
+textarea,
+.selectable {
+  user-select: text;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-conversor);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 6px;
+  border: 2px solid var(--bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+}

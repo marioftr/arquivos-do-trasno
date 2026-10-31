@@ -8,7 +8,7 @@
 //! reimplementa códecs, delega en ffmpeg, que é o estándar de facto.
 
 use crate::error::{EngineError, Result};
-use crate::integrity::assert_non_empty_file;
+use crate::integrity::{assert_non_empty_file, ensure_distinct};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -30,10 +30,24 @@ pub fn is_available() -> bool {
     ffmpeg_path().is_ok()
 }
 
+/// En Windows evita que salte unha xanela de consola ao lanzar ffmpeg.
+fn hide_console(cmd: &mut Command) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    #[cfg(not(windows))]
+    let _ = cmd;
+}
+
 fn run_ffmpeg(args: &[std::ffi::OsString]) -> Result<Output> {
     let bin = ffmpeg_path()?;
-    let output = Command::new(bin)
+    let mut cmd = Command::new(bin);
+    hide_console(&mut cmd);
+    let output = cmd
         .arg("-hide_banner")
+        .arg("-nostdin")
         .arg("-y") // sobrescribe SÓ o noso ficheiro temporal, nunca o do usuario
         .args(args)
         .output()
@@ -63,6 +77,7 @@ pub fn convert_media(
     if !input.is_file() {
         return Err(EngineError::InputNotFound(input.to_path_buf()));
     }
+    ensure_distinct(&[input], output_final)?;
     if output_final.exists() && !overwrite {
         return Err(EngineError::DestinationExists(output_final.to_path_buf()));
     }
@@ -112,7 +127,9 @@ pub fn convert_media(
     // Verificación de coherencia: que ffprobe sexa quen de ler o ficheiro
     // resultante antes de darlle o visto e prace e movelo ao destino final.
     if let Ok(probe_bin) = ffprobe_path() {
-        let probe = Command::new(probe_bin)
+        let mut probe_cmd = Command::new(probe_bin);
+        hide_console(&mut probe_cmd);
+        let probe = probe_cmd
             .args(["-v", "error", "-show_entries", "format=duration"])
             .arg(&temp_path)
             .output();
@@ -140,6 +157,16 @@ pub fn trim_media(
     start_seconds: f64,
     end_seconds: Option<f64>,
 ) -> Result<PathBuf> {
+    if !start_seconds.is_finite() || start_seconds < 0.0 {
+        return Err(EngineError::IntegrityCheck("o inicio do recorte non é válido".into()));
+    }
+    if let Some(end) = end_seconds {
+        if !end.is_finite() || end <= start_seconds {
+            return Err(EngineError::IntegrityCheck(
+                "o fin do recorte ten que ser posterior ao inicio".into(),
+            ));
+        }
+    }
     let mut args = vec!["-ss".to_string(), start_seconds.to_string()];
     if let Some(end) = end_seconds {
         args.push("-to".to_string());
@@ -162,7 +189,16 @@ pub fn concat_media(inputs: &[PathBuf], output_final: &Path, overwrite: bool) ->
         if !i.is_file() {
             return Err(EngineError::InputNotFound(i.clone()));
         }
+        // O ficheiro de lista de concat é liña a liña: un salto de liña no
+        // nome permitiría inxectar directivas alleas.
+        if i.to_string_lossy().contains(['\n', '\r']) {
+            return Err(EngineError::IntegrityCheck(
+                "un nome de ficheiro contén saltos de liña".into(),
+            ));
+        }
     }
+    let refs: Vec<&Path> = inputs.iter().map(|p| p.as_path()).collect();
+    ensure_distinct(&refs, output_final)?;
     if output_final.exists() && !overwrite {
         return Err(EngineError::DestinationExists(output_final.to_path_buf()));
     }
@@ -176,7 +212,12 @@ pub fn concat_media(inputs: &[PathBuf], output_final: &Path, overwrite: bool) ->
     let list_path = dir.join(format!(".trasno-concat-{}.txt", uuid::Uuid::new_v4()));
     let list_contents = inputs
         .iter()
-        .map(|p| format!("file '{}'", p.to_string_lossy().replace('\'', "'\\''")))
+        .map(|p| {
+            // Rutas absolutas: as relativas resolveríanse contra o directorio
+            // da lista, non contra o do usuario.
+            let abs = std::fs::canonicalize(p).unwrap_or_else(|_| p.clone());
+            format!("file '{}'", abs.to_string_lossy().replace('\'', "'\\''"))
+        })
         .collect::<Vec<_>>()
         .join("\n");
     std::fs::write(&list_path, list_contents)?;

@@ -69,6 +69,32 @@ impl AtomicOutput {
     }
 }
 
+/// Rexeita que o destino sexa o propio ficheiro de orixe (por ligazón
+/// simbólica, ruta relativa ou maiúsculas incluídas): con "sobrescribir"
+/// activado iso destruiría o orixinal.
+pub fn ensure_distinct(inputs: &[&Path], output: &Path) -> Result<()> {
+    let resolve = |p: &Path| -> PathBuf {
+        std::fs::canonicalize(p).unwrap_or_else(|_| {
+            // O destino pode non existir aínda: resolvemos o seu directorio.
+            let name = p.file_name().map(|n| n.to_owned()).unwrap_or_default();
+            let dir = p
+                .parent()
+                .filter(|d| !d.as_os_str().is_empty())
+                .unwrap_or_else(|| Path::new("."));
+            std::fs::canonicalize(dir)
+                .map(|d| d.join(&name))
+                .unwrap_or_else(|_| p.to_path_buf())
+        })
+    };
+    let out = resolve(output);
+    if inputs.iter().any(|i| resolve(i) == out) {
+        return Err(EngineError::IntegrityCheck(
+            "o ficheiro de destino é o mesmo que o de orixe; escolle outro nome".into(),
+        ));
+    }
+    Ok(())
+}
+
 /// Calcula o SHA-256 dun ficheiro, útil para comprobar que unha copia ou
 /// conversión "sen perdas" (p.ex. remuxado) non alterou os bytes esperados.
 pub fn sha256_file(path: &Path) -> Result<String> {
@@ -93,4 +119,19 @@ pub fn assert_non_empty_file(path: &Path) -> Result<u64> {
         return Err(EngineError::EmptyOrCorruptOutput);
     }
     Ok(metadata.len())
+}
+
+#[cfg(test)]
+mod distinct_tests {
+    use super::*;
+
+    #[test]
+    fn detecta_mesmo_ficheiro_por_ruta_distinta() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a.png");
+        std::fs::write(&a, b"x").unwrap();
+        let alias = dir.path().join(".").join("a.png");
+        assert!(ensure_distinct(&[&a], &alias).is_err());
+        assert!(ensure_distinct(&[&a], &dir.path().join("b.png")).is_ok());
+    }
 }

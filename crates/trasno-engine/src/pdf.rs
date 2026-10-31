@@ -3,7 +3,7 @@
 //! a/desde PDF quedan para unha fase posterior (documentadas no ROADMAP).
 
 use crate::error::{EngineError, Result};
-use crate::integrity::{assert_non_empty_file, AtomicOutput};
+use crate::integrity::{assert_non_empty_file, ensure_distinct, AtomicOutput};
 use lopdf::{dictionary, Document, Object, ObjectId, Stream};
 use std::path::{Path, PathBuf};
 
@@ -95,6 +95,8 @@ pub fn merge_pdfs(inputs: &[PathBuf], output: &Path, overwrite: bool) -> Result<
         ));
     }
 
+    let refs: Vec<&Path> = inputs.iter().map(|p| p.as_path()).collect();
+    ensure_distinct(&refs, output)?;
     let mut merged = Document::with_version("1.7");
     let mut merged_pages: Vec<ObjectId> = Vec::new();
     let mut next_id = 1u32;
@@ -164,6 +166,7 @@ pub fn extract_pages(
     output: &Path,
     overwrite: bool,
 ) -> Result<PathBuf> {
+    ensure_distinct(&[input], output)?;
     let mut doc = load(input)?;
     flatten_inherited_page_attributes(&mut doc);
     if page_numbers.is_empty() {
@@ -200,6 +203,7 @@ pub fn rotate_pages(
     output: &Path,
     overwrite: bool,
 ) -> Result<PathBuf> {
+    ensure_distinct(&[input], output)?;
     let mut doc = load(input)?;
     let normalized = degrees.rem_euclid(360);
     if normalized % 90 != 0 {

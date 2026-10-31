@@ -50,6 +50,7 @@ pub struct ConvertReport {
 /// orixe e destino, decide que backend usar (imaxe / ffmpeg) e executa a
 /// conversión coas garantías de integridade do módulo `integrity`.
 pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Result<ConvertReport> {
+    integrity::ensure_distinct(&[input], output)?;
     let src_category = formats::category_of_path(input);
     let dst_category = formats::category_of_path(output);
 
