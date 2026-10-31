@@ -4,6 +4,7 @@
   import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
   import { viewUrl, type FileEntry } from "../../files";
   import { t } from "../../i18n";
+  import Slider from "../ui/Slider.svelte";
 
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -74,10 +75,7 @@
     <div class="pages scrollbar-thin" bind:this={container}></div>
   {/if}
   <div class="bar">
-    <span class="muted">{$t("Zoom")}</span>
-    <input type="range" min="40" max="250" bind:value={scale} />
-    <input class="num-input" type="number" min="40" max="250" bind:value={scale} />
-    <span class="muted">%</span>
+    <Slider compact label={$t("Zoom")} unit="%" min={40} max={250} bind:value={scale} />
     {#if doc}<span class="muted pag">{$t("{n} páxinas", { n: doc.numPages })}</span>{/if}
   </div>
 </div>
@@ -91,7 +89,6 @@
   }
   .pages :global(canvas) { background: #fff; flex-shrink: 0; margin-inline: auto; }
   .bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
-  .bar input[type="range"] { width: 160px; }
   .pag { margin-left: auto; }
   .msg { padding: 2rem; }
 </style>

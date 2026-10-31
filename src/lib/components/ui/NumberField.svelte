@@ -1,0 +1,56 @@
+<script lang="ts">
+  import Icon from "../Icon.svelte";
+  import { t } from "../../i18n";
+
+  export let label = "";
+  export let value: number | null;
+  export let min: number | undefined = undefined;
+  export let max: number | undefined = undefined;
+  export let step: number | string = 1;
+  export let unit = "";
+  export let placeholder = "";
+  export let def: number | null | undefined = undefined;
+  export let hint = "";
+  export let disabled = false;
+  /** Se se pasa, avísase en cada cambio (útil para campos ligados entre si). */
+  export let onInput: ((raw: string) => void) | undefined = undefined;
+
+  $: changed = def !== undefined && value !== def;
+
+  function input(e: Event) {
+    const raw = (e.currentTarget as HTMLInputElement).value;
+    if (onInput) onInput(raw);
+    else value = raw === "" ? null : Number(raw);
+  }
+</script>
+
+<div class="field" title={hint || undefined}>
+  {#if label}
+    <div class="head">
+      <span class="lab">{label}</span>
+      {#if changed}
+        <button class="reset" on:click={() => (value = def as number | null)} title={$t("Restaurar o valor por defecto ({v})", { v: def ?? "—" })} aria-label={$t("Restaurar o valor por defecto ({v})", { v: def ?? "—" })}>
+          <Icon name="reset" size={13} />
+        </button>
+      {/if}
+    </div>
+  {/if}
+  <label class="num">
+    <input type="number" {min} {max} {step} {placeholder} {disabled} value={value ?? ""} on:input={input} aria-label={label} />
+    {#if unit}<span class="unit">{unit}</span>{/if}
+  </label>
+</div>
+
+<style>
+  .field { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+  .head { display: flex; align-items: center; justify-content: space-between; min-height: 18px; }
+  .lab { font-size: 0.82rem; color: var(--text-muted); }
+  .reset { display: inline-flex; background: none; border: none; color: var(--text-faint); padding: 2px; border-radius: 4px; }
+  .reset:hover { color: var(--accent); background: var(--bg-hover); }
+  .num { display: flex; align-items: center; height: var(--control-h); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding-right: 0.6em; }
+  .num:hover { border-color: var(--text-faint); }
+  .num:focus-within { border-color: var(--accent); }
+  .num input { flex: 1; width: 100%; min-width: 0; height: 100%; border: none; background: transparent; padding: 0 0.4em 0 0.65em; text-align: left; }
+  .num input:focus { outline: none; border: none; }
+  .unit { font-size: 0.78rem; color: var(--text-faint); white-space: nowrap; }
+</style>

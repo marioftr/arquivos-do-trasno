@@ -56,32 +56,32 @@
   }
 </script>
 
-<section>
-  <h3>{$t("Información")}</h3>
-  <dl class="selectable">
-    {#each rows as [k, v]}
-      <dt>{$t(k)}</dt>
-      <dd title={v}>{v}</dd>
-    {/each}
-    {#if hash}
-      <dt>SHA-256</dt>
-      <dd class="hash" title={hash}>{hash}</dd>
-    {/if}
-  </dl>
-  {#if note}<p class="muted tiny">{note}</p>{/if}
-  <div class="acts">
-    <button class="btn" on:click={computeHash} disabled={hashing} title={$t("Pegada dixital do ficheiro: se dous ficheiros teñen o mesmo SHA-256, son idénticos byte a byte")}>{hashing ? $t("Calculando…") : $t("Calcular SHA-256")}</button>
-    <button class="btn" on:click={() => engine.revealInFolder(file.path)}>{$t("Mostrar no cartafol")}</button>
+<div class="stack">
+  <div class="group">
+    <h4 class="group-title">{$t("Información")}</h4>
+    <dl class="selectable">
+      {#each rows as [k, v]}
+        <dt>{$t(k)}</dt>
+        <dd title={v}>{v}</dd>
+      {/each}
+      {#if hash}
+        <dt>SHA-256</dt>
+        <dd class="hash" title={hash}>{hash}</dd>
+      {/if}
+    </dl>
+    {#if note}<p class="group-note">{note}</p>{/if}
   </div>
-</section>
+
+  <div class="group">
+    <p class="group-note">{$t("Pegada dixital do ficheiro: se dous ficheiros teñen o mesmo SHA-256, son idénticos byte a byte")}</p>
+    <button class="btn block" on:click={computeHash} disabled={hashing}>{hashing ? $t("Calculando…") : $t("Calcular SHA-256")}</button>
+    <button class="btn block" on:click={() => engine.revealInFolder(file.path)}>{$t("Mostrar no cartafol")}</button>
+  </div>
+</div>
 
 <style>
-  section { padding: 1rem 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.6rem; }
-  h3 { margin: 0; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); font-weight: 600; }
-  dl { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.8rem; margin: 0; font-size: 0.8rem; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 0.9rem; margin: 0; font-size: 0.84rem; }
   dt { color: var(--text-muted); }
   dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .hash { font-family: Consolas, monospace; font-size: 0.7rem; }
-  .acts { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-  .tiny { margin: 0; font-size: 0.78rem; }
+  .hash { font-family: Consolas, monospace; font-size: 0.72rem; }
 </style>

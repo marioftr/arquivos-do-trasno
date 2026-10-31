@@ -4,6 +4,7 @@
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
   import type { FileEntry } from "../../files";
   import { t, tr, lang } from "../../i18n";
+  import Slider from "../ui/Slider.svelte";
   import { TRASNO } from "../../formats";
   import {
     loadModelDetailed,
@@ -232,10 +233,10 @@
       <button class="toggle" on:click={() => (panelOpen = !panelOpen)}>{panelOpen ? $t("Agochar panel") : $t("Panel")}</button>
       {#if panelOpen}
         <h4>{$t("Luz")}</h4>
-        <div class="row"><span>{$t("Azimut")}</span><input type="range" min="0" max="360" bind:value={azimuth} /><input class="num-input" type="number" min="0" max="360" bind:value={azimuth} /></div>
-        <div class="row"><span>{$t("Altura")}</span><input type="range" min="-90" max="90" bind:value={elevation} /><input class="num-input" type="number" min="-90" max="90" bind:value={elevation} /></div>
-        <div class="row"><span>{$t("Forza")}</span><input type="range" min="0" max="5" step="0.1" bind:value={intensity} /><input class="num-input" type="number" min="0" max="5" step="0.1" bind:value={intensity} /></div>
-        <div class="row"><span>{$t("Ambiente")}</span><input type="range" min="0" max="4" step="0.1" bind:value={ambient} /><input class="num-input" type="number" min="0" max="4" step="0.1" bind:value={ambient} /></div>
+        <Slider label={$t("Azimut")} unit="°" min={0} max={360} bind:value={azimuth} def={45} />
+        <Slider label={$t("Altura")} unit="°" min={-90} max={90} bind:value={elevation} def={50} />
+        <Slider label={$t("Forza")} min={0} max={5} step={0.1} bind:value={intensity} def={1.6} />
+        <Slider label={$t("Ambiente")} min={0} max={4} step={0.1} bind:value={ambient} def={1.1} />
         <label class="chk"><input type="checkbox" bind:checked={showMarker} /> {$t("Amosar a luz")}</label>
 
         <h4>{$t("Vista")}</h4>
@@ -291,7 +292,7 @@
   .canvas :global(canvas) { display: block; }
   .status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 2rem; text-align: center; pointer-events: none; }
   .panel {
-    position: absolute; top: 10px; right: 10px; width: 250px; max-height: calc(100% - 20px); overflow-y: auto;
+    position: absolute; top: 10px; right: 10px; width: 270px; max-height: calc(100% - 20px); overflow-y: auto;
     background: color-mix(in srgb, var(--bg-rail) 90%, transparent); border: 1px solid var(--border);
     border-radius: var(--radius-md); padding: 0.6rem 0.8rem; font-size: 0.82rem; backdrop-filter: blur(6px);
   }
@@ -299,10 +300,6 @@
   .toggle { background: none; border: none; color: var(--text-muted); padding: 0; font: inherit; font-size: 0.78rem; }
   .toggle:hover { color: var(--text); }
   h4 { margin: 0.8rem 0 0.4rem; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); font-weight: 600; }
-  .row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }
-  .row > span { min-width: 3.9rem; color: var(--text-muted); }
-  .row input[type="range"] { flex: 1; min-width: 0; }
-  .row .num-input { width: 3.8em; }
   .chan { display: flex; flex-wrap: wrap; gap: 0.3rem; }
   .ch { background: transparent; border: 1px solid var(--border-strong); color: var(--text-muted); border-radius: var(--radius-sm); padding: 0.25em 0.55em; font-size: 0.76rem; }
   .ch:hover { color: var(--text); }

@@ -8,6 +8,8 @@
   import Viewer from "./lib/components/Viewer.svelte";
   import Tools from "./lib/components/Tools.svelte";
   import { files, activePath, checked, addPaths, removeFile } from "./lib/files";
+  import { activeForm } from "./lib/forms";
+  import { get } from "svelte/store";
   import * as engine from "./lib/engine";
   import { t, lang, LANGS, type Lang } from "./lib/i18n";
 
@@ -41,7 +43,14 @@
   function onKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement;
     if (t.closest("input, select, textarea")) return;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "o") {
+    const k = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && k === "z" && !e.shiftKey) {
+      e.preventDefault();
+      get(activeForm)?.undo();
+    } else if ((e.ctrlKey || e.metaKey) && (k === "y" || (k === "z" && e.shiftKey))) {
+      e.preventDefault();
+      get(activeForm)?.redo();
+    } else if ((e.ctrlKey || e.metaKey) && k === "o") {
       e.preventDefault();
       escoller();
     } else if (e.key === "Delete" && $activePath) {
@@ -123,7 +132,7 @@
   .drop p { margin: 0; max-width: 54ch; }
   .formatos { font-size: 0.75rem; letter-spacing: 0.04em; margin-top: 0.8rem !important; }
 
-  .work { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(210px, 270px) minmax(0, 1fr) minmax(270px, 330px); }
+  .work { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(210px, 270px) minmax(0, 1fr) minmax(320px, 390px); }
   .left, .right { min-height: 0; min-width: 0; background: var(--bg-rail); }
   .left { border-right: 1px solid var(--border); }
   .right { border-left: 1px solid var(--border); }

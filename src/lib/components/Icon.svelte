@@ -77,6 +77,18 @@
     <polyline points="6 15 12 9 18 15" />
   {:else if name === "down"}
     <polyline points="6 9 12 15 18 9" />
+  {:else if name === "undo"}
+    <path d="M9 14L4 9l5-5" />
+    <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+  {:else if name === "redo"}
+    <path d="M15 14l5-5-5-5" />
+    <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
+  {:else if name === "reset"}
+    <path d="M3 12a9 9 0 1 0 3-6.7" />
+    <polyline points="3 4 3 9 8 9" />
+  {:else if name === "copy"}
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
   {/if}
 </svg>
 

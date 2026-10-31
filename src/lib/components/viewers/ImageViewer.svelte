@@ -2,6 +2,7 @@
   import { viewUrl, imageEdit, type FileEntry } from "../../files";
   import * as engine from "../../engine";
   import { t } from "../../i18n";
+  import Slider from "../ui/Slider.svelte";
 
   export let file: FileEntry;
 
@@ -57,9 +58,7 @@
   <div class="bar">
     <button class="btn" class:on={fit} on:click={() => (fit = true)}>{$t("Axustar")}</button>
     <button class="btn" class:on={!fit && zoom === 100} on:click={() => { fit = false; zoom = 100; }}>100%</button>
-    <input type="range" min="10" max="400" bind:value={zoom} on:input={() => (fit = false)} />
-    <input class="num-input" type="number" min="10" max="400" bind:value={zoom} on:input={() => (fit = false)} />
-    <span class="muted">%</span>
+    <Slider compact label={$t("Zoom")} unit="%" min={10} max={400} bind:value={zoom} on:input={() => (fit = false)} />
     {#if file.width}<span class="muted dims">{file.width} × {file.height} px</span>{/if}
   </div>
 </div>
@@ -75,7 +74,6 @@
   .stage:not(.fit) { display: block; }
   img { display: block; margin: auto; }
   .bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
-  .bar input[type="range"] { width: 160px; }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .dims { margin-left: auto; }
   .msg { margin: auto; text-align: center; padding: 2rem; }

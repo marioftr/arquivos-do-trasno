@@ -53,6 +53,8 @@ export const TRASNO = {
   tropezouUnindo: "¡Vaites! O trasno tropezou ao unir os ficheiros.",
   tropezouEditando: "¡Vaites! O trasno tropezou durante a edición.",
   abrindo: "O trasno está abrindo o modelo…",
+  comprimindo: "O trasno está comprimindo… ¡paciencia!",
+  tropezouComprimindo: "¡Vaites! O trasno tropezou durante a compresión.",
 };
 
 export function extensionOf(path: string): string {
