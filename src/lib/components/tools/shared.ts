@@ -1,5 +1,6 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { withExtension } from "../../formats";
+import { tr } from "../../i18n";
 import type { FileEntry } from "../../files";
 
 export function samePath(a: string, b: string): boolean {
@@ -12,7 +13,7 @@ export async function askOutput(f: FileEntry, suffix: string, ext: string = f.ex
   const out = await save({ defaultPath: withExtension(`${stem}${suffix}`, ext) });
   if (!out) return null;
   if (samePath(out, f.path)) {
-    throw new Error("non se sobrescribe o ficheiro orixinal; escolle outro nome");
+    throw new Error(tr("non se sobrescribe o ficheiro orixinal; escolle outro nome"));
   }
   return out;
 }

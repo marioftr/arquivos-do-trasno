@@ -117,3 +117,83 @@ fn xuntar_e_convertir_media_con_ffmpeg_real() {
     trasno_engine::convert_file(&a, &webm, &Default::default()).unwrap();
     assert!(webm.exists());
 }
+
+use trasno_engine::compress;
+
+fn noisy_png(path: &std::path::Path, w: u32, h: u32) {
+    let img = image::RgbImage::from_fn(w, h, |x, y| {
+        let v = (x.wrapping_mul(2654435761) ^ y.wrapping_mul(40503)) as u8;
+        image::Rgb([v, v.wrapping_add((x / 3) as u8), (y % 251) as u8])
+    });
+    image::DynamicImage::ImageRgb8(img).save(path).unwrap();
+}
+
+#[test]
+fn comprimir_imaxe_a_un_tamano_maximo() {
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("a.png");
+    noisy_png(&src, 800, 600);
+    let before = std::fs::read(&src).unwrap();
+    let out = dir.path().join("a.jpg");
+    let target = 60_000u64;
+    let r = compress::compress_image(
+        &src,
+        &out,
+        false,
+        &compress::ImageCompress { target_bytes: Some(target), ..Default::default() },
+    )
+    .unwrap();
+    assert!(r.bytes_written <= target, "{} > {}", r.bytes_written, target);
+    assert_eq!(std::fs::metadata(&out).unwrap().len(), r.bytes_written);
+    assert_eq!(std::fs::read(&src).unwrap(), before);
+    // Só JPG como saída, e nunca pisa nada.
+    assert!(compress::compress_image(&src, &dir.path().join("a.png2.png"), false, &Default::default()).is_err());
+    assert!(compress::compress_image(&src, &out, false, &Default::default()).is_err());
+    // A estimación vai en liña co resultado real á mesma calidade.
+    let est = compress::estimate_image_bytes(&src, 80, None).unwrap();
+    let real = compress::compress_image(&src, &dir.path().join("b.jpg"), false, &compress::ImageCompress { quality: Some(80), ..Default::default() }).unwrap();
+    assert_eq!(est, real.bytes_written);
+}
+
+#[test]
+fn comprimir_video_por_calidade_e_por_tamano_maximo() {
+    if !ffmpeg::is_available() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("src.mp4");
+    let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+        .args(["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=25:duration=6"])
+        .args(["-f", "lavfi", "-i", "sine=frequency=300:duration=6", "-shortest", "-c:v", "libx264", "-b:v", "3000k", "-pix_fmt", "yuv420p"])
+        .arg(&src)
+        .status()
+        .unwrap();
+    assert!(st.success());
+    let src_size = std::fs::metadata(&src).unwrap().len();
+
+    let by_crf = dir.path().join("crf.mp4");
+    compress::compress_video(&src, &by_crf, false, &compress::VideoCompress { crf: 32, target_bytes: None, max_height: Some(240), audio_kbps: 64 }).unwrap();
+    let crf_size = std::fs::metadata(&by_crf).unwrap().len();
+    assert!(crf_size < src_size, "{crf_size} !< {src_size}");
+    let info = ffmpeg::probe(&by_crf).unwrap();
+    assert_eq!(info["streams"][0]["height"], 240);
+
+    let target = 250_000u64;
+    let by_size = dir.path().join("size.mp4");
+    compress::compress_video(&src, &by_size, false, &compress::VideoCompress { crf: 28, target_bytes: Some(target), max_height: None, audio_kbps: 64 }).unwrap();
+    let got = std::fs::metadata(&by_size).unwrap().len();
+    assert!(got <= target, "{got} > {target}");
+    assert!(got > target / 3, "demasiado lonxe do obxectivo: {got}");
+    // Non deixa restos temporais.
+    let leftovers: Vec<_> = std::fs::read_dir(dir.path()).unwrap().flatten().filter(|e| e.file_name().to_string_lossy().starts_with(".trasno")).collect();
+    assert!(leftovers.is_empty(), "{leftovers:?}");
+
+    // Obxectivo imposible: erro claro, sen ficheiro.
+    let tiny = dir.path().join("tiny.mp4");
+    assert!(compress::compress_video(&src, &tiny, false, &compress::VideoCompress { crf: 28, target_bytes: Some(2_000), max_height: None, audio_kbps: 64 }).is_err());
+    assert!(!tiny.exists());
+
+    // Estimación razoable do modo por calidade.
+    let est = compress::estimate_video_bytes(&src, 32, Some(240), 64).unwrap();
+    assert!(est > crf_size / 3 && est < crf_size * 3, "est {est} real {crf_size}");
+}

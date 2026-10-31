@@ -41,13 +41,18 @@ export function targetsForCategory(category: Category, sourceExt?: string): stri
   }
 }
 
-/** Frases do trasno, o duende que fai o traballo de fondo. */
+/** Frases do trasno, o duende que fai o traballo de fondo. O texto en galego
+ * é a chave de tradución: pásase por `tr()` / `$t()` ao amosalo. */
 export const TRASNO = {
-  traballando: "O trasno está traballando…",
-  convertendo: "O trasno está convertendo…",
-  unindo: "O trasno está unindo os ficheiros…",
-  listo: "O trasno rematou.",
-  tropezou: "O trasno tropezou",
+  traballando: "O trasno arremanga e ponse a traballar…",
+  convertendo: "O trasno está convertendo… ¡xa case!",
+  unindo: "O trasno está cosendo os ficheiros…",
+  listo: "¡Feito! O trasno rematou.",
+  tropezou: "¡Vaites! O trasno tropezou",
+  tropezouConvertendo: "¡Vaites! O trasno tropezou durante a conversión.",
+  tropezouUnindo: "¡Vaites! O trasno tropezou ao unir os ficheiros.",
+  tropezouEditando: "¡Vaites! O trasno tropezou durante a edición.",
+  abrindo: "O trasno está abrindo o modelo…",
 };
 
 export function extensionOf(path: string): string {

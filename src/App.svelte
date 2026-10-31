@@ -9,6 +9,7 @@
   import Tools from "./lib/components/Tools.svelte";
   import { files, activePath, checked, addPaths, removeFile } from "./lib/files";
   import * as engine from "./lib/engine";
+  import { t, lang, LANGS, type Lang } from "./lib/i18n";
 
   let dragging = false;
   let unlisten: (() => void) | null = null;
@@ -64,8 +65,14 @@
   <header class="top">
     <span class="brand"><BrandMark size={20} /> Arquivos do Trasno</span>
     <span class="grow"></span>
+    <label class="langsel">
+      <span class="muted">{$t("Idioma")}</span>
+      <select value={$lang} on:change={(e) => lang.set(e.currentTarget.value as Lang)} aria-label={$t("Idioma")}>
+        {#each LANGS as l}<option value={l.id}>{l.label}</option>{/each}
+      </select>
+    </label>
     {#if ffmpegOk === false && needsFfmpeg}
-      <span class="aviso"><Icon name="warning" size={14} /> Falta ffmpeg (instálao con «winget install ffmpeg» ou pon ffmpeg.exe e ffprobe.exe ao carón da app).</span>
+      <span class="aviso"><Icon name="warning" size={14} /> {$t("Falta ffmpeg (instálao con «winget install ffmpeg» ou pon ffmpeg.exe e ffprobe.exe ao carón da app).")}</span>
     {/if}
   </header>
 
@@ -73,12 +80,11 @@
     <main class="home">
       <div class="drop">
         <BrandMark size={44} />
-        <h1>O trasno agarda os teus ficheiros</h1>
+        <h1>{$t("O trasno agarda os teus ficheiros")}</h1>
         <p class="muted">
-          Arrastra aquí o que sexa: imaxes, audio, vídeo, PDF, texto ou modelos 3D. Podes soltar varios á vez para unilos,
-          comprimilos ou convertelos en lote.
+          {$t("Arrastra aquí o que sexa: imaxes, audio, vídeo, PDF, texto ou modelos 3D. Podes soltar varios á vez para unilos, comprimilos ou convertelos en lote.")}
         </p>
-        <button class="btn primary" on:click={escoller}><Icon name="folder" size={16} /> Escoller ficheiros</button>
+        <button class="btn primary" on:click={escoller}><Icon name="folder" size={16} /> {$t("Escoller ficheiros")}</button>
         <p class="muted formatos">
           PNG · JPG · WEBP · GIF · MP3 · WAV · FLAC · MP4 · MKV · WEBM · PDF · TXT · FBX · GLB · OBJ · STL · PLY
         </p>
@@ -95,7 +101,7 @@
   {/if}
 
   {#if dragging}
-    <div class="veil"><span>Solta os ficheiros para que o trasno os colla</span></div>
+    <div class="veil"><span>{$t("Solta os ficheiros para que o trasno os colla")}</span></div>
   {/if}
 </div>
 
@@ -104,6 +110,8 @@
   .top { display: flex; align-items: center; gap: 0.8rem; padding: 0.55rem 1rem; border-bottom: 1px solid var(--border); background: var(--bg-rail); min-height: 46px; }
   .brand { display: inline-flex; align-items: center; gap: 0.55rem; font-weight: 650; font-size: 0.92rem; }
   .grow { flex: 1; }
+  .langsel { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; }
+  .langsel select { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0.25em 0.5em; font-size: 0.8rem; }
   .aviso { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.82rem; }
 
   .home { flex: 1; min-height: 0; display: flex; padding: 1.5rem; }

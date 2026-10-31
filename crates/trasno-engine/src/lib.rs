@@ -15,6 +15,7 @@
 //! - PDF: operacións estruturais con `lopdf` (unir, dividir, rotar). A
 //!   sinatura dixital e a conversión doc↔pdf quedan para outra fase.
 
+pub mod compress;
 pub mod error;
 pub mod ffmpeg;
 pub mod formats;

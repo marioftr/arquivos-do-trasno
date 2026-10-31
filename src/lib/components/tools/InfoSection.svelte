@@ -2,6 +2,7 @@
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
   import { formatBytes } from "../../formats";
+  import { t, tr } from "../../i18n";
 
   export let file: FileEntry;
 
@@ -38,7 +39,7 @@
         if (info.format?.bit_rate) extra.push(["Bitrate", `${Math.round(Number(info.format.bit_rate) / 1000)} kbps`]);
         if (f.path === file.path) rows = [...rows, ...extra];
       } catch {
-        note = "Sen ffmpeg non se pode ler a información de audio e vídeo.";
+        note = tr("Sen ffmpeg non se pode ler a información de audio e vídeo.");
       }
     }
   }
@@ -48,7 +49,7 @@
     try {
       hash = await engine.sha256(file.path);
     } catch (e) {
-      hash = `erro: ${e}`;
+      hash = `${tr("erro")}: ${e}`;
     } finally {
       hashing = false;
     }
@@ -56,10 +57,10 @@
 </script>
 
 <section>
-  <h3>Información</h3>
+  <h3>{$t("Información")}</h3>
   <dl class="selectable">
     {#each rows as [k, v]}
-      <dt>{k}</dt>
+      <dt>{$t(k)}</dt>
       <dd title={v}>{v}</dd>
     {/each}
     {#if hash}
@@ -69,8 +70,8 @@
   </dl>
   {#if note}<p class="muted tiny">{note}</p>{/if}
   <div class="acts">
-    <button class="btn" on:click={computeHash} disabled={hashing} title="Huella dixital do ficheiro: se dous ficheiros teñen o mesmo SHA-256, son idénticos byte a byte">{hashing ? "Calculando…" : "Calcular SHA-256"}</button>
-    <button class="btn" on:click={() => engine.revealInFolder(file.path)}>Mostrar no cartafol</button>
+    <button class="btn" on:click={computeHash} disabled={hashing} title={$t("Pegada dixital do ficheiro: se dous ficheiros teñen o mesmo SHA-256, son idénticos byte a byte")}>{hashing ? $t("Calculando…") : $t("Calcular SHA-256")}</button>
+    <button class="btn" on:click={() => engine.revealInFolder(file.path)}>{$t("Mostrar no cartafol")}</button>
   </div>
 </section>
 

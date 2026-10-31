@@ -410,3 +410,55 @@ pub fn write_bytes(request: tauri::ipc::Request<'_>) -> Result<(), String> {
     out.commit().map_err(to_err)?;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn compress_image(
+    input: String,
+    output: String,
+    overwrite: bool,
+    quality: Option<u8>,
+    target_bytes: Option<u64>,
+    max_side: Option<u32>,
+) -> Result<trasno_engine::compress::ImageCompressReport, String> {
+    blocking(move || {
+        let o = trasno_engine::compress::ImageCompress { quality, target_bytes, max_side };
+        trasno_engine::compress::compress_image(&PathBuf::from(input), &PathBuf::from(output), overwrite, &o)
+            .map_err(to_err)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn estimate_image(input: String, quality: u8, max_side: Option<u32>) -> Result<u64, String> {
+    blocking(move || {
+        trasno_engine::compress::estimate_image_bytes(&PathBuf::from(input), quality, max_side).map_err(to_err)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn compress_video(
+    input: String,
+    output: String,
+    overwrite: bool,
+    crf: u8,
+    target_bytes: Option<u64>,
+    max_height: Option<u32>,
+    audio_kbps: u32,
+) -> Result<String, String> {
+    blocking(move || {
+        let o = trasno_engine::compress::VideoCompress { crf, target_bytes, max_height, audio_kbps };
+        trasno_engine::compress::compress_video(&PathBuf::from(input), &PathBuf::from(output), overwrite, &o)
+            .map(|p| p.to_string_lossy().to_string())
+            .map_err(to_err)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn estimate_video(input: String, crf: u8, max_height: Option<u32>, audio_kbps: u32) -> Result<u64, String> {
+    blocking(move || {
+        trasno_engine::compress::estimate_video_bytes(&PathBuf::from(input), crf, max_height, audio_kbps).map_err(to_err)
+    })
+    .await
+}

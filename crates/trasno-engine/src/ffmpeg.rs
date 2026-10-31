@@ -53,7 +53,7 @@ fn hide_console(cmd: &mut Command) {
     let _ = cmd;
 }
 
-fn run_ffmpeg(args: &[std::ffi::OsString]) -> Result<Output> {
+pub(crate) fn run_ffmpeg(args: &[std::ffi::OsString]) -> Result<Output> {
     let bin = ffmpeg_path()?;
     let mut cmd = Command::new(bin);
     hide_console(&mut cmd);
@@ -67,7 +67,7 @@ fn run_ffmpeg(args: &[std::ffi::OsString]) -> Result<Output> {
     Ok(output)
 }
 
-fn check_success(output: &Output) -> Result<()> {
+pub(crate) fn check_success(output: &Output) -> Result<()> {
     if !output.status.success() {
         return Err(EngineError::FfmpegFailed {
             code: output.status.code(),

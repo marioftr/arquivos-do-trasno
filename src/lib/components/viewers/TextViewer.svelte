@@ -1,5 +1,6 @@
 <script lang="ts">
   import { viewUrl, type FileEntry } from "../../files";
+  import { tr } from "../../i18n";
 
   export let file: FileEntry;
 
@@ -11,7 +12,7 @@
       const res = await fetch(await viewUrl(path));
       text = (await res.text()).slice(0, 200_000);
     } catch (e) {
-      text = `Non se puido ler o ficheiro: ${e}`;
+      text = tr("Non se puido ler o ficheiro: {error}", { error: String(e) });
     }
   }
 </script>

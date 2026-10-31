@@ -2,6 +2,7 @@
   import Icon from "./Icon.svelte";
   import { files, activePath, checked, toggleChecked, setChecked, removeFile, moveFile, clearAll } from "../files";
   import { formatBytes } from "../formats";
+  import { t } from "../i18n";
   import type { Category } from "../engine";
 
   export let onAdd: () => void;
@@ -20,8 +21,8 @@
 
 <div class="list">
   <div class="head">
-    <span class="titulo">Ficheiros <span class="muted">{$files.length}</span></span>
-    <button class="btn" on:click={onAdd}><Icon name="plus" size={14} /> Engadir</button>
+    <span class="titulo">{$t("Ficheiros")} <span class="muted">{$files.length}</span></span>
+    <button class="btn" on:click={onAdd}><Icon name="plus" size={14} /> {$t("Engadir")}</button>
   </div>
 
   <ul class="scrollbar-thin">
@@ -31,22 +32,22 @@
           type="checkbox"
           checked={$checked.has(f.path)}
           on:change={() => toggleChecked(f.path)}
-          aria-label="Marcar {f.name}"
-          title="Marcar para traballar con varios ficheiros á vez"
+          aria-label={$t("Marcar {name}", { name: f.name })}
+          title={$t("Marcar para traballar con varios ficheiros á vez")}
         />
         <button class="row" on:click={() => activePath.set(f.path)} title={f.path}>
           <Icon name={ICONS[f.category]} size={16} />
           <span class="info">
             <span class="nome">{f.name}</span>
             <span class="muted meta">
-              {f.ext.toUpperCase() || "?"}{#if f.size !== undefined} · {formatBytes(f.size)}{/if}{#if f.pages} · {f.pages} páx.{/if}
+              {f.ext.toUpperCase() || "?"}{#if f.size !== undefined} · {formatBytes(f.size)}{/if}{#if f.pages} · {$t("{n} páx.", { n: f.pages })}{/if}
             </span>
           </span>
         </button>
         <span class="acc">
-          <button class="mini" on:click={() => moveFile(f.path, -1)} disabled={i === 0} aria-label="Subir" title="Subir"><Icon name="up" size={13} /></button>
-          <button class="mini" on:click={() => moveFile(f.path, 1)} disabled={i === $files.length - 1} aria-label="Baixar" title="Baixar"><Icon name="down" size={13} /></button>
-          <button class="mini" on:click={() => removeFile(f.path)} aria-label="Quitar" title="Quitar da lista"><Icon name="close" size={13} /></button>
+          <button class="mini" on:click={() => moveFile(f.path, -1)} disabled={i === 0} aria-label={$t("Subir")} title={$t("Subir")}><Icon name="up" size={13} /></button>
+          <button class="mini" on:click={() => moveFile(f.path, 1)} disabled={i === $files.length - 1} aria-label={$t("Baixar")} title={$t("Baixar")}><Icon name="down" size={13} /></button>
+          <button class="mini" on:click={() => removeFile(f.path)} aria-label={$t("Quitar")} title={$t("Quitar da lista")}><Icon name="close" size={13} /></button>
         </span>
       </li>
     {/each}
@@ -54,9 +55,9 @@
 
   <div class="foot">
     <button class="link" on:click={() => setChecked(allChecked ? [] : $files.map((f) => f.path))}>
-      {allChecked ? "Desmarcar todo" : "Marcar todo"}
+      {allChecked ? $t("Desmarcar todo") : $t("Marcar todo")}
     </button>
-    <button class="link" on:click={clearAll}>Baleirar</button>
+    <button class="link" on:click={clearAll}>{$t("Baleirar")}</button>
   </div>
 </div>
 

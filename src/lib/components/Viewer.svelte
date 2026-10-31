@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { FileEntry } from "../files";
+  import { t } from "../i18n";
   import ImageViewer from "./viewers/ImageViewer.svelte";
   import MediaViewer from "./viewers/MediaViewer.svelte";
   import PdfViewer from "./viewers/PdfViewer.svelte";
@@ -21,7 +22,7 @@
   {:else if file.category === "modelo3d"}
     <ModelViewer {file} />
   {:else}
-    <p class="muted msg">O trasno non coñece este tipo de ficheiro.</p>
+    <p class="muted msg">{$t("O trasno non coñece este tipo de ficheiro.")}</p>
   {/if}
 {/key}
 

@@ -3,6 +3,8 @@
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
   import type { FileEntry } from "../../files";
+  import { t, tr, lang } from "../../i18n";
+  import { TRASNO } from "../../formats";
   import {
     loadModelDetailed,
     fallbackMaterial,
@@ -161,7 +163,7 @@
   }
 
   async function load(f: FileEntry) {
-    status = "O trasno está abrindo o modelo…";
+    status = tr(TRASNO.abrindo);
     stats = "";
     notes = [];
     missing = [];
@@ -187,7 +189,7 @@
       frame(obj);
       const sz = new THREE.Box3().setFromObject(obj).getSize(new THREE.Vector3());
       const dims = [sz.x, sz.y, sz.z].map((v) => +v.toPrecision(3)).join(" × ");
-      stats = `${dims} u · ${meshes} malla${meshes === 1 ? "" : "s"} · ${Math.round(tris).toLocaleString("gl")} triángulos`;
+      stats = tr("{dims} u · mallas: {meshes} · triángulos: {tris}", { dims, meshes, tris: Math.round(tris).toLocaleString($lang) });
       notes = loaded.notes;
       missing = loaded.missing;
       report = inspectMaterials(obj);
@@ -200,7 +202,7 @@
       applyView("full", wireframe);
       status = "";
     } catch (e) {
-      status = `Non se puido abrir o modelo: ${e}`;
+      status = tr("Non se puido abrir o modelo: {error}", { error: String(e) });
     }
   }
 
@@ -227,24 +229,24 @@
     {#if status}<p class="status muted">{status}</p>{/if}
 
     <aside class="panel scrollbar-thin" class:closed={!panelOpen}>
-      <button class="toggle" on:click={() => (panelOpen = !panelOpen)}>{panelOpen ? "Agochar panel" : "Panel"}</button>
+      <button class="toggle" on:click={() => (panelOpen = !panelOpen)}>{panelOpen ? $t("Agochar panel") : $t("Panel")}</button>
       {#if panelOpen}
-        <h4>Luz</h4>
-        <div class="row"><span>Azimut</span><input type="range" min="0" max="360" bind:value={azimuth} /><input class="num-input" type="number" min="0" max="360" bind:value={azimuth} /></div>
-        <div class="row"><span>Altura</span><input type="range" min="-90" max="90" bind:value={elevation} /><input class="num-input" type="number" min="-90" max="90" bind:value={elevation} /></div>
-        <div class="row"><span>Forza</span><input type="range" min="0" max="5" step="0.1" bind:value={intensity} /><input class="num-input" type="number" min="0" max="5" step="0.1" bind:value={intensity} /></div>
-        <div class="row"><span>Ambiente</span><input type="range" min="0" max="4" step="0.1" bind:value={ambient} /><input class="num-input" type="number" min="0" max="4" step="0.1" bind:value={ambient} /></div>
-        <label class="chk"><input type="checkbox" bind:checked={showMarker} /> Amosar a luz</label>
+        <h4>{$t("Luz")}</h4>
+        <div class="row"><span>{$t("Azimut")}</span><input type="range" min="0" max="360" bind:value={azimuth} /><input class="num-input" type="number" min="0" max="360" bind:value={azimuth} /></div>
+        <div class="row"><span>{$t("Altura")}</span><input type="range" min="-90" max="90" bind:value={elevation} /><input class="num-input" type="number" min="-90" max="90" bind:value={elevation} /></div>
+        <div class="row"><span>{$t("Forza")}</span><input type="range" min="0" max="5" step="0.1" bind:value={intensity} /><input class="num-input" type="number" min="0" max="5" step="0.1" bind:value={intensity} /></div>
+        <div class="row"><span>{$t("Ambiente")}</span><input type="range" min="0" max="4" step="0.1" bind:value={ambient} /><input class="num-input" type="number" min="0" max="4" step="0.1" bind:value={ambient} /></div>
+        <label class="chk"><input type="checkbox" bind:checked={showMarker} /> {$t("Amosar a luz")}</label>
 
-        <h4>Vista</h4>
+        <h4>{$t("Vista")}</h4>
         <div class="chan">
           {#each channels as c}
-            <button class="ch" class:on={channel === c.id} on:click={() => (channel = c.id)}>{c.label}</button>
+            <button class="ch" class:on={channel === c.id} on:click={() => (channel = c.id)}>{$t(c.label)}</button>
           {/each}
         </div>
 
         {#if report.length}
-          <h4>Materiais</h4>
+          <h4>{$t("Materiais")}</h4>
           <ul class="mats selectable">
             {#each report as m}
               <li>
@@ -255,31 +257,31 @@
                 {#if m.slots.length}
                   <div class="slots">
                     {#each m.slots as s}
-                      <span class:bad={!s.ok}>{s.label}{s.ok ? "" : " · non cargou"}</span>
+                      <span class:bad={!s.ok}>{$t(s.label)}{s.ok ? "" : ` · ${$t("non cargou")}`}</span>
                     {/each}
                   </div>
                 {:else}
-                  <div class="slots muted">sen texturas</div>
+                  <div class="slots muted">{$t("sen texturas")}</div>
                 {/if}
               </li>
             {/each}
           </ul>
         {:else if !status}
-          <p class="muted tiny">Este modelo non ten materiais: o trasno úsao en gris.</p>
+          <p class="muted tiny">{$t("Este modelo non ten materiais: o trasno úsao en gris.")}</p>
         {/if}
 
         {#if missing.length}
-          <p class="warn selectable">Texturas que o modelo pide e non estaban no cartafol: {missing.join(", ")}</p>
+          <p class="warn selectable">{$t("Texturas que o modelo pide e non estaban no cartafol: {list}", { list: missing.join(", ") })}</p>
         {/if}
         {#each notes as n}<p class="muted tiny selectable">· {n}</p>{/each}
       {/if}
     </aside>
   </div>
   <div class="bar">
-    <button class="btn" on:click={() => model && frame(model)}>Recentrar</button>
-    <label class="chk"><input type="checkbox" bind:checked={wireframe} /> Malla</label>
-    <label class="chk"><input type="checkbox" bind:checked={grid} /> Cuadrícula</label>
-    <span class="muted stats">{stats || "Arrastra para rotar · roda para zoom · botón dereito para mover"}</span>
+    <button class="btn" on:click={() => model && frame(model)}>{$t("Recentrar")}</button>
+    <label class="chk"><input type="checkbox" bind:checked={wireframe} /> {$t("Malla")}</label>
+    <label class="chk"><input type="checkbox" bind:checked={grid} /> {$t("Cuadrícula")}</label>
+    <span class="muted stats">{stats || $t("Arrastra para rotar · roda para zoom · botón dereito para mover")}</span>
   </div>
 </div>
 

@@ -169,3 +169,53 @@ export async function revealInFolder(path: string): Promise<void> {
 export async function makePreview(path: string): Promise<string> {
   return invoke("make_preview", { path });
 }
+
+export interface ImageCompressReport {
+  output_path: string;
+  bytes_written: number;
+  quality: number;
+  scale_percent: number;
+}
+
+export async function compressImage(
+  input: string,
+  output: string,
+  opts: { quality?: number; targetBytes?: number; maxSide?: number },
+  overwrite = false,
+): Promise<ImageCompressReport> {
+  return invoke("compress_image", {
+    input,
+    output,
+    overwrite,
+    quality: opts.quality ?? null,
+    targetBytes: opts.targetBytes ?? null,
+    maxSide: opts.maxSide ?? null,
+  });
+}
+
+export async function estimateImage(input: string, quality: number, maxSide?: number): Promise<number> {
+  return invoke("estimate_image", { input, quality, maxSide: maxSide ?? null });
+}
+
+export interface VideoCompressOpts {
+  crf: number;
+  targetBytes?: number;
+  maxHeight?: number;
+  audioKbps: number;
+}
+
+export async function compressVideo(input: string, output: string, o: VideoCompressOpts, overwrite = false): Promise<string> {
+  return invoke("compress_video", {
+    input,
+    output,
+    overwrite,
+    crf: o.crf,
+    targetBytes: o.targetBytes ?? null,
+    maxHeight: o.maxHeight ?? null,
+    audioKbps: o.audioKbps,
+  });
+}
+
+export async function estimateVideo(input: string, crf: number, maxHeight: number | undefined, audioKbps: number): Promise<number> {
+  return invoke("estimate_video", { input, crf, maxHeight: maxHeight ?? null, audioKbps });
+}

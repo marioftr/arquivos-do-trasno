@@ -3,6 +3,7 @@
   import type { FileEntry } from "../../files";
   import { fileNameOf, TRASNO, AUDIO_TARGETS } from "../../formats";
   import { askOutput } from "./shared";
+  import { t, tr } from "../../i18n";
 
   export let file: FileEntry;
 
@@ -23,12 +24,12 @@
   async function run(suffix: string, ext: string, job: (out: string) => Promise<string>) {
     message = null;
     try {
-      const out = await askOutput(file, suffix, ext);
+      const out = await askOutput(file, tr(suffix), ext);
       if (!out) return;
       busy = true;
-      message = { ok: true, text: `${TRASNO.listo} ${fileNameOf(await job(out))}` };
+      message = { ok: true, text: `${tr(TRASNO.listo)} ${fileNameOf(await job(out))}` };
     } catch (e) {
-      message = { ok: false, text: `${TRASNO.tropezou}: ${e}` };
+      message = { ok: false, text: `${tr(TRASNO.tropezouEditando)}\n${e}` };
     } finally {
       busy = false;
     }
@@ -44,49 +45,49 @@
 </script>
 
 <section>
-  <h3>{isVideo ? "Editar vídeo" : "Editar audio"}</h3>
+  <h3>{isVideo ? $t("Editar vídeo") : $t("Editar audio")}</h3>
 
   {#if isVideo}
     <div class="row">
-      <span>Fotograma</span>
+      <span>{$t("Fotograma")}</span>
       <input class="num-input wide" type="number" min="0" step="0.1" bind:value={frameAt} />
       <span class="u">s</span>
-      <button class="btn grow" on:click={frame} disabled={busy}>Gardar imaxe</button>
+      <button class="btn grow" on:click={frame} disabled={busy}>{$t("Gardar imaxe")}</button>
     </div>
   {/if}
 
   <div class="row">
-    <span>Velocidade</span>
+    <span>{$t("Velocidade")}</span>
     <input type="range" min="0.25" max="4" step="0.05" bind:value={speed} />
     <input class="num-input" type="number" min="0.25" max="4" step="0.05" bind:value={speed} />
   </div>
-  <button class="btn" on:click={faster} disabled={busy || speed === 1}>Aplicar velocidade ×{speed}</button>
+  <button class="btn" on:click={faster} disabled={busy || speed === 1}>{$t("Aplicar velocidade ×{v}", { v: speed })}</button>
 
   <div class="row">
-    <span>Volume</span>
+    <span>{$t("Volume")}</span>
     <input type="range" min="0" max="4" step="0.05" bind:value={volume} />
     <input class="num-input" type="number" min="0" max="4" step="0.05" bind:value={volume} />
   </div>
-  <button class="btn" on:click={louder} disabled={busy || volume === 1}>Aplicar volume ×{volume}</button>
+  <button class="btn" on:click={louder} disabled={busy || volume === 1}>{$t("Aplicar volume ×{v}", { v: volume })}</button>
 
   {#if isVideo}
     <div class="row">
-      <span>Altura</span>
+      <span>{$t("Altura")}</span>
       <input class="num-input wide" type="number" min="16" step="2" bind:value={height} />
       <span class="u">px</span>
-      <button class="btn grow" on:click={scale} disabled={busy}>Reducir vídeo</button>
+      <button class="btn grow" on:click={scale} disabled={busy}>{$t("Reducir vídeo")}</button>
     </div>
-    <button class="btn" on:click={mute} disabled={busy}>Quitar o son</button>
+    <button class="btn" on:click={mute} disabled={busy}>{$t("Quitar o son")}</button>
 
     <div class="row">
-      <span>Extraer audio</span>
+      <span>{$t("Extraer audio")}</span>
       <select bind:value={audioExt}>{#each AUDIO_TARGETS as t}<option value={t}>{t.toUpperCase()}</option>{/each}</select>
       <input class="num-input wide" type="number" min="32" max="320" bind:value={audioKbps} title="kbps" />
-      <button class="btn" on:click={audio} disabled={busy}>Extraer</button>
+      <button class="btn" on:click={audio} disabled={busy}>{$t("Extraer")}</button>
     </div>
   {/if}
 
-  {#if busy}<p class="muted msg">{TRASNO.traballando}</p>{/if}
+  {#if busy}<p class="muted msg">{$t(TRASNO.traballando)}</p>{/if}
   {#if message}<p class="msg" class:ok={message.ok} class:erro={!message.ok}>{message.text}</p>{/if}
 </section>
 
@@ -100,7 +101,7 @@
   .num-input.wide { width: 5em; }
   .u { color: var(--text-muted); }
   .grow { flex: 1; justify-content: center; }
-  .msg { margin: 0; font-size: 0.85rem; }
+  .msg { margin: 0; font-size: 0.85rem; white-space: pre-wrap; word-break: break-word; }
   .msg.ok { color: var(--accent-imaxe); }
   .msg.erro { color: var(--accent-video); }
 </style>

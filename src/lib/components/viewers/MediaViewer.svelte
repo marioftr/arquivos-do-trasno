@@ -1,6 +1,7 @@
 <script lang="ts">
   import { viewUrl, type FileEntry } from "../../files";
   import * as engine from "../../engine";
+  import { t } from "../../i18n";
 
   export let file: FileEntry;
 
@@ -40,9 +41,9 @@
 
 <div class="wrap">
   {#if preparing}
-    <p class="muted msg">O trasno está preparando unha vista previa de {file.ext.toUpperCase()}…</p>
+    <p class="muted msg">{$t("O trasno está preparando unha vista previa de {ext}…", { ext: file.ext.toUpperCase() })}</p>
   {:else if failed}
-    <p class="muted msg">O trasno non puido preparar a vista previa (¿falta ffmpeg?).</p>
+    <p class="muted msg">{$t("O trasno non puido preparar a vista previa (¿falta ffmpeg?).")}</p>
   {:else if url && file.category === "video"}
     <!-- svelte-ignore a11y_media_has_caption -->
     <video src={url} controls on:error={prepare}></video>

@@ -3,6 +3,7 @@
   import { imageEdit, type FileEntry } from "../../files";
   import { fileNameOf, TRASNO, IMAGE_TARGETS } from "../../formats";
   import { askOutput } from "./shared";
+  import { t, tr } from "../../i18n";
   import { onDestroy } from "svelte";
 
   export let file: FileEntry;
@@ -43,7 +44,7 @@
   async function apply() {
     message = null;
     try {
-      const out = await askOutput(file, "-editada", ext);
+      const out = await askOutput(file, `-${tr("editada")}`, ext);
       if (!out) return;
       busy = true;
       const done = await engine.editImage(
@@ -63,9 +64,9 @@
         },
         true,
       );
-      message = { ok: true, text: `${TRASNO.listo} ${fileNameOf(done)}` };
+      message = { ok: true, text: `${tr(TRASNO.listo)} ${fileNameOf(done)}` };
     } catch (e) {
-      message = { ok: false, text: `${TRASNO.tropezou}: ${e}` };
+      message = { ok: false, text: `${tr(TRASNO.tropezouEditando)}\n${e}` };
     } finally {
       busy = false;
     }
@@ -73,38 +74,38 @@
 </script>
 
 <section>
-  <h3>Editar</h3>
+  <h3>{$t("Editar")}</h3>
   <div class="row">
-    <button class="btn" on:click={() => (rotate = (rotate + 270) % 360)} title="Xirar 90° á esquerda">↺ 90°</button>
-    <button class="btn" on:click={() => (rotate = (rotate + 90) % 360)} title="Xirar 90° á dereita">↻ 90°</button>
-    <button class="btn" class:on={flipH} on:click={() => (flipH = !flipH)}>Espello H</button>
-    <button class="btn" class:on={flipV} on:click={() => (flipV = !flipV)}>Espello V</button>
+    <button class="btn" on:click={() => (rotate = (rotate + 270) % 360)} title={$t("Xirar 90° á esquerda")}>↺ 90°</button>
+    <button class="btn" on:click={() => (rotate = (rotate + 90) % 360)} title={$t("Xirar 90° á dereita")}>↻ 90°</button>
+    <button class="btn" class:on={flipH} on:click={() => (flipH = !flipH)}>{$t("Espello H")}</button>
+    <button class="btn" class:on={flipV} on:click={() => (flipV = !flipV)}>{$t("Espello V")}</button>
   </div>
   <div class="row">
-    <label class="check"><input type="checkbox" bind:checked={grayscale} /> Branco e negro</label>
-    <label class="check"><input type="checkbox" bind:checked={invert} /> Inverter cores</label>
+    <label class="check"><input type="checkbox" bind:checked={grayscale} /> {$t("Branco e negro")}</label>
+    <label class="check"><input type="checkbox" bind:checked={invert} /> {$t("Inverter cores")}</label>
   </div>
-  <div class="row"><span>Brillo</span><input type="range" min="-100" max="100" bind:value={brightness} /><input class="num-input" type="number" min="-100" max="100" bind:value={brightness} /></div>
-  <div class="row"><span>Contraste</span><input type="range" min="-100" max="100" bind:value={contrast} /><input class="num-input" type="number" min="-100" max="100" bind:value={contrast} /></div>
-  <div class="row"><span>Desenfoque</span><input type="range" min="0" max="20" step="0.5" bind:value={blur} /><input class="num-input" type="number" min="0" max="20" step="0.5" bind:value={blur} /></div>
+  <div class="row"><span>{$t("Brillo")}</span><input type="range" min="-100" max="100" bind:value={brightness} /><input class="num-input" type="number" min="-100" max="100" bind:value={brightness} /></div>
+  <div class="row"><span>{$t("Contraste")}</span><input type="range" min="-100" max="100" bind:value={contrast} /><input class="num-input" type="number" min="-100" max="100" bind:value={contrast} /></div>
+  <div class="row"><span>{$t("Desenfoque")}</span><input type="range" min="0" max="20" step="0.5" bind:value={blur} /><input class="num-input" type="number" min="0" max="20" step="0.5" bind:value={blur} /></div>
 
-  <label class="check"><input type="checkbox" bind:checked={cropOn} /> Recortar (en píxeles)</label>
+  <label class="check"><input type="checkbox" bind:checked={cropOn} /> {$t("Recortar (en píxeles)")}</label>
   {#if cropOn}
     <div class="row crop">
       <label>x <input class="num-input" type="number" min="0" bind:value={cx} /></label>
       <label>y <input class="num-input" type="number" min="0" bind:value={cy} /></label>
-      <label>ancho <input class="num-input" type="number" min="1" bind:value={cw} /></label>
-      <label>alto <input class="num-input" type="number" min="1" bind:value={ch} /></label>
+      <label>{$t("ancho")} <input class="num-input" type="number" min="1" bind:value={cw} /></label>
+      <label>{$t("alto")} <input class="num-input" type="number" min="1" bind:value={ch} /></label>
     </div>
   {/if}
 
   <div class="row">
-    <span>Gardar como</span>
+    <span>{$t("Gardar como")}</span>
     <select bind:value={ext}>{#each IMAGE_TARGETS as t}<option value={t}>{t.toUpperCase()}</option>{/each}</select>
   </div>
   <div class="row">
-    <button class="btn" on:click={() => reset(file.path)} disabled={!changed || busy}>Desfacer</button>
-    <button class="btn primary grow" on:click={apply} disabled={!changed || busy}>{busy ? TRASNO.traballando : "Gardar copia editada"}</button>
+    <button class="btn" on:click={() => reset(file.path)} disabled={!changed || busy}>{$t("Desfacer")}</button>
+    <button class="btn primary grow" on:click={apply} disabled={!changed || busy}>{busy ? $t(TRASNO.traballando) : $t("Gardar copia editada")}</button>
   </div>
   {#if message}<p class="msg" class:ok={message.ok} class:erro={!message.ok}>{message.text}</p>{/if}
 </section>
@@ -120,7 +121,7 @@
   .check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-muted); }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .grow { flex: 1; justify-content: center; }
-  .msg { margin: 0; font-size: 0.85rem; }
+  .msg { margin: 0; font-size: 0.85rem; white-space: pre-wrap; word-break: break-word; }
   .msg.ok { color: var(--accent-imaxe); }
   .msg.erro { color: var(--accent-video); }
 </style>

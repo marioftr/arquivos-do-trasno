@@ -3,6 +3,7 @@
 
 import * as THREE from "three";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { tr } from "./i18n";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
@@ -101,7 +102,7 @@ export async function loadModelDetailed(path: string, ext: string): Promise<Load
       return finish(new THREE.Mesh(geo, fallbackMaterial()));
     }
     default:
-      throw new Error(`formato ${ext} sen visor`);
+      throw new Error(tr("formato {ext} sen visor", { ext }));
   }
 }
 
@@ -145,7 +146,7 @@ export function inspectMaterials(obj: THREE.Object3D): MaterialReport[] {
       if (seen.has(m)) continue;
       seen.add(m);
       out.push({
-        name: m.name || "(sen nome)",
+        name: m.name || tr("(sen nome)"),
         color: m.color ? `#${m.color.getHexString()}` : undefined,
         slots: TEXTURE_SLOTS.filter(({ slot }) => m[slot]).map(({ slot, label }) => ({ slot, label, ok: textureOk(m[slot]) })),
       });
@@ -178,7 +179,7 @@ export function stripBrokenTextures(obj: THREE.Object3D): number {
 export function repairMaterials(obj: THREE.Object3D): string[] {
   const notes: string[] = [];
   const broken = stripBrokenTextures(obj);
-  if (broken) notes.push(`${broken} textura${broken === 1 ? "" : "s"} sen cargar quitada${broken === 1 ? "" : "s"}`);
+  if (broken) notes.push(tr("Texturas sen cargar quitadas: {n}", { n: broken }));
   let darkened = 0;
   const seen = new Set<any>();
   obj.traverse((o: any) => {
@@ -192,7 +193,7 @@ export function repairMaterials(obj: THREE.Object3D): string[] {
       }
     }
   });
-  if (darkened) notes.push(`${darkened} material${darkened === 1 ? "" : "s"} de cor negra puxéronse en gris`);
+  if (darkened) notes.push(tr("Materiais de cor negra postos en gris: {n}", { n: darkened }));
   return notes;
 }
 
@@ -274,14 +275,14 @@ async function exportBytes(obj: THREE.Object3D, ext: string): Promise<Uint8Array
           (res) => resolve(typeof res === "string" ? new TextEncoder().encode(res) : new Uint8Array(res as ArrayBuffer)),
           { binary: true },
         );
-        setTimeout(() => reject(new Error("a exportación PLY non respondeu")), 60_000);
+        setTimeout(() => reject(new Error(tr("a exportación PLY non respondeu"))), 60_000);
       });
     case "glb": {
       const buf = (await new GLTFExporter().parseAsync(obj, { binary: true })) as ArrayBuffer;
       return new Uint8Array(buf);
     }
     default:
-      throw new Error(`non se pode exportar a ${ext}`);
+      throw new Error(tr("non se pode exportar a {ext}", { ext }));
   }
 }
 

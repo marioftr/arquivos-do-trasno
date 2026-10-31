@@ -3,6 +3,7 @@
   import * as pdfjs from "pdfjs-dist";
   import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
   import { viewUrl, type FileEntry } from "../../files";
+  import { t } from "../../i18n";
 
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -68,16 +69,16 @@
 
 <div class="wrap">
   {#if error}
-    <p class="muted msg">Non se puido abrir o PDF: {error}</p>
+    <p class="muted msg">{$t("Non se puido abrir o PDF: {error}", { error })}</p>
   {:else}
     <div class="pages scrollbar-thin" bind:this={container}></div>
   {/if}
   <div class="bar">
-    <span class="muted">Zoom</span>
+    <span class="muted">{$t("Zoom")}</span>
     <input type="range" min="40" max="250" bind:value={scale} />
     <input class="num-input" type="number" min="40" max="250" bind:value={scale} />
     <span class="muted">%</span>
-    {#if doc}<span class="muted pag">{doc.numPages} páxinas</span>{/if}
+    {#if doc}<span class="muted pag">{$t("{n} páxinas", { n: doc.numPages })}</span>{/if}
   </div>
 </div>
 

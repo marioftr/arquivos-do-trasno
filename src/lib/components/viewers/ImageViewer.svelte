@@ -1,6 +1,7 @@
 <script lang="ts">
   import { viewUrl, imageEdit, type FileEntry } from "../../files";
   import * as engine from "../../engine";
+  import { t } from "../../i18n";
 
   export let file: FileEntry;
 
@@ -43,7 +44,7 @@
 <div class="wrap">
   <div class="stage scrollbar-thin" class:fit>
     {#if failed}
-      <p class="muted msg">O trasno non puido preparar unha vista previa de {file.ext.toUpperCase()}.</p>
+      <p class="muted msg">{$t("O trasno non puido preparar unha vista previa de {ext}.", { ext: file.ext.toUpperCase() })}</p>
     {:else if url}
       <img
         src={url}
@@ -54,7 +55,7 @@
     {/if}
   </div>
   <div class="bar">
-    <button class="btn" class:on={fit} on:click={() => (fit = true)}>Axustar</button>
+    <button class="btn" class:on={fit} on:click={() => (fit = true)}>{$t("Axustar")}</button>
     <button class="btn" class:on={!fit && zoom === 100} on:click={() => { fit = false; zoom = 100; }}>100%</button>
     <input type="range" min="10" max="400" bind:value={zoom} on:input={() => (fit = false)} />
     <input class="num-input" type="number" min="10" max="400" bind:value={zoom} on:input={() => (fit = false)} />
