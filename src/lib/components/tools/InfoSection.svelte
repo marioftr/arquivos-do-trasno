@@ -69,7 +69,7 @@
   </dl>
   {#if note}<p class="muted tiny">{note}</p>{/if}
   <div class="acts">
-    <button class="btn" on:click={computeHash} disabled={hashing}>{hashing ? "Calculando…" : "Calcular SHA-256"}</button>
+    <button class="btn" on:click={computeHash} disabled={hashing} title="Huella dixital do ficheiro: se dous ficheiros teñen o mesmo SHA-256, son idénticos byte a byte">{hashing ? "Calculando…" : "Calcular SHA-256"}</button>
     <button class="btn" on:click={() => engine.revealInFolder(file.path)}>Mostrar no cartafol</button>
   </div>
 </section>

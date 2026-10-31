@@ -196,3 +196,13 @@ textarea,
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-faint);
 }
+
+/* Mensaxes de estado e erros: que se poidan seleccionar e copiar. */
+.msg,
+.erro,
+.ok,
+.status,
+.results,
+dd {
+  user-select: text;
+}

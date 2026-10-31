@@ -41,12 +41,17 @@ function patch(path: string, change: Partial<FileEntry>) {
 }
 
 export async function addPaths(paths: string[]) {
+  let selectedNew = false;
   for (const path of paths) {
     if (get(files).some((f) => f.path === path)) continue;
     const category = await engine.detectCategory(path);
     const entry: FileEntry = { path, name: fileNameOf(path), ext: extensionOf(path), category };
     files.update((list) => [...list, entry]);
-    if (get(activePath) === null) activePath.set(path);
+    // O primeiro ficheiro recén importado queda seleccionado e á vista.
+    if (!selectedNew) {
+      activePath.set(path);
+      selectedNew = true;
+    }
 
     engine.fileSize(path).then((size) => patch(path, { size })).catch(() => {});
     if (category === "documento" && entry.ext === "pdf") {
