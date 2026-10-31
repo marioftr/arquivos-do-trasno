@@ -39,7 +39,10 @@ pub const VIDEO_EXTS: &[&str] = &[
 /// dependen da orixe (ver `trasno_engine::suggested_targets`): un .pdf
 /// convértese a .txt (extracto de texto) e un .txt a .pdf (maquetación
 /// sinxela). Formatos ricos (DOCX/ODT) quedan para unha fase posterior.
-pub const DOCUMENT_EXTS: &[&str] = &["pdf", "txt"];
+pub const DOCUMENT_EXTS: &[&str] = &["pdf", "txt", "md", "csv", "json", "xml", "log", "html", "htm", "svg"];
+
+/// Documentos de texto plano que se poden maquetar nun PDF.
+pub const PLAIN_TEXT_EXTS: &[&str] = &["txt", "md", "csv", "json", "xml", "log"];
 
 pub const MODEL3D_EXTS: &[&str] = &["obj", "stl", "ply", "gltf", "glb", "fbx"];
 

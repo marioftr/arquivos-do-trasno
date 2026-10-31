@@ -1,14 +1,21 @@
 <script lang="ts">
-  import { viewUrl, type FileEntry } from "../../files";
+  import { viewUrl, mediaPreview, mediaSeek, type FileEntry } from "../../files";
   import * as engine from "../../engine";
   import { t } from "../../i18n";
 
   export let file: FileEntry;
 
   let url = "";
+  let el: HTMLMediaElement | undefined;
   let failed = false;
 
   $: load(file.path);
+  // Vista previa en directo: velocidade e volume (o navegador non pasa de volume 1) e salto a un instante.
+  $: if (el && $mediaPreview) {
+    el.playbackRate = Math.min(4, Math.max(0.25, $mediaPreview.speed));
+    el.volume = Math.min(1, Math.max(0, $mediaPreview.volume));
+  }
+  $: if (el && $mediaSeek) el.currentTime = $mediaSeek.t;
 
   let preparing = false;
   let triedPreview = false;
@@ -46,11 +53,11 @@
     <p class="muted msg">{$t("O trasno non puido preparar a vista previa; quizais falta ffmpeg.")}</p>
   {:else if url && file.category === "video"}
     <!-- svelte-ignore a11y_media_has_caption -->
-    <video src={url} controls on:error={prepare}></video>
+    <video bind:this={el} src={url} controls on:error={prepare}></video>
   {:else if url}
     <div class="audio">
       <div class="nome">{file.name}</div>
-      <audio src={url} controls on:error={prepare}></audio>
+      <audio bind:this={el} src={url} controls on:error={prepare}></audio>
     </div>
   {/if}
 </div>

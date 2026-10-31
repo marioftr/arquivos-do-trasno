@@ -221,3 +221,51 @@ export async function compressVideo(input: string, output: string, o: VideoCompr
 export async function estimateVideo(input: string, crf: number, maxHeight: number | undefined, audioKbps: number): Promise<number> {
   return call("estimate_video", { input, crf, maxHeight: maxHeight ?? null, audioKbps });
 }
+
+// ------------------------------------------------------------ ferramentas PDF
+
+type Pages = number[] | null;
+
+export async function pdfWatermarkText(input: string, output: string, o: { text: string; size: number; opacity: number; angle: number; color: string }, pages: Pages, overwrite = false): Promise<string> {
+  return call("pdf_watermark_text", { input, output, overwrite, ...o, pages });
+}
+
+export async function pdfPageNumbers(input: string, output: string, o: { position: string; format: string; start: number; size: number; margin: number; color: string }, pages: Pages, overwrite = false): Promise<string> {
+  return call("pdf_page_numbers", { input, output, overwrite, ...o, pages });
+}
+
+export async function pdfAddText(input: string, output: string, o: { text: string; xPct: number; yPct: number; size: number; color: string }, pages: Pages, overwrite = false): Promise<string> {
+  return call("pdf_add_text", { input, output, overwrite, ...o, pages });
+}
+
+export async function pdfStampImage(input: string, output: string, o: { image: string; xPct: number; yPct: number; widthPct: number; opacity: number }, pages: Pages, overwrite = false): Promise<string> {
+  return call("pdf_stamp_image", { input, output, overwrite, ...o, pages });
+}
+
+export async function pdfCrop(input: string, output: string, m: { left: number; bottom: number; right: number; top: number }, pages: Pages, overwrite = false): Promise<string> {
+  return call("pdf_crop", { input, output, overwrite, ...m, pages });
+}
+
+export async function pdfCompress(input: string, output: string, quality: number, scalePercent: number, overwrite = false): Promise<string> {
+  return call("pdf_compress", { input, output, overwrite, quality, scalePercent });
+}
+
+export async function pdfProtect(input: string, output: string, o: { userPassword: string; ownerPassword: string; allowPrint: boolean; allowCopy: boolean }, overwrite = false): Promise<string> {
+  return call("pdf_protect", { input, output, overwrite, ...o });
+}
+
+export async function pdfUnprotect(input: string, output: string, password: string, overwrite = false): Promise<string> {
+  return call("pdf_unprotect", { input, output, overwrite, password });
+}
+
+export async function pdfIsEncrypted(input: string): Promise<boolean> {
+  return call("pdf_is_encrypted", { input });
+}
+
+export async function pdfArrange(input: string, output: string, order: [number, number][], overwrite = false): Promise<string> {
+  return call("pdf_arrange", { input, output, overwrite, order });
+}
+
+export async function pdfRepair(input: string, output: string, overwrite = false): Promise<string> {
+  return call("pdf_repair", { input, output, overwrite });
+}

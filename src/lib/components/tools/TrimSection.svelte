@@ -1,6 +1,7 @@
 <script lang="ts">
   import { errText } from "../../errors";
   import { onMount } from "svelte";
+  import { mediaSeek } from "../../files";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
   import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
@@ -19,6 +20,18 @@
   // 0 en «Fin» significa ata o final.
   const form = createForm({ start: 0, end: total });
   onMount(() => useForm(form));
+
+  // Ao mover o inicio ou o fin, o visor salta a ese instante para ver onde corta.
+  let lastStart = $form.start;
+  let lastEnd = $form.end;
+  $: if ($form.start !== lastStart) {
+    lastStart = $form.start;
+    mediaSeek.set({ t: lastStart, stamp: Date.now() });
+  }
+  $: if ($form.end !== lastEnd) {
+    lastEnd = $form.end;
+    if (lastEnd) mediaSeek.set({ t: Math.max(0, lastEnd - 0.05), stamp: Date.now() });
+  }
 
   const job = createJob();
   const busy = job.busy;

@@ -143,7 +143,8 @@ pub fn edit_image(
         from: "imaxe".into(),
         to: "(sen extensión)".into(),
     })?;
-    let dst_format = format_from_ext(&dst_ext)?;
+    let to_pdf = dst_ext == "pdf";
+    let dst_format = if to_pdf { ImageFormat::Png } else { format_from_ext(&dst_ext)? };
     let mut img = image::open(input)?;
 
     if let Some((x, y, w, h)) = edits.crop {
@@ -187,6 +188,17 @@ pub fn edit_image(
             return Err(EngineError::EmptyOrCorruptOutput);
         }
         img = image::DynamicImage::from(imageops::resize(&img, w, h, imageops::FilterType::Lanczos3));
+    }
+    if to_pdf {
+        // Gárdase nun PNG temporal e vai a unha páxina de PDF co tamaño da imaxe.
+        if output.exists() && !overwrite {
+            return Err(EngineError::DestinationExists(output.to_path_buf()));
+        }
+        let tmp = std::env::temp_dir().join(format!("arquivos-do-trasno-{}.png", uuid::Uuid::new_v4()));
+        img.save_with_format(&tmp, ImageFormat::Png)?;
+        let result = crate::pdf::images_to_pdf(&[tmp.clone()], output, overwrite);
+        let _ = std::fs::remove_file(&tmp);
+        return result;
     }
     write_verified(&img, output, overwrite, dst_format, edits.quality)
 }

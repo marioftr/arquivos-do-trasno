@@ -6,6 +6,7 @@
   import PdfViewer from "./viewers/PdfViewer.svelte";
   import TextViewer from "./viewers/TextViewer.svelte";
   import ModelViewer from "./viewers/ModelViewer.svelte";
+  import HtmlViewer from "./viewers/HtmlViewer.svelte";
 
   export let file: FileEntry;
 </script>
@@ -17,6 +18,8 @@
     <MediaViewer {file} />
   {:else if file.category === "documento" && file.ext === "pdf"}
     <PdfViewer {file} />
+  {:else if file.category === "documento" && (file.ext === "html" || file.ext === "htm" || file.ext === "svg")}
+    <HtmlViewer {file} />
   {:else if file.category === "documento"}
     <TextViewer {file} />
   {:else if file.category === "modelo3d"}

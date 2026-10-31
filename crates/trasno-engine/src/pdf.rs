@@ -7,7 +7,7 @@ use crate::integrity::{assert_non_empty_file, ensure_distinct, AtomicOutput};
 use lopdf::{dictionary, Document, Object, ObjectId, Stream};
 use std::path::{Path, PathBuf};
 
-fn load(path: &Path) -> Result<Document> {
+pub(crate) fn load(path: &Path) -> Result<Document> {
     if !path.is_file() {
         return Err(EngineError::InputNotFound(path.to_path_buf()));
     }
@@ -36,7 +36,7 @@ fn resolve_inherited(doc: &Document, start: ObjectId, key: &[u8]) -> Option<lopd
 /// nun antepasado na árbore de páxinas, para que sigan sendo correctos
 /// despois de mover a páxina a unha árbore de páxinas distinta (unir,
 /// extraer...).
-fn flatten_inherited_page_attributes(doc: &mut Document) {
+pub(crate) fn flatten_inherited_page_attributes(doc: &mut Document) {
     const INHERITABLE: [&[u8]; 4] = [b"Resources", b"MediaBox", b"CropBox", b"Rotate"];
     let page_ids: Vec<ObjectId> = doc.get_pages().into_values().collect();
     for page_id in page_ids {
@@ -59,7 +59,7 @@ fn flatten_inherited_page_attributes(doc: &mut Document) {
     }
 }
 
-fn save_atomically(doc: &mut Document, output: &Path, overwrite: bool) -> Result<PathBuf> {
+pub(crate) fn save_atomically(doc: &mut Document, output: &Path, overwrite: bool) -> Result<PathBuf> {
     if output.exists() && !overwrite {
         return Err(EngineError::DestinationExists(output.to_path_buf()));
     }
@@ -243,7 +243,7 @@ const CHARS_PER_LINE: usize = 90;
 /// WinAnsiEncoding (cobre ASCII e as vogais acentuadas/ñ/ü do galego).
 /// Calquera outro carácter substitúese por '?' para non xerar bytes que
 /// corrompesen o PDF.
-fn escape_pdf_line(line: &str) -> Vec<u8> {
+pub(crate) fn escape_pdf_line(line: &str) -> Vec<u8> {
     let mut out = Vec::with_capacity(line.len() + 4);
     for ch in line.chars() {
         let byte = if (ch as u32) < 256 { ch as u32 as u8 } else { b'?' };

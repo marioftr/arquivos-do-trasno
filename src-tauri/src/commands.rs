@@ -468,3 +468,130 @@ pub async fn estimate_video(input: String, crf: u8, max_height: Option<u32>, aud
     })
     .await
 }
+
+// ------------------------------------------------------------ ferramentas PDF
+
+fn paths(input: String, output: String) -> (PathBuf, PathBuf) {
+    (PathBuf::from(input), PathBuf::from(output))
+}
+
+fn done(r: trasno_engine::Result<PathBuf>) -> Result<String, String> {
+    r.map(|p| p.to_string_lossy().to_string()).map_err(to_err)
+}
+
+#[tauri::command]
+pub async fn pdf_watermark_text(
+    input: String, output: String, overwrite: bool,
+    text: String, size: f32, opacity: f32, angle: f32, color: String, pages: Option<Vec<u32>>,
+) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        let w = trasno_engine::pdf_tools::WatermarkText { text, size, opacity, angle, color };
+        done(trasno_engine::pdf_tools::watermark_text(&i, &o, overwrite, &w, &pages))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_page_numbers(
+    input: String, output: String, overwrite: bool,
+    position: String, format: String, start: i64, size: f32, margin: f32, color: String, pages: Option<Vec<u32>>,
+) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        let n = trasno_engine::pdf_tools::PageNumbers { position, format, start, size, margin, color };
+        done(trasno_engine::pdf_tools::page_numbers(&i, &o, overwrite, &n, &pages))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_add_text(
+    input: String, output: String, overwrite: bool,
+    text: String, x_pct: f32, y_pct: f32, size: f32, color: String, pages: Option<Vec<u32>>,
+) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        let t = trasno_engine::pdf_tools::AddText { text, x_pct, y_pct, size, color };
+        done(trasno_engine::pdf_tools::add_text(&i, &o, overwrite, &t, &pages))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_stamp_image(
+    input: String, output: String, overwrite: bool,
+    image: String, x_pct: f32, y_pct: f32, width_pct: f32, opacity: f32, pages: Option<Vec<u32>>,
+) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        let st = trasno_engine::pdf_tools::StampImage { image: PathBuf::from(image), x_pct, y_pct, width_pct, opacity };
+        done(trasno_engine::pdf_tools::stamp_image(&i, &o, overwrite, &st, &pages))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_crop(
+    input: String, output: String, overwrite: bool,
+    left: f32, bottom: f32, right: f32, top: f32, pages: Option<Vec<u32>>,
+) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        done(trasno_engine::pdf_tools::crop_pages(&i, &o, overwrite, left, bottom, right, top, &pages))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_compress(input: String, output: String, overwrite: bool, quality: u8, scale_percent: u32) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        done(trasno_engine::pdf_tools::compress_pdf(&i, &o, overwrite, &trasno_engine::pdf_tools::PdfCompress { quality, scale_percent }))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_protect(
+    input: String, output: String, overwrite: bool,
+    user_password: String, owner_password: String, allow_print: bool, allow_copy: bool,
+) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        done(trasno_engine::pdf_tools::protect_pdf(&i, &o, overwrite, &user_password, &owner_password, allow_print, allow_copy))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_unprotect(input: String, output: String, overwrite: bool, password: String) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        done(trasno_engine::pdf_tools::unprotect_pdf(&i, &o, overwrite, &password))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_is_encrypted(input: String) -> Result<bool, String> {
+    blocking(move || trasno_engine::pdf_tools::is_encrypted(&PathBuf::from(input)).map_err(to_err)).await
+}
+
+#[tauri::command]
+pub async fn pdf_arrange(input: String, output: String, overwrite: bool, order: Vec<(u32, i64)>) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        done(trasno_engine::pdf_tools::arrange_pages(&i, &o, overwrite, &order))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_repair(input: String, output: String, overwrite: bool) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        done(trasno_engine::pdf_tools::repair_pdf(&i, &o, overwrite))
+    })
+    .await
+}

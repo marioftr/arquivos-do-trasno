@@ -60,8 +60,8 @@ for (const file of walk(root)) {
   // Pestanas das ferramentas
   if (rel.endsWith("Tools.svelte")) for (const m of src.matchAll(new RegExp(String.raw`tab\(\s*"[a-z]+"\s*,\s*${str}`, "g"))) add(unesc(m[1]), rel);
   // Niveis de compresión de vídeo (label e hint)
-  if (rel.endsWith("CompressSection.svelte")) {
-    for (const m of src.matchAll(new RegExp(String.raw`label:\s*${str}\s*,\s*crf:\s*\d+\s*,\s*hint:\s*${str}`, "g"))) {
+  if (rel.endsWith("CompressSection.svelte") || rel.endsWith("PdfCompressSection.svelte")) {
+    for (const m of src.matchAll(new RegExp(String.raw`label:\s*${str}\s*,\s*(?:crf|quality):\s*\d+\s*,\s*(?:scale:\s*\d+\s*,\s*)?hint:\s*${str}`, "g"))) {
       add(unesc(m[1]), rel);
       add(unesc(m[2]), rel);
     }

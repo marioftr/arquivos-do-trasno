@@ -23,6 +23,7 @@ pub mod image_convert;
 pub mod integrity;
 pub mod model3d;
 pub mod pdf;
+pub mod pdf_tools;
 
 pub use error::{EngineError, Result};
 pub use formats::Category;
@@ -91,7 +92,7 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
             let in_ext = formats::extension_of(input).unwrap_or_default();
             let out_ext = formats::extension_of(output).unwrap_or_default();
             match (in_ext.as_str(), out_ext.as_str()) {
-                ("txt", "pdf") => pdf::text_to_pdf(input, output, options.overwrite)?,
+                (e, "pdf") if formats::PLAIN_TEXT_EXTS.contains(&e) => pdf::text_to_pdf(input, output, options.overwrite)?,
                 ("pdf", "txt") => pdf::pdf_to_text(input, output, options.overwrite)?,
                 _ => {
                     return Err(EngineError::UnsupportedConversion {
@@ -127,7 +128,8 @@ pub fn suggested_targets(input: &Path) -> Vec<&'static str> {
         Category::Video => formats::VIDEO_EXTS.to_vec(),
         Category::Documento => match formats::extension_of(input).as_deref() {
             Some("pdf") => vec!["txt"],
-            _ => vec!["pdf"],
+            Some(e) if formats::PLAIN_TEXT_EXTS.contains(&e) => vec!["pdf"],
+            _ => Vec::new(),
         },
         Category::Modelo3d => formats::MODEL3D_ENGINE_SUPPORTED.to_vec(),
         Category::Descoñecido => Vec::new(),

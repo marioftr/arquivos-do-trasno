@@ -1,13 +1,13 @@
 <script lang="ts">
   import { errText } from "../../errors";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
-  import type { FileEntry } from "../../files";
+  import { pdfOverlay, type FileEntry } from "../../files";
   import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
-  import { askOutput } from "./shared";
+  import { askOutput, safePages } from "./shared";
   import NumberField from "../ui/NumberField.svelte";
   import TextField from "../ui/TextField.svelte";
   import Toggle from "../ui/Toggle.svelte";
@@ -17,10 +17,18 @@
 
   export let file: FileEntry;
 
-  const form = createForm({ pageSpec: "", rotateAll: true, rotatePage: 1, degrees: 90 });
+  const form = createForm({ pageSpec: "", rotateAll: true, rotatePage: 1, degrees: 0 });
   onMount(() => useForm(form));
 
   const job = createJob();
+
+  // Vista previa: páxinas escollidas e xiro, antes de gardar nada.
+  $: sel = safePages($form.pageSpec, file.pages);
+  $: pdfOverlay.set({
+    select: sel ?? undefined,
+    rotate: $form.degrees ? { degrees: $form.degrees, page: $form.rotateAll ? null : $form.rotatePage } : undefined,
+  });
+  onDestroy(() => pdfOverlay.set(null));
   const busy = job.busy;
 
   function parsePages(spec: string): number[] {
@@ -80,8 +88,8 @@
     {#if !$form.rotateAll}
       <NumberField label={$t("Páxina")} min={1} max={file.pages} bind:value={$form.rotatePage} def={1} unit={file.pages ? `/ ${file.pages}` : ""} />
     {/if}
-    <Segmented label={$t("Ángulo")} options={[{ value: 90, label: "90°" }, { value: 180, label: "180°" }, { value: 270, label: "270°" }]} bind:value={$form.degrees} />
-    <button class="btn block" on:click={rotate} disabled={$busy}>{$t("Rotar a un novo PDF")}</button>
+    <Segmented label={$t("Ángulo")} options={[{ value: 0, label: "0°" }, { value: 90, label: "90°" }, { value: 180, label: "180°" }, { value: 270, label: "270°" }]} bind:value={$form.degrees} />
+    <button class="btn block" on:click={rotate} disabled={$busy || !$form.degrees}>{$t("Rotar a un novo PDF")}</button>
   </div>
 
   <JobStatus {job} />

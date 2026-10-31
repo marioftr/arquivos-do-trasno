@@ -124,3 +124,40 @@ export async function viewUrl(path: string): Promise<string> {
   await call("allow_view", { path });
   return convertFileSrc(path);
 }
+
+// ----------------------------------------------------- vistas previas dos cambios
+
+/** Cambios de PDF que o visor debuxa por riba das páxinas antes de aplicalos. */
+export interface PdfOverlay {
+  /** Xiro (graos) da páxina `page`, ou de todas se é null. */
+  rotate?: { degrees: number; page: number | null };
+  /** Páxinas escollidas (as demais atenúanse). */
+  select?: number[];
+  /** Márxenes a quitar, en puntos do PDF. */
+  crop?: { l: number; b: number; r: number; t: number };
+  /** Texto de marca de auga ou texto engadido (posición en % da páxina, desde abaixo á esquerda). */
+  text?: { text: string; xPct: number; yPct: number; size: number; color: string; opacity: number; angle: number; centered: boolean; pages: number[] | null };
+  numbers?: { position: string; format: string; start: number; size: number; margin: number; color: string };
+  image?: { url: string; xPct: number; yPct: number; widthPct: number; opacity: number; pages: number[] | null };
+}
+export const pdfOverlay = writable<PdfOverlay | null>(null);
+
+/** Recorte de imaxe sobre o visor, en píxeles da imaxe orixinal. */
+export interface ImageCrop {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+export const imageCrop = writable<ImageCrop | null>(null);
+
+/** Vista previa de audio e vídeo: velocidade, volume e salto a un instante. */
+export interface MediaPreview {
+  speed: number;
+  volume: number;
+}
+export const mediaPreview = writable<MediaPreview | null>(null);
+export const mediaSeek = writable<{ t: number; stamp: number } | null>(null);
+
+/** Proporción fixa do recorte (ancho / alto) ou null para libre. */
+export const imageCropAspect = writable<number | null>(null);

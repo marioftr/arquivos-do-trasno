@@ -1,8 +1,8 @@
 <script lang="ts">
   import { errText } from "../../errors";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
-  import type { FileEntry } from "../../files";
+  import { mediaPreview, type FileEntry } from "../../files";
   import { fileNameOf, TRASNO, fallo, listo, AUDIO_TARGETS } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
@@ -27,6 +27,9 @@
     audioKbps: 192,
   });
   onMount(() => useForm(form));
+  // O visor reproduce xa coa velocidade e o volume elixidos.
+  $: mediaPreview.set({ speed: $form.speed, volume: $form.volume });
+  onDestroy(() => mediaPreview.set(null));
 
   const job = createJob();
   const busy = job.busy;

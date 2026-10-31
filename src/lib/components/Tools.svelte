@@ -2,7 +2,7 @@
   import type { Category } from "../engine";
   import type { FileEntry } from "../files";
   import { t } from "../i18n";
-  import { formatBytes, CATEGORY_LABELS } from "../formats";
+  import { formatBytes, CATEGORY_LABELS, PLAIN_TEXT } from "../formats";
   import Tabs from "./ui/Tabs.svelte";
   import ConvertSection from "./tools/ConvertSection.svelte";
   import CompressSection from "./tools/CompressSection.svelte";
@@ -11,6 +11,12 @@
   import TrimSection from "./tools/TrimSection.svelte";
   import PdfPagesSection from "./tools/PdfPagesSection.svelte";
   import PdfImagesSection from "./tools/PdfImagesSection.svelte";
+  import PdfOrganizeSection from "./tools/PdfOrganizeSection.svelte";
+  import PdfSplitSection from "./tools/PdfSplitSection.svelte";
+  import PdfMarksSection from "./tools/PdfMarksSection.svelte";
+  import PdfCropSection from "./tools/PdfCropSection.svelte";
+  import PdfCompressSection from "./tools/PdfCompressSection.svelte";
+  import PdfSecuritySection from "./tools/PdfSecuritySection.svelte";
   import MergeSection from "./tools/MergeSection.svelte";
   import InfoSection from "./tools/InfoSection.svelte";
 
@@ -44,8 +50,21 @@
         return [tab("convert", "Converter"), tab("edit", "Editar"), tab("trim", "Cortar"), tab("info", "Información")];
       case "documento":
         return pdf
-          ? [tab("convert", "Converter"), tab("images", "Imaxes"), tab("pages", "Páxinas"), tab("info", "Información")]
-          : [tab("convert", "Converter"), tab("info", "Información")];
+          ? [
+              tab("convert", "Converter"),
+              tab("images", "Imaxes"),
+              tab("organize", "Ordenar"),
+              tab("split", "Dividir"),
+              tab("pages", "Rotar"),
+              tab("marks", "Marcas"),
+              tab("crop", "Recortar"),
+              tab("pdfcompress", "Comprimir"),
+              tab("security", "Seguridade"),
+              tab("info", "Información"),
+            ]
+          : PLAIN_TEXT.includes(first?.ext ?? "")
+            ? [tab("convert", "Converter"), tab("info", "Información")]
+            : [tab("info", "Información")];
       default:
         return [tab("convert", "Converter"), tab("info", "Información")];
     }
@@ -87,6 +106,18 @@
           <TrimSection file={first} />
         {:else if current === "images" && first}
           <PdfImagesSection file={first} />
+        {:else if current === "organize" && first}
+          <PdfOrganizeSection file={first} />
+        {:else if current === "split" && first}
+          <PdfSplitSection file={first} />
+        {:else if current === "marks" && first}
+          <PdfMarksSection file={first} />
+        {:else if current === "crop" && first}
+          <PdfCropSection file={first} />
+        {:else if current === "pdfcompress" && first}
+          <PdfCompressSection file={first} />
+        {:else if current === "security" && first}
+          <PdfSecuritySection file={first} />
         {:else if current === "pages" && first}
           <PdfPagesSection file={first} />
         {:else if current === "merge"}
