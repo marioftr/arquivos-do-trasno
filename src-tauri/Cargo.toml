@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "Trasno: estudio multimedia (imaxe, audio, PDF, vídeo) e conversor universal de ficheiros"
+description = "Arquivos do Trasno: visor e caixa de ferramentas multimedia todo en un (imaxe, audio, vídeo, PDF, 3D)"
 default-run = "trasno"
 
 [lib]
@@ -15,7 +15,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -41,6 +41,15 @@ export function targetsForCategory(category: Category, sourceExt?: string): stri
   }
 }
 
+/** Frases do trasno, o duende que fai o traballo de fondo. */
+export const TRASNO = {
+  traballando: "O trasno está traballando…",
+  convertendo: "O trasno está convertendo…",
+  unindo: "O trasno está unindo os ficheiros…",
+  listo: "O trasno rematou.",
+  tropezou: "O trasno tropezou",
+};
+
 export function extensionOf(path: string): string {
   const dot = path.lastIndexOf(".");
   if (dot === -1 || dot === path.length - 1) return "";

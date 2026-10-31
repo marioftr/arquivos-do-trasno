@@ -69,6 +69,14 @@
     <polygon points="12 2.5 22 8 12 13.5 2 8 12 2.5" />
     <polyline points="2 15 12 20.5 22 15" />
     <polyline points="2 11.5 12 17 22 11.5" />
+  {:else if name === "cube"}
+    <path d="M12 2.5l8.5 4.75v9.5L12 21.5l-8.5-4.75v-9.5z" />
+    <polyline points="3.5 7.25 12 12 20.5 7.25" />
+    <line x1="12" y1="12" x2="12" y2="21.5" />
+  {:else if name === "up"}
+    <polyline points="6 15 12 9 18 15" />
+  {:else if name === "down"}
+    <polyline points="6 9 12 15 18 9" />
   {/if}
 </svg>
 

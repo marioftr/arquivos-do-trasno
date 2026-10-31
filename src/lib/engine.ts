@@ -100,3 +100,67 @@ export async function pdfRotate(
 export async function pdfPageCount(input: string): Promise<number> {
   return invoke("pdf_page_count", { input });
 }
+
+export async function startupFiles(): Promise<string[]> {
+  return invoke("startup_files");
+}
+
+export interface ImageEdits {
+  rotate?: number;
+  flipH?: boolean;
+  flipV?: boolean;
+  grayscale?: boolean;
+  invert?: boolean;
+  brightness?: number;
+  contrast?: number;
+  blur?: number;
+  crop?: [number, number, number, number];
+  quality?: number;
+  resize?: [number, number];
+}
+
+export async function editImage(input: string, output: string, edits: ImageEdits, overwrite = false): Promise<string> {
+  return invoke("edit_image", { input, output, overwrite, edits });
+}
+
+export async function imagesToPdf(inputs: string[], output: string, overwrite = false): Promise<string> {
+  return invoke("images_to_pdf", { inputs, output, overwrite });
+}
+
+export type MediaOp = "frame" | "speed" | "mute" | "volume" | "scale";
+
+export async function mediaEdit(
+  input: string,
+  output: string,
+  op: MediaOp,
+  value: number,
+  hasVideo: boolean,
+  overwrite = false,
+): Promise<string> {
+  return invoke("media_edit", { input, output, overwrite, op, value, hasVideo });
+}
+
+export interface MediaInfo {
+  format?: { duration?: string; bit_rate?: string; format_long_name?: string };
+  streams?: {
+    codec_type: string;
+    codec_name?: string;
+    width?: number;
+    height?: number;
+    r_frame_rate?: string;
+    sample_rate?: string;
+    channels?: number;
+  }[];
+}
+
+export async function probeMedia(path: string): Promise<MediaInfo> {
+  return invoke("probe_media", { path });
+}
+
+export async function sha256(path: string): Promise<string> {
+  return invoke("sha256", { path });
+}
+
+export async function revealInFolder(path: string): Promise<void> {
+  return invoke("reveal_in_folder", { path });
+}

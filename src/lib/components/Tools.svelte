@@ -1,0 +1,488 @@
+<script lang="ts">
+  import { open, save } from "@tauri-apps/plugin-dialog";
+  import { join } from "@tauri-apps/api/path";
+  import * as engine from "../engine";
+  import type { Category } from "../engine";
+  import type { FileEntry } from "../files";
+  import Icon from "./Icon.svelte";
+  import InfoSection from "./tools/InfoSection.svelte";
+  import ImageEditSection from "./tools/ImageEditSection.svelte";
+  import MediaEditSection from "./tools/MediaEditSection.svelte";
+  import {
+    targetsForCategory,
+    withExtension,
+    fileNameOf,
+    formatBytes,
+    TRASNO,
+    CATEGORY_LABELS,
+  } from "../formats";
+
+  export let selection: FileEntry[] = [];
+
+  const MAX_CONCURRENT = 3;
+  const PRESETS = [
+    { label: "WhatsApp", value: 55, hint: "Máis lixeiro, ideal para enviar rápido" },
+    { label: "Web", value: 75, hint: "Equilibrio entre peso e nitidez" },
+    { label: "Arquivo", value: 95, hint: "Case sen perdas, para gardar" },
+  ];
+
+  let targetExt = "";
+  let quality = 85;
+  let bitrate = 0;
+  let resizeW: number | null = null;
+  let resizeH: number | null = null;
+  let keepRatio = true;
+  let maxSide: number | null = null;
+  let trimStart = 0;
+  let trimEnd: number | null = null;
+  let pageSpec = "";
+  let rotateAll = true;
+  let rotatePage = 1;
+  let rotateDegrees = 90;
+  let outputDir: string | null = null;
+
+  let busy = false;
+  let busyText = "";
+  let message: { ok: boolean; text: string } | null = null;
+  let results: { name: string; state: "agarda" | "convertendo" | "feito" | "erro"; text?: string }[] = [];
+
+  $: multi = selection.length > 1;
+  $: first = selection[0] as FileEntry | undefined;
+  $: category = (selection.length && selection.every((f) => f.category === first!.category)
+    ? first!.category
+    : null) as Category | null;
+  $: isPdf = category === "documento" && selection.every((f) => f.ext === "pdf");
+  $: isMedia = category === "audio" || category === "video";
+  $: targets = first && category ? targetsForCategory(category, first.ext) : [];
+  $: selectionKey = selection.map((f) => f.path).join("|");
+  $: resetFor(selectionKey, category);
+
+  let lastKey = "";
+  function resetFor(key: string, cat: Category | null) {
+    if (key === lastKey) return;
+    lastKey = key;
+    message = null;
+    results = [];
+    resizeW = resizeH = null;
+    maxSide = null;
+    trimStart = 0;
+    trimEnd = null;
+    pageSpec = "";
+    rotatePage = 1;
+    if (first && cat) {
+      const t = targetsForCategory(cat, first.ext);
+      targetExt = multi && cat === "imaxe" && t.includes(first.ext) ? first.ext : (t.find((x) => x !== first!.ext) ?? t[0] ?? "");
+      bitrate = cat === "audio" ? 192 : cat === "video" ? 4000 : 0;
+    }
+  }
+
+  function samePath(a: string, b: string) {
+    return a.replace(/\\/g, "/").toLowerCase() === b.replace(/\\/g, "/").toLowerCase();
+  }
+
+  function onResizeW(raw: string) {
+    resizeW = raw === "" ? null : Number(raw);
+    if (resizeW && keepRatio && first?.width && first.height) {
+      resizeH = Math.max(1, Math.round((resizeW * first.height) / first.width));
+    }
+  }
+  function onResizeH(raw: string) {
+    resizeH = raw === "" ? null : Number(raw);
+    if (resizeH && keepRatio && first?.width && first.height) {
+      resizeW = Math.max(1, Math.round((resizeH * first.width) / first.height));
+    }
+  }
+
+  async function guard(text: string, job: () => Promise<string | void>) {
+    busy = true;
+    busyText = text;
+    message = null;
+    try {
+      const done = await job();
+      if (done) message = { ok: true, text: done };
+    } catch (e) {
+      message = { ok: false, text: `${TRASNO.tropezou}: ${e}` };
+    } finally {
+      busy = false;
+    }
+  }
+
+  // En lote o tamaño dáse como lado máximo; cada imaxe escálase mantendo a súa proporción.
+  function resizeFor(f: FileEntry, single: boolean): [number, number] | undefined {
+    if (single) return resizeW && resizeH ? [resizeW, resizeH] : undefined;
+    if (!maxSide || !f.width || !f.height) return undefined;
+    const k = Math.min(1, maxSide / Math.max(f.width, f.height));
+    if (k >= 1) return undefined;
+    return [Math.max(1, Math.round(f.width * k)), Math.max(1, Math.round(f.height * k))];
+  }
+
+  function optionsFor(f: FileEntry, single: boolean): engine.ConvertOptions {
+    return {
+      quality: f.category === "imaxe" ? quality : undefined,
+      resize: f.category === "imaxe" ? resizeFor(f, single) : undefined,
+      bitrateKbps: (f.category === "audio" || f.category === "video") && bitrate ? bitrate : undefined,
+    };
+  }
+
+  async function convertSingle() {
+    const f = first!;
+    const out = await save({ defaultPath: withExtension(f.path, targetExt) });
+    if (!out) return;
+    if (samePath(out, f.path)) {
+      message = { ok: false, text: "Non se sobrescribe o ficheiro orixinal. Escolle outro nome." };
+      return;
+    }
+    await guard(TRASNO.convertendo, async () => {
+      const r = await engine.convertFile(f.path, out, { ...optionsFor(f, true), overwrite: true });
+      return `${TRASNO.listo} ${fileNameOf(r.output_path)} · ${formatBytes(r.bytes_written)}`;
+    });
+  }
+
+  async function chooseDir() {
+    const chosen = await open({ directory: true });
+    if (typeof chosen === "string") outputDir = chosen;
+  }
+
+  async function convertBatch() {
+    const dir = outputDir ?? ((await open({ directory: true })) as string | null);
+    if (!dir) return;
+    outputDir = dir;
+    const list = [...selection];
+    results = list.map((f) => ({ name: f.name, state: "agarda" }));
+    busy = true;
+    busyText = TRASNO.convertendo;
+    message = null;
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < list.length) {
+        const i = cursor++;
+        const f = list[i];
+        results[i] = { ...results[i], state: "convertendo" };
+        results = results;
+        try {
+          const dot = f.name.lastIndexOf(".");
+          const base = dot > 0 ? f.name.slice(0, dot) : f.name;
+          // Mesmo formato (p. ex. comprimir un JPG): outro nome, nunca o orixinal.
+          const name = targetExt === f.ext ? `${base}-trasno.${targetExt}` : `${base}.${targetExt}`;
+          const out = await join(dir, name);
+          if (samePath(out, f.path)) throw new Error("coincidiría co orixinal");
+          const r = await engine.convertFile(f.path, out, { ...optionsFor(f, false), overwrite: false });
+          const before = f.size ? ` (${formatBytes(f.size)} → ${formatBytes(r.bytes_written)})` : "";
+          results[i] = { name: f.name, state: "feito", text: before };
+        } catch (e) {
+          results[i] = { name: f.name, state: "erro", text: String(e) };
+        }
+        results = results;
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT, list.length) }, worker));
+    const bad = results.filter((r) => r.state === "erro").length;
+    message = bad
+      ? { ok: false, text: `${TRASNO.listo} ${bad} de ${list.length} tropezaron.` }
+      : { ok: true, text: `${TRASNO.listo} ${list.length} ficheiros en ${fileNameOf(dir)}.` };
+    busy = false;
+  }
+
+  async function merge() {
+    const f = first!;
+    const asPdf = isPdf || category === "imaxe";
+    const out = await save({
+      defaultPath: await join(f.path.replace(/[\\/][^\\/]*$/, ""), `unido.${asPdf ? "pdf" : f.ext}`),
+    });
+    if (!out) return;
+    const inputs = selection.map((s) => s.path);
+    if (inputs.some((p) => samePath(p, out))) {
+      message = { ok: false, text: "Non se sobrescribe un dos ficheiros de orixe. Escolle outro nome." };
+      return;
+    }
+    await guard(TRASNO.unindo, async () => {
+      const done = isPdf
+        ? await engine.pdfMerge(inputs, out, true)
+        : category === "imaxe"
+          ? await engine.imagesToPdf(inputs, out, true)
+          : await engine.concatMedia(inputs, out, true);
+      return `${TRASNO.listo} ${fileNameOf(done)}`;
+    });
+  }
+
+  function parsePages(spec: string): number[] {
+    const pages: number[] = [];
+    for (const part of spec.split(",")) {
+      const p = part.trim();
+      if (!p) continue;
+      const m = p.match(/^(\d+)-(\d+)$/);
+      if (m) {
+        const a = Number(m[1]);
+        const b = Number(m[2]);
+        for (let n = a; a <= b ? n <= b : n >= b; n += a <= b ? 1 : -1) pages.push(n);
+      } else if (/^\d+$/.test(p)) pages.push(Number(p));
+      else throw new Error(`«${p}» non é unha páxina válida`);
+    }
+    if (!pages.length) throw new Error("indica algunha páxina");
+    return pages;
+  }
+
+  async function extractPages() {
+    const f = first!;
+    let pages: number[];
+    try {
+      pages = parsePages(pageSpec);
+    } catch (e) {
+      message = { ok: false, text: String(e) };
+      return;
+    }
+    const out = await save({ defaultPath: withExtension(f.path.replace(/\.pdf$/i, "-paxinas"), "pdf") });
+    if (!out) return;
+    if (samePath(out, f.path)) {
+      message = { ok: false, text: "Non se sobrescribe o ficheiro orixinal. Escolle outro nome." };
+      return;
+    }
+    await guard(TRASNO.traballando, async () => `${TRASNO.listo} ${fileNameOf(await engine.pdfExtractPages(f.path, pages, out, true))}`);
+  }
+
+  async function rotatePdf() {
+    const f = first!;
+    const out = await save({ defaultPath: withExtension(f.path.replace(/\.pdf$/i, "-rotado"), "pdf") });
+    if (!out) return;
+    if (samePath(out, f.path)) {
+      message = { ok: false, text: "Non se sobrescribe o ficheiro orixinal. Escolle outro nome." };
+      return;
+    }
+    await guard(TRASNO.traballando, async () =>
+      `${TRASNO.listo} ${fileNameOf(await engine.pdfRotate(f.path, rotateAll ? null : rotatePage, rotateDegrees, out, true))}`,
+    );
+  }
+
+  async function trim() {
+    const f = first!;
+    const out = await save({ defaultPath: withExtension(f.path.replace(/\.[^.\\/]+$/, "-corte"), f.ext) });
+    if (!out) return;
+    if (samePath(out, f.path)) {
+      message = { ok: false, text: "Non se sobrescribe o ficheiro orixinal. Escolle outro nome." };
+      return;
+    }
+    await guard(TRASNO.traballando, async () =>
+      `${TRASNO.listo} ${fileNameOf(await engine.trimMedia(f.path, out, trimStart || 0, trimEnd || null, true))}`,
+    );
+  }
+</script>
+
+<div class="tools scrollbar-thin">
+  {#if !selection.length}
+    <p class="muted hint">Abre un ficheiro para ver as ferramentas que o trasno ten para el.</p>
+  {:else if !category}
+    <p class="muted hint">
+      Hai ficheiros de tipos distintos marcados. Marca só do mesmo tipo (por exemplo, varios PDF ou varias imaxes) para
+      traballar con eles xuntos.
+    </p>
+  {:else}
+    <header>
+      <h2>{multi ? `${selection.length} ficheiros` : first?.name}</h2>
+      <p class="muted sub">
+        {CATEGORY_LABELS[category]}{#if !multi && first?.size !== undefined} · {formatBytes(first.size)}{/if}{#if !multi && first?.pages} · {first.pages} páx.{/if}
+      </p>
+    </header>
+
+    {#if targets.length}
+      <section>
+        <h3>{multi ? (category === "imaxe" ? "Converter ou comprimir" : "Converter todo") : "Converter"}</h3>
+        <label class="row">
+          <span>Formato</span>
+          <select bind:value={targetExt} disabled={busy}>
+            {#each targets as ext}<option value={ext}>{ext.toUpperCase()}</option>{/each}
+          </select>
+        </label>
+
+        {#if category === "imaxe"}
+          <div class="row">
+            <span>Calidade</span>
+            <input type="range" min="10" max="100" bind:value={quality} />
+            <input class="num-input" type="number" min="10" max="100" bind:value={quality} />
+          </div>
+          <div class="presets">
+            {#each PRESETS as p}
+              <button class="preset" class:on={quality === p.value} title={p.hint} on:click={() => (quality = p.value)}>{p.label}</button>
+            {/each}
+          </div>
+          {#if multi}
+            <div class="row">
+              <span>Lado máx.</span>
+              <input class="num-input wide" type="number" min="1" placeholder="orixinal" bind:value={maxSide} />
+              <span class="muted">px</span>
+            </div>
+          {:else}
+            <div class="row">
+              <span>Tamaño</span>
+              <input class="num-input wide" type="number" min="1" placeholder="ancho" value={resizeW ?? ""} on:input={(e) => onResizeW(e.currentTarget.value)} />
+              <span class="x">×</span>
+              <input class="num-input wide" type="number" min="1" placeholder="alto" value={resizeH ?? ""} on:input={(e) => onResizeH(e.currentTarget.value)} />
+            </div>
+            <label class="check"><input type="checkbox" bind:checked={keepRatio} /> Manter proporción</label>
+          {/if}
+        {:else if isMedia}
+          <div class="row">
+            <span>Bitrate</span>
+            <input type="range" min={category === "audio" ? 32 : 500} max={category === "audio" ? 320 : 12000} step={category === "audio" ? 8 : 100} bind:value={bitrate} />
+            <input class="num-input wide" type="number" min="1" bind:value={bitrate} />
+          </div>
+          <p class="muted tiny">kbps — máis alto, máis calidade e máis tamaño.</p>
+        {/if}
+
+        {#if multi}
+          <div class="row">
+            <button class="btn" on:click={chooseDir} disabled={busy} title="Gardar todo neste cartafol">
+              <Icon name="folder" size={14} />
+              {outputDir ? fileNameOf(outputDir) : "Cartafol de saída"}
+            </button>
+          </div>
+          <button class="btn primary full" on:click={convertBatch} disabled={busy || !targetExt}>
+            {category === "imaxe" && targetExt === first?.ext ? "Comprimir" : "Converter"} {selection.length} ficheiros
+          </button>
+        {:else}
+          <button class="btn primary full" on:click={convertSingle} disabled={busy || !targetExt}>Converter a {targetExt.toUpperCase()}</button>
+        {/if}
+      </section>
+    {/if}
+
+    {#if multi && (isPdf || isMedia || category === "imaxe")}
+      <section>
+        <h3>{isPdf ? "Unir PDF" : category === "imaxe" ? "Imaxes a PDF" : category === "video" ? "Xuntar vídeos" : "Xuntar audios"}</h3>
+        <p class="muted tiny">Vaise facer na orde da lista; usa as frechas para reordenar.</p>
+        <button class="btn primary full" on:click={merge} disabled={busy}>
+          <Icon name="layers" size={14} />
+          {isPdf ? "Unir nun só PDF" : category === "imaxe" ? "Facer un PDF cunha imaxe por páxina" : "Xuntar nun só ficheiro"}
+        </button>
+      </section>
+    {/if}
+
+    {#if !multi && category === "imaxe" && first}
+      <ImageEditSection file={first} />
+    {/if}
+
+    {#if !multi && isMedia && first}
+      <MediaEditSection file={first} />
+    {/if}
+
+    {#if !multi && isPdf}
+      <section>
+        <h3>Extraer páxinas</h3>
+        <div class="row">
+          <input class="text-input" type="text" placeholder="ex: 1,3,5-7" bind:value={pageSpec} />
+        </div>
+        <button class="btn full" on:click={extractPages} disabled={busy || !pageSpec}>Extraer a un novo PDF</button>
+      </section>
+      <section>
+        <h3>Rotar</h3>
+        <label class="check"><input type="checkbox" bind:checked={rotateAll} /> Todas as páxinas</label>
+        {#if !rotateAll}
+          <div class="row">
+            <span>Páxina</span>
+            <input class="num-input" type="number" min="1" max={first?.pages} bind:value={rotatePage} />
+            {#if first?.pages}<span class="muted">/ {first.pages}</span>{/if}
+          </div>
+        {/if}
+        <div class="row">
+          <span>Ángulo</span>
+          <select bind:value={rotateDegrees}>
+            <option value={90}>90°</option>
+            <option value={180}>180°</option>
+            <option value={270}>270°</option>
+          </select>
+        </div>
+        <button class="btn full" on:click={rotatePdf} disabled={busy}>Rotar a un novo PDF</button>
+      </section>
+    {/if}
+
+    {#if !multi && isMedia}
+      <section>
+        <h3>Cortar</h3>
+        <div class="row">
+          <span>Dende</span>
+          {#if first?.duration}
+            <input type="range" min="0" max={first.duration} step="0.1" bind:value={trimStart} />
+          {/if}
+          <input class="num-input wide" type="number" min="0" step="0.1" bind:value={trimStart} />
+          <span class="muted">s</span>
+        </div>
+        <div class="row">
+          <span>Ata</span>
+          {#if first?.duration}
+            <input type="range" min="0" max={first.duration} step="0.1" value={trimEnd ?? first.duration} on:input={(e) => (trimEnd = Number(e.currentTarget.value))} />
+          {/if}
+          <input class="num-input wide" type="number" min="0" step="0.1" placeholder="fin" bind:value={trimEnd} />
+          <span class="muted">s</span>
+        </div>
+        {#if first?.duration}<p class="muted tiny">Duración total: {first.duration.toFixed(1)} s</p>{/if}
+        <button class="btn full" on:click={trim} disabled={busy}>Gardar o corte</button>
+      </section>
+    {/if}
+
+    {#if category === "modelo3d" && first && !["obj", "stl", "ply"].includes(first.ext)}
+      <p class="muted tiny">O trasno pode ver os {first.ext.toUpperCase()}, pero aínda non os sabe converter.</p>
+    {/if}
+
+    {#if !multi && first}
+      <InfoSection file={first} />
+    {/if}
+
+    {#if busy && !results.length}<p class="status muted">{busyText}</p>{/if}
+
+    {#if results.length}
+      <ul class="results">
+        {#each results as r}
+          <li class={r.state}>
+            <span class="rname" title={r.text}>{r.name}</span>
+            <span class="rstate">
+              {#if r.state === "feito"}<Icon name="check" size={13} />{r.text}
+              {:else if r.state === "erro"}<Icon name="warning" size={13} /> erro
+              {:else if r.state === "convertendo"}…
+              {/if}
+            </span>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+
+    {#if message}
+      <p class="msg" class:ok={message.ok} class:erro={!message.ok}>{message.text}</p>
+    {/if}
+  {/if}
+</div>
+
+<style>
+  .tools { padding: 1rem 1.1rem 1.5rem; overflow-y: auto; height: 100%; }
+  header h2 { margin: 0; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sub { margin: 0.2rem 0 0; font-size: 0.8rem; }
+  section { padding: 1rem 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.6rem; }
+  section:last-of-type { border-bottom: none; }
+  h3 { margin: 0; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); font-weight: 600; }
+  .row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.86rem; }
+  .row > span:first-child { min-width: 4.2rem; color: var(--text-muted); }
+  .row select { flex: 1; }
+  .row input[type="range"] { flex: 1; min-width: 0; }
+  .x { color: var(--text-faint); min-width: 0 !important; }
+  .num-input.wide { width: 5.5em; }
+  .text-input, select {
+    background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); padding: 0.4em 0.6em; font-size: 0.85rem;
+  }
+  .text-input { flex: 1; }
+  .check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-muted); }
+  .presets { display: flex; gap: 0.3rem; }
+  .preset { flex: 1; background: transparent; border: 1px solid var(--border-strong); color: var(--text-muted); border-radius: var(--radius-sm); padding: 0.3em 0; font-size: 0.78rem; }
+  .preset:hover { color: var(--text); }
+  .preset.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
+  .full { width: 100%; justify-content: center; }
+  .tiny { margin: 0; font-size: 0.78rem; }
+  .hint { padding: 0.5rem 0; font-size: 0.88rem; }
+  .status { font-size: 0.85rem; }
+  .results { list-style: none; margin: 0.5rem 0 0; padding: 0; font-size: 0.82rem; }
+  .results li { display: flex; justify-content: space-between; gap: 0.6rem; padding: 0.35rem 0; border-bottom: 1px solid var(--border); }
+  .rname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rstate { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; color: var(--text-muted); }
+  .results li.feito .rstate { color: var(--accent-imaxe); }
+  .results li.erro .rstate { color: var(--accent-video); }
+  .msg { margin: 0.8rem 0 0; font-size: 0.85rem; }
+  .msg.ok { color: var(--accent-imaxe); }
+  .msg.erro { color: var(--accent-video); }
+</style>

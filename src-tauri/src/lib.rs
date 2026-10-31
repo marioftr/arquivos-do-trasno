@@ -9,6 +9,14 @@ pub fn run() {
             commands::suggested_targets,
             commands::ffmpeg_available,
             commands::file_size,
+            commands::allow_view,
+            commands::startup_files,
+            commands::edit_image,
+            commands::images_to_pdf,
+            commands::media_edit,
+            commands::probe_media,
+            commands::sha256,
+            commands::reveal_in_folder,
             commands::image_dimensions,
             commands::convert_file,
             commands::trim_media,
@@ -19,5 +27,5 @@ pub fn run() {
             commands::pdf_page_count,
         ])
         .run(tauri::generate_context!())
-        .expect("erro executando a aplicación Trasno");
+        .expect("erro executando a aplicación Arquivos do Trasno");
 }
