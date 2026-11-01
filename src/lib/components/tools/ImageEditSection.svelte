@@ -14,7 +14,6 @@
   import SelectField from "../ui/SelectField.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
   import Icon from "../Icon.svelte";
 
@@ -139,7 +138,6 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
 
   <div class="group">
     <h4 class="group-title">{$t("Transformar")}</h4>

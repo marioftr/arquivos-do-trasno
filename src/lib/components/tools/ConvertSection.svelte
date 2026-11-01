@@ -17,7 +17,6 @@
   import SelectField from "../ui/SelectField.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let selection: FileEntry[];
@@ -147,7 +146,6 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
 
   <div class="group">
     <SelectField

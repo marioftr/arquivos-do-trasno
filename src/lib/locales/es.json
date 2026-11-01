@@ -876,5 +876,6 @@
   "Converter {n} vídeos a MP4": "Convertir {n} vídeos a MP4",
   "Converter a MP4": "Convertir a MP4",
   "Estimar de novo": "Estimar de nuevo",
-  "O nome do ficheiro de saída non ten extensión (por exemplo «.mp4»): ffmpeg necesita saber que formato crear.": "El nombre del archivo de salida no tiene extensión (por ejemplo «.mp4»): ffmpeg necesita saber qué formato crear."
+  "O nome do ficheiro de saída non ten extensión (por exemplo «.mp4»): ffmpeg necesita saber que formato crear.": "El nombre del archivo de salida no tiene extensión (por ejemplo «.mp4»): ffmpeg necesita saber qué formato crear.",
+  "Tentar de novo": "Intentar de nuevo"
 }

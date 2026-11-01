@@ -2,6 +2,8 @@
   import { onDestroy } from "svelte";
   import { viewUrl, mediaPreview, mediaSeek, mediaTime, trimRange, type FileEntry } from "../../files";
   import * as engine from "../../engine";
+  import { get } from "svelte/store";
+  import { player } from "../../player";
   import { actionFor } from "../../keymap";
   import { peaksCache, previewCache } from "../../viewCache";
   import InfoTip from "../ui/InfoTip.svelte";
@@ -26,8 +28,9 @@
   // Vista previa en directo: velocidade e volume (o navegador non pasa de volume 1) e salto a un instante.
   $: if (el && $mediaPreview) el.playbackRate = Math.min(4, Math.max(0.25, $mediaPreview.speed));
   // Volume do reprodutor propio (0 a 1), combinado coa vista previa do multiplicador.
-  let vol = 1;
-  let muted = false;
+  let vol = get(player).vol;
+  let muted = get(player).muted;
+  $: player.set({ vol, muted });
   $: if (el) {
     el.volume = Math.min(1, Math.max(0, ($mediaPreview ? $mediaPreview.volume : 1) * vol));
     el.muted = muted;
@@ -378,6 +381,15 @@
 
   // Formatos que o navegador non reproduce (MKV, AVI, AIFF...): o trasno prepara
   // unha copia lixeira temporal. O ficheiro orixinal non se modifica.
+  /** Volve intentar a vista previa sen ter que cambiar de ficheiro. */
+  function retry() {
+    failed = false;
+    failMsg = "";
+    triedPreview = false;
+    chunked = false;
+    segToken++;
+    prepare(true);
+  }
   async function prepare(force = false, resume?: { t: number; play: boolean }) {
     if (triedPreview && !force) {
       failed = true;
@@ -439,7 +451,8 @@
         {#if $tools && !$tools.ffmpeg}{$t("O trasno non pode preparar a vista previa porque falta ffmpeg.")}{:else}{$t("O trasno non puido preparar a vista previa.")}{/if}
       </p>
       {#if failMsg && !($tools && !$tools.ffmpeg)}<p class="muted tiny selectable">{failMsg}</p>{/if}
-      {#if $tools && !$tools.ffmpeg}<button class="btn" on:click={() => openSettings("tools")}>{$t("Ver como instalalo")}</button>{/if}
+      {#if $tools && !$tools.ffmpeg}<button class="btn" on:click={() => openSettings("tools")}>{$t("Ver como instalalo")}</button>
+      {:else}<button class="btn" on:click={retry}><Icon name="reset" size={14} /> {$t("Tentar de novo")}</button>{/if}
     </div>
   {:else if url && file.category === "video"}
     <div class="vrow">

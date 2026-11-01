@@ -224,7 +224,7 @@
         <div class="txt">
           <span class="n" title={it.path}>{fileNameOf(it.path)}</span>
           {#if it.state === "feito" && it.out}
-            <span class="muted sub">→ {fileNameOf(it.out)}{#if it.note} · <strong class="note">{it.note}</strong>{/if}</span>
+            <span class="muted sub">→ {fileNameOf(it.out)}{#if it.note}&nbsp;·&nbsp;<strong class="note">{it.note}</strong>{/if}</span>
           {:else if it.state === "erro"}
             <span class="err">{it.error}</span>
           {:else if it.state === "traballa"}

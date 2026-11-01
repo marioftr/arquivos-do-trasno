@@ -10,6 +10,8 @@
   export let def: string | number | undefined = undefined;
   export let hint = "";
   export let disabled = false;
+  import { createEventDispatcher } from "svelte";
+  const dispatch = createEventDispatcher<{ change: string | number }>();
 
   $: tip = hint || (label && HINTS[label] ? $t(HINTS[label]) : "");
   $: changed = def !== undefined && value !== def;
@@ -20,13 +22,13 @@
     <div class="head">
       <span class="lab">{label}{#if tip}<InfoTip text={tip} />{/if}</span>
       {#if changed}
-        <button class="reset" on:click={() => (value = def as string | number)} title={$t("Restaurar o valor por defecto ({v})", { v: String(def) })} aria-label={$t("Restaurar o valor por defecto ({v})", { v: String(def) })}>
+        <button class="reset" on:click={() => ((value = def as string | number), dispatch("change", value))} title={$t("Restaurar o valor por defecto ({v})", { v: String(def) })} aria-label={$t("Restaurar o valor por defecto ({v})", { v: String(def) })}>
           <Icon name="reset" size={13} />
         </button>
       {/if}
     </div>
   {/if}
-  <select bind:value {disabled} aria-label={label}>
+  <select bind:value {disabled} aria-label={label} on:change={() => dispatch("change", value)}>
     {#each options as o}<option value={o.value}>{o.label}</option>{/each}
   </select>
 </div>

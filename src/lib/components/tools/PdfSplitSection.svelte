@@ -14,7 +14,6 @@
   import NumberField from "../ui/NumberField.svelte";
   import TextField from "../ui/TextField.svelte";
   import Segmented from "../ui/Segmented.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let file: FileEntry;
@@ -93,7 +92,6 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
   <Segmented
     options={[
       { value: "each", label: $t("Cada páxina") },

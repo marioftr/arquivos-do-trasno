@@ -161,7 +161,7 @@
           <span class="info">
             <span class="nome">{f.name}</span>
             <span class="muted meta">
-              {f.ext.toUpperCase() || "?"}{#if f.size !== undefined} · {formatBytes(f.size)}{/if}{#if f.pages} · {$t("{n} páx.", { n: f.pages })}{/if}
+              {f.ext.toUpperCase() || "?"}{#if f.size !== undefined}&nbsp;·&nbsp;{formatBytes(f.size)}{/if}{#if f.pages}&nbsp;·&nbsp;{$t("{n} páx.", { n: f.pages })}{/if}
             </span>
           </span>
         </button>

@@ -154,7 +154,10 @@
 <div class="wrap">
   <div class="stage scrollbar-thin" class:fit bind:this={stage}>
     {#if failed}
-      <p class="muted msg">{$t("O trasno non puido preparar unha vista previa de {ext}.", { ext: file.ext.toUpperCase() })}</p>
+      <div class="msg">
+        <p class="muted">{$t("O trasno non puido preparar unha vista previa de {ext}.", { ext: file.ext.toUpperCase() })}</p>
+        <button class="btn" on:click={() => load(file.path)}>{$t("Tentar de novo")}</button>
+      </div>
     {:else if url}
       <img
         bind:this={imgEl}

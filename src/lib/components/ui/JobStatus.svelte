@@ -32,7 +32,7 @@
 
 {#if $busy}
   <div class="busyrow">
-    <p class="busy"><span class="spin"></span>{$text}{#if $progress !== null} · {Math.round($progress * 100)} %{/if}</p>
+    <p class="busy"><span class="spin"></span>{$text}{#if $progress !== null}&nbsp;·&nbsp;{Math.round($progress * 100)} %{/if}</p>
     {#if asking}
       <span class="ask">{$t("Cancelar e non gardar nada?")}</span>
       <button class="btn danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
@@ -46,7 +46,7 @@
   {/if}
 {/if}
 {#if $message}
-  <div class="msg-wrap" class:ok={$message.ok} class:err={!$message.ok}>
+  <div class="msg-wrap" class:ok={$message.ok && !$message.neutral} class:err={!$message.ok} class:neutral={$message.neutral}>
     <p class="msg selectable">{$message.text}</p>
     {#if !$message.ok}
       <button class="btn ghost" on:click={copy}><Icon name="copy" size={13} /> {copied ? $t("Copiado") : $t("Copiar")}</button>
@@ -67,6 +67,8 @@
   .msg-wrap.ok { border-left-color: var(--accent-imaxe); }
   .msg-wrap.err { border-left-color: var(--accent-video); }
   .msg { margin: 0; font-size: 0.86rem; white-space: pre-wrap; word-break: break-word; user-select: text; }
+  .msg-wrap.neutral { border-left-color: var(--accent-pdf); }
+  .neutral .msg { color: var(--accent-pdf); }
   .ok .msg { color: var(--accent-imaxe); }
   .err .msg { color: var(--accent-video); }
 </style>

@@ -12,7 +12,6 @@
   import TextField from "../ui/TextField.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
   import PageGrid from "./PageGrid.svelte";
 
@@ -98,7 +97,6 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
 
   {#if part === "extract"}
   <div class="group">

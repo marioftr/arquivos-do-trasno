@@ -10,7 +10,6 @@
   import { askOutput } from "./shared";
   import NumberField from "../ui/NumberField.svelte";
   import SelectField from "../ui/SelectField.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import FramePreview from "../ui/FramePreview.svelte";
@@ -38,7 +37,6 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
 
   <div class="group">
     <h4 class="group-title">{$t("Fotograma")}</h4>

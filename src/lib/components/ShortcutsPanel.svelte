@@ -93,7 +93,7 @@
 
   {#each FIXED as g}
     <div class="grp">
-      <h4>{$t(g.title)} <span class="muted fx">· {$t("fixos")}</span></h4>
+      <h4>{$t(g.title)} <span class="muted fx">·&nbsp;{$t("fixos")}</span></h4>
       {#each g.keys as r}
         <div class="fixed"><kbd>{r.k}</kbd><span>{$t(r.d)}</span></div>
       {/each}

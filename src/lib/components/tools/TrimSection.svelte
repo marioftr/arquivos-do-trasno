@@ -12,7 +12,6 @@
   import { askOutput } from "./shared";
   import Slider from "../ui/Slider.svelte";
   import NumberField from "../ui/NumberField.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let file: FileEntry;
@@ -61,7 +60,6 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
 
   <div class="group">
     {#if total}
@@ -79,7 +77,7 @@
     </div>
     {#if total}
       <p class="group-note">
-        {$t("Duración total: {s} s", { s: total.toFixed(1) })}{#if kept !== null} · {$t("Queda: {s} s", { s: kept.toFixed(1) })}{/if}
+        {$t("Duración total: {s} s", { s: total.toFixed(1) })}{#if kept !== null}&nbsp;·&nbsp;{$t("Queda: {s} s", { s: kept.toFixed(1) })}{/if}
       </p>
     {/if}
   </div>

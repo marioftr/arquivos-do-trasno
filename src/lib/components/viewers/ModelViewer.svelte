@@ -428,7 +428,7 @@
         {#if missing.length}
           <p class="warn selectable">{$t("Texturas que o modelo pide e non estaban no cartafol: {list}", { list: missing.join(", ") })}</p>
         {/if}
-        {#each notes as n}<p class="muted tiny selectable">· {n}</p>{/each}
+        {#each notes as n}<p class="muted tiny selectable">·&nbsp;{n}</p>{/each}
         </PanelSection>
       </SidePanel>
     {/if}

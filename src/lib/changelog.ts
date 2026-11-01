@@ -17,6 +17,22 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.1.2",
+    date: "2026-11-01",
+    title: { gl: "Converter e comprimir xuntos", es: "Convertir y comprimir juntos", en: "Convert and compress together" },
+    changes: [
+      { kind: "new", gl: "Converter e comprimir un vídeo está agora no mesmo menú: «A MP4 con perfís» ou «A outro formato».", es: "Convertir y comprimir un vídeo está ahora en el mismo menú: «A MP4 con perfiles» o «A otro formato».", en: "Converting and compressing a video now live in the same menu: “To MP4 with profiles” or “To another format”." },
+      { kind: "new", gl: "Sobre o trasno ten agora a política de privacidade, os termos de uso, a licenza e a política de asinado de código.", es: "Sobre el trasno tiene ahora la política de privacidad, los términos de uso, la licencia y la política de firma de código.", en: "About the trasno now has the privacy policy, terms of use, licence and code signing policy." },
+      { kind: "new", gl: "O desinstalador quita as entradas do menú do clic dereito e pregunta se tamén queres borrar os datos da app.", es: "El desinstalador quita las entradas del menú de clic derecho y pregunta si también quieres borrar los datos de la app.", en: "The uninstaller removes the right-click menu entries and asks whether to delete the app data too." },
+      { kind: "better", gl: "Se tocas calquera axuste dun perfil, o perfil pasa a «Personalizado». Gardar un perfil só sae aí, enriba do botón de converter.", es: "Si tocas cualquier ajuste de un perfil, el perfil pasa a «Personalizado». Guardar un perfil solo sale ahí, encima del botón de convertir.", en: "If you change any profile setting, the profile switches to “Custom”. Saving a profile only appears there, above the convert button." },
+      { kind: "better", gl: "Desfacer, refacer e restablecer pasaron enriba dos modos de cada ferramenta.", es: "Deshacer, rehacer y restablecer pasaron encima de los modos de cada herramienta.", en: "Undo, redo and reset moved above each tool's modes." },
+      { kind: "better", gl: "O volume lémbrase ao cambiar de ficheiro, e se a vista previa falla hai un botón para tentar de novo.", es: "El volumen se recuerda al cambiar de archivo, y si la vista previa falla hay un botón para intentarlo de nuevo.", en: "Volume is remembered when switching files, and if a preview fails there is a button to try again." },
+      { kind: "fixed", gl: "Converter un AVI de miniDV daba erro cando o nome de saída non levaba extensión.", es: "Convertir un AVI de miniDV daba error cuando el nombre de salida no llevaba extensión.", en: "Converting a miniDV AVI failed when the output name had no extension." },
+      { kind: "fixed", gl: "A estimación do tamaño volve calcularse ao cambiar de perfil e hai un botón «Estimar de novo».", es: "La estimación del tamaño vuelve a calcularse al cambiar de perfil y hay un botón «Estimar de nuevo».", en: "The size estimate is recalculated when the profile changes, and there is an “Estimate again” button." },
+      { kind: "fixed", gl: "O aviso de cancelado xa non sae en verde e arranxei separadores «·» que se xuntaban co texto.", es: "El aviso de cancelado ya no sale en verde y arreglé separadores «·» que se pegaban al texto.", en: "The cancelled notice is no longer green and “·” separators that stuck to the text are fixed." },
+    ],
+  },
+  {
     version: "0.1.1",
     date: "2026-11-01",
     title: { gl: "Paneis e pistas", es: "Paneles y pistas", en: "Panels and tracks" },

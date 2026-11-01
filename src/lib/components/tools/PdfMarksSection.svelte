@@ -15,7 +15,6 @@
   import TextField from "../ui/TextField.svelte";
   import ColorField from "../ui/ColorField.svelte";
   import Segmented from "../ui/Segmented.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
   import Icon from "../Icon.svelte";
 
@@ -118,7 +117,6 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
 
   <Segmented
     options={[

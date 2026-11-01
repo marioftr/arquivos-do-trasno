@@ -16,7 +16,6 @@
   import Slider from "../ui/Slider.svelte";
   import SelectField from "../ui/SelectField.svelte";
   import TextField from "../ui/TextField.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -91,7 +90,6 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
 
   <div class="group">
     <h4 class="group-title">{$t("Páxinas a imaxes")}</h4>

@@ -18,7 +18,6 @@
   import NumberField from "../ui/NumberField.svelte";
   import SelectField from "../ui/SelectField.svelte";
   import Segmented from "../ui/Segmented.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let selection: FileEntry[];
@@ -68,16 +67,6 @@
     unit: "MB",
   }, `comprimir2-${category}`);
   onMount(() => {
-    // Un perfil gardado que xa se borrou: volve ao de partida.
-    if (!isImage && !known(get(form).profile)) {
-      appliedProfile = initialProfile;
-      form.update((f) => {
-        const merged = { ...f, profile: initialProfile, ...PROFILES[initialProfile].v };
-        snap = keyOf(merged);
-        pendingApply = true;
-        return merged;
-      });
-    }
     return useForm(form);
   });
 
@@ -94,48 +83,24 @@
   $: if (isImage && !multi && v.mode === "quality") scheduleImageEstimate(paramsKey);
 
   // Ao escoller un perfil aplícanse os seus valores; despois pódese seguir afinando.
-  let appliedProfile = get(form).profile;
-  // Os valores que definen un perfil. Se o usuario toca calquera, o perfil pasa a «Personalizado».
+  // Os valores que definen un perfil. Se non coinciden cos do perfil elixido, o perfil pasa a «Personalizado».
   const keyOf = (f: any) => JSON.stringify([f.mode, f.crf, f.maxHeight, f.audioKbps, f.deinterlace, f.compat, f.dar, f.mode === "bitrate" ? f.videoKbps : 0]);
-  let snap = keyOf(get(form));
-  let pendingApply = false;
-  function applyProfile(id: string) {
-    if (isImage || id === appliedProfile) return;
-    appliedProfile = id;
-    if (id === "custom") return; // Personalizado: queda cos valores que haxa
-    let next: Record<string, any> | null = null;
+  const valuesOf = (id: string): Record<string, any> | null => {
     if (id.startsWith("user:")) {
       const mine = get(savedProfiles).find((x) => `user:${x.id}` === id);
-      if (mine) next = { ...mine.v };
-    } else if (PROFILES[id]) {
-      next = { mode: "quality", dar: "", ...PROFILES[id].v };
+      return mine ? { ...mine.v } : null;
     }
-    if (!next) return;
-    form.update((f) => {
-      const merged = { ...f, ...next };
-      snap = keyOf(merged);
-      pendingApply = true;
-      return merged;
-    });
-  }
-  function autoCustom(f: any) {
+    return PROFILES[id] && id !== "custom" ? { mode: "quality", dar: "", ...PROFILES[id].v } : null;
+  };
+  /** Elixe un perfil: cambia o perfil e os seus valores dunha soa vez. */
+  function pickProfile(id: string) {
     if (isImage) return;
-    const k = keyOf(f);
-    if (pendingApply) {
-      if (k === snap) pendingApply = false; // xa chegaron os valores do perfil
-      return;
-    }
-    if (f.profile === "custom") {
-      snap = k;
-      return;
-    }
-    if (k !== snap) {
-      appliedProfile = "custom";
-      snap = k;
-      form.update((x) => ({ ...x, profile: "custom" }));
-    }
+    form.update((f) => ({ ...f, ...(valuesOf(id) ?? {}), profile: id }));
   }
-  $: autoCustom(v);
+  $: if (!isImage && v.profile !== "custom") {
+    const want = valuesOf(v.profile);
+    if (!want || keyOf(v) !== keyOf({ ...v, ...want })) form.update((x) => ({ ...x, profile: "custom" }));
+  }
 
   // ---- perfís gardados polo usuario
   let naming = false;
@@ -149,20 +114,16 @@
       ...l,
       { id, name, v: { mode: f.mode === "bitrate" ? "bitrate" : "quality", crf: f.crf, videoKbps: f.videoKbps, maxHeight: f.maxHeight, audioKbps: f.audioKbps, deinterlace: f.deinterlace, compat: f.compat, dar: f.dar } },
     ]);
-    appliedProfile = `user:${id}`;
-    snap = keyOf(get(form));
     form.update((x) => ({ ...x, profile: `user:${id}` }));
     toast(tr("O trasno gardou o perfil «{name}».", { name }));
     naming = false;
     newName = "";
   }
-  $: known = (id: string) => !!PROFILES[id] || $savedProfiles.some((x) => `user:${x.id}` === id);
   $: profileOptions = [
     ...Object.entries(PROFILES).map(([id, p]) => ({ value: id, label: $t(p.label) })),
     ...$savedProfiles.map((x) => ({ value: `user:${x.id}`, label: `★ ${x.name}` })),
   ];
   $: profileHint = v.profile.startsWith("user:") ? $t("Perfil gardado por ti. Podes xestionalo en Axustes → Perfís de saída.") : $t(PROFILES[v.profile]?.hint ?? "");
-  $: applyProfile(v.profile);
 
   let lastKey = "";
   function invalidate(key: string) {
@@ -285,13 +246,13 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
 
   {#if !isImage}
     <div class="group">
       <SelectField
         label={$t("Perfil de saída")}
-        bind:value={$form.profile}
+        value={v.profile}
+        on:change={(e) => pickProfile(String(e.detail))}
         options={profileOptions}
         def={initialProfile}
       />

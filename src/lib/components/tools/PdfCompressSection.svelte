@@ -9,7 +9,6 @@
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
   import Slider from "../ui/Slider.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let file: FileEntry;
@@ -53,7 +52,6 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
   <div class="levels">
     {#each LEVELS as l}
       <button class="btn" class:primary={level === l.value} on:click={() => pick(l.value)} title={$t(l.hint)}>{$t(l.label)}</button>

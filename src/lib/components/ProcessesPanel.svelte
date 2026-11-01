@@ -77,7 +77,7 @@
         <div class="txt">
           <span class="n" title={p.title}>{p.title}</span>
           <span class="muted sub">
-            {p.subtitle ?? ""} · {label(p.state)} · {clock(p.started)} · {length(p)}{#if p.detail} · {p.detail}{/if}
+            {p.subtitle ?? ""} · {label(p.state)} · {clock(p.started)} · {length(p)}{#if p.detail}&nbsp;·&nbsp;{p.detail}{/if}
           </span>
           {#if p.outputs?.length}<span class="muted sub">→ {p.outputs.map(fileNameOf).join(", ")}</span>{/if}
         </div>

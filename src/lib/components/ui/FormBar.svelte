@@ -19,6 +19,6 @@
 </div>
 
 <style>
-  .bar { display: flex; align-items: center; gap: 0.2rem; margin-bottom: 0.2rem; }
+  .bar { display: flex; align-items: center; gap: 0.2rem; }
   .grow { flex: 1; }
 </style>

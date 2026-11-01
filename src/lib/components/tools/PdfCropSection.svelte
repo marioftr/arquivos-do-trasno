@@ -11,7 +11,6 @@
   import Slider from "../ui/Slider.svelte";
   import TextField from "../ui/TextField.svelte";
   import Toggle from "../ui/Toggle.svelte";
-  import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let file: FileEntry;
@@ -54,7 +53,6 @@
 </script>
 
 <div class="stack">
-  <FormBar {form} />
   <div class="group">
     <h4 class="group-title">{$t("Márxenes que se quitan")}</h4>
     <p class="group-note">{$t("As zonas escuras do visor son o que se vai cortar.")}</p>

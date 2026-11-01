@@ -497,7 +497,10 @@
   {#if encrypted}
     <p class="muted msg">{$t("Este PDF ten contrasinal. Desbloquéao na pestana Seguridade para velo.")}</p>
   {:else if error}
-    <p class="muted msg">{$t("Non puiden abrir o PDF: {error}", { error })}</p>
+    <div class="msg">
+      <p class="muted">{$t("Non puiden abrir o PDF: {error}", { error })}</p>
+      <button class="btn" on:click={() => open(file.path)}>{$t("Tentar de novo")}</button>
+    </div>
   {:else}
     <div class="pages scrollbar-thin" bind:this={container} on:scroll={onScroll}></div>
   {/if}

@@ -12,6 +12,8 @@ import { files, activePath } from "./files";
 export interface JobMessage {
   ok: boolean;
   text: string;
+  /** Aviso sen valoración (por exemplo, cancelado): non se pinta nin de verde nin de vermello. */
+  neutral?: boolean;
 }
 
 export interface Job {
@@ -60,7 +62,7 @@ export function createJob(): Job {
       } catch (e) {
         // Cancelar non é un fallo: sen frase de «tropezou».
         if (isCancelled(e)) {
-          message.set({ ok: true, text: tr("Cancelaches o traballo. Non quedou ningún ficheiro a medias.") });
+          message.set({ ok: true, neutral: true, text: tr("Cancelaches o traballo. Non quedou ningún ficheiro a medias.") });
           tracker.finish("cancelled");
         } else {
           message.set({ ok: false, text: `${tr(fail)}\n${errText(e)}` });

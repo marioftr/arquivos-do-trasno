@@ -4,6 +4,8 @@
   import { t } from "../i18n";
   import { formatBytes, CATEGORY_LABELS, PLAIN_TEXT } from "../formats";
   import Tabs from "./ui/Tabs.svelte";
+  import FormBar from "./ui/FormBar.svelte";
+  import { activeForm } from "../forms";
   import ConvertSection from "./tools/ConvertSection.svelte";
   import CompressSection from "./tools/CompressSection.svelte";
   import ImageEditSection from "./tools/ImageEditSection.svelte";
@@ -156,11 +158,15 @@
     <header>
       <h2 title={multi ? "" : first?.name}>{multi ? $t("{n} ficheiros", { n: selection.length }) : first?.name}</h2>
       <p class="muted sub">
-        {$t(CATEGORY_LABELS[category])}{#if !multi && first?.size !== undefined} · {formatBytes(first.size)}{/if}{#if !multi && first?.pages} · {$t("{n} páx.", { n: first.pages })}{/if}
+        {$t(CATEGORY_LABELS[category])}{#if !multi && first?.size !== undefined}&nbsp;·&nbsp;{formatBytes(first.size)}{/if}{#if !multi && first?.pages}&nbsp;·&nbsp;{$t("{n} páx.", { n: first.pages })}{/if}
       </p>
     </header>
 
     <Tabs {tabs} bind:value={current} on:again={() => body?.scrollTo({ top: 0, behavior: "smooth" })} />
+
+    {#if $activeForm}
+      <div class="formbar"><FormBar form={$activeForm} /></div>
+    {/if}
 
     <div class="body scrollbar-thin" bind:this={body}>
       {#if modes.length}
@@ -231,6 +237,7 @@
   header { padding: 1rem 1.1rem 0.7rem; }
   header h2 { margin: 0; font-size: 1.02rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sub { margin: 0.15rem 0 0; font-size: 0.8rem; }
+  .formbar { padding: 0.45rem 1.1rem 0; flex-shrink: 0; }
   .body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.9rem 1.1rem 1.5rem; }
   .locked { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; text-align: center; padding: 2rem 1rem; color: var(--accent-pdf); }
   .locked p { margin: 0; color: var(--text); }
