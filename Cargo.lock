@@ -4426,7 +4426,7 @@ dependencies = [
 
 [[package]]
 name = "trasno"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -4440,7 +4440,7 @@ dependencies = [
 
 [[package]]
 name = "trasno-engine"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "image",
  "lopdf",

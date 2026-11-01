@@ -82,7 +82,7 @@
           {#if p.outputs?.length}<span class="muted sub">→ {p.outputs.map(fileNameOf).join(", ")}</span>{/if}
         </div>
         {#if p.outputs?.length}
-          <button class="btn ghost icon" on:click={() => { addPaths(p.outputs ?? []); dialog.set(null); }} title={$t("Abrir co programa completo")} aria-label={$t("Abrir co programa completo")}><Icon name="open" size={15} /></button>
+          <button class="btn ghost icon" on:click={() => { addPaths(p.outputs ?? []); dialog.set(null); }} title={$t("Abrir co programa completo")} aria-label={$t("Abrir co programa completo")}><Icon name="load" size={15} /></button>
           <button class="btn ghost icon" on:click={() => revealInFolder(p.outputs![0])} title={$t("Amosar no cartafol")} aria-label={$t("Amosar no cartafol")}><Icon name="folder" size={15} /></button>
         {/if}
       </div>

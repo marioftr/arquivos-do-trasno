@@ -4,7 +4,7 @@
 
 import { writable, get, type Writable } from "svelte/store";
 import { tr } from "./i18n";
-import { errText, isCancelled } from "./errors";
+import { errText, isCancelled, outputHook } from "./errors";
 import { beginJob } from "./engine";
 import { track, type Tracker } from "./procs";
 import { files, activePath } from "./files";
@@ -55,6 +55,11 @@ export function createJob(): Job {
       const current = get(files).find((f) => f.path === get(activePath));
       const tracker = track({ title: current?.name ?? tr("Traballo"), subtitle: tr(working), source: "app" });
       active = { tracker, progress };
+      const outs: string[] = [];
+      outputHook.fn = (p) => {
+        if (!outs.includes(p)) outs.push(p);
+        tracker.update({ outputs: [...outs] });
+      };
       try {
         const done = await job();
         if (done) message.set({ ok: true, text: done });
@@ -70,6 +75,7 @@ export function createJob(): Job {
         }
       } finally {
         active = null;
+        outputHook.fn = null;
         progress.set(null);
         busy.set(false);
       }

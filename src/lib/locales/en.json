@@ -877,5 +877,6 @@
   "Converter a MP4": "Convert to MP4",
   "Estimar de novo": "Estimate again",
   "O nome do ficheiro de saída non ten extensión (por exemplo «.mp4»): ffmpeg necesita saber que formato crear.": "The output file name has no extension (for example “.mp4”): ffmpeg needs to know which format to create.",
-  "Tentar de novo": "Try again"
+  "Tentar de novo": "Try again",
+  "Listo! O trasno deixou o ficheiro en {to}.": "Done! The trasno left the file at {to}."
 }

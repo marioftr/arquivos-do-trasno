@@ -201,8 +201,10 @@
       return;
     }
     await job.run(TRASNO.comprimindo, fallo("comprimindo"), async () => {
+      const before = (await engine.fileSize(first.path).catch(() => 0)) || (first.size ?? 0);
       const bytes = await compressOne(first, out, true);
-      return tr("Listo! O trasno deixou o ficheiro en {to} ({pct}; antes eran {from}).", { from: formatBytes(first.size ?? 0), to: formatBytes(bytes), pct: pct(first.size ?? 0, bytes) });
+      if (!before) return tr("Listo! O trasno deixou o ficheiro en {to}.", { to: formatBytes(bytes) });
+      return tr("Listo! O trasno deixou o ficheiro en {to} ({pct}; antes eran {from}).", { from: formatBytes(before), to: formatBytes(bytes), pct: pct(before, bytes) });
     });
   }
 

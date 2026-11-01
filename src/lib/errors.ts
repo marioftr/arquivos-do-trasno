@@ -21,9 +21,15 @@ export function localizeError(e: unknown): string {
 /** Texto de erro listo para amosar, sexa o que sexa o que se capturou. */
 export const errText = localizeError;
 
+/** Quen quere saber os ficheiros de saída que van creando os comandos (o rexistro de procesos). */
+export const outputHook: { fn: ((path: string) => void) | null } = { fn: null };
+
 export async function call<T>(cmd: string, args?: InvokeArgs, options?: InvokeOptions): Promise<T> {
   try {
-    return await invoke<T>(cmd, args, options);
+    const r = await invoke<T>(cmd, args, options);
+    const out = (args as { output?: unknown } | undefined)?.output;
+    if (typeof out === "string" && out) outputHook.fn?.(out);
+    return r;
   } catch (e) {
     throw new Error(localizeError(e));
   }

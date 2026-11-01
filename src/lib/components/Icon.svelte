@@ -36,6 +36,10 @@
     <path d="M14 3h7v7" />
     <path d="M21 3l-9 9" />
     <path d="M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5" />
+  {:else if name === "load"}
+    <path d="M3 14v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4" />
+    <path d="M12 3v11" />
+    <polyline points="7.5 9.5 12 14 16.5 9.5" />
   {:else if name === "video"}
     <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" />
     <polygon points="10 9 15.5 12 10 15" />
