@@ -71,7 +71,12 @@
     // Un perfil gardado que xa se borrou: volve ao de partida.
     if (!isImage && !known(get(form).profile)) {
       appliedProfile = initialProfile;
-      form.update((f) => ({ ...f, profile: initialProfile, ...PROFILES[initialProfile].v }));
+      form.update((f) => {
+        const merged = { ...f, profile: initialProfile, ...PROFILES[initialProfile].v };
+        snap = keyOf(merged);
+        pendingApply = true;
+        return merged;
+      });
     }
     return useForm(form);
   });
@@ -90,17 +95,47 @@
 
   // Ao escoller un perfil aplícanse os seus valores; despois pódese seguir afinando.
   let appliedProfile = get(form).profile;
+  // Os valores que definen un perfil. Se o usuario toca calquera, o perfil pasa a «Personalizado».
+  const keyOf = (f: any) => JSON.stringify([f.mode, f.crf, f.maxHeight, f.audioKbps, f.deinterlace, f.compat, f.dar, f.mode === "bitrate" ? f.videoKbps : 0]);
+  let snap = keyOf(get(form));
+  let pendingApply = false;
   function applyProfile(id: string) {
     if (isImage || id === appliedProfile) return;
     appliedProfile = id;
+    if (id === "custom") return; // Personalizado: queda cos valores que haxa
+    let next: Record<string, any> | null = null;
     if (id.startsWith("user:")) {
       const mine = get(savedProfiles).find((x) => `user:${x.id}` === id);
-      if (mine) form.update((f) => ({ ...f, ...mine.v }));
+      if (mine) next = { ...mine.v };
+    } else if (PROFILES[id]) {
+      next = { mode: "quality", dar: "", ...PROFILES[id].v };
+    }
+    if (!next) return;
+    form.update((f) => {
+      const merged = { ...f, ...next };
+      snap = keyOf(merged);
+      pendingApply = true;
+      return merged;
+    });
+  }
+  function autoCustom(f: any) {
+    if (isImage) return;
+    const k = keyOf(f);
+    if (pendingApply) {
+      if (k === snap) pendingApply = false; // xa chegaron os valores do perfil
       return;
     }
-    const p = PROFILES[id];
-    if (p) form.update((f) => ({ ...f, mode: "quality" as const, dar: "", ...p.v }));
+    if (f.profile === "custom") {
+      snap = k;
+      return;
+    }
+    if (k !== snap) {
+      appliedProfile = "custom";
+      snap = k;
+      form.update((x) => ({ ...x, profile: "custom" }));
+    }
   }
+  $: autoCustom(v);
 
   // ---- perfís gardados polo usuario
   let naming = false;
@@ -115,6 +150,7 @@
       { id, name, v: { mode: f.mode === "bitrate" ? "bitrate" : "quality", crf: f.crf, videoKbps: f.videoKbps, maxHeight: f.maxHeight, audioKbps: f.audioKbps, deinterlace: f.deinterlace, compat: f.compat, dar: f.dar } },
     ]);
     appliedProfile = `user:${id}`;
+    snap = keyOf(get(form));
     form.update((x) => ({ ...x, profile: `user:${id}` }));
     toast(tr("O trasno gardou o perfil «{name}».", { name }));
     naming = false;
@@ -260,16 +296,7 @@
         def={initialProfile}
       />
       <p class="group-note">{profileHint}</p>
-      {#if naming}
-        <div class="savebox">
-          <input class="nameinp" bind:value={newName} placeholder={$t("Nome do perfil")} aria-label={$t("Nome do perfil")} maxlength="40" on:keydown={(e) => e.key === "Enter" && saveProfile()} />
-          <button class="btn primary" on:click={saveProfile} disabled={!newName.trim()}>{$t("Gardar")}</button>
-          <button class="btn" on:click={() => ((naming = false), (newName = ""))}>{$t("Cancelar")}</button>
-        </div>
-      {:else}
-        <button class="btn" on:click={() => (naming = true)}><Icon name="plus" size={14} /> {$t("Gardar estes axustes como perfil…")}</button>
-      {/if}
-      {#if v.profile !== "custom"}
+      {#if !isImage}
         <SelectField
           label={$t("Relación de aspecto")}
           bind:value={$form.dar}
@@ -351,6 +378,20 @@
     </div>
   {/if}
 
+  {#if !isImage && v.profile === "custom"}
+    <div class="savewrap">
+      {#if naming}
+        <div class="savebox">
+          <input class="nameinp" bind:value={newName} placeholder={$t("Nome do perfil")} aria-label={$t("Nome do perfil")} maxlength="40" on:keydown={(e) => e.key === "Enter" && saveProfile()} />
+          <button class="btn primary" on:click={saveProfile} disabled={!newName.trim()}>{$t("Gardar")}</button>
+          <button class="btn" on:click={() => ((naming = false), (newName = ""))}>{$t("Cancelar")}</button>
+        </div>
+      {:else}
+        <button class="btn block" on:click={() => (naming = true)}><Icon name="plus" size={14} /> {$t("Gardar estes axustes como perfil…")}</button>
+      {/if}
+    </div>
+  {/if}
+
   {#if multi}
     <button class="btn primary block" on:click={runBatch} disabled={$busy}>
       {isImage ? $t("Comprimir {n} imaxes", { n: selection.length }) : $t("Converter {n} vídeos a MP4", { n: selection.length })}
@@ -377,6 +418,7 @@
 
 <style>
   .warn { margin: 0; font-size: 0.8rem; color: var(--accent-pdf); }
+  .savewrap { display: flex; flex-direction: column; }
   .savebox { display: flex; gap: 0.4rem; align-items: center; }
   .nameinp { flex: 1; min-width: 0; height: var(--control-h); background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.6rem; font: inherit; }
   .nameinp:focus { outline: none; border-color: var(--accent); }
