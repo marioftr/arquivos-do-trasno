@@ -70,6 +70,10 @@ pub fn allow_view(app: tauri::AppHandle, path: String) -> Result<(), String> {
 /// Ficheiros pasados na liña de ordes (p. ex. "Abrir con" dende o explorador).
 #[tauri::command]
 pub fn startup_files() -> Vec<String> {
+    // Un traballo do menú de clic dereito (--convert / --compress) non abre os ficheiros na lista.
+    if matches!(std::env::args().nth(1).as_deref(), Some("--convert") | Some("--compress")) {
+        return Vec::new();
+    }
     std::env::args()
         .skip(1)
         .filter(|a| !a.starts_with('-') && PathBuf::from(a).is_file())

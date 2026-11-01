@@ -307,3 +307,19 @@ export const mkvMux = (inputs: MuxInput[], order: TrackRef[], output: string, ov
 
 export type LinkId = "ffmpeg" | "ffmpeg-license" | "mkvtoolnix" | "mkvtoolnix-license" | "iso639-2" | "mkvmerge-doc";
 export const openLink = (id: LinkId): Promise<void> => call("open_link", { id });
+
+export interface ExplorerStatus {
+  available: boolean;
+  installed: boolean;
+  current: boolean;
+}
+export const explorerStatus = (): Promise<ExplorerStatus> => call("explorer_status");
+export const explorerInstall = (labels: { title: string; open: string; convert: string; compress: string }): Promise<void> => call("explorer_install", { labels });
+export const explorerUninstall = (): Promise<void> => call("explorer_uninstall");
+
+export interface StartupJob {
+  action: "convert" | "compress";
+  target?: string;
+  paths: string[];
+}
+export const startupJob = (): Promise<StartupJob | null> => call("startup_job");

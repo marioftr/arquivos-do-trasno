@@ -3,6 +3,8 @@
   import { t, lang, LANGS, type Lang } from "../i18n";
   import { theme, outputMode, outputFolder, dialog, settingsTab, type Theme, type OutputMode } from "../settings";
   import { fileNameOf } from "../formats";
+  import * as engine from "../engine";
+  import { errText } from "../errors";
   import Modal from "./ui/Modal.svelte";
   import Segmented from "./ui/Segmented.svelte";
   import Icon from "./Icon.svelte";
@@ -19,6 +21,44 @@
   $: lang.set(langV as Lang);
   $: theme.set(themeV as Theme);
   $: outputMode.set(modeV as OutputMode);
+
+  // Menú de clic dereito do Explorador (só Windows).
+  let ex: engine.ExplorerStatus | null = null;
+  let exMsg = "";
+  let exBusy = false;
+  const refreshEx = () => engine.explorerStatus().then((s) => (ex = s)).catch(() => (ex = null));
+  refreshEx();
+  async function exInstall() {
+    exBusy = true;
+    exMsg = "";
+    try {
+      await engine.explorerInstall({
+        title: "Arquivos do Trasno",
+        open: $t("Abrir en Arquivos do Trasno"),
+        convert: $t("Converter a {ext}", { ext: "{ext}" }),
+        compress: $t("Comprimir"),
+      });
+      exMsg = $t("Feito. O menú do clic dereito xa ten as entradas do trasno.");
+    } catch (e) {
+      exMsg = errText(e);
+    } finally {
+      exBusy = false;
+      refreshEx();
+    }
+  }
+  async function exRemove() {
+    exBusy = true;
+    exMsg = "";
+    try {
+      await engine.explorerUninstall();
+      exMsg = $t("Quitadas as entradas do menú do clic dereito.");
+    } catch (e) {
+      exMsg = errText(e);
+    } finally {
+      exBusy = false;
+      refreshEx();
+    }
+  }
 
   async function chooseFolder() {
     const c = await open({ directory: true });
@@ -105,6 +145,19 @@
     </p>
   </section>
 
+  {#if ex?.available}
+  <section>
+    <h3>{$t("Menú do clic dereito (Explorador)")}</h3>
+    <p class="muted note">{$t("Engade «Converter a…» e «Comprimir» ao clic dereito sobre un ficheiro, sen abrir a aplicación completa. Non fai falta ser administrador e pódese quitar cando queiras.")}</p>
+    <p class="muted note">{$t("En Windows 11 aparece en «Mostrar máis opcións». Se cambias a aplicación de cartafol, volve instalalo.")}</p>
+    <div class="exrow">
+      <button class="btn primary" on:click={exInstall} disabled={exBusy}>{ex.installed ? $t("Actualizar entradas") : $t("Instalar no menú")}</button>
+      {#if ex.installed}<button class="btn" on:click={exRemove} disabled={exBusy}>{$t("Quitar do menú")}</button>{/if}
+      <span class="muted note">{ex.installed ? (ex.current ? $t("Instalado") : $t("Instalado, pero apunta a outra copia da app")) : $t("Non instalado")}</span>
+    </div>
+    {#if exMsg}<p class="note selectable">{exMsg}</p>{/if}
+  </section>
+  {/if}
   {:else if tab === "shortcuts"}
   <section>
     {#each groups as g}
@@ -138,6 +191,7 @@
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
   h4 { margin: 0.3rem 0 0.1rem; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: none; }
   .note { margin: 0; font-size: 0.8rem; }
+  .exrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
   .grp { display: flex; flex-direction: column; }
   .row { display: flex; align-items: center; gap: 0.8rem; padding: 0.25rem 0; border-top: 1px solid var(--border); font-size: 0.85rem; }
   kbd { flex: 0 0 11rem; font-family: inherit; font-size: 0.78rem; background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: 5px; padding: 1px 7px; width: fit-content; }

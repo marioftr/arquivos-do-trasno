@@ -564,5 +564,22 @@
   "Códigos de idioma": "Language codes",
   "Guía de MKVToolNix": "MKVToolNix guide",
   "Abre a lista oficial de códigos de idioma (ISO 639-2) no navegador": "Opens the official language code list (ISO 639-2) in the browser",
-  "Abre a documentación oficial de mkvmerge no navegador": "Opens the official mkvmerge documentation in the browser"
+  "Abre a documentación oficial de mkvmerge no navegador": "Opens the official mkvmerge documentation in the browser",
+  "Abrir en Arquivos do Trasno": "Open in Arquivos do Trasno",
+  "Menú do clic dereito (Explorador)": "Right-click menu (File Explorer)",
+  "Engade «Converter a…» e «Comprimir» ao clic dereito sobre un ficheiro, sen abrir a aplicación completa. Non fai falta ser administrador e pódese quitar cando queiras.": "Adds “Convert to…” and “Compress” to the right-click menu on a file, without opening the full app. No administrator rights needed and you can remove it any time.",
+  "En Windows 11 aparece en «Mostrar máis opcións». Se cambias a aplicación de cartafol, volve instalalo.": "On Windows 11 it appears under “Show more options”. If you move the app to another folder, install it again.",
+  "Actualizar entradas": "Update entries",
+  "Instalar no menú": "Install in the menu",
+  "Quitar do menú": "Remove from the menu",
+  "Instalado, pero apunta a outra copia da app": "Installed, but points to another copy of the app",
+  "Non instalado": "Not installed",
+  "Feito. O menú do clic dereito xa ten as entradas do trasno.": "Done. The right-click menu now has the trasno's entries.",
+  "Quitadas as entradas do menú do clic dereito.": "Right-click menu entries removed.",
+  "Traballando…": "Working…",
+  "Agardando": "Waiting",
+  "Amosar no cartafol": "Show in folder",
+  "Péchase en {s} s…": "Closing in {s} s…",
+  "Esta función só existe en Windows.": "This feature only exists on Windows.",
+  "Arquivos do Trasno": "Arquivos do Trasno"
 }

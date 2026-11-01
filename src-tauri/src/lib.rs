@@ -1,4 +1,5 @@
 mod commands;
+mod explorer;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -14,6 +15,10 @@ pub fn run() {
             commands::mkv_mux,
             commands::open_link,
             commands::unique_path,
+            explorer::explorer_install,
+            explorer::explorer_uninstall,
+            explorer::explorer_status,
+            explorer::startup_job,
             commands::file_size,
             commands::allow_view,
             commands::startup_files,

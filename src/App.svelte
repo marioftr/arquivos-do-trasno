@@ -13,6 +13,7 @@
   import * as engine from "./lib/engine";
   import { t, lang, LANGS, type Lang } from "./lib/i18n";
   import { theme, dialog, openSettings, welcomeIfNeeded, type Theme } from "./lib/settings";
+  import QuickJob from "./lib/components/QuickJob.svelte";
   import SettingsDialog from "./lib/components/SettingsDialog.svelte";
 
   let dragging = false;
@@ -20,6 +21,9 @@
   let ffmpegOk: boolean | null = null;
 
   engine.ffmpegAvailable().then((v) => (ffmpegOk = v));
+  // Se a app se abriu desde o clic dereito do Explorador, só se mostra a xanela pequena do traballo.
+  let quickJob: engine.StartupJob | null | undefined = undefined;
+  engine.startupJob().then((j) => (quickJob = j)).catch(() => (quickJob = null));
   const THEMES: { id: Theme; label: string }[] = [
     { id: "system", label: "Sistema" },
     { id: "light", label: "Claro" },
@@ -33,7 +37,7 @@
   }
 
   onMount(async () => {
-    welcomeIfNeeded();
+    if ((await engine.startupJob().catch(() => null)) === null) welcomeIfNeeded();
     engine.startupFiles().then((paths) => { if (paths.length) addPaths(paths); });
     unlisten = await getCurrentWebview().onDragDropEvent((event) => {
       const p = event.payload;
@@ -81,6 +85,11 @@
 
 <svelte:window on:keydown={onKey} />
 
+{#if quickJob === undefined}
+  <div class="app"></div>
+{:else if quickJob}
+  <QuickJob job={quickJob} />
+{:else}
 <div class="app" class:dragging>
   <header class="top">
     <span class="brand"><BrandMark size={20} /> Arquivos do Trasno</span>
@@ -121,6 +130,7 @@
     <div class="veil"><span>{$t("Solta os ficheiros para que o trasno os colla")}</span></div>
   {/if}
 </div>
+{/if}
 
 <style>
   .app { position: relative; display: flex; flex-direction: column; width: 100%; height: 100vh; }
