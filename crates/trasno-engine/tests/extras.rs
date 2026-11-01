@@ -122,6 +122,37 @@ fn efectos_de_audio_funcionan_con_ffmpeg_real() {
 }
 
 #[test]
+fn mkv_quita_pistas_e_cambia_nomes_sen_recodificar() {
+    use trasno_engine::mkv;
+    if !ffmpeg::is_available() || !mkv::is_available() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("a.mkv");
+    let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+        .args(["-v", "error", "-f", "lavfi", "-i", "testsrc=size=160x120:rate=10:duration=1"])
+        .args(["-f", "lavfi", "-i", "sine=duration=1", "-shortest", "-pix_fmt", "yuv420p"])
+        .arg(&src)
+        .status()
+        .unwrap();
+    assert!(st.success());
+    let before = mkv::tracks(&src).unwrap();
+    assert_eq!(before["tracks"].as_array().unwrap().len(), 2);
+
+    let out = dir.path().join("so-video.mkv");
+    let edits = [mkv::TrackEdit { id: 0, name: Some("Principal".into()), language: Some("glg".into()), default: Some(true) }];
+    mkv::remux(&src, &out, false, &[0], &edits).unwrap();
+    let after = mkv::tracks(&out).unwrap();
+    let list = after["tracks"].as_array().unwrap();
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0]["properties"]["track_name"], "Principal");
+    assert_eq!(list[0]["properties"]["language"], "glg");
+    // Sen pistas non hai nada que gardar, e o orixinal queda igual.
+    assert!(mkv::remux(&src, &dir.path().join("x.mkv"), false, &[], &[]).is_err());
+    assert_eq!(mkv::tracks(&src).unwrap()["tracks"].as_array().unwrap().len(), 2);
+}
+
+#[test]
 fn xuntar_e_convertir_media_con_ffmpeg_real() {
     if !ffmpeg::is_available() {
         return;

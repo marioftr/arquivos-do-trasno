@@ -603,3 +603,60 @@ pub async fn pdf_repair(input: String, output: String, overwrite: bool) -> Resul
     })
     .await
 }
+
+/// Programas externos que a app aproveita se están instalados.
+#[tauri::command]
+pub fn tools_status() -> serde_json::Value {
+    serde_json::json!({
+        "ffmpeg": trasno_engine::ffmpeg::ffmpeg_path().is_ok(),
+        "ffprobe": trasno_engine::ffmpeg::ffprobe_path().is_ok(),
+        "mkvmerge": trasno_engine::mkv::is_available(),
+    })
+}
+
+#[tauri::command]
+pub async fn mkv_tracks(path: String) -> Result<serde_json::Value, String> {
+    blocking(move || trasno_engine::mkv::tracks(&PathBuf::from(path)).map_err(to_err)).await
+}
+
+#[tauri::command]
+pub async fn mkv_remux(
+    input: String,
+    output: String,
+    overwrite: bool,
+    keep: Vec<u64>,
+    edits: Vec<trasno_engine::mkv::TrackEdit>,
+) -> Result<String, String> {
+    blocking(move || {
+        trasno_engine::mkv::remux(&PathBuf::from(input), &PathBuf::from(output), overwrite, &keep, &edits)
+            .map(|p| p.to_string_lossy().to_string())
+            .map_err(to_err)
+    })
+    .await
+}
+
+/// Abre unha páxina web fixa (nunca un enderezo que veña da interface).
+#[tauri::command]
+pub fn open_link(id: String) -> Result<(), String> {
+    let url = match id.as_str() {
+        "ffmpeg" => "https://ffmpeg.org/download.html",
+        "ffmpeg-license" => "https://ffmpeg.org/legal.html",
+        "mkvtoolnix" => "https://mkvtoolnix.download/downloads.html",
+        "mkvtoolnix-license" => "https://mkvtoolnix.download/doc/COPYING",
+        _ => return Err(msg("Non coñezo esa ligazón.", serde_json::json!({}))),
+    };
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        std::process::Command::new("rundll32")
+            .args(["url.dll,FileProtocolHandler", url])
+            .creation_flags(0x0800_0000)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("xdg-open").arg(url).spawn().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}

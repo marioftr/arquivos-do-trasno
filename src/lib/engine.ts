@@ -269,3 +269,30 @@ export async function pdfArrange(input: string, output: string, order: [number, 
 export async function pdfRepair(input: string, output: string, overwrite = false): Promise<string> {
   return call("pdf_repair", { input, output, overwrite });
 }
+
+export interface ToolsStatus {
+  ffmpeg: boolean;
+  ffprobe: boolean;
+  mkvmerge: boolean;
+}
+export const toolsStatus = (): Promise<ToolsStatus> => call("tools_status");
+
+export interface MkvTrack {
+  id: number;
+  type: "video" | "audio" | "subtitles" | string;
+  codec: string;
+  properties: { language?: string; track_name?: string; default_track?: boolean; pixel_dimensions?: string; audio_channels?: number };
+}
+export const mkvTracks = async (path: string): Promise<MkvTrack[]> => ((await call<any>("mkv_tracks", { path })).tracks ?? []) as MkvTrack[];
+
+export interface TrackEdit {
+  id: number;
+  name?: string;
+  language?: string;
+  default?: boolean;
+}
+export const mkvRemux = (input: string, output: string, keep: number[], edits: TrackEdit[], overwrite = false): Promise<string> =>
+  call("mkv_remux", { input, output, overwrite, keep, edits });
+
+export type LinkId = "ffmpeg" | "ffmpeg-license" | "mkvtoolnix" | "mkvtoolnix-license";
+export const openLink = (id: LinkId): Promise<void> => call("open_link", { id });

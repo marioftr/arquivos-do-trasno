@@ -21,6 +21,7 @@ pub mod ffmpeg;
 pub mod formats;
 pub mod image_convert;
 pub mod integrity;
+pub mod mkv;
 pub mod model3d;
 pub mod pdf;
 pub mod pdf_tools;

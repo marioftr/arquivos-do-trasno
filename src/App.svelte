@@ -12,12 +12,20 @@
   import { get } from "svelte/store";
   import * as engine from "./lib/engine";
   import { t, lang, LANGS, type Lang } from "./lib/i18n";
+  import { theme, dialog, tools, welcomeIfNeeded, type Theme } from "./lib/settings";
+  import ToolsDialog from "./lib/components/ToolsDialog.svelte";
+  import CreditsDialog from "./lib/components/CreditsDialog.svelte";
 
   let dragging = false;
   let unlisten: (() => void) | null = null;
   let ffmpegOk: boolean | null = null;
 
   engine.ffmpegAvailable().then((v) => (ffmpegOk = v));
+  const THEMES: { id: Theme; label: string }[] = [
+    { id: "system", label: "Sistema" },
+    { id: "light", label: "Claro" },
+    { id: "dark", label: "Escuro" },
+  ];
 
   async function escoller() {
     const selected = await open({ multiple: true });
@@ -26,6 +34,7 @@
   }
 
   onMount(async () => {
+    welcomeIfNeeded();
     engine.startupFiles().then((paths) => { if (paths.length) addPaths(paths); });
     unlisten = await getCurrentWebview().onDragDropEvent((event) => {
       const p = event.payload;
@@ -75,14 +84,22 @@
     <span class="brand"><BrandMark size={20} /> Arquivos do Trasno</span>
     <span class="grow"></span>
     <label class="langsel">
+      <span class="muted">{$t("Tema")}</span>
+      <select value={$theme} on:change={(e) => theme.set(e.currentTarget.value as Theme)} aria-label={$t("Tema")}>
+        {#each THEMES as x}<option value={x.id}>{$t(x.label)}</option>{/each}
+      </select>
+    </label>
+    <label class="langsel">
       <span class="muted">{$t("Idioma")}</span>
       <select value={$lang} on:change={(e) => lang.set(e.currentTarget.value as Lang)} aria-label={$t("Idioma")}>
         {#each LANGS as l}<option value={l.id}>{l.label}</option>{/each}
       </select>
     </label>
     {#if ffmpegOk === false && needsFfmpeg}
-      <span class="aviso"><Icon name="warning" size={14} /> {$t("Falta ffmpeg (instálao con «winget install ffmpeg» ou pon ffmpeg.exe e ffprobe.exe ao carón da app).")}</span>
+      <button class="aviso" on:click={() => dialog.set("tools")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: ver como instalalo")}</button>
     {/if}
+    <button class="btn ghost" on:click={() => dialog.set("tools")} title={$t("Extensións")}><Icon name="puzzle" size={15} /> {$t("Extensións")}</button>
+    <button class="btn ghost" on:click={() => dialog.set("credits")} title={$t("Créditos e licenzas")}><Icon name="info" size={15} /> {$t("Créditos")}</button>
   </header>
 
   {#if $files.length === 0}
@@ -109,6 +126,8 @@
     </main>
   {/if}
 
+  {#if $dialog === "tools"}<ToolsDialog />{:else if $dialog === "credits"}<CreditsDialog />{/if}
+
   {#if dragging}
     <div class="veil"><span>{$t("Solta os ficheiros para que o trasno os colla")}</span></div>
   {/if}
@@ -121,7 +140,7 @@
   .grow { flex: 1; }
   .langsel { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; }
   .langsel select { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0.25em 0.5em; font-size: 0.8rem; }
-  .aviso { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.82rem; }
+  .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.82rem; }
 
   .home { flex: 1; min-height: 0; display: flex; padding: 1.5rem; }
   .drop {

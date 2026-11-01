@@ -32,6 +32,28 @@
   font-feature-settings: "cv11", "ss01", "tnum";
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f5f5f8;
+  --bg-rail: #ebebf0;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --bg-hover: #e2e2e9;
+  --bg-input: #ffffff;
+  --border: #dcdce3;
+  --border-strong: #bfc0ca;
+  --text: #1c1d22;
+  --text-muted: #5b5d68;
+  --text-faint: #8a8c97;
+
+  --accent-imaxe: #2c8a49;
+  --accent-audio: #5d52c4;
+  --accent-pdf: #a3720f;
+  --accent-video: #b8442f;
+  --accent-conversor: #2a76b8;
+}
+
 * {
   box-sizing: border-box;
 }

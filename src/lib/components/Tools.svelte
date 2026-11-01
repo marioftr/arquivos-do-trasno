@@ -21,6 +21,9 @@
   import PdfSecuritySection from "./tools/PdfSecuritySection.svelte";
   import PdfRepairSection from "./tools/PdfRepairSection.svelte";
   import Segmented from "./ui/Segmented.svelte";
+  import MkvTracksSection from "./tools/MkvTracksSection.svelte";
+  import Icon from "./Icon.svelte";
+  import { tools, dialog } from "../settings";
   import MergeSection from "./tools/MergeSection.svelte";
   import InfoSection from "./tools/InfoSection.svelte";
 
@@ -37,6 +40,8 @@
   /** Cada tipo de ficheiro (ou lote) ten as súas pestañas: unha tarefa por pestana. */
   function tabsFor(cat: Category | null, many: boolean, pdf: boolean, tt: (k: string) => string): { id: string; label: string }[] {
     const tab = (id: string, label: string) => ({ id, label: tt(label) });
+    // Os contedores Matroska teñen a súa propia pestana de pistas (MKVToolNix).
+    const mkvTab = () => (["mkv", "mka", "webm"].includes(first?.ext ?? "") ? [tab("mkv", "Pistas")] : []);
     if (!cat) return [];
     if (many) {
       if (pdf) return [tab("merge", "Unir")];
@@ -49,9 +54,9 @@
       case "imaxe":
         return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("info", "Información")];
       case "video":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("trim", "Cortar"), tab("extract", "Extraer"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("trim", "Cortar"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
-        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("effects", "Efectos"), tab("trim", "Cortar"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("effects", "Efectos"), tab("trim", "Cortar"), ...mkvTab(), tab("info", "Información")];
       case "documento":
         return pdf
           ? [
@@ -91,6 +96,13 @@
   $: modes = modesFor(current, isPdf, multi, $t);
   $: if (modes.length && !modes.some((x) => x.value === sub[current])) sub[current] = modes[0].value;
   $: mode = modes.length ? sub[current] : "";
+
+  // Sen os programas externos, as ferramentas que dependen deles quedan bloqueadas (e explícase por que).
+  $: locked = !!$tools && !multi
+    ? current === "mkv"
+      ? !$tools.mkvmerge
+      : (category === "audio" || category === "video") && !$tools.ffmpeg
+    : !!$tools && multi && (category === "audio" || category === "video") && !$tools.ffmpeg;
 </script>
 
 <div class="tools">
@@ -115,7 +127,20 @@
         <div class="modes"><Segmented options={modes} bind:value={sub[current]} /></div>
       {/if}
       {#key `${selKey}|${current}|${mode}`}
-        {#if current === "convert" && mode === "images" && first}
+        {#if locked}
+          <div class="locked">
+            <Icon name="warning" size={20} />
+            <p><strong>{$t("Esta ferramenta está bloqueada")}</strong></p>
+            <p class="muted">
+              {current === "mkv"
+                ? $t("Editar as pistas dun MKV precisa MKVToolNix, que non está instalado.")
+                : $t("O audio e o vídeo precisan FFmpeg, que non está instalado.")}
+            </p>
+            <button class="btn primary" on:click={() => dialog.set("tools")}>{$t("Ver como instalalo")}</button>
+          </div>
+        {:else if current === "mkv" && first}
+          <MkvTracksSection file={first} />
+        {:else if current === "convert" && mode === "images" && first}
           <PdfImagesSection file={first} />
         {:else if current === "convert"}
           <ConvertSection {selection} {category} />
@@ -165,6 +190,9 @@
   header h2 { margin: 0; font-size: 1.02rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sub { margin: 0.15rem 0 0; font-size: 0.8rem; }
   .body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.9rem 1.1rem 1.5rem; }
+  .locked { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; text-align: center; padding: 2rem 1rem; color: var(--accent-pdf); }
+  .locked p { margin: 0; color: var(--text); }
+  .locked .muted { color: var(--text-muted); }
   .modes { margin-bottom: 0.9rem; }
   .hint { padding: 1.2rem 1.1rem; font-size: 0.9rem; }
 </style>

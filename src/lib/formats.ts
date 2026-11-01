@@ -51,27 +51,33 @@ import { tr } from "./i18n";
 
 /** Frases de éxito: ao azar, para que non soen sempre igual. */
 export const TRASNO_LISTO = [
-  "Feito! O trasno rematou o seu traballo sen atopar ningún problema.",
-  "Listo! O trasno deixou todo en orde e sen un só tropezo.",
-  "Xa está! O trasno cumpriu o encargo e ata lle sobrou tempo para un café.",
-  "Traballo rematado! O trasno bótalle unha ollada e dáo por bo.",
-  "Todo correcto! O trasno recolleu as ferramentas e volveu ao seu recuncho.",
+  "Feito! O trasno rematou sen romper nin un prato.",
+  "Listo! Cousa de fogar: o trasno deixou todo no seu sitio (esta vez de verdade).",
+  "Xa está! Aínda non cantou o galo e o trasno xa tiña isto feito.",
+  "Rematado! O trasno tocou o gorro vermello e deu o traballo por bo.",
+  "Todo correcto! Esta vez o trasno non tivo que facer ningunha trasnada.",
 ];
 
 /** Frases de fallo por tipo de traballo (tamén ao azar). */
 export const TRASNO_FALLO: Record<string, string[]> = {
   convertendo: [
-    "Vaites! O trasno tropezou durante a conversión.",
-    "Ouh! Algo se torceu mentres o trasno convertía.",
-    "Caramba! A conversión escapóuselle das mans ao trasno.",
+    "Vaites! O trasno enredouse na conversión.",
+    "Ouh! Trasnada de última hora: a conversión non saíu.",
+    "Caramba! Ata o trasno perde o fío ás veces: a conversión fallou.",
   ],
-  unindo: ["Vaites! O trasno tropezou ao unir os ficheiros.", "Ouh! Os ficheiros non se deixaron coser polo trasno."],
+  unindo: [
+    "Vaites! Os ficheiros fixéronlle unha trasnada ao trasno e non se deixaron unir.",
+    "Ouh! O trasno perdeu a agulla mentres cosía os ficheiros.",
+  ],
   editando: [
-    "Vaites! O trasno tropezou durante a edición.",
-    "Ouh! A ferramenta do trasno escorregou mentres editaba.",
-    "Caramba! Algo saíu mal na edición.",
+    "Vaites! O trasno escorregou co gorro posto durante a edición.",
+    "Ouh! A ferramenta escapóuselle ao trasno mentres editaba.",
+    "Caramba! Algo se enredou na edición.",
   ],
-  comprimindo: ["Vaites! O trasno tropezou durante a compresión.", "Ouh! A compresión resistiuse ao trasno."],
+  comprimindo: [
+    "Vaites! A compresión foi máis teimuda ca o trasno.",
+    "Ouh! O trasno apertou, apertou… e non houbo maneira.",
+  ],
 };
 
 export function fallo(kind: keyof typeof TRASNO_FALLO | string): string {
@@ -90,7 +96,7 @@ export const TRASNO = {
   convertendo: "O trasno está convertendo… xa case!",
   unindo: "O trasno está cosendo os ficheiros…",
   abrindo: "O trasno está abrindo o modelo…",
-  comprimindo: "O trasno está comprimindo… paciencia!",
+  comprimindo: "O trasno está apertando os ficheiros… paciencia!",
 };
 
 export function extensionOf(path: string): string {
