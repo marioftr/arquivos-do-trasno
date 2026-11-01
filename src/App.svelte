@@ -12,10 +12,8 @@
   import { get } from "svelte/store";
   import * as engine from "./lib/engine";
   import { t, lang, LANGS, type Lang } from "./lib/i18n";
-  import { theme, dialog, tools, welcomeIfNeeded, type Theme } from "./lib/settings";
-  import ToolsDialog from "./lib/components/ToolsDialog.svelte";
+  import { theme, dialog, openSettings, welcomeIfNeeded, type Theme } from "./lib/settings";
   import SettingsDialog from "./lib/components/SettingsDialog.svelte";
-  import CreditsDialog from "./lib/components/CreditsDialog.svelte";
 
   let dragging = false;
   let unlisten: (() => void) | null = null;
@@ -85,11 +83,9 @@
     <span class="brand"><BrandMark size={20} /> Arquivos do Trasno</span>
     <span class="grow"></span>
     {#if ffmpegOk === false && needsFfmpeg}
-      <button class="aviso" on:click={() => dialog.set("tools")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: ver como instalalo")}</button>
+      <button class="aviso" on:click={() => openSettings("tools")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: ver como instalalo")}</button>
     {/if}
-    <button class="btn ghost" on:click={() => dialog.set("tools")} title={$t("Extensións")}><Icon name="puzzle" size={15} /> {$t("Extensións")}</button>
-    <button class="btn ghost" on:click={() => dialog.set("credits")} title={$t("Créditos e licenzas")}><Icon name="info" size={15} /> {$t("Créditos")}</button>
-    <button class="btn ghost" on:click={() => dialog.set("settings")} title={$t("Axustes")}><Icon name="gear" size={15} /> {$t("Axustes")}</button>
+    <button class="btn ghost" on:click={() => openSettings("general")} title={$t("Axustes")}><Icon name="gear" size={15} /> {$t("Axustes")}</button>
   </header>
 
   {#if $files.length === 0}
@@ -116,7 +112,7 @@
     </main>
   {/if}
 
-  {#if $dialog === "tools"}<ToolsDialog />{:else if $dialog === "settings"}<SettingsDialog />{:else if $dialog === "credits"}<CreditsDialog />{/if}
+  {#if $dialog === "settings"}<SettingsDialog />{/if}
 
   {#if dragging}
     <div class="veil"><span>{$t("Solta os ficheiros para que o trasno os colla")}</span></div>

@@ -1,8 +1,6 @@
 <script lang="ts">
   import { openLink, type LinkId } from "../engine";
   import { t } from "../i18n";
-  import { dialog } from "../settings";
-  import Modal from "./ui/Modal.svelte";
 
   const libs: { name: string; what: string; license: string }[] = [
     { name: "Tauri", what: "Marco da aplicación de escritorio", license: "MIT / Apache-2.0" },
@@ -21,7 +19,7 @@
   ];
 </script>
 
-<Modal title={$t("Créditos e licenzas")} onClose={() => dialog.set(null)}>
+<div class="panel">
   <section>
     <h3>Arquivos do Trasno</h3>
     <p class="muted">
@@ -62,9 +60,10 @@
       {$t("Este software ofrécese «tal cal», sen garantía de ningún tipo. Os nomes FFmpeg, MKVToolNix, PDF.js, Tauri e os demais pertencen aos seus respectivos autores, que non avalan nin están asociados a esta aplicación. Cada biblioteca mantense baixo a súa propia licenza, que se conserva nos seus repositorios.")}
     </p>
   </section>
-</Modal>
+</div>
 
 <style>
+  .panel { display: flex; flex-direction: column; gap: 1rem; }
   section { display: flex; flex-direction: column; gap: 0.4rem; }
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
   p { margin: 0; }

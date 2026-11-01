@@ -189,7 +189,6 @@
   "2 = o dobre de rápido; 0,5 = a metade": "2 = el doble de rápido; 0,5 = la mitad",
   "Multiplicador de volume": "Multiplicador de volumen",
   "1 = igual que o orixinal": "1 = igual que el original",
-  "Gardar fotograma": "Guardar fotograma",
   "Extraer o audio": "Extraer el audio",
   "Inicio": "Inicio",
   "Fin": "Fin",
@@ -403,9 +402,6 @@
   "Xirar": "Girar",
   "Extraer": "Extraer",
   "Comprimir e reparar": "Comprimir y reparar",
-  "Gardar o fotograma do visor ({s} s)": "Guardar el fotograma del visor ({s} s)",
-  "Ou un instante exacto": "O un instante exacto",
-  "Usar o do visor": "Usar el del visor",
   "Fotograma": "Fotograma",
   "Inicio: onde está o visor": "Inicio: donde está el visor",
   "Fin: onde está o visor": "Fin: donde está el visor",
@@ -557,5 +553,11 @@
   "Quita ou reordena as pistas e cambia o nome ou o idioma. Non se recodifica nada e o orixinal non se toca.": "Quita o reordena las pistas y cambia el nombre o el idioma. No se recodifica nada y el original no se toca.",
   "Conservar esta pista": "Conservar esta pista",
   "O nome do ficheiro empeza por «-»: usa a ruta completa.": "El nombre del archivo empieza por «-»: usa la ruta completa.",
-  "O código de idioma non é válido (por exemplo: glg, spa, eng).": "El código de idioma no es válido (por ejemplo: glg, spa, eng)."
+  "O código de idioma non é válido (por exemplo: glg, spa, eng).": "El código de idioma no es válido (por ejemplo: glg, spa, eng).",
+  "Onde está o visor": "Donde está el visor",
+  "Instante exacto": "Instante exacto",
+  "Instante": "Instante",
+  "Esta é a imaxe que se vai gardar.": "Esta es la imagen que se va a guardar.",
+  "Gardar este fotograma": "Guardar este fotograma",
+  "Non hai vista previa deste fotograma.": "No hay vista previa de este fotograma."
 }

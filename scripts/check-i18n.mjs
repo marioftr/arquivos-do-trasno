@@ -58,7 +58,7 @@ for (const file of walk(root)) {
     add("Ruta", rel);
   }
   // Pestanas das ferramentas
-  if (rel.endsWith("ToolsDialog.svelte") || rel.endsWith("CreditsDialog.svelte") || rel.endsWith("MkvTracksSection.svelte") || rel.endsWith("SettingsDialog.svelte")) {
+  if (rel.endsWith("ToolsPanel.svelte") || rel.endsWith("CreditsPanel.svelte") || rel.endsWith("MkvTracksSection.svelte") || rel.endsWith("SettingsDialog.svelte")) {
     for (const m of src.matchAll(new RegExp(String.raw`\b(?:why|unlocks|what|d)\s*:\s*${str}`, "g"))) add(unesc(m[1]), rel);
     if (rel.endsWith("SettingsDialog.svelte")) for (const m of src.matchAll(new RegExp(String.raw`\btitle\s*:\s*${str}`, "g"))) add(unesc(m[1]), rel);
     for (const m of src.matchAll(new RegExp(String.raw`\b(?:video|audio|subtitles)\s*:\s*${str}`, "g"))) add(unesc(m[1]), rel);

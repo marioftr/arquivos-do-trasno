@@ -83,7 +83,13 @@ function persistedText(key: string) {
 export const outputFolder = persistedText("arquivos-do-trasno.output-folder");
 
 /** Que xanela modal está aberta. */
-export const dialog = writable<"tools" | "credits" | "settings" | null>(null);
+export const dialog = writable<"settings" | null>(null);
+export type SettingsTab = "general" | "shortcuts" | "tools" | "credits";
+export const settingsTab = writable<SettingsTab>("general");
+export function openSettings(tab: SettingsTab = "general") {
+  settingsTab.set(tab);
+  dialog.set("settings");
+}
 
 /** Programas externos que a app aproveita. `null` ata saber o resultado. */
 export const tools = writable<engine.ToolsStatus | null>(null);
@@ -103,7 +109,7 @@ export async function welcomeIfNeeded() {
   } catch {
     // ignorar
   }
-  if (!seen && !(s.ffmpeg && s.mkvmerge)) dialog.set("tools");
+  if (!seen && !(s.ffmpeg && s.mkvmerge)) openSettings("tools");
   try {
     localStorage.setItem(WELCOME_KEY, "1");
   } catch {

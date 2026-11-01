@@ -33,8 +33,9 @@
   const job = createJob();
   const busy = job.busy;
   const multi = selection.length > 1;
-  const TAG = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const letter = (ty: string) => (ty === "video" ? "V" : ty === "audio" ? "A" : ty === "subtitles" ? "S" : "?");
+  // Cada ficheiro ten a súa cor (barra á esquerda de cada pista e lenda enriba).
+  const COLORS = ["#4c9be8", "#e8a14c", "#6cc47a", "#c27be0", "#e8604c", "#4cc9c0", "#d6c04c", "#8f93a8"];
+  const colorOf = (i: number) => COLORS[i % COLORS.length];
 
   onMount(async () => {
     try {
@@ -149,7 +150,9 @@
         : $t("Quita ou reordena as pistas e cambia o nome ou o idioma. Non se recodifica nada e o orixinal non se toca.")}
     </p>
     {#if multi}
-      <p class="group-note legend">{selection.map((f, i) => `${TAG[i] ?? i + 1} = ${f.name}`).join(" · ")}</p>
+      <ul class="legend">
+        {#each selection as f, i}<li><span class="dot" style={`background:${colorOf(i)}`}></span><span class="fn" title={f.path}>{f.name}</span></li>{/each}
+      </ul>
     {/if}
     {#if loadError}
       <p class="group-note">{loadError}</p>
@@ -164,28 +167,23 @@
             class:lifted={dragging && dragFrom === i}
             class:target={dragging && dragOver === i && dragFrom !== i}
             data-i={i}
-            style={dragging && dragFrom === i ? `transform: translateY(${oy}px)` : ""}
+            style={`${multi ? `border-left-color:${colorOf(r.input)};` : ""}${dragging && dragFrom === i ? `transform: translateY(${oy}px)` : ""}`}
           >
-            <span class="grip" on:pointerdown={(e) => pdown(e, i)} on:pointermove={pmove} on:pointerup={pup} on:pointercancel={pup} role="presentation" title={$t("Arrastra para mover")}>⠿</span>
-            <input type="checkbox" checked={r.keep} on:change={(e) => update(i, { keep: e.currentTarget.checked })} aria-label={$t("Conservar esta pista")} title={$t("Conservar esta pista")} />
-            <span class={`kind ${r.type}`} title={`${r.codec}${r.detail ? " · " + r.detail : ""}`}>{letter(r.type)}{multi ? TAG[r.input] : ""}</span>
-            <input
-              class="txt"
-              value={r.name}
-              placeholder={`${r.codec}${r.detail ? " · " + r.detail : ""}`}
-              disabled={!r.keep}
-              on:input={(e) => update(i, { name: e.currentTarget.value })}
-              aria-label={$t("Nome da pista")}
-              title={`${r.codec}${r.detail ? " · " + r.detail : ""}`}
-            />
-            <input class="txt lang" value={r.language} placeholder="und" maxlength="8" disabled={!r.keep} on:input={(e) => update(i, { language: e.currentTarget.value })} aria-label={$t("Idioma (código de 3 letras)")} title={$t("Idioma (código de 3 letras)")} />
-            {#if r.type !== "video"}
-              <button class="mini def" class:on={r.isDefault} disabled={!r.keep} on:click={() => setDefault(i)} aria-pressed={r.isDefault} aria-label={$t("Pista que se reproduce por defecto")} title={$t("Pista que se reproduce por defecto")}><Icon name="check" size={13} /></button>
-            {:else}
-              <span class="mini ph"></span>
-            {/if}
-            <button class="mini" on:click={() => moveTo(i, i - 1)} disabled={i === 0} aria-label={$t("Subir")} title={$t("Subir")}><Icon name="up" size={13} /></button>
-            <button class="mini" on:click={() => moveTo(i, i + 1)} disabled={i === rows.length - 1} aria-label={$t("Baixar")} title={$t("Baixar")}><Icon name="down" size={13} /></button>
+            <div class="l1">
+              <span class="grip" on:pointerdown={(e) => pdown(e, i)} on:pointermove={pmove} on:pointerup={pup} on:pointercancel={pup} role="presentation" title={$t("Arrastra para mover")}>⠿</span>
+              <input type="checkbox" checked={r.keep} on:change={(e) => update(i, { keep: e.currentTarget.checked })} aria-label={$t("Conservar esta pista")} title={$t("Conservar esta pista")} />
+              <span class={`kind ${r.type}`}>{r.type === "video" ? $t("Vídeo") : r.type === "audio" ? $t("Audio") : r.type === "subtitles" ? $t("Subtítulos") : $t("Outra")}</span>
+              <span class="muted detail" title={`${r.codec}${r.detail ? " · " + r.detail : ""}`}>{r.codec}{r.detail ? " · " + r.detail : ""}</span>
+              {#if r.type !== "video"}
+                <button class="mini def" class:on={r.isDefault} disabled={!r.keep} on:click={() => setDefault(i)} aria-pressed={r.isDefault} aria-label={$t("Pista que se reproduce por defecto")} title={$t("Pista que se reproduce por defecto")}><Icon name="check" size={13} /></button>
+              {/if}
+              <button class="mini" on:click={() => moveTo(i, i - 1)} disabled={i === 0} aria-label={$t("Subir")} title={$t("Subir")}><Icon name="up" size={13} /></button>
+              <button class="mini" on:click={() => moveTo(i, i + 1)} disabled={i === rows.length - 1} aria-label={$t("Baixar")} title={$t("Baixar")}><Icon name="down" size={13} /></button>
+            </div>
+            <div class="l2">
+              <input class="txt" value={r.name} placeholder={$t("Nome da pista")} disabled={!r.keep} on:input={(e) => update(i, { name: e.currentTarget.value })} aria-label={$t("Nome da pista")} />
+              <input class="txt lang" value={r.language} placeholder="und" maxlength="8" disabled={!r.keep} on:input={(e) => update(i, { language: e.currentTarget.value })} aria-label={$t("Idioma (código de 3 letras)")} title={$t("Idioma (código de 3 letras)")} />
+            </div>
           </div>
         {/each}
       </div>
@@ -196,24 +194,29 @@
 </div>
 
 <style>
-  .legend { word-break: break-word; }
+  .legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.8rem; }
+  .legend li { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+  .fn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
-  .track { display: flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.35rem; background: var(--bg-input); border-bottom: 1px solid var(--border); }
-  .track:last-child { border-bottom: none; }
+  .track { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.35rem 0.4rem; background: var(--bg-input); border-bottom: 1px solid var(--border); border-left: 3px solid transparent; }
+  .track:last-child { border-bottom-color: transparent; }
   .track.off { opacity: 0.5; }
   .track.lifted { position: relative; z-index: 5; pointer-events: none; opacity: 0.92; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); background: var(--bg-elevated); }
   .track.target { background: color-mix(in srgb, var(--accent) 16%, var(--bg-input)); }
+  .l1, .l2 { display: flex; align-items: center; gap: 0.35rem; }
+  .l2 { padding-left: 1.5rem; }
   .grip { cursor: grab; touch-action: none; user-select: none; color: var(--text-faint); padding: 0 0.15rem; line-height: 1; }
-  .kind { flex: 0 0 auto; min-width: 1.7rem; text-align: center; font-size: 0.7rem; font-weight: 700; padding: 1px 4px; border-radius: 4px; background: var(--bg-hover); color: var(--text); }
+  .kind { flex: 0 0 auto; font-size: 0.78rem; font-weight: 650; }
   .kind.video { color: var(--accent-video); }
   .kind.audio { color: var(--accent-audio); }
   .kind.subtitles { color: var(--accent-pdf); }
+  .detail { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; }
   .txt { flex: 1; min-width: 0; height: 26px; background: var(--bg); color: var(--text); border: 1px solid var(--border-strong); border-radius: 4px; padding: 0 0.4em; font: inherit; font-size: 0.8rem; }
-  .txt.lang { flex: 0 0 3.3rem; text-align: center; }
+  .txt.lang { flex: 0 0 3.6rem; text-align: center; }
   .txt:focus { outline: none; border-color: var(--accent); }
   .mini { flex: 0 0 auto; display: flex; width: 22px; height: 22px; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); border-radius: 4px; padding: 0; }
   .mini:hover:not(:disabled) { color: var(--text); background: var(--bg-hover); }
   .mini:disabled { opacity: 0.25; cursor: default; }
   .mini.def.on { background: var(--accent); color: var(--on-accent); }
-  .mini.ph { visibility: hidden; }
 </style>

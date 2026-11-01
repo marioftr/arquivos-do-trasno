@@ -1,11 +1,17 @@
 <script lang="ts">
   import { open } from "@tauri-apps/plugin-dialog";
   import { t, lang, LANGS, type Lang } from "../i18n";
-  import { theme, outputMode, outputFolder, dialog, type Theme, type OutputMode } from "../settings";
+  import { theme, outputMode, outputFolder, dialog, settingsTab, type Theme, type OutputMode } from "../settings";
   import { fileNameOf } from "../formats";
   import Modal from "./ui/Modal.svelte";
   import Segmented from "./ui/Segmented.svelte";
   import Icon from "./Icon.svelte";
+  import Tabs from "./ui/Tabs.svelte";
+  import ToolsPanel from "./ToolsPanel.svelte";
+  import CreditsPanel from "./CreditsPanel.svelte";
+
+  let tab: string = $settingsTab;
+  $: settingsTab.set(tab as typeof $settingsTab);
 
   // Segmented usa texto; as tendas teñen tipos máis estritos.
   let langV: string = $lang;
@@ -54,6 +60,16 @@
 </script>
 
 <Modal title={$t("Axustes")} onClose={() => dialog.set(null)}>
+  <Tabs
+    tabs={[
+      { id: "general", label: $t("Xeral") },
+      { id: "shortcuts", label: $t("Atallos de teclado") },
+      { id: "tools", label: $t("Extensións") },
+      { id: "credits", label: $t("Créditos e licenzas") },
+    ]}
+    bind:value={tab}
+  />
+  {#if tab === "general"}
   <section>
     <h3>{$t("Aparencia")}</h3>
     <Segmented
@@ -92,8 +108,8 @@
     </p>
   </section>
 
+  {:else if tab === "shortcuts"}
   <section>
-    <h3>{$t("Atallos de teclado")}</h3>
     {#each groups as g}
       <div class="grp">
         <h4>{$t(g.title)}</h4>
@@ -103,6 +119,11 @@
       </div>
     {/each}
   </section>
+  {:else if tab === "tools"}
+    <ToolsPanel />
+  {:else}
+    <CreditsPanel />
+  {/if}
 </Modal>
 
 <style>

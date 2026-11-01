@@ -2,8 +2,7 @@
   import { onMount } from "svelte";
   import { openLink, type LinkId } from "../engine";
   import { t } from "../i18n";
-  import { dialog, tools, refreshTools } from "../settings";
-  import Modal from "./ui/Modal.svelte";
+  import { tools, refreshTools } from "../settings";
   import Icon from "./Icon.svelte";
 
   onMount(() => {
@@ -30,7 +29,7 @@
   ];
 </script>
 
-<Modal title={$t("Extensións")} onClose={() => dialog.set(null)}>
+<div class="panel">
   <p class="muted lead">
     {$t("Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: instálaos e a app detectaos soa.")}
   </p>
@@ -60,9 +59,10 @@
     <button class="btn" on:click={refreshTools}><Icon name="reset" size={14} /> {$t("Volver comprobar")}</button>
     <span class="muted">{$t("Tamén se aceptan ao carón do executable da app (ffmpeg.exe, ffprobe.exe, mkvmerge.exe).")}</span>
   </div>
-</Modal>
+</div>
 
 <style>
+  .panel { display: flex; flex-direction: column; gap: 1rem; }
   .lead { margin: 0; }
   .card { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-card); }
   .card p { margin: 0; }

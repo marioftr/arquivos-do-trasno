@@ -189,7 +189,6 @@
   "2 = o dobre de rápido; 0,5 = a metade": "2 = twice as fast; 0.5 = half speed",
   "Multiplicador de volume": "Volume multiplier",
   "1 = igual que o orixinal": "1 = same as the original",
-  "Gardar fotograma": "Save frame",
   "Extraer o audio": "Extract the audio",
   "Inicio": "Start",
   "Fin": "End",
@@ -403,9 +402,6 @@
   "Xirar": "Rotate",
   "Extraer": "Extract",
   "Comprimir e reparar": "Compress and repair",
-  "Gardar o fotograma do visor ({s} s)": "Save the viewer's frame ({s} s)",
-  "Ou un instante exacto": "Or an exact moment",
-  "Usar o do visor": "Use the viewer's",
   "Fotograma": "Frame",
   "Inicio: onde está o visor": "Start: where the viewer is",
   "Fin: onde está o visor": "End: where the viewer is",
@@ -557,5 +553,11 @@
   "Quita ou reordena as pistas e cambia o nome ou o idioma. Non se recodifica nada e o orixinal non se toca.": "Remove or reorder the tracks and change the name or language. Nothing is re-encoded and the original isn't touched.",
   "Conservar esta pista": "Keep this track",
   "O nome do ficheiro empeza por «-»: usa a ruta completa.": "The file name starts with “-”: use the full path.",
-  "O código de idioma non é válido (por exemplo: glg, spa, eng).": "The language code isn't valid (for example: glg, spa, eng)."
+  "O código de idioma non é válido (por exemplo: glg, spa, eng).": "The language code isn't valid (for example: glg, spa, eng).",
+  "Onde está o visor": "Where the viewer is",
+  "Instante exacto": "Exact moment",
+  "Instante": "Moment",
+  "Esta é a imaxe que se vai gardar.": "This is the image that will be saved.",
+  "Gardar este fotograma": "Save this frame",
+  "Non hai vista previa deste fotograma.": "No preview of this frame."
 }

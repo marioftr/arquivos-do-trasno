@@ -12,10 +12,12 @@
   import SelectField from "../ui/SelectField.svelte";
   import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
+  import Segmented from "../ui/Segmented.svelte";
+  import FramePreview from "../ui/FramePreview.svelte";
 
   export let file: FileEntry;
 
-  const form = createForm({ frameAt: 0, audioExt: "mp3", audioKbps: 192 });
+  const form = createForm({ frameMode: "viewer", frameAt: 0, audioExt: "mp3", audioKbps: 192 });
   onMount(() => useForm(form));
 
   const job = createJob();
@@ -40,12 +42,19 @@
 
   <div class="group">
     <h4 class="group-title">{$t("Fotograma")}</h4>
-    <button class="btn primary block" on:click={() => frame($mediaTime)} disabled={$busy}>{$t("Gardar o fotograma do visor ({s} s)", { s: $mediaTime.toFixed(2) })}</button>
-    <NumberField label={$t("Ou un instante exacto")} unit="s" min={0} step={0.1} bind:value={$form.frameAt} def={0} />
-    <div class="pair">
-      <button class="btn" on:click={() => form.update((v) => ({ ...v, frameAt: $mediaTime }))} disabled={$busy}>{$t("Usar o do visor")}</button>
-      <button class="btn" on:click={() => frame($form.frameAt)} disabled={$busy}>{$t("Gardar fotograma")}</button>
-    </div>
+    <Segmented
+      options={[
+        { value: "viewer", label: $t("Onde está o visor") },
+        { value: "exact", label: $t("Instante exacto") },
+      ]}
+      bind:value={$form.frameMode}
+    />
+    {#if $form.frameMode === "exact"}
+      <NumberField label={$t("Instante")} unit="s" min={0} step={0.1} bind:value={$form.frameAt} def={0} />
+    {/if}
+    <FramePreview path={file.path} time={$form.frameMode === "viewer" ? $mediaTime : $form.frameAt} />
+    <p class="group-note">{$t("Esta é a imaxe que se vai gardar.")}</p>
+    <button class="btn primary block" on:click={() => frame($form.frameMode === "viewer" ? $mediaTime : $form.frameAt)} disabled={$busy}>{$t("Gardar este fotograma")}</button>
   </div>
 
   <div class="group">

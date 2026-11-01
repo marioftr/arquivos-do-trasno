@@ -23,7 +23,7 @@
   import Segmented from "./ui/Segmented.svelte";
   import MkvTracksSection from "./tools/MkvTracksSection.svelte";
   import Icon from "./Icon.svelte";
-  import { tools, dialog } from "../settings";
+  import { tools, openSettings } from "../settings";
   import MergeSection from "./tools/MergeSection.svelte";
   import InfoSection from "./tools/InfoSection.svelte";
 
@@ -133,7 +133,7 @@
                 ? $t("Editar as pistas dun MKV precisa MKVToolNix, que non está instalado.")
                 : $t("O audio e o vídeo precisan FFmpeg, que non está instalado.")}
             </p>
-            <button class="btn primary" on:click={() => dialog.set("tools")}>{$t("Ver como instalalo")}</button>
+            <button class="btn primary" on:click={() => openSettings("tools")}>{$t("Ver como instalalo")}</button>
           </div>
         {:else if current === "mkv" && first}
           <MkvTracksSection {selection} />
