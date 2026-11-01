@@ -14,7 +14,7 @@
   export let file: FileEntry;
 
   let encrypted: boolean | null = null;
-  let mode: "protect" | "unprotect" | "repair" = "protect";
+  let mode: "protect" | "unprotect" = "protect";
   let password = "";
   let owner = "";
   let allowPrint = true;
@@ -33,16 +33,14 @@
 
   async function run() {
     try {
-      const suffix = { protect: "-protexido", unprotect: "-desbloqueado", repair: "-reparado" }[mode];
+      const suffix = { protect: "-protexido", unprotect: "-desbloqueado" }[mode];
       const out = await askOutput(file, tr(suffix), "pdf");
       if (!out) return;
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
         const done =
           mode === "protect"
             ? await engine.pdfProtect(file.path, out, { userPassword: password, ownerPassword: owner, allowPrint, allowCopy }, true)
-            : mode === "unprotect"
-              ? await engine.pdfUnprotect(file.path, out, password, true)
-              : await engine.pdfRepair(file.path, out, true);
+            : await engine.pdfUnprotect(file.path, out, password, true);
         return `${listo()} ${fileNameOf(done)}`;
       });
     } catch (e) {
@@ -56,7 +54,6 @@
     options={[
       { value: "protect", label: $t("Protexer") },
       { value: "unprotect", label: $t("Desbloquear") },
-      { value: "repair", label: $t("Reparar") },
     ]}
     bind:value={mode}
   />
@@ -74,20 +71,18 @@
       <Toggle label={$t("Permitir imprimir")} bind:checked={allowPrint} />
       <Toggle label={$t("Permitir copiar texto")} bind:checked={allowCopy} />
       <p class="group-note">{$t("Gárdase unha copia cifrada; o PDF orixinal queda como estaba. Se perdes o contrasinal non hai maneira de recuperalo.")}</p>
-    {:else if mode === "unprotect"}
+    {:else}
       {#if encrypted === false}<p class="group-note">{$t("Este PDF non ten contrasinal.")}</p>{/if}
       <label class="pw">
         <span class="lab">{$t("Contrasinal actual")}</span>
         <input type="password" bind:value={password} autocomplete="off" />
       </label>
       <p class="group-note">{$t("Hai que saber o contrasinal: o trasno quita o bloqueo, non o rompe.")}</p>
-    {:else}
-      <p class="group-note">{$t("Volve gardar o PDF limpo, reconstruíndo as súas referencias e quitando o que sobra. Axuda con PDF que se abren mal.")}</p>
     {/if}
   </div>
 
-  <button class="btn primary block" on:click={run} disabled={$busy || (mode !== "repair" && !password && !(mode === "unprotect" && encrypted === false))}>
-    {mode === "protect" ? $t("Protexer o PDF") : mode === "unprotect" ? $t("Desbloquear o PDF") : $t("Reparar o PDF")}
+  <button class="btn primary block" on:click={run} disabled={$busy || (!password && !(mode === "unprotect" && encrypted === false))}>
+    {mode === "protect" ? $t("Protexer o PDF") : $t("Desbloquear o PDF")}
   </button>
   <JobStatus {job} />
 </div>

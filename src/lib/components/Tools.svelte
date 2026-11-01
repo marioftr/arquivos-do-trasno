@@ -17,6 +17,8 @@
   import PdfCropSection from "./tools/PdfCropSection.svelte";
   import PdfCompressSection from "./tools/PdfCompressSection.svelte";
   import PdfSecuritySection from "./tools/PdfSecuritySection.svelte";
+  import PdfRepairSection from "./tools/PdfRepairSection.svelte";
+  import Segmented from "./ui/Segmented.svelte";
   import MergeSection from "./tools/MergeSection.svelte";
   import InfoSection from "./tools/InfoSection.svelte";
 
@@ -52,13 +54,10 @@
         return pdf
           ? [
               tab("convert", "Converter"),
-              tab("images", "Imaxes"),
-              tab("organize", "Ordenar"),
-              tab("split", "Dividir"),
-              tab("pages", "Rotar"),
+              tab("pages", "Páxinas"),
+              tab("shape", "Xirar e recortar"),
               tab("marks", "Marcas"),
-              tab("crop", "Recortar"),
-              tab("pdfcompress", "Comprimir"),
+              tab("optimize", "Comprimir e reparar"),
               tab("security", "Seguridade"),
               tab("info", "Información"),
             ]
@@ -73,6 +72,23 @@
   $: tabs = tabsFor(category, multi, isPdf, $t);
   let current = "convert";
   $: if (tabs.length && !tabs.some((x) => x.id === current)) current = tabs[0].id;
+
+  /** Algunhas pestanas agrupan ferramentas parecidas: un selector enriba escolle cal. */
+  function modesFor(tab: string, pdf: boolean, many: boolean, tt: (k: string) => string): { value: string; label: string }[] {
+    if (!pdf || many) return [];
+    const m = (value: string, label: string) => ({ value, label: tt(label) });
+    switch (tab) {
+      case "convert": return [m("format", "A outro formato"), m("images", "A imaxes")];
+      case "pages": return [m("organize", "Ordenar"), m("extract", "Extraer"), m("split", "Dividir")];
+      case "shape": return [m("rotate", "Xirar"), m("crop", "Recortar")];
+      case "optimize": return [m("compress", "Comprimir"), m("repair", "Reparar")];
+      default: return [];
+    }
+  }
+  const sub: Record<string, string> = {};
+  $: modes = modesFor(current, isPdf, multi, $t);
+  $: if (modes.length && !modes.some((x) => x.value === sub[current])) sub[current] = modes[0].value;
+  $: mode = modes.length ? sub[current] : "";
 </script>
 
 <div class="tools">
@@ -93,8 +109,13 @@
     <Tabs {tabs} bind:value={current} />
 
     <div class="body scrollbar-thin">
-      {#key `${selKey}|${current}`}
-        {#if current === "convert"}
+      {#if modes.length}
+        <div class="modes"><Segmented options={modes} bind:value={sub[current]} /></div>
+      {/if}
+      {#key `${selKey}|${current}|${mode}`}
+        {#if current === "convert" && mode === "images" && first}
+          <PdfImagesSection file={first} />
+        {:else if current === "convert"}
           <ConvertSection {selection} {category} />
         {:else if current === "compress" && (category === "imaxe" || category === "video")}
           <CompressSection {selection} {category} />
@@ -104,22 +125,24 @@
           <MediaEditSection file={first} />
         {:else if current === "trim" && first}
           <TrimSection file={first} />
-        {:else if current === "images" && first}
-          <PdfImagesSection file={first} />
-        {:else if current === "organize" && first}
-          <PdfOrganizeSection file={first} />
-        {:else if current === "split" && first}
+        {:else if current === "pages" && mode === "extract" && first}
+          <PdfPagesSection file={first} part="extract" />
+        {:else if current === "pages" && mode === "split" && first}
           <PdfSplitSection file={first} />
+        {:else if current === "pages" && first}
+          <PdfOrganizeSection file={first} />
+        {:else if current === "shape" && mode === "crop" && first}
+          <PdfCropSection file={first} />
+        {:else if current === "shape" && first}
+          <PdfPagesSection file={first} part="rotate" />
         {:else if current === "marks" && first}
           <PdfMarksSection file={first} />
-        {:else if current === "crop" && first}
-          <PdfCropSection file={first} />
-        {:else if current === "pdfcompress" && first}
+        {:else if current === "optimize" && mode === "repair" && first}
+          <PdfRepairSection file={first} />
+        {:else if current === "optimize" && first}
           <PdfCompressSection file={first} />
         {:else if current === "security" && first}
           <PdfSecuritySection file={first} />
-        {:else if current === "pages" && first}
-          <PdfPagesSection file={first} />
         {:else if current === "merge"}
           <MergeSection {selection} {category} />
         {:else if current === "info" && first}
@@ -136,5 +159,6 @@
   header h2 { margin: 0; font-size: 1.02rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sub { margin: 0.15rem 0 0; font-size: 0.8rem; }
   .body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.9rem 1.1rem 1.5rem; }
+  .modes { margin-bottom: 0.9rem; }
   .hint { padding: 1.2rem 1.1rem; font-size: 0.9rem; }
 </style>

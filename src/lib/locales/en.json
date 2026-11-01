@@ -421,5 +421,11 @@
   "Extrema": "Extreme",
   "Mantén case todo; só limpa e comprime o que se pode sen perdas": "Keeps almost everything; only cleans and compresses what can be done losslessly",
   "Bo equilibrio entre peso e calidade": "Good balance between size and quality",
-  "O máis pequeno posible; as imaxes perden nitidez": "As small as possible; images lose sharpness"
+  "O máis pequeno posible; as imaxes perden nitidez": "As small as possible; images lose sharpness",
+  "A outro formato": "To another format",
+  "A imaxes": "To images",
+  "Xirar e recortar": "Rotate and crop",
+  "Xirar": "Rotate",
+  "Extraer": "Extract",
+  "Comprimir e reparar": "Compress and repair"
 }

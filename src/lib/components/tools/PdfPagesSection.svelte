@@ -16,6 +16,8 @@
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let file: FileEntry;
+  /** Extraer páxinas e xirar van en pestanas distintas; esta sección serve para as dúas. */
+  export let part: "extract" | "rotate" = "rotate";
 
   const form = createForm({ pageSpec: "", rotateAll: true, rotatePage: 1, degrees: 0 });
   onMount(() => useForm(form));
@@ -76,12 +78,13 @@
 <div class="stack">
   <FormBar {form} />
 
+  {#if part === "extract"}
   <div class="group">
     <h4 class="group-title">{$t("Extraer páxinas")}</h4>
     <TextField label={$t("Páxinas")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas. Serve tamén para reordenar.", { n: file.pages }) : ""} />
     <button class="btn block" on:click={extract} disabled={$busy || !$form.pageSpec}>{$t("Extraer a un novo PDF")}</button>
   </div>
-
+  {:else}
   <div class="group">
     <h4 class="group-title">{$t("Rotar")}</h4>
     <Toggle label={$t("Todas as páxinas")} bind:checked={$form.rotateAll} />
@@ -91,6 +94,7 @@
     <Segmented label={$t("Ángulo")} options={[{ value: 0, label: "0°" }, { value: 90, label: "90°" }, { value: 180, label: "180°" }, { value: 270, label: "270°" }]} bind:value={$form.degrees} />
     <button class="btn block" on:click={rotate} disabled={$busy || !$form.degrees}>{$t("Rotar a un novo PDF")}</button>
   </div>
+  {/if}
 
   <JobStatus {job} />
 </div>
