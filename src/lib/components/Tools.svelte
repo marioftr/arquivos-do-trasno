@@ -46,7 +46,7 @@
     if (many) {
       if (pdf) return [tab("merge", "Unir")];
       if (cat === "imaxe") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("merge", "Unir")];
-      if (cat === "video") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("merge", "Unir"), ...multiMkv()];
+      if (cat === "video") return [tab("convert", "Converter"), tab("merge", "Unir"), ...multiMkv()];
       if (cat === "audio") return [tab("convert", "Converter"), tab("merge", "Unir"), ...multiMkv()];
       return [tab("convert", "Converter")];
     }
@@ -54,7 +54,7 @@
       case "imaxe":
         return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("info", "Información")];
       case "video":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
         return [tab("convert", "Converter"), tab("edit", "Editar"), ...mkvTab(), tab("info", "Información")];
       case "documento":
@@ -106,8 +106,10 @@
 
   /** Algunhas pestanas agrupan ferramentas parecidas: un selector enriba escolle cal. */
   function modesFor(tab: string, pdf: boolean, many: boolean, cat: Category | null, tt: (k: string) => string): { value: string; label: string }[] {
-    if (many) return [];
     const m = (value: string, label: string) => ({ value, label: tt(label) });
+    // Un vídeo (ou varios) pódese converter a MP4 co perfil que máis lle conveña (comprimindo) ou a outro formato.
+    if (tab === "convert" && cat === "video" && !pdf) return [m("mp4", "A MP4 con perfís"), m("format", "A outro formato")];
+    if (many) return [];
     if (!pdf) {
       if (tab === "edit" && cat === "video") return [m("trim", "Cortar"), m("tune", "Velocidade e volume")];
       if (tab === "edit" && cat === "audio") return [m("trim", "Cortar"), m("tune", "Velocidade e volume"), m("effects", "Efectos")];
@@ -180,9 +182,11 @@
           <MkvTracksSection {selection} />
         {:else if current === "convert" && mode === "images" && first}
           <Lazy loader={() => import("./tools/PdfImagesSection.svelte")} file={first} />
+        {:else if current === "convert" && category === "video" && mode === "mp4"}
+          <CompressSection {selection} category="video" />
         {:else if current === "convert"}
           <ConvertSection {selection} {category} />
-        {:else if current === "compress" && (category === "imaxe" || category === "video")}
+        {:else if current === "compress" && category === "imaxe"}
           <CompressSection {selection} {category} />
         {:else if current === "edit" && mode === "trim" && first}
           <TrimSection file={first} />

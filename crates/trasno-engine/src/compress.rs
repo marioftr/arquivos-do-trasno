@@ -222,13 +222,15 @@ fn null_sink() -> &'static str {
 
 /// Tamaño aproximado (bytes) do resultado: codifica unha mostra (ata 10 s do
 /// medio do vídeo) cos mesmos axustes e extrapola á duración total.
-pub fn estimate_video_bytes(input: &Path, crf: u8, max_height: Option<u32>, audio_kbps: u32) -> Result<u64> {
+pub fn estimate_video_bytes(input: &Path, o: &VideoCompress) -> Result<u64> {
+    let (crf, audio_kbps) = (o.crf, o.audio_kbps);
     let s = inspect(input)?;
     let len = s.duration.min(10.0);
     let start = ((s.duration - len) / 2.0).max(0.0);
     let tmp = std::env::temp_dir().join(format!("arquivos-do-trasno-estimacion-{}.mp4", uuid::Uuid::new_v4()));
     let mut args: Vec<std::ffi::OsString> = vec!["-ss".into(), start.to_string().into(), "-i".into(), input.as_os_str().to_owned(), "-t".into(), len.to_string().into()];
-    args.extend(x264_common(Some(crf), None, &scale_filter(max_height)).into_iter().map(Into::into));
+    args.extend(x264_common(Some(crf), None, &filters(o)).into_iter().map(Into::into));
+    args.extend(compat_args(o).into_iter().map(Into::into));
     if s.has_audio {
         args.extend(["-c:a".into(), "aac".into(), "-b:a".into(), format!("{audio_kbps}k").into()]);
     } else {

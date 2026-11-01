@@ -19,7 +19,13 @@ const dirName = (p: string) => p.replace(/[\\/][^\\/]*$/, "");
 export async function askPath(defaultPath: string): Promise<string | null> {
   const mode = get(outputMode);
   const folder = get(outputFolder);
-  if (mode === "ask" || (mode === "folder" && !folder)) return (await save({ defaultPath })) ?? null;
+  if (mode === "ask" || (mode === "folder" && !folder)) {
+    const ext = /\.([^.\\/]+)$/.exec(defaultPath)?.[1];
+    const picked = await save({ defaultPath, filters: ext ? [{ name: ext.toUpperCase(), extensions: [ext] }] : undefined });
+    if (!picked) return null;
+    // Se se escribiu o nome sen extensión, ponse a que levaba o nome proposto.
+    return ext && !/\.[^.\\/]+$/.test(picked) ? `${picked}.${ext}` : picked;
+  }
   const target = mode === "folder" ? await join(folder, baseName(defaultPath)) : defaultPath;
   return engine.uniquePath(target);
 }

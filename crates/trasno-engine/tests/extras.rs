@@ -275,7 +275,7 @@ fn comprimir_video_por_calidade_e_por_tamano_maximo() {
     assert!(!tiny.exists());
 
     // Estimación razoable do modo por calidade.
-    let est = compress::estimate_video_bytes(&src, 32, Some(240), 64).unwrap();
+    let est = compress::estimate_video_bytes(&src, &compress::VideoCompress { crf: 32, max_height: Some(240), audio_kbps: 64, ..Default::default() }).unwrap();
     assert!(est > crf_size / 3 && est < crf_size * 3, "est {est} real {crf_size}");
 }
 
@@ -382,4 +382,43 @@ fn elixir_pista_de_audio_e_sacar_subtitulos_a_webvtt() {
     ffmpeg::convert_media(&src, &vtt, true, &args).unwrap();
     let text = std::fs::read_to_string(&vtt).unwrap();
     assert!(text.contains("-->") && text.contains("trasno"), "{text}");
+}
+
+#[test]
+fn unha_saida_sen_extension_da_un_erro_claro() {
+    if ffmpeg::ffmpeg_path().is_err() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("a.wav");
+    let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+        .args(["-v", "error", "-f", "lavfi", "-i", "sine=frequency=300:duration=1"])
+        .arg(&src)
+        .status()
+        .unwrap();
+    assert!(st.success());
+    let err = ffmpeg::convert_media(&src, &dir.path().join("sen_extension"), true, &[]).unwrap_err();
+    assert!(err.to_string().contains("extensión"), "{err}");
+}
+
+#[test]
+fn un_avi_dv_de_cinta_con_dous_audios_pasase_a_mp4_co_perfil_minidv() {
+    if ffmpeg::ffmpeg_path().is_err() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("Sin título_0001.avi");
+    let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+        .args(["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=720x576:rate=25:duration=2", "-f", "lavfi", "-i", "sine=frequency=300:sample_rate=32000:duration=2"])
+        .args(["-f", "lavfi", "-i", "sine=frequency=700:sample_rate=32000:duration=2", "-map", "0:v", "-map", "1:a", "-map", "2:a", "-c:v", "dvvideo", "-pix_fmt", "yuv420p", "-c:a", "pcm_s16le", "-shortest"])
+        .arg(&src)
+        .status()
+        .unwrap();
+    assert!(st.success());
+    let out = dir.path().join("Sin título_0001-comprimido.mp4");
+    let o = compress::VideoCompress { crf: 18, audio_kbps: 192, deinterlace: 2, compat: true, ..Default::default() };
+    compress::compress_video(&src, &out, false, &o).unwrap();
+    let info = ffmpeg::probe(&out).unwrap();
+    assert_eq!(info["streams"][0]["codec_name"], "h264");
+    assert!(std::fs::metadata(&out).unwrap().len() > 1000);
 }

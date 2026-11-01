@@ -686,9 +686,26 @@ pub async fn compress_video(
 }
 
 #[tauri::command]
-pub async fn estimate_video(input: String, crf: u8, max_height: Option<u32>, audio_kbps: u32) -> Result<u64, String> {
+pub async fn estimate_video(
+    input: String,
+    crf: u8,
+    max_height: Option<u32>,
+    audio_kbps: u32,
+    deinterlace: Option<u8>,
+    compat: Option<bool>,
+    dar: Option<String>,
+) -> Result<u64, String> {
     blocking(move || {
-        trasno_engine::compress::estimate_video_bytes(&PathBuf::from(input), crf, max_height, audio_kbps).map_err(to_err)
+        let o = trasno_engine::compress::VideoCompress {
+            crf,
+            max_height,
+            audio_kbps,
+            deinterlace: deinterlace.unwrap_or(0),
+            compat: compat.unwrap_or(false),
+            dar,
+            ..Default::default()
+        };
+        trasno_engine::compress::estimate_video_bytes(&PathBuf::from(input), &o).map_err(to_err)
     })
     .await
 }

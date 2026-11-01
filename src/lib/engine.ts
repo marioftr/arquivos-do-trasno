@@ -251,8 +251,14 @@ export async function compressVideo(input: string, output: string, o: VideoCompr
   });
 }
 
-export async function estimateVideo(input: string, crf: number, maxHeight: number | undefined, audioKbps: number): Promise<number> {
-  return call("estimate_video", { input, crf, maxHeight: maxHeight ?? null, audioKbps });
+export async function estimateVideo(
+  input: string,
+  crf: number,
+  maxHeight: number | undefined,
+  audioKbps: number,
+  extra: { deinterlace?: number; compat?: boolean; dar?: string } = {},
+): Promise<number> {
+  return call("estimate_video", { input, crf, maxHeight: maxHeight ?? null, audioKbps, deinterlace: extra.deinterlace ?? null, compat: extra.compat ?? null, dar: extra.dar || null });
 }
 
 // ------------------------------------------------------------ ferramentas PDF

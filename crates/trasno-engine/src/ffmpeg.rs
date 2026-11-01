@@ -211,6 +211,11 @@ pub fn convert_media_seek(
         return Err(EngineError::InputNotFound(input.to_path_buf()));
     }
     ensure_distinct(&[input], output_final)?;
+    if output_final.extension().is_none() {
+        return Err(EngineError::IntegrityCheck(
+            "O nome do ficheiro de saída non ten extensión (por exemplo «.mp4»): ffmpeg necesita saber que formato crear.".into(),
+        ));
+    }
     if output_final.exists() && !overwrite {
         return Err(EngineError::DestinationExists(output_final.to_path_buf()));
     }

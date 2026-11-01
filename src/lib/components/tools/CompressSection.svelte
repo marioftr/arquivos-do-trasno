@@ -84,7 +84,7 @@
 
   $: v = $form;
   $: targetBytes = Math.max(1, Math.round((v.sizeValue || 1) * (UNITS.find((u) => u.id === v.unit)?.mult ?? 1)));
-  $: paramsKey = `${v.mode}|${v.quality}|${v.maxSide}|${v.crf}|${v.maxHeight}|${v.audioKbps}|${v.videoKbps}`;
+  $: paramsKey = `${v.mode}|${v.quality}|${v.maxSide}|${v.crf}|${v.maxHeight}|${v.audioKbps}|${v.videoKbps}|${v.deinterlace}|${v.compat}|${v.dar}`;
   $: invalidate(paramsKey);
   $: if (isImage && !multi && v.mode === "quality") scheduleImageEstimate(paramsKey);
 
@@ -152,7 +152,7 @@
   async function estimateVideo() {
     estimating = true;
     try {
-      estimate = await engine.estimateVideo(first.path, v.crf, v.maxHeight || undefined, v.audioKbps);
+      estimate = await engine.estimateVideo(first.path, v.crf, v.maxHeight || undefined, v.audioKbps, { deinterlace: v.deinterlace, compat: v.compat, dar: v.dar });
     } catch (e) {
       job.say(false, errText(e));
     } finally {
@@ -339,7 +339,10 @@
       {:else if estimate !== null}
         <span class="est-main">≈ {formatBytes(estimate)}</span>
         <span class="muted">{$t("orixinal {orig}, {pct}", { orig: formatBytes(first.size ?? 0), pct: pct(first.size ?? 0, estimate) })}</span>
-        {#if !isImage}<span class="muted tiny">{$t("Estimación por mostra: pode variar un pouco.")}</span>{/if}
+        {#if !isImage}
+          <span class="muted tiny">{$t("Estimación por mostra: pode variar un pouco.")}</span>
+          <button class="btn ghost" on:click={estimateVideo} disabled={estimating || $busy}>{estimating ? $t("Estimando…") : $t("Estimar de novo")}</button>
+        {/if}
       {:else if !isImage && v.mode === "quality"}
         <button class="btn" on:click={estimateVideo} disabled={estimating || $busy}>{estimating ? $t("Estimando…") : $t("Estimar o tamaño")}</button>
       {:else}
@@ -350,11 +353,11 @@
 
   {#if multi}
     <button class="btn primary block" on:click={runBatch} disabled={$busy}>
-      {isImage ? $t("Comprimir {n} imaxes", { n: selection.length }) : $t("Comprimir {n} vídeos", { n: selection.length })}
+      {isImage ? $t("Comprimir {n} imaxes", { n: selection.length }) : $t("Converter {n} vídeos a MP4", { n: selection.length })}
     </button>
   {:else}
     <button class="btn primary block" on:click={runSingle} disabled={$busy}>
-      {isImage ? $t("Comprimir imaxe") : $t("Comprimir vídeo")}
+      {isImage ? $t("Comprimir imaxe") : $t("Converter a MP4")}
     </button>
   {/if}
 
