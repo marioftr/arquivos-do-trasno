@@ -469,7 +469,7 @@
       </div>
 
       {#if panelOpen && hasTracks}
-        <SidePanel title={$t("Pistas")} on:close={() => (panelOpen = false)}>
+        <SidePanel id="pistas" title={$t("Pistas")} on:close={() => (panelOpen = false)}>
           {#if videos.length > 1}
             <PanelSection title={$t("Vídeo")} meta={String(videos.length)}>
               <OptionList

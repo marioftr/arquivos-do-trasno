@@ -46,6 +46,8 @@
   class="split"
   class:drag={!!drag}
   class:collapsed
+  class:left={side === "left"}
+  class:right={side === "right"}
   role="separator"
   aria-orientation="vertical"
   aria-label={side === "left" ? $t("Ancho do panel de ficheiros") : $t("Ancho do panel de ferramentas")}
@@ -67,7 +69,7 @@
     aria-label={collapsed ? $t("Mostrar o panel") : $t("Agochar o panel")}
     title={collapsed ? $t("Mostrar o panel") : $t("Agochar o panel")}
   >
-    <span class:flip={!pointsLeft}><Icon name="arrow-right" size={12} /></span>
+    <span class:flip={pointsLeft}><Icon name="arrow-right" size={12} /></span>
   </button>
 </div>
 
@@ -77,7 +79,11 @@
   .split:hover, .split.drag, .split:focus-visible { background: var(--accent); width: 2px; }
   .split.collapsed { cursor: default; }
   .fold { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 16px; height: 44px; padding: 0; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text-muted); opacity: 0; transition: opacity 0.12s ease; cursor: pointer; }
-  .split:hover .fold, .split:focus-visible .fold, .split.collapsed .fold, .fold:focus-visible { opacity: 1; }
+  .fold { pointer-events: none; }
+  .split:hover .fold, .split:focus-visible .fold, .split.drag .fold, .split.collapsed .fold, .fold:focus-visible { opacity: 1; pointer-events: auto; }
+  /* Pregado, a divisoria queda no bordo da xanela: o botón vai cara dentro para non quedar cortado. */
+  .split.collapsed.left .fold { left: 0; transform: translate(0, -50%); border-left: none; border-radius: 0 8px 8px 0; }
+  .split.collapsed.right .fold { left: auto; right: 0; transform: translate(0, -50%); border-right: none; border-radius: 8px 0 0 8px; }
   .fold:hover { color: var(--accent); border-color: var(--accent); }
   .flip { display: inline-flex; transform: scaleX(-1); }
   .fold span { display: inline-flex; }

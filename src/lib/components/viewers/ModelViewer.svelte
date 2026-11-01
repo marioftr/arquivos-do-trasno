@@ -343,7 +343,7 @@
     </div>
 
     {#if panelOpen}
-      <SidePanel title={$t("Panel do modelo")} on:close={() => (panelOpen = false)}>
+      <SidePanel id="modelo" title={$t("Panel do modelo")} on:close={() => (panelOpen = false)}>
         <PanelSection title={$t("Luz")}>
         <Slider label={$t("Azimut")} unit="°" min={0} max={360} bind:value={azimuth} def={45} />
         <Slider label={$t("Altura")} unit="°" min={-90} max={90} bind:value={elevation} def={50} />
