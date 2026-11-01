@@ -8,7 +8,7 @@ import { viewUrl } from "./files";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-const MAX_DOCS = 5;
+const MAX_DOCS = 12;
 const docs = new Map<string, Promise<pdfjs.PDFDocumentProxy>>();
 
 /** Abre o PDF (ou devolve o que xa estaba aberto). */
@@ -28,12 +28,14 @@ export function getPdf(path: string): Promise<pdfjs.PDFDocumentProxy> {
   p.catch(() => docs.delete(path));
   while (docs.size > MAX_DOCS) {
     const [oldPath, old] = docs.entries().next().value as [string, Promise<pdfjs.PDFDocumentProxy>];
-    docs.delete(oldPath);
-    thumbs.delete(oldPath);
+    docs.delete(oldPath); // as miniaturas quedan: pesan pouco
     old.then((d) => d.destroy()).catch(() => {});
   }
   return p;
 }
+
+/** Onde estaba cada PDF (páxina e zoom), para volver exactamente ao mesmo sitio. */
+export const viewState = new Map<string, { page: number; scale: number; fit: "none" | "width" | "page" }>();
 
 /** Esquece un ficheiro (por exemplo, ao quitalo da lista). */
 export function forgetPdf(path: string) {

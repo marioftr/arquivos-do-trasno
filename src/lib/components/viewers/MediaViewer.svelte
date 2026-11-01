@@ -3,6 +3,8 @@
   import { viewUrl, mediaPreview, mediaSeek, mediaTime, trimRange, type FileEntry } from "../../files";
   import * as engine from "../../engine";
   import { actionFor } from "../../keymap";
+  import { peaksCache, previewCache } from "../../viewCache";
+  import InfoTip from "../ui/InfoTip.svelte";
   import { errText } from "../../errors";
   import { tools, openSettings } from "../../settings";
   import { t } from "../../i18n";
@@ -112,6 +114,11 @@
   $: if (file.category === "audio" && url && url !== waveFor) analyse(url);
   async function analyse(u: string) {
     waveFor = u;
+    const cached = peaksCache.get(file.path);
+    if (cached) {
+      peaks = cached;
+      return;
+    }
     peaks = [];
     try {
       const buf = await (await fetch(u)).arrayBuffer();
@@ -129,12 +136,15 @@
         out.push(max);
       }
       peaks = out;
+      peaksCache.set(file.path, out);
     } catch {
       peaks = [];
     }
   }
 
   const tick_ = () => new Promise((r) => setTimeout(r, 120));
+  const WHY_PREVIEW =
+    "O visor da aplicación é o dun navegador (Chromium), que só le uns poucos formatos, sobre todo MP4 e WebM. AVI e MKV non os le, e moitos códecs (DV das cintas miniDV, Xvid, MJPEG…) tampouco. Por iso o trasno prepara unha copia temporal só para velo: se o vídeo xa é H.264 con AAC ou MP3, só cambia a caixa (en segundos e sen perda); se non, recodifícao coa mesma resolución e calidade moi alta, empezando polos primeiros 30 segundos para que poidas velo xa. O ficheiro orixinal non se toca e a conversión, ao exportar, sempre parte del.";
   let preparing = false;
   let converted = false; // a vista previa non é o ficheiro orixinal (recodificada)
   let finishing = false; // a versión completa aínda se está preparando
@@ -162,16 +172,25 @@
     triedPreview = true;
     preparing = true;
     const mine = file.path;
+    const known = previewCache.get(file.path);
+    if (known) {
+      converted = known.converted;
+      url = await viewUrl(known.path);
+      preparing = false;
+      return;
+    }
     try {
       // Primeiro só o comezo (sae en segundos); o resto prepárase detrás e cámbiase sen perder o punto.
       const first = await engine.makePreview(file.path, file.category === "video" ? 30 : undefined);
       converted = !first.includes(".remux.");
       url = await viewUrl(first);
+      if (!converted || file.category !== "video") previewCache.set(mine, { path: first, converted });
       if (file.category === "video" && converted) {
         finishing = true;
         engine
           .makePreview(file.path)
           .then(async (full) => {
+            previewCache.set(mine, { path: full, converted: true });
             if (full === first || file.path !== mine) return;
             const at = el?.currentTime ?? 0;
             const was = playing;
@@ -201,9 +220,8 @@
 <div class="wrap">
   {#if preparing}
     <div class="msg loading" role="status">
-      <p class="muted">{$t("O trasno está preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}</p>
+      <p class="muted">{$t("O trasno está preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}<InfoTip text={$t(WHY_PREVIEW)} /></p>
       <div class="indet" aria-hidden="true"><span></span></div>
-      <p class="muted tiny">{$t("O navegador non entende este formato, así que se prepara unha copia só para velo. O ficheiro orixinal non se toca.")}</p>
     </div>
   {:else if failed}
     <div class="msg">
@@ -219,7 +237,7 @@
       <video bind:this={el} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={tick} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></video>
       <div class="under">
         {#if converted}
-          <p class="note" role="note"><Icon name="info" size={13} /> {finishing ? $t("Vista previa recodificada (a versión completa aínda se está preparando). O ficheiro orixinal non cambia.") : $t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}</p>
+          <p class="note" role="note"><Icon name="info" size={13} /> {finishing ? $t("Vista previa recodificada (a versión completa aínda se está preparando). O ficheiro orixinal non cambia.") : $t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
         {/if}
         <div class="ctl">
           <button class="btn icon" on:click={toggle} aria-label={playing ? $t("Pausa") : $t("Reproducir")} title={`${playing ? $t("Pausa") : $t("Reproducir")} (${$t("Espazo")})`}><Icon name={playing ? "pause" : "play"} size={15} /></button>

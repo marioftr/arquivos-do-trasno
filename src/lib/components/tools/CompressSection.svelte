@@ -10,6 +10,8 @@
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
+  import { savedProfiles } from "../../settings";
+  import { toast } from "../../toasts";
   import { samePath, askPath, askDir } from "./shared";
   import Icon from "../Icon.svelte";
   import Slider from "../ui/Slider.svelte";
@@ -36,13 +38,12 @@
   // Perfís de saída para vídeo: cada un fixa a calidade e os axustes de compatibilidade.
   // `deinterlace`: 0 non, 1 só se está entrelazado, 2 sempre (cadencia dobre, como facía o DV orixinal).
   const PROFILES: Record<string, { label: string; hint: string; v: { crf: number; maxHeight: number; audioKbps: number; deinterlace: number; compat: boolean } }> = {
-    custom: { label: "Personalizado", hint: "Axustas ti a calidade, a altura e o audio.", v: { crf: 28, maxHeight: 0, audioKbps: 128, deinterlace: 0, compat: false } },
-    minidv: { label: "Mini DV a MP4 (sen perda visible)", hint: "Para cintas dixitalizadas en AVI/DV: desentrelaza, calidade moi alta e MP4 que se ve en todas partes. Pesa moito menos que o AVI.", v: { crf: 18, maxHeight: 0, audioKbps: 192, deinterlace: 2, compat: true } },
     universal: { label: "Universal optimizado", hint: "MP4 H.264 que abre en móbiles, televisións e navegadores. Case idéntico ao orixinal e bastante máis lixeiro.", v: { crf: 20, maxHeight: 0, audioKbps: 160, deinterlace: 1, compat: true } },
+    minidv: { label: "Mini DV a MP4 (sen perda visible)", hint: "Para cintas dixitalizadas en AVI/DV: desentrelaza, calidade moi alta e MP4 que se ve en todas partes. Pesa moito menos que o AVI.", v: { crf: 18, maxHeight: 0, audioKbps: 192, deinterlace: 2, compat: true } },
     youtube: { label: "Para subir a YouTube", hint: "Calidade alta e MP4 con «faststart», que é o que YouTube recomenda. Non reduce a resolución.", v: { crf: 18, maxHeight: 0, audioKbps: 192, deinterlace: 1, compat: true } },
     movil: { label: "Móbil e mensaxería", hint: "Máis pequeno para enviar por WhatsApp ou correo: 720p e calidade equilibrada.", v: { crf: 26, maxHeight: 720, audioKbps: 128, deinterlace: 1, compat: true } },
+    custom: { label: "Personalizado", hint: "Axustas ti a calidade, a altura e o audio.", v: { crf: 28, maxHeight: 0, audioKbps: 128, deinterlace: 0, compat: false } },
   };
-  // O perfil de partida é o universal; os outros (Mini DV, YouTube...) escóllense á man.
   const initialProfile = isImage ? "custom" : "universal";
   const DARS = ["", "4/3", "16/9"];
   const UNITS = [
@@ -66,7 +67,14 @@
     sizeValue: 10,
     unit: "MB",
   }, `comprimir2-${category}`);
-  onMount(() => useForm(form));
+  onMount(() => {
+    // Un perfil gardado que xa se borrou: volve ao de partida.
+    if (!isImage && !known(get(form).profile)) {
+      appliedProfile = initialProfile;
+      form.update((f) => ({ ...f, profile: initialProfile, ...PROFILES[initialProfile].v }));
+    }
+    return useForm(form);
+  });
 
   const job = createJob();
   const busy = job.busy;
@@ -85,9 +93,39 @@
   function applyProfile(id: string) {
     if (isImage || id === appliedProfile) return;
     appliedProfile = id;
+    if (id.startsWith("user:")) {
+      const mine = get(savedProfiles).find((x) => `user:${x.id}` === id);
+      if (mine) form.update((f) => ({ ...f, ...mine.v }));
+      return;
+    }
     const p = PROFILES[id];
-    if (p) form.update((f) => ({ ...f, mode: "quality" as const, ...p.v }));
+    if (p) form.update((f) => ({ ...f, mode: "quality" as const, dar: "", ...p.v }));
   }
+
+  // ---- perfís gardados polo usuario
+  let naming = false;
+  let newName = "";
+  function saveProfile() {
+    const name = newName.trim();
+    if (!name) return;
+    const f = get(form);
+    const id = Math.random().toString(36).slice(2, 9);
+    savedProfiles.update((l) => [
+      ...l,
+      { id, name, v: { mode: f.mode === "bitrate" ? "bitrate" : "quality", crf: f.crf, videoKbps: f.videoKbps, maxHeight: f.maxHeight, audioKbps: f.audioKbps, deinterlace: f.deinterlace, compat: f.compat, dar: f.dar } },
+    ]);
+    appliedProfile = `user:${id}`;
+    form.update((x) => ({ ...x, profile: `user:${id}` }));
+    toast(tr("O trasno gardou o perfil «{name}».", { name }));
+    naming = false;
+    newName = "";
+  }
+  $: known = (id: string) => !!PROFILES[id] || $savedProfiles.some((x) => `user:${x.id}` === id);
+  $: profileOptions = [
+    ...Object.entries(PROFILES).map(([id, p]) => ({ value: id, label: $t(p.label) })),
+    ...$savedProfiles.map((x) => ({ value: `user:${x.id}`, label: `★ ${x.name}` })),
+  ];
+  $: profileHint = v.profile.startsWith("user:") ? $t("Perfil gardado por ti. Podes xestionalo en Axustes → Perfís de saída.") : $t(PROFILES[v.profile]?.hint ?? "");
   $: applyProfile(v.profile);
 
   let lastKey = "";
@@ -218,10 +256,19 @@
       <SelectField
         label={$t("Perfil de saída")}
         bind:value={$form.profile}
-        options={Object.entries(PROFILES).map(([id, p]) => ({ value: id, label: $t(p.label) }))}
+        options={profileOptions}
         def={initialProfile}
       />
-      <p class="group-note">{$t(PROFILES[v.profile]?.hint ?? "")}</p>
+      <p class="group-note">{profileHint}</p>
+      {#if naming}
+        <div class="savebox">
+          <input class="nameinp" bind:value={newName} placeholder={$t("Nome do perfil")} aria-label={$t("Nome do perfil")} maxlength="40" on:keydown={(e) => e.key === "Enter" && saveProfile()} />
+          <button class="btn primary" on:click={saveProfile} disabled={!newName.trim()}>{$t("Gardar")}</button>
+          <button class="btn" on:click={() => ((naming = false), (newName = ""))}>{$t("Cancelar")}</button>
+        </div>
+      {:else}
+        <button class="btn" on:click={() => (naming = true)}><Icon name="plus" size={14} /> {$t("Gardar estes axustes como perfil…")}</button>
+      {/if}
       {#if v.profile !== "custom"}
         <SelectField
           label={$t("Relación de aspecto")}
@@ -327,6 +374,9 @@
 
 <style>
   .warn { margin: 0; font-size: 0.8rem; color: var(--accent-pdf); }
+  .savebox { display: flex; gap: 0.4rem; align-items: center; }
+  .nameinp { flex: 1; min-width: 0; height: var(--control-h); background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.6rem; font: inherit; }
+  .nameinp:focus { outline: none; border-color: var(--accent); }
   .tiny { font-size: 0.76rem; }
   .estimate { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.7rem; min-height: var(--control-h); align-content: center; }
   .est-main { font-size: 1.05rem; font-weight: 600; }

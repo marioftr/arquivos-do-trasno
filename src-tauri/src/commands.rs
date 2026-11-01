@@ -857,6 +857,25 @@ pub fn unique_path(path: String) -> String {
 }
 
 /// Abre unha páxina web fixa (nunca un enderezo que veña da interface).
+/// Abre unha ligazón http(s) no navegador. Só ese tipo de enderezos: nada de ficheiros nin programas.
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    let ok = (url.starts_with("https://") || url.starts_with("http://")) && url.len() < 2000 && !url.chars().any(|c| c.is_whitespace() || c == '"' || c == '<' || c == '>' || c == '^' || c == '&' || c == '|');
+    if !ok {
+        return Err(msg("Esa ligazón non é segura para abrila.", serde_json::json!({})));
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        std::process::Command::new("rundll32").args(["url.dll,FileProtocolHandler", &url]).creation_flags(0x0800_0000).spawn().map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("xdg-open").arg(&url).spawn().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn open_link(id: String) -> Result<(), String> {
     let url = match id.as_str() {

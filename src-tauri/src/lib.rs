@@ -73,6 +73,7 @@ pub fn run() {
             commands::compress_image,
             commands::estimate_image,
             commands::compress_video,
+            commands::open_url,
             commands::expand_paths,
             explorer::open_in_app,
             commands::estimate_video,

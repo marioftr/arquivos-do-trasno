@@ -94,7 +94,46 @@ export interface ToolAction {
 }
 export const toolActions = writable<ToolAction[]>([]);
 export const jump = writable<{ tab: string; mode?: string } | null>(null);
-export type SettingsTab = "general" | "shortcuts" | "tools" | "credits";
+export type SettingsTab = "general" | "shortcuts" | "profiles" | "tools" | "credits";
+
+/** Perfil de saída de vídeo gardado polo usuario (pestana Comprimir). */
+export interface ProfileValues {
+  mode: "quality" | "bitrate";
+  crf: number;
+  videoKbps: number;
+  maxHeight: number;
+  audioKbps: number;
+  deinterlace: number;
+  compat: boolean;
+  dar: string;
+}
+export interface SavedProfile {
+  id: string;
+  name: string;
+  v: ProfileValues;
+}
+const PROFILES_KEY = "arquivos-do-trasno.perfis";
+function loadProfiles(): SavedProfile[] {
+  try {
+    const l = JSON.parse(localStorage.getItem(PROFILES_KEY) ?? "[]");
+    return Array.isArray(l) ? l.filter((p) => p && typeof p.id === "string" && typeof p.name === "string" && p.v) : [];
+  } catch {
+    return [];
+  }
+}
+export const savedProfiles = writable<SavedProfile[]>(loadProfiles());
+savedProfiles.subscribe((l) => {
+  try {
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(l));
+  } catch {
+    // sen almacenamento: vale mentres a app está aberta
+  }
+});
+/** Resumo curto dos axustes dun perfil, para amosalo en listas. */
+export function summaryOf(v: ProfileValues): string {
+  const bits = [v.mode === "bitrate" ? `${v.videoKbps} kbps` : `CRF ${v.crf}`, v.maxHeight ? `${v.maxHeight}p` : "", `${v.audioKbps} kbps audio`, v.deinterlace === 2 ? "yadif×2" : v.deinterlace === 1 ? "yadif" : "", v.dar ? v.dar.replace("/", ":") : ""];
+  return bits.filter(Boolean).join(" · ");
+}
 export const settingsTab = writable<SettingsTab>("general");
 export function openSettings(tab: SettingsTab = "general") {
   settingsTab.set(tab);

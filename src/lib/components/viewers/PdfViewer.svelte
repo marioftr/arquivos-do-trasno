@@ -1,7 +1,11 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import * as pdfjs from "pdfjs-dist";
-  import { getPdf } from "../../pdfCache";
+  import { getPdf, viewState } from "../../pdfCache";
+  import * as engine from "../../engine";
+  import { toast } from "../../toasts";
+  import { tr } from "../../i18n";
+  import Icon from "../Icon.svelte";
   import { actionFor } from "../../keymap";
   import { pdfOverlay, type FileEntry, type PdfOverlay } from "../../files";
   import { t } from "../../i18n";
@@ -191,6 +195,12 @@
     const mine = ++token;
     error = "";
     encrypted = false;
+    const st = viewState.get(path);
+    current = st?.page ?? 1;
+    if (st) {
+      scale = st.scale;
+      fitMode = st.fit;
+    }
     try {
       doc = null;
       const loaded = await getPdf(path);
@@ -255,6 +265,54 @@
     } catch {
       // sen capa de texto ou debuxo cortado: o resto do PDF segue vendose
     }
+    try {
+      await drawLinks(pg, page, viewport);
+    } catch {
+      // sen ligazóns: non pasa nada
+    }
+  }
+
+  /** Ligazóns do PDF: as internas levan á páxina; as web piden confirmación antes de abrirse. */
+  async function drawLinks(pg: PageInfo, page: pdfjs.PDFPageProxy, viewport: pdfjs.PageViewport) {
+    const anns = await page.getAnnotations({ intent: "display" });
+    pg.wrap.querySelector(".linkLayer")?.remove();
+    const layer = document.createElement("div");
+    layer.className = "linkLayer";
+    for (const a of anns) {
+      if (a.subtype !== "Link" || !a.rect || !(a.dest || a.url || a.unsafeUrl)) continue;
+      const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(a.rect);
+      const el = document.createElement("a");
+      el.href = "#";
+      el.style.cssText = `left:${Math.min(x1, x2)}px;top:${Math.min(y1, y2)}px;width:${Math.abs(x2 - x1)}px;height:${Math.abs(y2 - y1)}px`;
+      el.title = a.url ?? a.unsafeUrl ?? tr("Ir á páxina");
+      el.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        followLink(a);
+      });
+      layer.appendChild(el);
+    }
+    if (layer.childElementCount) pg.wrap.appendChild(layer);
+  }
+  async function followLink(a: any) {
+    if (!doc) return;
+    try {
+      if (a.dest) {
+        const dest = typeof a.dest === "string" ? await doc.getDestination(a.dest) : a.dest;
+        const ref = Array.isArray(dest) ? dest[0] : null;
+        const idx = ref && typeof ref === "object" ? await doc.getPageIndex(ref) : Number(ref);
+        if (Number.isFinite(idx)) goto(idx + 1);
+        return;
+      }
+      const url = String(a.url ?? a.unsafeUrl ?? "");
+      if (/^https?:\/\//i.test(url)) {
+        toast(tr("Este PDF quere abrir: {url}", { url: url.length > 70 ? `${url.slice(0, 70)}…` : url }), {
+          action: { label: tr("Abrir ligazón"), run: () => engine.openUrl(url).catch(() => toast(tr("O trasno non puido abrir a ligazón."), { kind: "warn" })) },
+          ms: 9000,
+        });
+      }
+    } catch {
+      toast(tr("O trasno non atopou o destino desta ligazón."), { kind: "warn" });
+    }
   }
   /** Páxinas que quedan lonxe da pantalla liberan a súa imaxe (un PDF longo non enche a memoria). */
   function release(pg: PageInfo) {
@@ -263,6 +321,7 @@
     pg.canvas.width = 1;
     pg.canvas.height = 1;
     pg.wrap.querySelector(".textLayer")?.remove();
+    pg.wrap.querySelector(".linkLayer")?.remove();
   }
 
   async function render(percent: number) {
@@ -343,6 +402,8 @@
       p.wrap.querySelectorAll(".ov").forEach((e) => e.remove());
       p.wrap.classList.remove("sel", "dim");
       const tl = p.wrap.querySelector<HTMLElement>(".textLayer");
+      const ll = p.wrap.querySelector<HTMLElement>(".linkLayer");
+      if (ll) ll.style.display = ov?.rotate && ov.rotate.degrees % 360 !== 0 && (ov.rotate.page === null || ov.rotate.page === p.n) ? "none" : "";
       if (tl) tl.style.display = ov?.rotate && ov.rotate.degrees % 360 !== 0 && (ov.rotate.page === null || ov.rotate.page === p.n) ? "none" : "";
       p.canvas.style.transform = "";
       p.canvas.style.position = "";
@@ -416,6 +477,7 @@
   onDestroy(() => {
     token++;
     io?.disconnect();
+    if (doc) viewState.set(file.path, { page: current, scale, fit: fitMode });
   });
 </script>
 
@@ -438,8 +500,10 @@
     <Slider compact label={$t("Zoom")} unit="%" min={20} max={250} bind:value={scale} on:input={() => (fitMode = "none")} />
     {#if doc}
       <span class="pag pgbox">
+        <button class="btn ghost icon" on:click={() => goto(current - 1)} disabled={current <= 1} aria-label={$t("Páxina anterior")} title={$t("Páxina anterior")}><Icon name="back" size={14} /></button>
         <input type="number" min="1" max={doc.numPages} value={current} on:change={(e) => goto(Number(e.currentTarget.value))} aria-label={$t("Páxina")} />
         <span class="muted">/ {doc.numPages}</span>
+        <button class="btn ghost icon" on:click={() => goto(current + 1)} disabled={current >= doc.numPages} aria-label={$t("Páxina seguinte")} title={$t("Páxina seguinte")}><Icon name="arrow-right" size={14} /></button>
       </span>
     {/if}
   </div>
@@ -466,6 +530,8 @@
   .msg { padding: 2rem; }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .pages :global(.textLayer) { user-select: text; z-index: 1; }
+  .pages :global(.linkLayer a) { position: absolute; display: block; z-index: 2; cursor: pointer; border-radius: 2px; }
+  .pages :global(.linkLayer a:hover) { background: color-mix(in srgb, var(--accent) 18%, transparent); outline: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); }
   .pages :global(.textLayer *) { user-select: text; }
   .pages :global(.textLayer ::selection) { background: color-mix(in srgb, var(--accent) 35%, transparent); }
   .pages :global(.hl) { z-index: 0; }

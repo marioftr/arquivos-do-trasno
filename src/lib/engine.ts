@@ -327,6 +327,7 @@ export const mkvMux = (inputs: MuxInput[], order: TrackRef[], output: string, ov
   call("mkv_mux", { inputs, order, output, overwrite });
 
 export type LinkId = "ffmpeg" | "ffmpeg-license" | "mkvtoolnix" | "mkvtoolnix-license" | "iso639-2" | "mkvmerge-doc";
+export const openUrl = (url: string): Promise<void> => call("open_url", { url });
 export const openLink = (id: LinkId): Promise<void> => call("open_link", { id });
 
 export interface ExplorerStatus {

@@ -7,6 +7,7 @@
   import { errText } from "../errors";
   import Modal from "./ui/Modal.svelte";
   import ShortcutsPanel from "./ShortcutsPanel.svelte";
+  import ProfilesPanel from "./ProfilesPanel.svelte";
   import Segmented from "./ui/Segmented.svelte";
   import Icon from "./Icon.svelte";
   import ToolsPanel from "./ToolsPanel.svelte";
@@ -80,7 +81,7 @@
 <Modal title={$t("Axustes")} tall onClose={() => dialog.set(null)}>
   <div class="split">
   <div class="side" role="tablist" aria-orientation="vertical">
-    {#each [{ id: "general", label: $t("Xeral"), icon: "gear" }, { id: "shortcuts", label: $t("Atallos de teclado"), icon: "keyboard" }, { id: "tools", label: $t("Extensións"), icon: "puzzle" }, { id: "credits", label: $t("Créditos e licenzas"), icon: "info" }] as it}
+    {#each [{ id: "general", label: $t("Xeral"), icon: "gear" }, { id: "shortcuts", label: $t("Atallos de teclado"), icon: "keyboard" }, { id: "profiles", label: $t("Perfís de saída"), icon: "convert" }, { id: "tools", label: $t("Extensións"), icon: "puzzle" }, { id: "credits", label: $t("Créditos e licenzas"), icon: "info" }] as it}
       <button role="tab" aria-selected={tab === it.id} class:on={tab === it.id} on:click={() => (tab = it.id)}><Icon name={it.icon} size={16} /><span>{it.label}</span></button>
     {/each}
   </div>
@@ -139,6 +140,8 @@
   {/if}
   {:else if tab === "shortcuts"}
   <ShortcutsPanel />
+  {:else if tab === "profiles"}
+    <ProfilesPanel />
   {:else if tab === "tools"}
     <ToolsPanel />
   {:else}

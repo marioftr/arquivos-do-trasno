@@ -4,6 +4,7 @@
   import { viewUrl, type FileEntry } from "../../files";
   import { tr } from "../../i18n";
   import FindBar from "../ui/FindBar.svelte";
+  import { textCache } from "../../viewCache";
   import { actionFor } from "../../keymap";
 
   export let file: FileEntry;
@@ -12,9 +13,15 @@
   $: load(file.path);
 
   async function load(path: string) {
+    const hit = textCache.get(path);
+    if (hit !== undefined) {
+      text = hit;
+      return;
+    }
     try {
       const res = await fetch(await viewUrl(path));
       text = (await res.text()).slice(0, 200_000);
+      textCache.set(path, text);
     } catch (e) {
       text = tr("Non puiden ler o ficheiro: {error}", { error: errText(e) });
     }
