@@ -592,5 +592,13 @@
   "Á dereita": "Right",
   "Dar a volta (180°)": "Turn around (180°)",
   "Calidade {p} %": "Quality {p} %",
-  "{p} %": "{p} %"
+  "{p} %": "{p} %",
+  "Cancelando…": "Cancelling…",
+  "Cancelaches o traballo. Non quedou ningún ficheiro a medias.": "You cancelled the job. No half-finished file was left behind.",
+  "Cancelar e non gardar nada?": "Cancel and save nothing?",
+  "Cancelar e borrar o que leva feito?": "Cancel and delete what's done so far?",
+  "Si, cancelar": "Yes, cancel",
+  "Seguir": "Keep going",
+  "Cancelar": "Cancel",
+  "Cancelouse o traballo.": "The job was cancelled."
 }

@@ -3,7 +3,8 @@
 
 import { writable, type Writable } from "svelte/store";
 import { tr } from "./i18n";
-import { errText } from "./errors";
+import { errText, isCancelled } from "./errors";
+import { beginJob } from "./engine";
 
 export interface JobMessage {
   ok: boolean;
@@ -31,11 +32,13 @@ export function createJob(): Job {
       busy.set(true);
       text.set(tr(working));
       message.set(null);
+      await beginJob().catch(() => {});
       try {
         const done = await job();
         if (done) message.set({ ok: true, text: done });
       } catch (e) {
-        message.set({ ok: false, text: `${tr(fail)}\n${errText(e)}` });
+        // Cancelar non é un fallo: sen frase de «tropezou».
+        message.set(isCancelled(e) ? { ok: true, text: tr("Cancelaches o traballo. Non quedou ningún ficheiro a medias.") } : { ok: false, text: `${tr(fail)}\n${errText(e)}` });
       } finally {
         busy.set(false);
       }

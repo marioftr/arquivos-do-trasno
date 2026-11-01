@@ -45,6 +45,50 @@ pub fn suggested_targets(path: String) -> Vec<&'static str> {
 }
 
 #[tauri::command]
+pub fn begin_job() {
+    trasno_engine::ffmpeg::begin_job();
+}
+
+/// Cancela o traballo en marcha. Devolve `true` se había un ffmpeg a correr.
+#[tauri::command]
+pub fn cancel_job() -> bool {
+    trasno_engine::ffmpeg::cancel_current()
+}
+
+/// Borra un ficheiro que acaba de crear o propio traballo cancelado. Por seguridade só vale para ficheiros
+/// creados desde que arrancou esta aplicación (nunca un orixinal) e que non sexan cartafoles.
+#[tauri::command]
+pub fn discard_output(path: String) -> bool {
+    use std::sync::OnceLock;
+    static STARTED: OnceLock<std::time::SystemTime> = OnceLock::new();
+    let started = *STARTED.get_or_init(std::time::SystemTime::now);
+    let p = PathBuf::from(&path);
+    let Ok(meta) = std::fs::metadata(&p) else { return false };
+    let created = meta.created().or_else(|_| meta.modified()).unwrap_or(std::time::UNIX_EPOCH);
+    // Dá un pouco de marxe: STARTED fíxase na primeira chamada, non ao arrancar.
+    let limit = started.checked_sub(std::time::Duration::from_secs(3600)).unwrap_or(started);
+    if !meta.is_file() || created < limit {
+        return false;
+    }
+    std::fs::remove_file(&p).is_ok()
+}
+
+/// Activa os avisos de progreso do ffmpeg: a interface recibe `trasno://progress` (0 a 1).
+#[tauri::command]
+pub fn enable_progress(app: tauri::AppHandle) {
+    use tauri::Emitter;
+    let last = std::sync::Mutex::new(-1.0f64);
+    trasno_engine::ffmpeg::set_progress_sink(Some(std::sync::Arc::new(move |f: f64| {
+        let mut l = last.lock().unwrap_or_else(|e| e.into_inner());
+        // Sen inundar a interface: só cando cambia ao menos un 0,5 %.
+        if (f - *l).abs() >= 0.005 || f >= 1.0 {
+            *l = f;
+            let _ = app.emit("trasno://progress", f);
+        }
+    })));
+}
+
+#[tauri::command]
 pub fn ffmpeg_available() -> bool {
     trasno_engine::ffmpeg::is_available()
 }

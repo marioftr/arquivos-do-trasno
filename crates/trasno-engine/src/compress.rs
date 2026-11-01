@@ -313,7 +313,12 @@ pub fn compress_video(input: &Path, output: &Path, overwrite: bool, o: &VideoCom
         }
         p2.push(temp.as_os_str().to_owned());
 
-        result = run_ffmpeg(&p1).and_then(|o| check_success(&o)).and_then(|_| run_ffmpeg(&p2)).and_then(|o| check_success(&o));
+        ffmpeg::set_progress_phase(0.0, 0.5);
+        result = run_ffmpeg(&p1).and_then(|o| check_success(&o)).and_then(|_| {
+            ffmpeg::set_progress_phase(0.5, 0.5);
+            run_ffmpeg(&p2)
+        }).and_then(|o| check_success(&o));
+        ffmpeg::set_progress_phase(0.0, 1.0);
         if result.is_err() {
             break;
         }

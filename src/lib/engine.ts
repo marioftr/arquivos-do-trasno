@@ -270,6 +270,10 @@ export async function pdfRepair(input: string, output: string, overwrite = false
   return call("pdf_repair", { input, output, overwrite });
 }
 
+export const beginJob = (): Promise<void> => call("begin_job");
+export const cancelJob = (): Promise<boolean> => call("cancel_job");
+export const discardOutput = (path: string): Promise<boolean> => call("discard_output", { path });
+export const enableProgress = (): Promise<void> => call("enable_progress");
 export const uniquePath = (path: string): Promise<string> => call("unique_path", { path });
 
 export interface ToolsStatus {

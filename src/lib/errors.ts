@@ -28,3 +28,9 @@ export async function call<T>(cmd: string, args?: InvokeArgs, options?: InvokeOp
     throw new Error(localizeError(e));
   }
 }
+
+/** Se o erro é só que o usuario cancelou o traballo (non é un fallo). */
+export function isCancelled(e: unknown): boolean {
+  const raw = typeof e === "string" ? e : e instanceof Error ? e.message : String(e);
+  return raw.includes("Cancelouse o traballo.");
+}

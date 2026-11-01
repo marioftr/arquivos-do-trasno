@@ -2,11 +2,20 @@
   import Icon from "../Icon.svelte";
   import { t } from "../../i18n";
   import type { Job } from "../../job";
+  import { cancelJob } from "../../engine";
 
   export let job: Job;
   $: busy = job.busy;
   $: text = job.text;
   $: message = job.message;
+
+  // Cancelar pide confirmación; o traballo en marcha para e non queda ningún ficheiro a medias.
+  let asking = false;
+  $: if (!$busy) asking = false;
+  async function doCancel() {
+    asking = false;
+    await cancelJob().catch(() => false);
+  }
 
   let copied = false;
   async function copy() {
@@ -21,7 +30,16 @@
 </script>
 
 {#if $busy}
-  <p class="busy"><span class="spin"></span>{$text}</p>
+  <div class="busyrow">
+    <p class="busy"><span class="spin"></span>{$text}</p>
+    {#if asking}
+      <span class="ask">{$t("Cancelar e non gardar nada?")}</span>
+      <button class="btn danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
+      <button class="btn" on:click={() => (asking = false)}>{$t("Seguir")}</button>
+    {:else}
+      <button class="btn ghost" on:click={() => (asking = true)}>{$t("Cancelar")}</button>
+    {/if}
+  </div>
 {/if}
 {#if $message}
   <div class="msg-wrap" class:ok={$message.ok} class:err={!$message.ok}>
@@ -33,6 +51,8 @@
 {/if}
 
 <style>
+  .busyrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .ask { font-size: 0.82rem; }
   .busy { margin: 0; display: flex; align-items: center; gap: 0.6rem; font-size: 0.86rem; color: var(--text-muted); }
   .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: spin 0.8s linear infinite; flex-shrink: 0; }
   @keyframes spin { to { transform: rotate(360deg); } }

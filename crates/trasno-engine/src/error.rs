@@ -38,6 +38,9 @@ pub enum EngineError {
     #[error("Non atopo ffmpeg neste equipo. Instálao (por exemplo con «winget install ffmpeg») ou pon ffmpeg.exe e ffprobe.exe ao carón da app.")]
     FfmpegNotFound,
 
+    #[error("traballo cancelado")]
+    Cancelled,
+
     #[error("ffmpeg rematou con erro (código {code:?}): {stderr}")]
     FfmpegFailed { code: Option<i32>, stderr: String },
 
@@ -74,6 +77,7 @@ impl EngineError {
                 "De momento só convirto mallas sinxelas ({formats}); de «{from}» a «{to}» aínda non.",
                 json!({ "formats": formats, "from": from, "to": to }),
             ),
+            Self::Cancelled => ("Cancelouse o traballo.", json!({})),
             Self::FfmpegNotFound => ("Non atopo ffmpeg neste equipo. Instálao (por exemplo con «winget install ffmpeg») ou pon ffmpeg.exe e ffprobe.exe ao carón da app.", json!({})),
             Self::FfmpegFailed { code, stderr } => (
                 "ffmpeg non puido rematar (código {code}). Detalle técnico: {stderr}",

@@ -10,6 +10,8 @@
     "core:window:allow-center",
     "core:window:allow-set-title",
     "core:window:allow-show",
+    "core:window:allow-destroy",
+    "core:window:allow-set-maximizable",
     "core:window:allow-set-resizable",
     "core:window:allow-close",
     "dialog:allow-open",

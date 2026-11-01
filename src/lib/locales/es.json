@@ -592,5 +592,13 @@
   "Á dereita": "A la derecha",
   "Dar a volta (180°)": "Dar la vuelta (180°)",
   "Calidade {p} %": "Calidad {p} %",
-  "{p} %": "{p} %"
+  "{p} %": "{p} %",
+  "Cancelando…": "Cancelando…",
+  "Cancelaches o traballo. Non quedou ningún ficheiro a medias.": "Has cancelado el trabajo. No ha quedado ningún archivo a medias.",
+  "Cancelar e non gardar nada?": "¿Cancelar y no guardar nada?",
+  "Cancelar e borrar o que leva feito?": "¿Cancelar y borrar lo que lleva hecho?",
+  "Si, cancelar": "Sí, cancelar",
+  "Seguir": "Seguir",
+  "Cancelar": "Cancelar",
+  "Cancelouse o traballo.": "Se ha cancelado el trabajo."
 }

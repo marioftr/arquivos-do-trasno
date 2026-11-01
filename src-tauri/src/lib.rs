@@ -10,6 +10,15 @@ pub fn run() {
     }
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .on_window_event(|_window, event| {
+            // Se se pecha a xanela con ffmpeg a medias, non pode quedar un ffmpeg orfo escribindo un ficheiro roto:
+            // mátase e dáselle un instante ao traballo para borrar o seu temporal.
+            if let tauri::WindowEvent::Destroyed = event {
+                if trasno_engine::ffmpeg::cancel_current() {
+                    std::thread::sleep(std::time::Duration::from_millis(700));
+                }
+            }
+        })
         .setup(|app| {
             explorer::watch_open_requests(app.handle().clone());
             // A xanela nace agochada para non verse a medio montar; a interface móstraa cando está lista.
@@ -31,6 +40,10 @@ pub fn run() {
             commands::suggested_targets,
             commands::ffmpeg_available,
             commands::tools_status,
+            commands::enable_progress,
+            commands::begin_job,
+            commands::cancel_job,
+            commands::discard_output,
             commands::mkv_tracks,
             commands::mkv_mux,
             commands::open_link,

@@ -53,18 +53,128 @@ fn hide_console(cmd: &mut Command) {
     let _ = cmd;
 }
 
-pub(crate) fn run_ffmpeg(args: &[std::ffi::OsString]) -> Result<Output> {
-    let bin = ffmpeg_path()?;
+static CANCELLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static CHILD_PID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+/// Empeza un traballo novo: esquece calquera cancelación anterior.
+pub fn begin_job() {
+    CANCELLED.store(false, std::sync::atomic::Ordering::SeqCst);
+}
+
+/// Cancela o traballo: marca a cancelación e mata o ffmpeg que estea a correr (se hai). Devolve se había algo en marcha.
+/// Os temporais bórranos cada operación ao ver o erro `Cancelled`; o ficheiro de destino nunca chega a existir.
+pub fn cancel_current() -> bool {
+    CANCELLED.store(true, std::sync::atomic::Ordering::SeqCst);
+    let pid = CHILD_PID.load(std::sync::atomic::Ordering::SeqCst);
+    if pid == 0 {
+        return false;
+    }
+    let mut cmd;
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd = Command::new("taskkill");
+        cmd.args(["/PID", &pid.to_string(), "/T", "/F"]).creation_flags(0x0800_0000);
+    }
+    #[cfg(not(windows))]
+    {
+        cmd = Command::new("kill");
+        cmd.args(["-9", &pid.to_string()]);
+    }
+    cmd.output().is_ok()
+}
+
+/// Quen recibe o avance (0 a 1) do ffmpeg que estea a traballar.
+pub type ProgressSink = std::sync::Arc<dyn Fn(f64) + Send + Sync>;
+static SINK: std::sync::Mutex<Option<ProgressSink>> = std::sync::Mutex::new(None);
+/// (desde, ancho): para traballos de varias pasadas, cada unha ocupa un tramo da barra.
+static PHASE: std::sync::Mutex<(f64, f64)> = std::sync::Mutex::new((0.0, 1.0));
+
+pub fn set_progress_sink(sink: Option<ProgressSink>) {
+    *SINK.lock().unwrap_or_else(|e| e.into_inner()) = sink;
+}
+
+pub fn set_progress_phase(offset: f64, span: f64) {
+    *PHASE.lock().unwrap_or_else(|e| e.into_inner()) = (offset, span);
+}
+
+/// «00:01:30.50» → segundos.
+fn parse_clock(s: &str) -> Option<f64> {
+    let mut parts = s.trim().split(':');
+    let h: f64 = parts.next()?.parse().ok()?;
+    let m: f64 = parts.next()?.parse().ok()?;
+    let sec: f64 = parts.next()?.parse().ok()?;
+    Some(h * 3600.0 + m * 60.0 + sec)
+}
+
+/// Executa ffmpeg lendo o seu avance (`-progress`) para informar de canto leva feito.
+fn run_ffmpeg_with_progress(bin: PathBuf, args: &[std::ffi::OsString], sink: Option<ProgressSink>) -> Result<Output> {
+    if CANCELLED.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err(EngineError::Cancelled);
+    }
+    use std::io::{BufRead, BufReader, Read};
+    use std::process::Stdio;
     let mut cmd = Command::new(bin);
     hide_console(&mut cmd);
-    let output = cmd
-        .arg("-hide_banner")
-        .arg("-nostdin")
-        .arg("-y") // sobrescribe SÓ o noso ficheiro temporal, nunca o do usuario
+    let mut child = cmd
+        .args(["-hide_banner", "-nostdin", "-y", "-nostats", "-progress", "pipe:1"])
         .args(args)
-        .output()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
         .map_err(EngineError::Io)?;
-    Ok(output)
+    CHILD_PID.store(child.id(), std::sync::atomic::Ordering::SeqCst);
+    let duration = std::sync::Arc::new(std::sync::Mutex::new(0.0f64));
+    let mut stderr = child.stderr.take().expect("stderr");
+    let dur2 = duration.clone();
+    let err_thread = std::thread::spawn(move || {
+        let mut text = String::new();
+        let mut buf = [0u8; 4096];
+        while let Ok(n) = stderr.read(&mut buf) {
+            if n == 0 {
+                break;
+            }
+            text.push_str(&String::from_utf8_lossy(&buf[..n]));
+            if *dur2.lock().unwrap_or_else(|e| e.into_inner()) == 0.0 {
+                if let Some(i) = text.find("Duration: ") {
+                    let rest = &text[i + 10..];
+                    if let Some(end) = rest.find(',') {
+                        if let Some(d) = parse_clock(&rest[..end]) {
+                            *dur2.lock().unwrap_or_else(|e| e.into_inner()) = d;
+                        }
+                    }
+                }
+            }
+        }
+        text
+    });
+    let (offset, span) = *PHASE.lock().unwrap_or_else(|e| e.into_inner());
+    let stdout = child.stdout.take().expect("stdout");
+    for line in BufReader::new(stdout).lines().map_while(|l| l.ok()) {
+        let Some(sink) = &sink else { continue };
+        if let Some(v) = line.strip_prefix("out_time_us=") {
+            let d = *duration.lock().unwrap_or_else(|e| e.into_inner());
+            if let (Ok(us), true) = (v.trim().parse::<f64>(), d > 0.0) {
+                sink(offset + span * (us / 1e6 / d).clamp(0.0, 1.0));
+            }
+        }
+    }
+    let status = child.wait().map_err(EngineError::Io)?;
+    let stderr = err_thread.join().unwrap_or_default();
+    CHILD_PID.store(0, std::sync::atomic::Ordering::SeqCst);
+    if CANCELLED.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err(EngineError::Cancelled);
+    }
+    if let (true, Some(sink)) = (status.success(), &sink) {
+        sink(offset + span);
+    }
+    Ok(Output { status, stdout: Vec::new(), stderr: stderr.into_bytes() })
+}
+
+pub(crate) fn run_ffmpeg(args: &[std::ffi::OsString]) -> Result<Output> {
+    let bin = ffmpeg_path()?;
+    let sink = SINK.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    run_ffmpeg_with_progress(bin, args, sink)
 }
 
 pub(crate) fn check_success(output: &Output) -> Result<()> {
