@@ -334,6 +334,19 @@ fn preview_dir() -> PathBuf {
 /// Borra as vistas previas de execucións anteriores.
 pub fn clean_previews() {
     let _ = std::fs::remove_dir_all(preview_dir());
+    // Restos de colas do menú do clic dereito (se unha apertura morreu a medias).
+    for name in ["trasno-jobs", "trasno-open"] {
+        let dir = std::env::temp_dir().join(name);
+        if let Ok(rd) = std::fs::read_dir(&dir) {
+            for e in rd.flatten() {
+                let old = e.metadata().and_then(|m| m.modified()).ok().and_then(|m| m.elapsed().ok()).is_some_and(|a| a.as_secs() > 3600);
+                let p = e.path();
+                if old && p.extension().and_then(|x| x.to_str()) != Some("lock") {
+                    let _ = std::fs::remove_file(p);
+                }
+            }
+        }
+    }
 }
 
 /// Xera unha copia lixeira que o visor si sabe amosar (PNG para imaxes que o

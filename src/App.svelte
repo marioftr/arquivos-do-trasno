@@ -3,6 +3,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { listen } from "@tauri-apps/api/event";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import BrandMark from "./lib/components/BrandMark.svelte";
   import Icon from "./lib/components/Icon.svelte";
   import FileList from "./lib/components/FileList.svelte";
@@ -39,7 +40,11 @@
   }
 
   onMount(async () => {
-    if ((await engine.startupJob().catch(() => null)) === null) welcomeIfNeeded();
+    if ((await engine.startupJob().catch(() => null)) === null) {
+      // Apertura normal: a xanela móstrase cando a interface xa está pintada.
+      requestAnimationFrame(() => getCurrentWindow().show().catch(() => {}));
+      welcomeIfNeeded();
+    }
     engine.startupFiles().then((paths) => { if (paths.length) addPaths(paths); });
     // Outra apertura (clic dereito → «Abrir», «Abrir con») manda aquí os ficheiros en vez de abrir outra app.
     unlistenOpen = await listen<string[]>("trasno://open", (e) => {

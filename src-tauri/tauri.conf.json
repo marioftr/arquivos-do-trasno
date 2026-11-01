@@ -13,6 +13,7 @@
     "windows": [
       {
         "title": "Arquivos do Trasno",
+        "visible": false,
         "width": 1180,
         "height": 760,
         "minWidth": 860,

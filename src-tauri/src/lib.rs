@@ -4,11 +4,26 @@ mod explorer;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     explorer::gate();
-    commands::clean_previews();
+    // Un traballo rápido do clic dereito non borra as vistas previas da aplicación que xa estea aberta.
+    if !explorer::is_job_launch() {
+        commands::clean_previews();
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             explorer::watch_open_requests(app.handle().clone());
+            // A xanela nace agochada para non verse a medio montar; a interface móstraa cando está lista.
+            // Se algo fallase e nunca o fixese, aos 6 segundos amósase igual.
+            let handle = app.handle().clone();
+            std::thread::spawn(move || {
+                use tauri::Manager;
+                std::thread::sleep(std::time::Duration::from_secs(6));
+                if let Some(w) = handle.get_webview_window("main") {
+                    if !w.is_visible().unwrap_or(true) {
+                        let _ = w.show();
+                    }
+                }
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

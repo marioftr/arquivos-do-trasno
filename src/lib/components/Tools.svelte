@@ -11,9 +11,6 @@
   import ExtractSection from "./tools/ExtractSection.svelte";
   import AudioEffectsSection from "./tools/AudioEffectsSection.svelte";
   import TrimSection from "./tools/TrimSection.svelte";
-  import PdfPagesSection from "./tools/PdfPagesSection.svelte";
-  import PdfImagesSection from "./tools/PdfImagesSection.svelte";
-  import PdfOrganizeSection from "./tools/PdfOrganizeSection.svelte";
   import PdfSplitSection from "./tools/PdfSplitSection.svelte";
   import PdfMarksSection from "./tools/PdfMarksSection.svelte";
   import PdfCropSection from "./tools/PdfCropSection.svelte";
@@ -21,6 +18,7 @@
   import PdfSecuritySection from "./tools/PdfSecuritySection.svelte";
   import PdfRepairSection from "./tools/PdfRepairSection.svelte";
   import Segmented from "./ui/Segmented.svelte";
+  import Lazy from "./ui/Lazy.svelte";
   import MkvTracksSection from "./tools/MkvTracksSection.svelte";
   import Icon from "./Icon.svelte";
   import { tools, openSettings } from "../settings";
@@ -143,7 +141,7 @@
         {:else if current === "mkv" && first}
           <MkvTracksSection {selection} />
         {:else if current === "convert" && mode === "images" && first}
-          <PdfImagesSection file={first} />
+          <Lazy loader={() => import("./tools/PdfImagesSection.svelte")} file={first} />
         {:else if current === "convert"}
           <ConvertSection {selection} {category} />
         {:else if current === "compress" && (category === "imaxe" || category === "video")}
@@ -159,15 +157,15 @@
         {:else if current === "extract" && first}
           <ExtractSection file={first} />
         {:else if current === "pages" && mode === "extract" && first}
-          <PdfPagesSection file={first} part="extract" />
+          <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} part="extract" />
         {:else if current === "pages" && mode === "split" && first}
           <PdfSplitSection file={first} />
         {:else if current === "pages" && first}
-          <PdfOrganizeSection file={first} />
+          <Lazy loader={() => import("./tools/PdfOrganizeSection.svelte")} file={first} />
         {:else if current === "shape" && mode === "crop" && first}
           <PdfCropSection file={first} />
         {:else if current === "shape" && first}
-          <PdfPagesSection file={first} part="rotate" />
+          <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} part="rotate" />
         {:else if current === "marks" && first}
           <PdfMarksSection file={first} />
         {:else if current === "optimize" && mode === "repair" && first}

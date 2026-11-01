@@ -3,8 +3,9 @@
   import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
   import * as engine from "../engine";
   import { errText } from "../errors";
-  import { fallo, fileNameOf, listo, TRASNO, withExtension } from "../formats";
+  import { fallo, fileNameOf, listo, TRASNO } from "../formats";
   import { t, tr } from "../i18n";
+  import { runOne } from "../quickjob";
   import BrandMark from "./BrandMark.svelte";
   import Icon from "./Icon.svelte";
 
@@ -23,87 +24,47 @@
   let finished = false;
   let failedAny = false;
   let keepOpen = false;
-  let countdown = 6;
+  let countdown = 8;
   const win = getCurrentWindow();
 
-  const extOf = (p: string) => (p.match(/\.([^.\\/]+)$/)?.[1] ?? "").toLowerCase();
-
-  const pctLess = (before: number, after: number) => (before > 0 ? Math.round((1 - after / before) * 100) : 0);
-
-  /** Fai o traballo cun ficheiro e devolve a ruta de saída e, se vén ao caso, unha nota (p. ex. «62 % menos»). */
-  async function one(it: Item): Promise<{ out: string; note?: string }> {
-    const ext = extOf(it.path);
-    const cat = await engine.detectCategory(it.path);
-    const stem = it.path.replace(/\.[^.\\/]+$/, "");
-    const arg = job.target ?? "";
-
-    if (job.action === "convert") {
-      const out = await engine.uniquePath(withExtension(it.path, arg));
-      if (cat === "imaxe" && arg === "pdf") await engine.imagesToPdf([it.path], out, false);
-      else await engine.convertFile(it.path, out, { overwrite: false });
-      return { out };
+  // Que se lle vai facer aos ficheiros, en claro.
+  $: what = (() => {
+    const a = job.target ?? "";
+    switch (job.action) {
+      case "convert":
+        return tr("Converter a {ext}", { ext: a.toUpperCase() });
+      case "compress":
+        return tr("Comprimir") + " · " + tr("Calidade {p} %", { p: a });
+      case "resize":
+        return tr("Cambiar tamaño") + " · " + (a.startsWith("p") ? tr("{p} %", { p: a.slice(1) }) : `${a.slice(1)}p`);
+      default:
+        return tr("Xirar") + " · " + (a === "270" ? tr("Á esquerda") : a === "180" ? tr("Dar a volta (180°)") : tr("Á dereita"));
     }
+  })();
 
-    if (job.action === "compress") {
-      // O nivel é a calidade que se quere manter: 75, 50 ou 25 %.
-      const level = Math.min(100, Math.max(10, Number(arg) || 75));
-      const before = await engine.fileSize(it.path);
-      let out: string;
-      if (cat === "imaxe") {
-        out = await engine.uniquePath(withExtension(`${stem}${tr("-comprimido")}`, ext === "png" ? "jpg" : ext));
-        await engine.compressImage(it.path, out, { quality: level }, false);
-      } else if (cat === "video") {
-        out = await engine.uniquePath(withExtension(`${stem}${tr("-comprimido")}`, "mp4"));
-        const crf = level >= 75 ? 24 : level >= 50 ? 28 : 34;
-        await engine.compressVideo(it.path, out, { crf, audioKbps: level >= 75 ? 160 : 128 }, false);
-      } else {
-        out = await engine.uniquePath(withExtension(`${stem}${tr("-comprimido")}`, "pdf"));
-        const [q, sc] = level >= 75 ? [70, 75] : level >= 50 ? [55, 60] : [40, 50];
-        await engine.pdfCompress(it.path, out, q, sc, false);
-      }
-      const after = await engine.fileSize(out);
-      const less = pctLess(before, after);
-      return { out, note: less > 0 ? tr("{pct} % menos", { pct: less }) : tr("xa estaba moi comprimido") };
-    }
-
-    if (job.action === "resize") {
-      const before = await engine.fileSize(it.path);
-      if (cat === "imaxe") {
-        const p = Number(arg.slice(1)) || 50;
-        const [w, h] = await engine.imageDimensions(it.path);
-        const out = await engine.uniquePath(withExtension(`${stem}-${p}pc`, ext));
-        await engine.editImage(it.path, out, { resize: [Math.max(1, Math.round((w * p) / 100)), Math.max(1, Math.round((h * p) / 100))] }, false);
-        return { out, note: `${w}×${h} → ${Math.round((w * p) / 100)}×${Math.round((h * p) / 100)}` };
-      }
-      const hgt = Number(arg.slice(1)) || 720;
-      const out = await engine.uniquePath(withExtension(`${stem}-${hgt}p`, ext));
-      await engine.mediaEdit(it.path, out, "scale", hgt, true, false);
-      const less = pctLess(before, await engine.fileSize(out));
-      return { out, note: less > 0 ? tr("{pct} % menos", { pct: less }) : undefined };
-    }
-
-    // rotate
-    const deg = Number(arg) || 90;
-    const out = await engine.uniquePath(withExtension(`${stem}${tr("-xirado")}`, ext));
-    if (cat === "imaxe") await engine.editImage(it.path, out, { rotate: deg }, false);
-    else await engine.pdfRotate(it.path, null, deg, out, false);
-    return { out };
-  }
+  $: total = items.length;
+  $: doneCount = items.filter((i) => i.state === "feito" || i.state === "erro").length;
+  $: working = items.some((i) => i.state === "traballa");
+  // A barra avanza por ficheiros rematados e medio máis mentres hai un en marcha (non hai progreso interno por ficheiro).
+  $: pct = finished ? 100 : Math.round(((doneCount + (working ? 0.4 : 0)) / total) * 100);
 
   onMount(async () => {
     try {
       await win.setTitle("Arquivos do Trasno");
-      await win.setSize(new LogicalSize(520, Math.min(560, 190 + job.paths.length * 28)));
+      await win.setResizable(false);
+      await win.setSize(new LogicalSize(500, Math.min(560, 210 + items.length * 34)));
       await win.center();
-      await win.setAlwaysOnTop(true);
     } catch {
       // sen permiso para axustar a xanela: segue igual
     }
+    // A xanela naceu agochada: móstrase xa co tamaño bo e co contido pintado.
+    await win.show();
+
     for (const it of items) {
       it.state = "traballa";
       items = items;
       try {
-        const r = await one(it);
+        const r = await runOne(job, it.path);
         it.out = r.out;
         it.note = r.note;
         it.state = "feito";
@@ -128,53 +89,93 @@
     }
   });
 
-  const reveal = (p: string) => engine.revealInFolder(p);
-  const done = items.length;
+  const firstOut = () => items.find((i) => i.out)?.out;
 </script>
 
 <svelte:window on:pointerdown={() => (keepOpen = true)} on:keydown={(e) => e.key === "Escape" && win.close()} />
 
 <main>
   <header>
-    <BrandMark size={22} />
-    <strong>Arquivos do Trasno</strong>
+    <BrandMark size={26} />
+    <div class="titles">
+      <strong>Arquivos do Trasno</strong>
+      <span class="muted what">{what}</span>
+    </div>
   </header>
+
   <p class="head" class:bad={finished && failedAny}>{headline}</p>
-  <ul class="selectable">
+
+  <div class="bar" class:busy={!finished} role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}>
+    <div class="fill" class:bad={finished && failedAny} style={`width:${pct}%`}></div>
+  </div>
+  <p class="muted count">{doneCount} / {total}</p>
+
+  <ul class="selectable scrollbar-thin">
     {#each items as it}
       <li class={it.state}>
-        <span class="n" title={it.path}>{fileNameOf(it.path)}</span>
-        {#if it.state === "traballa"}
-          <span class="muted">{$t("Traballando…")}</span>
-        {:else if it.state === "feito" && it.out}
-          <span class="muted">→ {fileNameOf(it.out)}</span>
-          {#if it.note}<strong class="note">{it.note}</strong>{/if}
-          <button class="btn ghost" on:click={() => reveal(it.out!)} title={$t("Amosar no cartafol")}><Icon name="folder" size={14} /></button>
-        {:else if it.state === "erro"}
-          <span class="err">{it.error}</span>
-        {:else}
-          <span class="muted">{$t("Agardando")}</span>
+        <span class="st" aria-hidden="true">
+          {#if it.state === "traballa"}<span class="spin"></span>
+          {:else if it.state === "feito"}<Icon name="check" size={15} />
+          {:else if it.state === "erro"}<Icon name="warning" size={15} />
+          {:else}<span class="dot"></span>{/if}
+        </span>
+        <div class="txt">
+          <span class="n" title={it.path}>{fileNameOf(it.path)}</span>
+          {#if it.state === "feito" && it.out}
+            <span class="muted sub">→ {fileNameOf(it.out)}{#if it.note} · <strong class="note">{it.note}</strong>{/if}</span>
+          {:else if it.state === "erro"}
+            <span class="err">{it.error}</span>
+          {:else if it.state === "traballa"}
+            <span class="muted sub">{$t("Traballando…")}</span>
+          {:else}
+            <span class="muted sub">{$t("Agardando")}</span>
+          {/if}
+        </div>
+        {#if it.state === "feito" && it.out}
+          <button class="btn ghost icon" on:click={() => engine.revealInFolder(it.out!)} title={$t("Amosar no cartafol")} aria-label={$t("Amosar no cartafol")}><Icon name="folder" size={15} /></button>
         {/if}
       </li>
     {/each}
   </ul>
+
   <footer>
     {#if finished && !failedAny && !keepOpen}<span class="muted">{$t("Péchase en {s} s…", { s: countdown })}</span>{/if}
     <span class="grow"></span>
-    <button class="btn" on:click={() => win.close()}>{$t("Pechar")}</button>
+    {#if finished && firstOut()}<button class="btn" on:click={() => engine.revealInFolder(firstOut()!)}><Icon name="folder" size={14} /> {$t("Amosar no cartafol")}</button>{/if}
+    <button class="btn primary" on:click={() => win.close()}>{$t("Pechar")}</button>
   </footer>
 </main>
 
 <style>
-  main { height: 100vh; display: flex; flex-direction: column; gap: 0.6rem; padding: 0.9rem 1.1rem; background: var(--bg); }
-  header { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
-  .head { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--accent); }
+  main { height: 100vh; display: flex; flex-direction: column; gap: 0.55rem; padding: 1rem 1.2rem 0.9rem; background: var(--bg); }
+  header { display: flex; align-items: center; gap: 0.7rem; }
+  .titles { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .titles strong { font-size: 0.9rem; }
+  .what { font-size: 0.8rem; }
+  .head { margin: 0.2rem 0 0; font-size: 1.02rem; font-weight: 600; color: var(--text); }
   .head.bad { color: var(--accent-video); }
-  ul { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; }
-  li { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
-  .n { font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%; }
-  .note { color: var(--accent); font-size: 0.8rem; white-space: nowrap; }
-  .err { color: var(--accent-video); word-break: break-word; }
-  footer { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; }
+
+  .bar { position: relative; height: 8px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
+  .fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.35s ease; }
+  .fill.bad { background: var(--accent-video); }
+  .bar.busy .fill { background-image: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.4) 50%, transparent 70%); background-size: 200% 100%; background-color: var(--accent); animation: slide 1.2s linear infinite; }
+  @keyframes slide { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  .count { margin: -0.25rem 0 0; font-size: 0.75rem; text-align: right; font-variant-numeric: tabular-nums; }
+
+  ul { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.15rem; }
+  li { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.4rem; border-radius: var(--radius-sm); min-width: 0; }
+  li.traballa { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .st { flex: 0 0 18px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); }
+  li.feito .st { color: var(--accent); }
+  li.erro .st { color: var(--accent-video); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: turn 0.8s linear infinite; }
+  @keyframes turn { to { transform: rotate(360deg); } }
+  .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+  .n { font-size: 0.86rem; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sub { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .note { color: var(--accent); font-weight: 600; }
+  .err { font-size: 0.78rem; color: var(--accent-video); word-break: break-word; }
+  footer { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; padding-top: 0.2rem; border-top: 1px solid var(--border); }
   .grow { flex: 1; }
 </style>

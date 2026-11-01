@@ -329,7 +329,7 @@ fn parse_job(args: &[String]) -> Option<Job> {
     (!paths.is_empty()).then(|| Job { action: action.trim_start_matches("--").to_string(), target: Some(arg), paths })
 }
 
-fn is_job_launch() -> bool {
+pub fn is_job_launch() -> bool {
     matches!(std::env::args().nth(1).as_deref(), Some(a) if ACTIONS.contains(&a))
 }
 
@@ -450,7 +450,7 @@ fn gather() -> Option<Job> {
         return Some(own);
     }
     // Dá tempo a que cheguen os outros procesos da mesma selección.
-    std::thread::sleep(std::time::Duration::from_millis(1200));
+    std::thread::sleep(std::time::Duration::from_millis(900));
     let dir = queue_dir();
     let _ = std::fs::remove_file(dir.join("leader.lock"));
     let mut all = own.clone();

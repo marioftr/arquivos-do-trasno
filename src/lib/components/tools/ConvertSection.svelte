@@ -6,7 +6,6 @@
   import * as engine from "../../engine";
   import type { Category } from "../../engine";
   import type { FileEntry } from "../../files";
-  import { convertModel } from "../../model3d";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
@@ -82,7 +81,7 @@
   async function convertOne(f: FileEntry, out: string, overwrite: boolean) {
     const v = $form;
     if (f.category === "modelo3d" && !(ENGINE_3D.includes(f.ext) && ENGINE_3D.includes(v.targetExt))) {
-      return { output_path: out, bytes_written: await convertModel(f.path, f.ext, out, v.targetExt, overwrite) };
+      return { output_path: out, bytes_written: await (await import("../../model3d")).convertModel(f.path, f.ext, out, v.targetExt, overwrite) };
     }
     if (f.category === "imaxe" && v.targetExt === "pdf") {
       const done = await engine.imagesToPdf([f.path], out, overwrite);
