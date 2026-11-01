@@ -36,7 +36,16 @@
         title: "Arquivos do Trasno",
         open: $t("Abrir en Arquivos do Trasno"),
         convert: $t("Converter a {ext}", { ext: "{ext}" }),
+        more: $t("Máis formatos"),
+        resize: $t("Cambiar tamaño"),
+        scale: $t("Escalar"),
+        rotate: $t("Xirar"),
+        left: $t("Á esquerda"),
+        right: $t("Á dereita"),
+        half: $t("Dar a volta (180°)"),
         compress: $t("Comprimir"),
+        quality: $t("Calidade {p} %", { p: "{p}" }),
+        percent: $t("{p} %", { p: "{p}" }),
       });
       exMsg = $t("Feito. O menú do clic dereito xa ten as entradas do trasno.");
     } catch (e) {
@@ -98,7 +107,7 @@
   ];
 </script>
 
-<Modal title={$t("Axustes")} onClose={() => dialog.set(null)}>
+<Modal title={$t("Axustes")} tall onClose={() => dialog.set(null)}>
   <div class="split">
   <div class="side" role="tablist" aria-orientation="vertical">
     {#each [{ id: "general", label: $t("Xeral"), icon: "gear" }, { id: "shortcuts", label: $t("Atallos de teclado"), icon: "keyboard" }, { id: "tools", label: $t("Extensións"), icon: "puzzle" }, { id: "credits", label: $t("Créditos e licenzas"), icon: "info" }] as it}

@@ -314,11 +314,11 @@ export interface ExplorerStatus {
   current: boolean;
 }
 export const explorerStatus = (): Promise<ExplorerStatus> => call("explorer_status");
-export const explorerInstall = (labels: { title: string; open: string; convert: string; compress: string }): Promise<void> => call("explorer_install", { labels });
+export const explorerInstall = (labels: Record<string, string>): Promise<void> => call("explorer_install", { labels });
 export const explorerUninstall = (): Promise<void> => call("explorer_uninstall");
 
 export interface StartupJob {
-  action: "convert" | "compress";
+  action: "convert" | "compress" | "resize" | "rotate";
   target?: string;
   paths: string[];
 }

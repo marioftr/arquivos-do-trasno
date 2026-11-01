@@ -3,9 +3,14 @@ mod explorer;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    explorer::gate();
     commands::clean_previews();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            explorer::watch_open_requests(app.handle().clone());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::detect_category,
             commands::suggested_targets,

@@ -581,5 +581,16 @@
   "Amosar no cartafol": "Show in folder",
   "Péchase en {s} s…": "Closing in {s} s…",
   "Esta función só existe en Windows.": "This feature only exists on Windows.",
-  "Arquivos do Trasno": "Arquivos do Trasno"
+  "Arquivos do Trasno": "Arquivos do Trasno",
+  "{pct} % menos": "{pct} % smaller",
+  "xa estaba moi comprimido": "it was already well compressed",
+  "-xirado": "-rotated",
+  "Máis formatos": "More formats",
+  "Cambiar tamaño": "Resize",
+  "Escalar": "Scale",
+  "Á esquerda": "Left",
+  "Á dereita": "Right",
+  "Dar a volta (180°)": "Turn around (180°)",
+  "Calidade {p} %": "Quality {p} %",
+  "{p} %": "{p} %"
 }

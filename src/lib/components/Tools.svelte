@@ -86,8 +86,8 @@
     if (many) return [];
     const m = (value: string, label: string) => ({ value, label: tt(label) });
     if (!pdf) {
-      if (tab === "edit" && cat === "video") return [m("tune", "Velocidade e volume"), m("trim", "Cortar")];
-      if (tab === "edit" && cat === "audio") return [m("tune", "Velocidade e volume"), m("trim", "Cortar"), m("effects", "Efectos")];
+      if (tab === "edit" && cat === "video") return [m("trim", "Cortar"), m("tune", "Velocidade e volume")];
+      if (tab === "edit" && cat === "audio") return [m("trim", "Cortar"), m("tune", "Velocidade e volume"), m("effects", "Efectos")];
       return [];
     }
     switch (tab) {

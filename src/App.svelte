@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
+  import { listen } from "@tauri-apps/api/event";
   import BrandMark from "./lib/components/BrandMark.svelte";
   import Icon from "./lib/components/Icon.svelte";
   import FileList from "./lib/components/FileList.svelte";
@@ -18,6 +19,7 @@
 
   let dragging = false;
   let unlisten: (() => void) | null = null;
+  let unlistenOpen: (() => void) | null = null;
   let ffmpegOk: boolean | null = null;
 
   engine.ffmpegAvailable().then((v) => (ffmpegOk = v));
@@ -39,6 +41,10 @@
   onMount(async () => {
     if ((await engine.startupJob().catch(() => null)) === null) welcomeIfNeeded();
     engine.startupFiles().then((paths) => { if (paths.length) addPaths(paths); });
+    // Outra apertura (clic dereito → «Abrir», «Abrir con») manda aquí os ficheiros en vez de abrir outra app.
+    unlistenOpen = await listen<string[]>("trasno://open", (e) => {
+      if (e.payload?.length) addPaths(e.payload);
+    });
     unlisten = await getCurrentWebview().onDragDropEvent((event) => {
       const p = event.payload;
       if (p.type === "drop") {
@@ -73,7 +79,10 @@
     }
   }
 
-  onDestroy(() => unlisten?.());
+  onDestroy(() => {
+    unlisten?.();
+    unlistenOpen?.();
+  });
 
   $: active = $files.find((f) => f.path === $activePath) ?? null;
   // Con dous ou máis ficheiros marcados, as ferramentas traballan co lote;

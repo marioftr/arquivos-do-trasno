@@ -4,6 +4,8 @@
 
   export let title: string;
   export let onClose: () => void;
+  /** Altura fixa: o diálogo non cambia de tamaño ao cambiar de pestana. */
+  export let tall = false;
 
   function key(e: KeyboardEvent) {
     if (e.key === "Escape") onClose();
@@ -19,7 +21,7 @@
       <h2>{title}</h2>
       <button class="btn ghost icon" on:click={onClose} aria-label={$t("Pechar")} title={$t("Pechar")}><Icon name="close" size={15} /></button>
     </header>
-    <div class="content selectable scrollbar-thin"><slot /></div>
+    <div class="content selectable scrollbar-thin" class:tall><slot /></div>
   </div>
 </div>
 
@@ -29,5 +31,5 @@
   header { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1.1rem 0.7rem; border-bottom: 1px solid var(--border); }
   h2 { margin: 0; font-size: 1.02rem; font-weight: 600; }
   .content { padding: 1rem 1.1rem 1.2rem; overflow-y: auto; min-height: 0; flex: 1; display: flex; flex-direction: column; gap: 1rem; }
-  :global(.content:has(.split)) { overflow: hidden; height: min(560px, calc(100vh - 8rem)); }
+  .content.tall { overflow: hidden; flex: none; height: min(580px, calc(100vh - 9rem)); }
 </style>
