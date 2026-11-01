@@ -435,7 +435,7 @@
   .canvas :global(canvas) { display: block; }
   .status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 2rem; text-align: center; pointer-events: none; }
   .panel {
-    position: absolute; top: 10px; right: 10px; width: 280px; max-height: calc(100% - 20px); overflow-y: auto;
+    position: absolute; top: 10px; right: 10px; width: min(280px, calc(100% - 20px)); max-height: calc(100% - 20px); overflow-y: auto;
     background: color-mix(in srgb, var(--bg-rail) 92%, transparent); border: 1px solid var(--border);
     border-radius: var(--radius-md); padding: 0.7rem 0.9rem 0.9rem; font-size: 0.84rem; backdrop-filter: blur(6px);
     display: flex; flex-direction: column; gap: 0.55rem;
@@ -462,7 +462,7 @@
   .in { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; }
   .warn { color: var(--accent-pdf); font-size: 0.78rem; margin: 0; word-break: break-word; }
   .tiny { margin: 0; font-size: 0.78rem; }
-  .bar { display: flex; align-items: center; gap: 0.9rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
   .chk { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--text-muted); }
   .stats { margin-left: auto; }
 </style>

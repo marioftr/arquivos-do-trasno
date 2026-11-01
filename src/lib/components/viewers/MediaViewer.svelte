@@ -144,7 +144,7 @@
 
   const tick_ = () => new Promise((r) => setTimeout(r, 120));
   const WHY_PREVIEW =
-    "O visor da aplicación é o dun navegador (Chromium), que só le uns poucos formatos, sobre todo MP4 e WebM. AVI e MKV non os le, e moitos códecs (DV das cintas miniDV, Xvid, MJPEG…) tampouco. Por iso o trasno prepara unha copia temporal só para velo: se o vídeo xa é H.264 con AAC ou MP3, só cambia a caixa (en segundos e sen perda); se non, recodifícao coa mesma resolución e calidade moi alta, empezando polos primeiros 30 segundos para que poidas velo xa. O ficheiro orixinal non se toca e a conversión, ao exportar, sempre parte del.";
+    "O visor da app é o dun navegador, que só le uns poucos formatos (sobre todo MP4 e WebM). Por iso o trasno prepara unha copia temporal só para velo, coa mesma resolución. O orixinal non se toca e ao exportar parte sempre del.";
   let preparing = false;
   let converted = false; // a vista previa non é o ficheiro orixinal (recodificada)
   let finishing = false; // a versión completa aínda se está preparando
@@ -237,7 +237,7 @@
       <video bind:this={el} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={tick} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></video>
       <div class="under">
         {#if converted}
-          <p class="note" role="note"><Icon name="info" size={13} /> {finishing ? $t("Vista previa recodificada (a versión completa aínda se está preparando). O ficheiro orixinal non cambia.") : $t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
+          <p class="note" role="note">{finishing ? $t("Vista previa recodificada (a versión completa aínda se está preparando). O ficheiro orixinal non cambia.") : $t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
         {/if}
         <div class="ctl">
           <button class="btn icon" on:click={toggle} aria-label={playing ? $t("Pausa") : $t("Reproducir")} title={`${playing ? $t("Pausa") : $t("Reproducir")} (${$t("Espazo")})`}><Icon name={playing ? "pause" : "play"} size={15} /></button>
@@ -279,9 +279,9 @@
   .under { padding: 0.7rem 1rem 0.6rem; background: var(--bg-rail); border-top: 1px solid var(--border); }
   .audio { display: flex; flex-direction: column; gap: 0.9rem; align-items: stretch; padding: 2rem; width: min(820px, 100%); }
   .nome { color: var(--text-muted); text-align: center; }
-  .ctl { display: flex; align-items: center; gap: 0.7rem; }
+  .ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.7rem; }
   .ctl.center { justify-content: center; }
-  .tlw { flex: 1; min-width: 0; }
+  .tlw { flex: 1 1 9rem; min-width: 0; }
   .vol { width: 88px; accent-color: var(--accent); }
   .vid { background: var(--viewer-bg); }
   .vid:fullscreen, .vid::backdrop { background: var(--viewer-bg); }

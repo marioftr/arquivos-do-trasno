@@ -219,7 +219,7 @@
   .v1 { left: 33.33%; } .v2 { left: 66.66%; } .h1 { top: 33.33%; } .h2 { top: 66.66%; }
   .handle { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; background: #fff; border: 1.5px solid #111; border-radius: 2px; touch-action: none; }
   .size { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -6px); background: rgba(0, 0, 0, 0.75); color: #fff; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
-  .bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .dims { margin-left: auto; }
   .msg { margin: auto; text-align: center; padding: 2rem; }

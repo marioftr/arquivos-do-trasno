@@ -520,9 +520,9 @@
   .pages :global(.pg.sel) { outline: 3px solid var(--accent); outline-offset: 0; }
   .pages :global(.pg.dim) { opacity: 0.35; }
   .pages :global(canvas) { display: block; background: #fff; }
-  .bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
-  .pag { margin-left: auto; }
-  .pgbox { display: flex; align-items: center; gap: 0.35rem; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
+  .pag { margin-left: auto; flex-shrink: 0; }
+  .pgbox { display: flex; align-items: center; gap: 0.35rem; white-space: nowrap; }
   .pgbox input { width: 3.4rem; height: 26px; text-align: center; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: 5px; font: inherit; font-size: 0.82rem; }
   .pgbox input:focus { outline: none; border-color: var(--accent); }
   .pages :global(.hl) { position: absolute; background: color-mix(in srgb, #ffd54a 55%, transparent); mix-blend-mode: multiply; pointer-events: none; border-radius: 2px; }

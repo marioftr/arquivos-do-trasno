@@ -841,5 +841,10 @@
   "Hai unha versión nova do trasno: {v}.": "Hay una versión nueva del trasno: {v}.",
   "Ver novidades": "Ver novedades",
   "O trasno actualizou tamén as entradas do menú do clic dereito.": "El trasno actualizó también las entradas del menú de clic derecho.",
-  "O trasno non puido actualizar o menú do clic dereito; faino en Axustes → Xeral.": "El trasno no pudo actualizar el menú de clic derecho; hazlo en Ajustes → General."
+  "O trasno non puido actualizar o menú do clic dereito; faino en Axustes → Xeral.": "El trasno no pudo actualizar el menú de clic derecho; hazlo en Ajustes → General.",
+  "Aínda non hai ningunha versión publicada en GitHub. O trasno non ten nada que ofrecerche por agora.": "Todavía no hay ninguna versión publicada en GitHub. El trasno no tiene nada que ofrecerte por ahora.",
+  "O trasno non puido comprobar as actualizacións. Revisa a conexión a internet e proba de novo.": "El trasno no pudo comprobar las actualizaciones. Revisa la conexión a internet e inténtalo de nuevo.",
+  "A busca de versións novas e o rexistro de cambios están en Novidades.": "La búsqueda de versiones nuevas y el registro de cambios están en Novedades.",
+  "Ir a Actualizacións": "Ir a Actualizaciones",
+  "O visor da app é o dun navegador, que só le uns poucos formatos (sobre todo MP4 e WebM). Por iso o trasno prepara unha copia temporal só para velo, coa mesma resolución. O orixinal non se toca e ao exportar parte sempre del.": "El visor de la app es el de un navegador, que solo lee unos pocos formatos (sobre todo MP4 y WebM). Por eso el trasno prepara una copia temporal solo para verlo, con la misma resolución. El original no se toca y al exportar se parte siempre de él."
 }

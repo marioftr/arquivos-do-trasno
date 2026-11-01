@@ -1,10 +1,8 @@
 <script lang="ts">
   import { open } from "@tauri-apps/plugin-dialog";
   import { t, lang, LANGS, type Lang } from "../i18n";
-  import { theme, outputMode, outputFolder, type Theme, type OutputMode } from "../settings";
+  import { theme, outputMode, outputFolder, openHub, type Theme, type OutputMode } from "../settings";
   import { installExplorerMenu } from "../explorerMenu";
-  import { autoCheck } from "../updates";
-  import Toggle from "./ui/Toggle.svelte";
   import { fileNameOf } from "../formats";
   import * as engine from "../engine";
   import { errText } from "../errors";
@@ -78,11 +76,6 @@
   </section>
 
   <section>
-    <h3>{$t("Actualizacións")}</h3>
-    <Toggle label={$t("Buscar versións novas ao abrir a app")} bind:checked={$autoCheck} />
-  </section>
-
-  <section>
     <h3>{$t("Onde se gardan os resultados")}</h3>
     <Segmented
       options={[
@@ -116,6 +109,12 @@
   </section>
   {/if}
   
+
+<section>
+  <h3>{$t("Actualizacións")}</h3>
+  <p class="muted note">{$t("A busca de versións novas e o rexistro de cambios están en Novidades.")}</p>
+  <div class="exrow"><button class="btn" on:click={() => openHub("news.updates")}><Icon name="open" size={14} /> {$t("Ir a Actualizacións")}</button></div>
+</section>
 
 <style>
   section { display: flex; flex-direction: column; gap: 0.6rem; }

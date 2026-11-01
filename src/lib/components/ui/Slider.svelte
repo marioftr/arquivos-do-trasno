@@ -59,7 +59,8 @@
   .reset { display: inline-flex; background: none; border: none; color: var(--text-faint); padding: 2px; border-radius: 4px; }
   .reset:hover { color: var(--accent); background: var(--bg-hover); }
   .hidden { display: none; }
-  .compact .ctl { min-width: 230px; }
+  .compact { flex: 1 1 11rem; min-width: 0; }
+  .compact .ctl { min-width: 0; }
   .ctl { display: flex; align-items: center; gap: 0.7rem; }
   .ctl input[type="range"] { flex: 1; min-width: 0; }
   .num { display: inline-flex; align-items: center; height: var(--control-h); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding-right: 0.55em; }
