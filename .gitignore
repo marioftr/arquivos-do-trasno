@@ -27,3 +27,4 @@ Thumbs.db
 *.tmp
 *.part
 /tmp-trasno/
+.claude/
