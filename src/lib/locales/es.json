@@ -848,5 +848,20 @@
   "Ir a Actualizacións": "Ir a Actualizaciones",
   "O visor da app é o dun navegador, que só le uns poucos formatos (sobre todo MP4 e WebM). Por iso o trasno prepara unha copia temporal só para velo, coa mesma resolución. O orixinal non se toca e ao exportar parte sempre del.": "El visor de la app es el de un navegador, que solo lee unos pocos formatos (sobre todo MP4 y WebM). Por eso el trasno prepara una copia temporal solo para verlo, con la misma resolución. El original no se toca y al exportar se parte siempre de él.",
   "Preparando este tramo…": "Preparando este tramo…",
-  "Tramo non válido.": "Tramo no válido."
+  "Tramo non válido.": "Tramo no válido.",
+  "Panel do modelo": "Panel del modelo",
+  "Sen idioma": "Sin idioma",
+  "mono": "mono",
+  "estéreo": "estéreo",
+  "canles": "canales",
+  "por defecto": "por defecto",
+  "de imaxe: non se pode amosar": "de imagen: no se puede mostrar",
+  "Estes subtítulos non teñen liñas que amosar.": "Estos subtítulos no tienen líneas que mostrar.",
+  "O trasno non puido ler estes subtítulos.": "El trasno no pudo leer estos subtítulos.",
+  "Escoller pista de vídeo, audio ou subtítulos": "Elegir pista de vídeo, audio o subtítulos",
+  "Sen subtítulos": "Sin subtítulos",
+  "Ancho do panel de ficheiros": "Ancho del panel de archivos",
+  "Ancho do panel de ferramentas": "Ancho del panel de herramientas",
+  "Mostrar o panel": "Mostrar el panel",
+  "Agochar o panel": "Ocultar el panel"
 }

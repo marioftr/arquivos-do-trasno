@@ -848,5 +848,20 @@
   "Ir a Actualizacións": "Go to Updates",
   "O visor da app é o dun navegador, que só le uns poucos formatos (sobre todo MP4 e WebM). Por iso o trasno prepara unha copia temporal só para velo, coa mesma resolución. O orixinal non se toca e ao exportar parte sempre del.": "The app's viewer is a browser's, which only reads a few formats (mainly MP4 and WebM). So the trasno prepares a temporary copy just for viewing, at the same resolution. The original is never touched and exports always start from it.",
   "Preparando este tramo…": "Preparing this section…",
-  "Tramo non válido.": "Invalid section."
+  "Tramo non válido.": "Invalid section.",
+  "Panel do modelo": "Model panel",
+  "Sen idioma": "No language",
+  "mono": "mono",
+  "estéreo": "stereo",
+  "canles": "channels",
+  "por defecto": "default",
+  "de imaxe: non se pode amosar": "image-based: can't be shown",
+  "Estes subtítulos non teñen liñas que amosar.": "These subtitles have no lines to show.",
+  "O trasno non puido ler estes subtítulos.": "The trasno couldn't read these subtitles.",
+  "Escoller pista de vídeo, audio ou subtítulos": "Choose a video, audio or subtitle track",
+  "Sen subtítulos": "No subtitles",
+  "Ancho do panel de ficheiros": "Files panel width",
+  "Ancho do panel de ferramentas": "Tools panel width",
+  "Mostrar o panel": "Show panel",
+  "Agochar o panel": "Hide panel"
 }

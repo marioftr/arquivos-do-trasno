@@ -437,7 +437,7 @@ pub fn clean_previews() {
 /// navegador non le; MP4 pequeno ou MP3 para audio e vídeo). O orixinal non
 /// se toca.
 #[tauri::command]
-pub async fn make_preview(path: String) -> Result<String, String> {
+pub async fn make_preview(path: String, video: Option<u32>, audio: Option<u32>) -> Result<String, String> {
     blocking(move || {
         let input = PathBuf::from(&path);
         let category = trasno_engine::formats::category_of_path(&input);
@@ -449,6 +449,8 @@ pub async fn make_preview(path: String) -> Result<String, String> {
             path.hash(&mut h);
             h.finish()
         });
+        let tag = track_tag(video, audio);
+        let maps = track_maps(video, audio);
         let out = match category {
             Category::Imaxe => {
                 let out = dir.join(format!("{stem}.png"));
@@ -462,24 +464,26 @@ pub async fn make_preview(path: String) -> Result<String, String> {
                 // Os contedores que o visor non entende (AVI, MKV...) a miúdo levan códecs que si entende: nese caso
                 // só se cambia a caixa (en segundos e sen perder calidade). Se non, transcódase a 720p como moito.
                 let codecs = trasno_engine::ffmpeg::probe(&input).ok().map(|info| {
-                    let name = |kind: &str| {
-                        info["streams"].as_array().and_then(|l| l.iter().find(|s| s["codec_type"] == kind)).and_then(|s| s["codec_name"].as_str()).map(|s| s.to_string())
+                    let name = |kind: &str, n: u32| {
+                        info["streams"].as_array().and_then(|l| l.iter().filter(|s| s["codec_type"] == kind).nth(n as usize)).and_then(|s| s["codec_name"].as_str()).map(|s| s.to_string())
                     };
-                    (name("video"), name("audio"))
+                    (name("video", video.unwrap_or(0)), name("audio", audio.unwrap_or(0)))
                 });
                 let copyable = matches!(&codecs, Some((Some(v), a)) if v == "h264" && a.as_deref().map_or(true, |a| matches!(a, "aac" | "mp3")));
                 let webm_copyable = matches!(&codecs, Some((Some(v), a)) if matches!(v.as_str(), "vp8" | "vp9" | "av1") && a.as_deref().map_or(true, |a| matches!(a, "opus" | "vorbis")));
                 if webm_copyable {
-                    let out = dir.join(format!("{stem}.remux.webm"));
+                    let out = dir.join(format!("{stem}{tag}.remux.webm"));
                     if !out.exists() {
-                        let args: Vec<String> = ["-c", "copy"].iter().map(|s| s.to_string()).collect();
+                        let mut args: Vec<String> = maps.clone();
+                        args.extend(["-c", "copy"].iter().map(|s| s.to_string()));
                         trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
                     }
                     out
                 } else if copyable {
-                    let out = dir.join(format!("{stem}.remux.mp4"));
+                    let out = dir.join(format!("{stem}{tag}.remux.mp4"));
                     if !out.exists() {
-                        let args: Vec<String> = ["-c", "copy", "-movflags", "+faststart"].iter().map(|s| s.to_string()).collect();
+                        let mut args: Vec<String> = maps.clone();
+                        args.extend(["-c", "copy", "-movflags", "+faststart"].iter().map(|s| s.to_string()));
                         trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
                     }
                     out
@@ -489,9 +493,13 @@ pub async fn make_preview(path: String) -> Result<String, String> {
                 }
             }
             Category::Audio => {
-                let out = dir.join(format!("{stem}.flac"));
+                let out = dir.join(format!("{stem}{tag}.flac"));
                 if !out.exists() {
-                    let args: Vec<String> = ["-vn", "-c:a", "flac"].iter().map(|s| s.to_string()).collect();
+                    let mut args: Vec<String> = vec!["-vn".to_string()];
+                    if let Some(a) = audio {
+                        args.extend(["-map".to_string(), format!("0:a:{a}?")]);
+                    }
+                    args.extend(["-c:a", "flac"].iter().map(|s| s.to_string()));
                     trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
                 }
                 out
@@ -503,10 +511,51 @@ pub async fn make_preview(path: String) -> Result<String, String> {
     .await
 }
 
+/// Marca no nome do ficheiro temporal segundo as pistas elixidas (nada se se usan as de por defecto).
+fn track_tag(video: Option<u32>, audio: Option<u32>) -> String {
+    if video.is_none() && audio.is_none() {
+        String::new()
+    } else {
+        format!(".t{}_{}", video.unwrap_or(0), audio.unwrap_or(0))
+    }
+}
+
+/// `-map` das pistas elixidas (índices dentro do seu tipo); sen elección, ffmpeg escolle as de por defecto.
+fn track_maps(video: Option<u32>, audio: Option<u32>) -> Vec<String> {
+    if video.is_none() && audio.is_none() {
+        Vec::new()
+    } else {
+        vec!["-map".to_string(), format!("0:v:{}?", video.unwrap_or(0)), "-map".to_string(), format!("0:a:{}?", audio.unwrap_or(0))]
+    }
+}
+
+/// Subtítulos dun ficheiro de vídeo en WebVTT (só se son de texto), para amosalos por riba do vídeo.
+#[tauri::command]
+pub async fn make_subtitles(path: String, index: u32) -> Result<String, String> {
+    blocking(move || {
+        let input = PathBuf::from(&path);
+        let dir = preview_dir();
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let stem = format!("{:x}", {
+            use std::hash::{Hash, Hasher};
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            path.hash(&mut h);
+            h.finish()
+        });
+        let out = dir.join(format!("{stem}.sub{index}.vtt"));
+        if !out.exists() {
+            let args: Vec<String> = ["-map".to_string(), format!("0:s:{index}"), "-c:s".to_string(), "webvtt".to_string()].to_vec();
+            trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
+        }
+        Ok(out.to_string_lossy().to_string())
+    })
+    .await
+}
+
 /// Un tramo de vídeo (`start`..`start+len` segundos) recodificado só para velo: mesma resolución, calidade moi alta.
 /// O visor pide o tramo que precisa (ao saltar) e o seguinte (ao reproducir), así que se pode ir a calquera punto sen esperar.
 #[tauri::command]
-pub async fn make_preview_chunk(path: String, start: f64, len: f64) -> Result<String, String> {
+pub async fn make_preview_chunk(path: String, start: f64, len: f64, video: Option<u32>, audio: Option<u32>) -> Result<String, String> {
     blocking(move || {
         if !(start >= 0.0 && start.is_finite() && len > 0.0 && len <= 300.0) {
             return Err(msg("Tramo non válido.", serde_json::json!({})));
@@ -520,13 +569,15 @@ pub async fn make_preview_chunk(path: String, start: f64, len: f64) -> Result<St
             path.hash(&mut h);
             h.finish()
         });
-        let out = dir.join(format!("{stem}.s{}.mp4", (start * 1000.0) as u64));
+        let out = dir.join(format!("{stem}{}.s{}.mp4", track_tag(video, audio), (start * 1000.0) as u64));
         if !out.exists() {
             let pre = vec!["-ss".to_string(), format!("{start:.3}")];
-            let args: Vec<String> = ["-t", &format!("{len:.3}"), "-vf", "yadif=0:-1:1", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "17", "-c:a", "aac", "-b:a", "256k", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
-                .iter()
-                .map(|s| s.to_string())
-                .collect();
+            let mut args: Vec<String> = track_maps(video, audio);
+            args.extend(
+                ["-t", &format!("{len:.3}"), "-vf", "yadif=0:-1:1", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "17", "-c:a", "aac", "-b:a", "256k", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
+                    .iter()
+                    .map(|s| s.to_string()),
+            );
             trasno_engine::ffmpeg::convert_media_seek(&input, &out, true, &pre, &args).map_err(to_err)?;
         }
         Ok(out.to_string_lossy().to_string())

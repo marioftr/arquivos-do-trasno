@@ -350,3 +350,36 @@ fn un_tramo_de_vista_previa_empeza_onde_se_pide_e_dura_o_pedido() {
     assert!((d - 5.0).abs() < 0.3, "duración {d}");
     assert_eq!(info["streams"][0]["width"], 320);
 }
+
+#[test]
+fn elixir_pista_de_audio_e_sacar_subtitulos_a_webvtt() {
+    if ffmpeg::ffmpeg_path().is_err() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let srt = dir.path().join("s.srt");
+    std::fs::write(&srt, "1\n00:00:01,000 --> 00:00:02,500\nOla <i>trasno</i>\n\n").unwrap();
+    let src = dir.path().join("peli.mkv");
+    let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+        .args(["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x90:rate=10:duration=3"])
+        .args(["-f", "lavfi", "-i", "sine=frequency=300:duration=3", "-f", "lavfi", "-i", "sine=frequency=900:duration=3"])
+        .arg("-i").arg(&srt)
+        .args(["-map", "0:v", "-map", "1:a", "-map", "2:a", "-map", "3:s", "-c:v", "libx264", "-c:a", "aac", "-c:s", "srt", "-metadata:s:a:1", "language=eng"])
+        .arg(&src)
+        .status()
+        .unwrap();
+    assert!(st.success());
+    // Segunda pista de audio, copiada a un MP4 sen recodificar o vídeo.
+    let out = dir.path().join("a2.mp4");
+    let args: Vec<String> = ["-map", "0:v:0?", "-map", "0:a:1?", "-c", "copy"].iter().map(|s| s.to_string()).collect();
+    ffmpeg::convert_media(&src, &out, true, &args).unwrap();
+    let info = ffmpeg::probe(&out).unwrap();
+    let audios: Vec<_> = info["streams"].as_array().unwrap().iter().filter(|s| s["codec_type"] == "audio").collect();
+    assert_eq!(audios.len(), 1);
+    // Subtítulos a WebVTT.
+    let vtt = dir.path().join("s.vtt");
+    let args: Vec<String> = ["-map", "0:s:0", "-c:s", "webvtt"].iter().map(|s| s.to_string()).collect();
+    ffmpeg::convert_media(&src, &vtt, true, &args).unwrap();
+    let text = std::fs::read_to_string(&vtt).unwrap();
+    assert!(text.contains("-->") && text.contains("trasno"), "{text}");
+}

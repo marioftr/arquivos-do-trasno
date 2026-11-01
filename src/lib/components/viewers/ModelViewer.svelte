@@ -8,6 +8,8 @@
   import { t, tr, lang } from "../../i18n";
   import { fileNameOf, TRASNO } from "../../formats";
   import Slider from "../ui/Slider.svelte";
+  import SidePanel from "../ui/SidePanel.svelte";
+  import PanelSection from "../ui/PanelSection.svelte";
   import SelectField from "../ui/SelectField.svelte";
   import Icon from "../Icon.svelte";
   import { resolvedTheme } from "../../settings";
@@ -335,26 +337,30 @@
 </script>
 
 <div class="wrap">
-  <div class="canvas" bind:this={host}>
-    {#if status}<p class="status muted">{status}</p>{/if}
+  <div class="row">
+    <div class="canvas" bind:this={host}>
+      {#if status}<p class="status muted">{status}</p>{/if}
+    </div>
 
-    <aside class="panel scrollbar-thin" class:closed={!panelOpen}>
-      <button class="toggle" on:click={() => (panelOpen = !panelOpen)}>{panelOpen ? $t("Agochar panel") : $t("Panel")}</button>
-      {#if panelOpen}
-        <h4>{$t("Luz")}</h4>
+    {#if panelOpen}
+      <SidePanel title={$t("Panel do modelo")} on:close={() => (panelOpen = false)}>
+        <PanelSection title={$t("Luz")}>
         <Slider label={$t("Azimut")} unit="°" min={0} max={360} bind:value={azimuth} def={45} />
         <Slider label={$t("Altura")} unit="°" min={-90} max={90} bind:value={elevation} def={50} />
         <Slider label={$t("Forza")} min={0} max={5} step={0.1} bind:value={intensity} def={1.6} />
         <Slider label={$t("Ambiente")} min={0} max={4} step={0.1} bind:value={ambient} def={1.1} />
         <label class="chk"><input type="checkbox" bind:checked={showMarker} /> {$t("Amosar a luz (podes arrastrala)")}</label>
+        </PanelSection>
 
-        <h4>{$t("Vista")}</h4>
+        <PanelSection title={$t("Vista")}>
         <div class="chan">
           {#each channels as c}
             <button class="ch" class:on={channel === c.id} on:click={() => (channel = c.id)}>{$t(c.label)}</button>
           {/each}
         </div>
+        </PanelSection>
 
+        <PanelSection title={$t("Materiais")} meta={report.length ? String(report.length) : ""}>
         {#if report.length}
           <h4>{$t("Materiais")}</h4>
           <p class="muted tiny">{$t("Preme un material para velo só a el.")}</p>
@@ -387,7 +393,9 @@
           <p class="muted tiny">{$t("Este modelo non ten materiais: o trasno úsao en gris.")}</p>
         {/if}
 
-        <h4>{$t("Texturas")}</h4>
+        </PanelSection>
+
+        <PanelSection title={$t("Texturas")} open={!!imports.length || !hasTextures}>
         {#if !hasTextures && !imports.length && !status}
           <p class="muted tiny">{$t("Este modelo non ten texturas: importa unha imaxe para pintalo.")}</p>
         {/if}
@@ -418,32 +426,26 @@
           <p class="warn selectable">{$t("Texturas que o modelo pide e non estaban no cartafol: {list}", { list: missing.join(", ") })}</p>
         {/if}
         {#each notes as n}<p class="muted tiny selectable">· {n}</p>{/each}
-      {/if}
-    </aside>
+        </PanelSection>
+      </SidePanel>
+    {/if}
   </div>
   <div class="bar">
     <button class="btn" title={$t("Axustar o modelo ao espazo dispoñible")} on:click={() => model && frame(model, true)}>{$t("Recentrar")}</button>
     <label class="chk"><input type="checkbox" bind:checked={wireframe} /> {$t("Malla")}</label>
     <label class="chk"><input type="checkbox" bind:checked={grid} /> {$t("Cuadrícula")}</label>
     <span class="muted stats">{stats || $t("Arrastra para rotar · roda para zoom · botón dereito para mover")}</span>
+    <button class="btn" class:on={panelOpen} on:click={() => (panelOpen = !panelOpen)} aria-pressed={panelOpen}>{panelOpen ? $t("Agochar panel") : $t("Panel")}</button>
   </div>
 </div>
 
 <style>
   .wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-  .canvas { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+  .row { flex: 1; min-height: 0; display: flex; }
+  .canvas { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
+  .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .canvas :global(canvas) { display: block; }
   .status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 2rem; text-align: center; pointer-events: none; }
-  .panel {
-    position: absolute; top: 10px; right: 10px; width: min(280px, calc(100% - 20px)); max-height: calc(100% - 20px); overflow-y: auto;
-    background: color-mix(in srgb, var(--bg-rail) 92%, transparent); border: 1px solid var(--border);
-    border-radius: var(--radius-md); padding: 0.7rem 0.9rem 0.9rem; font-size: 0.84rem; backdrop-filter: blur(6px);
-    display: flex; flex-direction: column; gap: 0.55rem;
-  }
-  .panel.closed { width: auto; }
-  .toggle { align-self: flex-start; background: none; border: none; color: var(--text-muted); padding: 0; font: inherit; font-size: 0.8rem; }
-  .toggle:hover { color: var(--text); }
-  h4 { margin: 0.5rem 0 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); font-weight: 600; border-top: 1px solid var(--border); padding-top: 0.7rem; }
   .chan { display: flex; flex-wrap: wrap; gap: 0.3rem; }
   .ch { background: transparent; border: 1px solid var(--border-strong); color: var(--text-muted); border-radius: var(--radius-sm); padding: 0.28em 0.6em; font-size: 0.78rem; }
   .ch:hover { color: var(--text); }

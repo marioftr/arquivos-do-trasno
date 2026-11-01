@@ -23,6 +23,7 @@
   import { procs, refreshProcs } from "./lib/procs";
   import { reportProgress } from "./lib/job";
   import { actionFor } from "./lib/keymap";
+  import Splitter from "./lib/components/ui/Splitter.svelte";
   import CommandPalette from "./lib/components/CommandPalette.svelte";
 
   let dragging = false;
@@ -47,6 +48,28 @@
     const selected = await open({ multiple: true });
     if (!selected) return;
     await addPaths(Array.isArray(selected) ? selected : [selected]);
+  }
+
+  // Ancho e estado (pregado ou non) dos dous paneis laterais; lémbranse entre sesións.
+  const PANES_KEY = "arquivos-do-trasno.paneis";
+  const L = { init: 250, min: 200, max: 420 };
+  const R = { init: 360, min: 320, max: 640 };
+  const saved = (() => {
+    try {
+      return JSON.parse(localStorage.getItem(PANES_KEY) ?? "{}");
+    } catch {
+      return {};
+    }
+  })();
+  const fit = (v: unknown, d: { init: number; min: number; max: number }) => (typeof v === "number" ? Math.min(d.max, Math.max(d.min, v)) : d.init);
+  let leftW = fit(saved.leftW, L);
+  let rightW = fit(saved.rightW, R);
+  let leftOff = !!saved.leftOff;
+  let rightOff = !!saved.rightOff;
+  $: try {
+    localStorage.setItem(PANES_KEY, JSON.stringify({ leftW, rightW, leftOff, rightOff }));
+  } catch {
+    // sen almacenamento: vale só mentres a app está aberta
   }
 
   onMount(async () => {
@@ -168,12 +191,14 @@
       </div>
     </main>
   {:else}
-    <main class="work">
-      <aside class="left"><FileList onAdd={escoller} /></aside>
+    <main class="work" style={`--lw:${leftOff ? 0 : leftW}px; --rw:${rightOff ? 0 : rightW}px`}>
+      <aside class="left" class:off={leftOff} inert={leftOff}><FileList onAdd={escoller} /></aside>
+      <Splitter side="left" bind:width={leftW} min={L.min} max={L.max} initial={L.init} collapsed={leftOff} on:toggle={() => (leftOff = !leftOff)} />
       <section class="center">
         {#if active}<Viewer file={active} />{/if}
       </section>
-      <aside class="right"><Tools {selection} /></aside>
+      <Splitter side="right" bind:width={rightW} min={R.min} max={R.max} initial={R.init} collapsed={rightOff} on:toggle={() => (rightOff = !rightOff)} />
+      <aside class="right" class:off={rightOff} inert={rightOff}><Tools {selection} /></aside>
     </main>
   {/if}
 
@@ -205,15 +230,18 @@
   .drop p { margin: 0; max-width: 54ch; }
   .formatos { font-size: 0.75rem; letter-spacing: 0.04em; margin-top: 0.8rem !important; }
 
-  .work { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(210px, 270px) minmax(0, 1fr) minmax(320px, 390px); }
+  .work { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: var(--lw) 1px minmax(0, 1fr) 1px var(--rw); }
+  .off { overflow: hidden; visibility: hidden; }
   .left, .right { min-height: 0; min-width: 0; background: var(--bg-rail); }
-  .left { border-right: 1px solid var(--border); }
-  .right { border-left: 1px solid var(--border); }
+
   .center { min-width: 0; min-height: 0; overflow: hidden; }
 
+  /* Co espazo xusto, os paneis ocupan o seu sitio de sempre e as divisorias agóchanse. */
   @media (max-width: 1050px) {
     .work { grid-template-columns: minmax(190px, 230px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 42%); }
-    .right { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--border); }
+    .work > :global(.split) { display: none; }
+    .left.off, .right.off { visibility: visible; }
+    .right { grid-column: 1 / -1; border-top: 1px solid var(--border); }
   }
 
   .veil {

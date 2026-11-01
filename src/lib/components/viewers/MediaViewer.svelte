@@ -10,6 +10,11 @@
   import { t } from "../../i18n";
   import Timeline from "../ui/Timeline.svelte";
   import Icon from "../Icon.svelte";
+  import SidePanel from "../ui/SidePanel.svelte";
+  import PanelSection from "../ui/PanelSection.svelte";
+  import OptionList from "../ui/OptionList.svelte";
+  import { toast } from "../../toasts";
+  import { tr } from "../../i18n";
 
   export let file: FileEntry;
 
@@ -40,6 +45,143 @@
   let playing = false;
   // Vídeos que o navegador non le: móstranse por tramos de SEG segundos recodificados ao momento. O tempo que ven
   // as ferramentas e a liña de tempo é o do ficheiro orixinal (tempo do tramo + inicio do tramo).
+  // ---- pistas (vídeo, audio, subtítulos) do ficheiro e a elixida de cada tipo
+  interface Stream {
+    kind: "video" | "audio" | "subtitle";
+    i: number; // posición dentro do seu tipo
+    codec: string;
+    lang: string;
+    title: string;
+    isDefault: boolean;
+    w?: number;
+    h?: number;
+    ch?: number;
+    text: boolean; // subtítulo de texto (os de imaxe non se poden amosar)
+  }
+  const TEXT_SUBS = ["subrip", "srt", "ass", "ssa", "webvtt", "mov_text", "text", "subviewer", "microdvd"];
+  let streams: Stream[] = [];
+  let selV: number | null = null; // null = a de por defecto
+  let selA: number | null = null;
+  let selS = -1; // -1 = sen subtítulos
+  let panelOpen = false;
+  $: videos = streams.filter((x) => x.kind === "video");
+  $: audios = streams.filter((x) => x.kind === "audio");
+  $: subs = streams.filter((x) => x.kind === "subtitle");
+  $: hasTracks = file.category === "video" && (videos.length > 1 || audios.length > 1 || subs.length > 0);
+  const defIndex = (l: Stream[]) => Math.max(0, l.findIndex((x) => x.isDefault));
+
+  function langName(code: string): string {
+    if (!code || code === "und") return tr("Sen idioma");
+    try {
+      return new Intl.DisplayNames([document.documentElement.lang || "gl"], { type: "language" }).of(code) ?? code;
+    } catch {
+      return code.toUpperCase();
+    }
+  }
+  async function readStreams(path: string) {
+    try {
+      const info = await engine.probeMedia(path);
+      if (file.path !== path) return;
+      const count: Record<string, number> = { video: 0, audio: 0, subtitle: 0 };
+      const out: Stream[] = [];
+      for (const st of info.streams ?? []) {
+        const kind = st.codec_type as Stream["kind"];
+        if (!(kind in count)) continue;
+        if (kind === "video" && (st as any).disposition?.attached_pic) continue; // carátula
+        out.push({
+          kind,
+          i: count[kind]++,
+          codec: String(st.codec_name ?? ""),
+          lang: String((st as any).tags?.language ?? ""),
+          title: String((st as any).tags?.title ?? ""),
+          isDefault: !!(st as any).disposition?.default,
+          w: st.width,
+          h: st.height,
+          ch: (st as any).channels,
+          text: kind !== "subtitle" || TEXT_SUBS.includes(String(st.codec_name)),
+        });
+      }
+      streams = out;
+    } catch {
+      streams = [];
+    }
+  }
+  const describe = (x: Stream) => {
+    const bits = [x.codec.toUpperCase()];
+    if (x.kind === "video" && x.w) bits.push(`${x.w}×${x.h}`);
+    if (x.kind === "audio" && x.ch) bits.push(x.ch === 1 ? tr("mono") : x.ch === 2 ? tr("estéreo") : `${x.ch} ${tr("canles")}`);
+    if (x.isDefault) bits.push(tr("por defecto"));
+    if (x.kind === "subtitle" && !x.text) bits.push(tr("de imaxe: non se pode amosar"));
+    return bits.join(" · ");
+  };
+  const nameOf = (x: Stream, n: number) => (x.kind === "video" ? `${tr("Vídeo")} ${n + 1}` : x.title || langName(x.lang)) + (x.title && x.lang && x.kind !== "video" ? ` (${langName(x.lang)})` : "");
+
+  // Subtítulos: léense a WebVTT e pintanse por riba co tempo do ficheiro orixinal.
+  let cues: { s: number; e: number; t: string }[] = [];
+  let subText = "";
+  function parseVtt(txt: string) {
+    const toSec = (v: string) => {
+      const p = v.trim().replace(",", ".").split(":").map(Number);
+      return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1];
+    };
+    const out: typeof cues = [];
+    for (const block of txt.replace(/\r/g, "").split(/\n\n+/)) {
+      const lines = block.split("\n");
+      const k = lines.findIndex((l) => l.includes("-->"));
+      if (k < 0) continue;
+      const [a, b] = lines[k].split("-->");
+      const text = lines
+        .slice(k + 1)
+        .join("\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/\{\\an?\d\}/g, "");
+      const s0 = toSec(a);
+      const e0 = toSec(b.trim().split(" ")[0]);
+      if (Number.isFinite(s0) && Number.isFinite(e0) && text.trim()) out.push({ s: s0, e: e0, t: text.trim() });
+    }
+    return out.sort((x, y) => x.s - y.s);
+  }
+  function cueAt(t: number): string {
+    let lo = 0;
+    let hi = cues.length - 1;
+    let found = "";
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (cues[mid].s <= t) {
+        // varias liñas poden solaparse: mira tamén as anteriores próximas
+        for (let k = mid; k >= 0 && k > mid - 4; k--) if (cues[k].s <= t && t < cues[k].e) found = found ? `${cues[k].t}\n${found}` : cues[k].t;
+        lo = hi + 1;
+      } else hi = mid - 1;
+    }
+    return found;
+  }
+  async function pickSubtitle(i: number) {
+    selS = i;
+    cues = [];
+    subText = "";
+    if (i < 0) return;
+    try {
+      const path = await engine.makeSubtitles(file.path, i);
+      cues = parseVtt(await (await fetch(await viewUrl(path))).text());
+      if (!cues.length) toast(tr("Estes subtítulos non teñen liñas que amosar."), { kind: "warn" });
+      tick();
+    } catch {
+      selS = -1;
+      toast(tr("O trasno non puido ler estes subtítulos."), { kind: "warn" });
+    }
+  }
+  $: pickV = { video: selV, audio: selA };
+
+  /** Cambia de pista de vídeo ou audio: prepara o ficheiro con ela e volve ao mesmo punto. */
+  async function changeTrack(kind: "video" | "audio", v: number) {
+    if (kind === "video") selV = v;
+    else selA = v;
+    await prepare(true, { t: now, play: playing });
+  }
+
   const SEG = 60;
   let chunked = false;
   let segIndex = 0;
@@ -55,11 +197,12 @@
     now = (chunked ? segStart : 0) + el.currentTime;
     duration = chunked ? totalDur : Number.isFinite(el.duration) && el.duration ? el.duration : (file.duration ?? 0);
     mediaTime.set(Math.round(now * 100) / 100);
+    if (cues.length) subText = cueAt(now);
     // O tramo seguinte vai preparándose mentres se ve este.
     if (chunked && el.currentTime > SEG * 0.4 && segStart + SEG < totalDur && !prefetched.has(segIndex + 1)) {
       const n = segIndex + 1;
       prefetched.add(n);
-      engine.makePreviewChunk(file.path, n * SEG, SEG).catch(() => prefetched.delete(n));
+      engine.makePreviewChunk(file.path, n * SEG, SEG, pickV).catch(() => prefetched.delete(n));
     }
     // Con un corte activo, a reprodución salta a parte que se perde.
     const r = $trimRange;
@@ -79,7 +222,7 @@
     segIndex = idx;
     afterLoad = { offset, play };
     try {
-      const path = await engine.makePreviewChunk(file.path, idx * SEG, SEG);
+      const path = await engine.makePreviewChunk(file.path, idx * SEG, SEG, pickV);
       if (mine !== segToken) return;
       url = await viewUrl(path);
     } catch (e) {
@@ -212,6 +355,14 @@
     failed = false;
     failMsg = "";
     converted = false;
+    selV = null;
+    selA = null;
+    selS = -1;
+    cues = [];
+    subText = "";
+    streams = [];
+    panelOpen = false;
+    readStreams(path);
     chunked = false;
     segIndex = 0;
     totalDur = 0;
@@ -227,15 +378,17 @@
 
   // Formatos que o navegador non reproduce (MKV, AVI, AIFF...): o trasno prepara
   // unha copia lixeira temporal. O ficheiro orixinal non se modifica.
-  async function prepare() {
-    if (triedPreview) {
+  async function prepare(force = false, resume?: { t: number; play: boolean }) {
+    if (triedPreview && !force) {
       failed = true;
       return;
     }
     triedPreview = true;
-    preparing = true;
+    // Ao cambiar de pista non se desmonta o reprodutor: só se avisa por riba.
+    if (resume) loadingSeg = true;
+    else preparing = true;
     const mine = file.path;
-    const known = previewCache.get(file.path);
+    const known = force ? undefined : previewCache.get(file.path);
     if (known) {
       converted = known.converted;
       url = await viewUrl(known.path);
@@ -243,22 +396,29 @@
       return;
     }
     try {
-      const first = await engine.makePreview(file.path);
+      const first = await engine.makePreview(file.path, pickV);
+      segToken++;
+      prefetched.clear();
       if (first === "chunks") {
         // Vídeo que o navegador non le: tramos de 1 minuto, coa duración e o tempo do ficheiro orixinal.
         converted = true;
         chunked = true;
         totalDur = file.duration ?? Number((await engine.probeMedia(file.path)).format?.duration) ?? 0;
         if (!Number.isFinite(totalDur)) totalDur = 0;
-        await loadSeg(0, 0, false);
+        const t = resume?.t ?? 0;
+        const idx = Math.floor(t / SEG);
+        await loadSeg(idx, t - idx * SEG, resume?.play ?? false);
       } else {
+        chunked = false;
         converted = !first.includes(".remux.");
+        if (resume) afterLoad = { offset: resume.t, play: resume.play };
         url = await viewUrl(first);
-        previewCache.set(mine, { path: first, converted });
+        if (!force) previewCache.set(mine, { path: first, converted });
       }
     } catch (e) {
       failed = true;
       failMsg = errText(e);
+      loadingSeg = false;
     } finally {
       preparing = false;
     }
@@ -282,23 +442,66 @@
       {#if $tools && !$tools.ffmpeg}<button class="btn" on:click={() => openSettings("tools")}>{$t("Ver como instalalo")}</button>{/if}
     </div>
   {:else if url && file.category === "video"}
-    <div class="vid" bind:this={stage}>
-      <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-      <video bind:this={el} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
-      {#if loadingSeg}<div class="segload" role="status"><span class="indet" aria-hidden="true"><span></span></span>{$t("Preparando este tramo…")}</div>{/if}
-      <div class="under">
-        {#if converted}
-          <p class="note" role="note">{$t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
-        {/if}
-        <div class="ctl">
-          <button class="btn icon" on:click={toggle} aria-label={playing ? $t("Pausa") : $t("Reproducir")} title={`${playing ? $t("Pausa") : $t("Reproducir")} (${$t("Espazo")})`}><Icon name={playing ? "pause" : "play"} size={15} /></button>
-          <div class="tlw"><Timeline {duration} {now} height={34} on:seek={(e) => seek(e.detail)} /></div>
-          <span class="muted time">{fmt(now)} / {fmt(duration)}</span>
-          <button class="btn icon ghost" on:click={() => (muted = !muted)} aria-label={$t("Silenciar")} title={`${$t("Silenciar")} (M)`}><Icon name={muted || vol === 0 ? "mute" : "volume"} size={15} /></button>
-          <input class="vol" type="range" min="0" max="1" step="0.01" bind:value={vol} on:input={() => (muted = false)} aria-label={$t("Volume")} title={`${$t("Volume")}: ${Math.round(vol * 100)} %`} />
-          <button class="btn icon ghost" on:click={fullscreen} aria-label={$t("Pantalla completa")} title={`${$t("Pantalla completa")} (F)`}><Icon name="expand" size={15} /></button>
+    <div class="vrow">
+      <div class="vid" bind:this={stage}>
+        <div class="screen">
+          <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+          <video bind:this={el} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={() => prepare()} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
+          {#if subText}<div class="subs" aria-live="off">{subText}</div>{/if}
+          {#if loadingSeg}<div class="segload" role="status"><span class="indet" aria-hidden="true"><span></span></span>{$t("Preparando este tramo…")}</div>{/if}
+        </div>
+        <div class="under">
+          {#if converted}
+            <p class="note" role="note">{$t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
+          {/if}
+          <div class="ctl">
+            <button class="btn icon" on:click={toggle} aria-label={playing ? $t("Pausa") : $t("Reproducir")} title={`${playing ? $t("Pausa") : $t("Reproducir")} (${$t("Espazo")})`}><Icon name={playing ? "pause" : "play"} size={15} /></button>
+            <div class="tlw"><Timeline {duration} {now} height={34} on:seek={(e) => seek(e.detail)} /></div>
+            <span class="muted time">{fmt(now)} / {fmt(duration)}</span>
+            <button class="btn icon ghost" on:click={() => (muted = !muted)} aria-label={$t("Silenciar")} title={`${$t("Silenciar")} (M)`}><Icon name={muted || vol === 0 ? "mute" : "volume"} size={15} /></button>
+            <input class="vol" type="range" min="0" max="1" step="0.01" bind:value={vol} on:input={() => (muted = false)} aria-label={$t("Volume")} title={`${$t("Volume")}: ${Math.round(vol * 100)} %`} />
+            {#if hasTracks}
+              <button class="btn ghost" class:on={panelOpen} on:click={() => (panelOpen = !panelOpen)} aria-pressed={panelOpen} title={$t("Escoller pista de vídeo, audio ou subtítulos")}><Icon name="layers" size={15} /> {$t("Pistas")}</button>
+            {/if}
+            <button class="btn icon ghost" on:click={fullscreen} aria-label={$t("Pantalla completa")} title={`${$t("Pantalla completa")} (F)`}><Icon name="expand" size={15} /></button>
+          </div>
         </div>
       </div>
+
+      {#if panelOpen && hasTracks}
+        <SidePanel title={$t("Pistas")} on:close={() => (panelOpen = false)}>
+          {#if videos.length > 1}
+            <PanelSection title={$t("Vídeo")} meta={String(videos.length)}>
+              <OptionList
+                label={$t("Vídeo")}
+                items={videos.map((x, n) => ({ value: x.i, label: nameOf(x, n), detail: describe(x) }))}
+                value={selV ?? defIndex(videos)}
+                on:change={(e) => changeTrack("video", e.detail)}
+              />
+            </PanelSection>
+          {/if}
+          {#if audios.length}
+            <PanelSection title={$t("Audio")} meta={String(audios.length)}>
+              <OptionList
+                label={$t("Audio")}
+                items={audios.map((x, n) => ({ value: x.i, label: nameOf(x, n), detail: describe(x) }))}
+                value={selA ?? defIndex(audios)}
+                on:change={(e) => changeTrack("audio", e.detail)}
+              />
+            </PanelSection>
+          {/if}
+          {#if subs.length}
+            <PanelSection title={$t("Subtítulos")} meta={String(subs.length)}>
+              <OptionList
+                label={$t("Subtítulos")}
+                items={[{ value: -1, label: $t("Sen subtítulos") }, ...subs.map((x, n) => ({ value: x.i, label: nameOf(x, n), detail: describe(x), disabled: !x.text }))]}
+                value={selS}
+                on:change={(e) => pickSubtitle(e.detail)}
+              />
+            </PanelSection>
+          {/if}
+        </SidePanel>
+      {/if}
     </div>
   {:else if url}
     <div class="audio">
@@ -311,14 +514,18 @@
         <button class="btn icon ghost" on:click={() => (muted = !muted)} aria-label={$t("Silenciar")} title={`${$t("Silenciar")} (M)`}><Icon name={muted || vol === 0 ? "mute" : "volume"} size={15} /></button>
         <input class="vol" type="range" min="0" max="1" step="0.01" bind:value={vol} on:input={() => (muted = false)} aria-label={$t("Volume")} title={`${$t("Volume")}: ${Math.round(vol * 100)} %`} />
       </div>
-      <audio bind:this={el} src={url} on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={tick} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></audio>
+      <audio bind:this={el} src={url} on:error={() => prepare()} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></audio>
     </div>
   {/if}
 </div>
 
 <style>
   .wrap { height: 100%; display: flex; align-items: center; justify-content: center; background: var(--viewer-bg); }
-  .vid { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
+  .vrow { display: flex; width: 100%; height: 100%; min-height: 0; }
+  .vid { position: relative; display: flex; flex-direction: column; flex: 1; min-width: 0; height: 100%; min-height: 0; }
+  .screen { position: relative; flex: 1; min-height: 0; display: flex; }
+  .subs { position: absolute; left: 6%; right: 6%; bottom: 7%; text-align: center; white-space: pre-line; pointer-events: none; color: #fff; font-size: clamp(0.9rem, 2.2vw, 1.5rem); line-height: 1.3; text-shadow: 0 0 3px #000, 0 0 6px #000, 1px 1px 2px #000; }
+  .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   video { flex: 1; min-height: 0; width: 100%; object-fit: contain; cursor: pointer; background: transparent; }
   .segload { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.6rem 0.9rem; background: color-mix(in srgb, var(--bg-elevated) 92%, transparent); border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: 0.82rem; pointer-events: none; }
   .loading { display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
