@@ -437,7 +437,7 @@ pub fn clean_previews() {
 /// navegador non le; MP4 pequeno ou MP3 para audio e vídeo). O orixinal non
 /// se toca.
 #[tauri::command]
-pub async fn make_preview(path: String, head_seconds: Option<f64>) -> Result<String, String> {
+pub async fn make_preview(path: String) -> Result<String, String> {
     blocking(move || {
         let input = PathBuf::from(&path);
         let category = trasno_engine::formats::category_of_path(&input);
@@ -484,21 +484,8 @@ pub async fn make_preview(path: String, head_seconds: Option<f64>) -> Result<Str
                     }
                     out
                 } else {
-                    let head = head_seconds.filter(|h| *h > 0.0);
-                    let out = dir.join(if head.is_some() { format!("{stem}.head.mp4") } else { format!("{stem}.mp4") });
-                    if !out.exists() {
-                        let mut args: Vec<String> = Vec::new();
-                        if let Some(h) = head {
-                            args.extend(["-t".to_string(), h.to_string()]);
-                        }
-                        args.extend(
-                            // Misma resolución e calidade case idéntica; só desentrelaza o que está marcado como entrelazado.
-                            ["-vf", "yadif=0:-1:1", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "17", "-c:a", "aac", "-b:a", "256k", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
-                                .iter().map(|s| s.to_string()),
-                        );
-                        trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
-                    }
-                    out
+                    // O navegador non le este vídeo: o visor pídeo despois por tramos (`make_preview_chunk`).
+                    return Ok("chunks".to_string());
                 }
             }
             Category::Audio => {
@@ -511,6 +498,37 @@ pub async fn make_preview(path: String, head_seconds: Option<f64>) -> Result<Str
             }
             _ => return Err(msg("Para este tipo de ficheiro non hai vista previa alternativa.", serde_json::json!({}))),
         };
+        Ok(out.to_string_lossy().to_string())
+    })
+    .await
+}
+
+/// Un tramo de vídeo (`start`..`start+len` segundos) recodificado só para velo: mesma resolución, calidade moi alta.
+/// O visor pide o tramo que precisa (ao saltar) e o seguinte (ao reproducir), así que se pode ir a calquera punto sen esperar.
+#[tauri::command]
+pub async fn make_preview_chunk(path: String, start: f64, len: f64) -> Result<String, String> {
+    blocking(move || {
+        if !(start >= 0.0 && start.is_finite() && len > 0.0 && len <= 300.0) {
+            return Err(msg("Tramo non válido.", serde_json::json!({})));
+        }
+        let input = PathBuf::from(&path);
+        let dir = preview_dir();
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let stem = format!("{:x}", {
+            use std::hash::{Hash, Hasher};
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            path.hash(&mut h);
+            h.finish()
+        });
+        let out = dir.join(format!("{stem}.s{}.mp4", (start * 1000.0) as u64));
+        if !out.exists() {
+            let pre = vec!["-ss".to_string(), format!("{start:.3}")];
+            let args: Vec<String> = ["-t", &format!("{len:.3}"), "-vf", "yadif=0:-1:1", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "17", "-c:a", "aac", "-b:a", "256k", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect();
+            trasno_engine::ffmpeg::convert_media_seek(&input, &out, true, &pre, &args).map_err(to_err)?;
+        }
         Ok(out.to_string_lossy().to_string())
     })
     .await

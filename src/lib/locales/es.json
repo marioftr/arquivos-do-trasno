@@ -846,5 +846,7 @@
   "O trasno non puido comprobar as actualizacións. Revisa a conexión a internet e proba de novo.": "El trasno no pudo comprobar las actualizaciones. Revisa la conexión a internet e inténtalo de nuevo.",
   "A busca de versións novas e o rexistro de cambios están en Novidades.": "La búsqueda de versiones nuevas y el registro de cambios están en Novedades.",
   "Ir a Actualizacións": "Ir a Actualizaciones",
-  "O visor da app é o dun navegador, que só le uns poucos formatos (sobre todo MP4 e WebM). Por iso o trasno prepara unha copia temporal só para velo, coa mesma resolución. O orixinal non se toca e ao exportar parte sempre del.": "El visor de la app es el de un navegador, que solo lee unos pocos formatos (sobre todo MP4 y WebM). Por eso el trasno prepara una copia temporal solo para verlo, con la misma resolución. El original no se toca y al exportar se parte siempre de él."
+  "O visor da app é o dun navegador, que só le uns poucos formatos (sobre todo MP4 e WebM). Por iso o trasno prepara unha copia temporal só para velo, coa mesma resolución. O orixinal non se toca e ao exportar parte sempre del.": "El visor de la app es el de un navegador, que solo lee unos pocos formatos (sobre todo MP4 y WebM). Por eso el trasno prepara una copia temporal solo para verlo, con la misma resolución. El original no se toca y al exportar se parte siempre de él.",
+  "Preparando este tramo…": "Preparando este tramo…",
+  "Tramo non válido.": "Tramo no válido."
 }

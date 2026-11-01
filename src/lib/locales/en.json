@@ -846,5 +846,7 @@
   "O trasno non puido comprobar as actualizacións. Revisa a conexión a internet e proba de novo.": "The trasno couldn't check for updates. Check your internet connection and try again.",
   "A busca de versións novas e o rexistro de cambios están en Novidades.": "Update checks and the changelog are in What's new.",
   "Ir a Actualizacións": "Go to Updates",
-  "O visor da app é o dun navegador, que só le uns poucos formatos (sobre todo MP4 e WebM). Por iso o trasno prepara unha copia temporal só para velo, coa mesma resolución. O orixinal non se toca e ao exportar parte sempre del.": "The app's viewer is a browser's, which only reads a few formats (mainly MP4 and WebM). So the trasno prepares a temporary copy just for viewing, at the same resolution. The original is never touched and exports always start from it."
+  "O visor da app é o dun navegador, que só le uns poucos formatos (sobre todo MP4 e WebM). Por iso o trasno prepara unha copia temporal só para velo, coa mesma resolución. O orixinal non se toca e ao exportar parte sempre del.": "The app's viewer is a browser's, which only reads a few formats (mainly MP4 and WebM). So the trasno prepares a temporary copy just for viewing, at the same resolution. The original is never touched and exports always start from it.",
+  "Preparando este tramo…": "Preparing this section…",
+  "Tramo non válido.": "Invalid section."
 }

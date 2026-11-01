@@ -196,6 +196,17 @@ pub fn convert_media(
     overwrite: bool,
     extra_args: &[String],
 ) -> Result<PathBuf> {
+    convert_media_seek(input, output_final, overwrite, &[], extra_args)
+}
+
+/// Como `convert_media`, con opcións que van ANTES da entrada (p. ex. `-ss`, que así salta sen decodificar o anterior).
+pub fn convert_media_seek(
+    input: &Path,
+    output_final: &Path,
+    overwrite: bool,
+    pre_args: &[String],
+    extra_args: &[String],
+) -> Result<PathBuf> {
     if !input.is_file() {
         return Err(EngineError::InputNotFound(input.to_path_buf()));
     }
@@ -219,10 +230,9 @@ pub fn convert_media(
         .unwrap_or("out");
     let temp_path = dir.join(format!(".trasno-{}.part.{}", uuid::Uuid::new_v4(), ext));
 
-    let mut args: Vec<std::ffi::OsString> = vec![
-        std::ffi::OsString::from("-i"),
-        input.as_os_str().to_owned(),
-    ];
+    let mut args: Vec<std::ffi::OsString> = pre_args.iter().map(std::ffi::OsString::from).collect();
+    args.push(std::ffi::OsString::from("-i"));
+    args.push(input.as_os_str().to_owned());
     args.extend(extra_args.iter().map(std::ffi::OsString::from));
     args.push(temp_path.as_os_str().to_owned());
 

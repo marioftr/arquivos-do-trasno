@@ -32,37 +32,95 @@
     if (document.fullscreenElement) document.exitFullscreen();
     else stage?.requestFullscreen?.();
   }
-  $: if (el && $mediaSeek) el.currentTime = $mediaSeek.t;
+  $: if (el && $mediaSeek) seek($mediaSeek.t);
 
   // Instante actual, para que as ferramentas (fotograma, corte) o poidan usar.
   let now = 0;
   let duration = 0;
   let playing = false;
+  // Vídeos que o navegador non le: móstranse por tramos de SEG segundos recodificados ao momento. O tempo que ven
+  // as ferramentas e a liña de tempo é o do ficheiro orixinal (tempo do tramo + inicio do tramo).
+  const SEG = 60;
+  let chunked = false;
+  let segIndex = 0;
+  let loadingSeg = false;
+  let totalDur = 0;
+  let afterLoad: { offset: number; play: boolean } | null = null;
+  let segToken = 0;
+  const prefetched = new Set<number>();
+  $: segStart = segIndex * SEG;
+
   function tick() {
     if (!el) return;
-    now = el.currentTime;
-    duration = Number.isFinite(el.duration) && el.duration ? el.duration : (file.duration ?? 0);
+    now = (chunked ? segStart : 0) + el.currentTime;
+    duration = chunked ? totalDur : Number.isFinite(el.duration) && el.duration ? el.duration : (file.duration ?? 0);
     mediaTime.set(Math.round(now * 100) / 100);
+    // O tramo seguinte vai preparándose mentres se ve este.
+    if (chunked && el.currentTime > SEG * 0.4 && segStart + SEG < totalDur && !prefetched.has(segIndex + 1)) {
+      const n = segIndex + 1;
+      prefetched.add(n);
+      engine.makePreviewChunk(file.path, n * SEG, SEG).catch(() => prefetched.delete(n));
+    }
     // Con un corte activo, a reprodución salta a parte que se perde.
     const r = $trimRange;
     if (r && playing) {
-      if (now < r.start - 0.05) el.currentTime = r.start;
+      if (now < r.start - 0.05) seek(r.start);
       else if (now >= r.end) {
         el.pause();
-        el.currentTime = r.start;
+        seek(r.start);
       }
     }
   }
   onDestroy(() => mediaTime.set(0));
 
+  async function loadSeg(idx: number, offset: number, play: boolean) {
+    const mine = ++segToken;
+    loadingSeg = true;
+    segIndex = idx;
+    afterLoad = { offset, play };
+    try {
+      const path = await engine.makePreviewChunk(file.path, idx * SEG, SEG);
+      if (mine !== segToken) return;
+      url = await viewUrl(path);
+    } catch (e) {
+      if (mine !== segToken) return;
+      loadingSeg = false;
+      failed = true;
+      failMsg = errText(e);
+    }
+  }
+  /** Cando o tramo novo está listo: vai ao punto pedido e segue reproducindo se se estaba. */
+  function onMeta() {
+    if (afterLoad && el) {
+      el.currentTime = afterLoad.offset;
+      if (afterLoad.play) el.play().catch(() => {});
+      afterLoad = null;
+    }
+    loadingSeg = false;
+    if (el && $mediaPreview) el.playbackRate = Math.min(4, Math.max(0.25, $mediaPreview.speed));
+    tick();
+  }
+  function onEnded() {
+    if (chunked && segStart + SEG < totalDur) loadSeg(segIndex + 1, 0, true);
+    else playing = false;
+  }
+
   function seek(t: number) {
-    if (el) el.currentTime = t;
+    if (!el) return;
+    if (!chunked) {
+      el.currentTime = t;
+      return;
+    }
+    t = Math.max(0, Math.min(totalDur || t, t));
+    const idx = Math.floor(t / SEG);
+    if (idx === segIndex && !loadingSeg) el.currentTime = t - segStart;
+    else loadSeg(idx, t - idx * SEG, !el.paused || playing);
   }
   function toggle() {
     if (!el) return;
     if (el.paused) {
       const r = $trimRange;
-      if (r && (el.currentTime < r.start || el.currentTime >= r.end)) el.currentTime = r.start;
+      if (r && (now < r.start || now >= r.end)) seek(r.start);
       el.play();
     } else el.pause();
   }
@@ -147,7 +205,6 @@
     "O visor da app é o dun navegador, que só le uns poucos formatos (sobre todo MP4 e WebM). Por iso o trasno prepara unha copia temporal só para velo, coa mesma resolución. O orixinal non se toca e ao exportar parte sempre del.";
   let preparing = false;
   let converted = false; // a vista previa non é o ficheiro orixinal (recodificada)
-  let finishing = false; // a versión completa aínda se está preparando
   let failMsg = "";
   let triedPreview = false;
 
@@ -155,7 +212,13 @@
     failed = false;
     failMsg = "";
     converted = false;
-    finishing = false;
+    chunked = false;
+    segIndex = 0;
+    totalDur = 0;
+    loadingSeg = false;
+    afterLoad = null;
+    segToken++;
+    prefetched.clear();
     triedPreview = false;
     preparing = false;
     playing = false;
@@ -180,31 +243,18 @@
       return;
     }
     try {
-      // Primeiro só o comezo (sae en segundos); o resto prepárase detrás e cámbiase sen perder o punto.
-      const first = await engine.makePreview(file.path, file.category === "video" ? 30 : undefined);
-      converted = !first.includes(".remux.");
-      url = await viewUrl(first);
-      if (!converted || file.category !== "video") previewCache.set(mine, { path: first, converted });
-      if (file.category === "video" && converted) {
-        finishing = true;
-        engine
-          .makePreview(file.path)
-          .then(async (full) => {
-            previewCache.set(mine, { path: full, converted: true });
-            if (full === first || file.path !== mine) return;
-            const at = el?.currentTime ?? 0;
-            const was = playing;
-            url = await viewUrl(full);
-            await tick_();
-            if (el) {
-              el.currentTime = at;
-              if (was) el.play().catch(() => {});
-            }
-          })
-          .catch(() => {})
-          .finally(() => {
-            if (file.path === mine) finishing = false;
-          });
+      const first = await engine.makePreview(file.path);
+      if (first === "chunks") {
+        // Vídeo que o navegador non le: tramos de 1 minuto, coa duración e o tempo do ficheiro orixinal.
+        converted = true;
+        chunked = true;
+        totalDur = file.duration ?? Number((await engine.probeMedia(file.path)).format?.duration) ?? 0;
+        if (!Number.isFinite(totalDur)) totalDur = 0;
+        await loadSeg(0, 0, false);
+      } else {
+        converted = !first.includes(".remux.");
+        url = await viewUrl(first);
+        previewCache.set(mine, { path: first, converted });
       }
     } catch (e) {
       failed = true;
@@ -234,10 +284,11 @@
   {:else if url && file.category === "video"}
     <div class="vid" bind:this={stage}>
       <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-      <video bind:this={el} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={tick} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></video>
+      <video bind:this={el} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
+      {#if loadingSeg}<div class="segload" role="status"><span class="indet" aria-hidden="true"><span></span></span>{$t("Preparando este tramo…")}</div>{/if}
       <div class="under">
         {#if converted}
-          <p class="note" role="note">{finishing ? $t("Vista previa recodificada (a versión completa aínda se está preparando). O ficheiro orixinal non cambia.") : $t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
+          <p class="note" role="note">{$t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
         {/if}
         <div class="ctl">
           <button class="btn icon" on:click={toggle} aria-label={playing ? $t("Pausa") : $t("Reproducir")} title={`${playing ? $t("Pausa") : $t("Reproducir")} (${$t("Espazo")})`}><Icon name={playing ? "pause" : "play"} size={15} /></button>
@@ -267,8 +318,9 @@
 
 <style>
   .wrap { height: 100%; display: flex; align-items: center; justify-content: center; background: var(--viewer-bg); }
-  .vid { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
+  .vid { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
   video { flex: 1; min-height: 0; width: 100%; object-fit: contain; cursor: pointer; background: transparent; }
+  .segload { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.6rem 0.9rem; background: color-mix(in srgb, var(--bg-elevated) 92%, transparent); border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: 0.82rem; pointer-events: none; }
   .loading { display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
   .loading p { margin: 0; }
   .tiny { font-size: 0.78rem; }

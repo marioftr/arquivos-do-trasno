@@ -166,9 +166,9 @@ export async function revealInFolder(path: string): Promise<void> {
 }
 
 /** Copia lixeira que o visor sabe amosar (PNG, MP4 pequeno ou MP3). */
-/** `headSeconds`: só prepara o comezo (sae antes); sen el, o ficheiro enteiro. */
-export async function makePreview(path: string, headSeconds?: number): Promise<string> {
-  return call("make_preview", { path, headSeconds: headSeconds ?? null });
+/** Vista previa que o navegador entende. Para vídeos que non le devolve «chunks»: hai que pedilos por tramos. */
+export async function makePreview(path: string): Promise<string> {
+  return call("make_preview", { path });
 }
 
 export interface ImageCompressReport {
@@ -196,6 +196,11 @@ export async function compressImage(
 
 export async function estimateImage(input: string, quality: number, maxSide?: number): Promise<number> {
   return call("estimate_image", { input, quality, maxSide: maxSide ?? null });
+}
+
+/** Tramo de vídeo recodificado só para velo (ver `make_preview_chunk`). */
+export async function makePreviewChunk(path: string, start: number, len: number): Promise<string> {
+  return call("make_preview_chunk", { path, start, len });
 }
 
 /** Troca os cartafoles polos ficheiros que levan dentro. */

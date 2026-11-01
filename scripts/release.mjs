@@ -31,7 +31,7 @@ edit("src-tauri/tauri.conf.json", /"version": "[^"]+"/, `"version": "${v}"`);
 edit("Cargo.toml", /(\[workspace\.package\]\s*\nversion = )"[^"]+"/, `$1"${v}"`);
 sh("npm install --package-lock-only --ignore-scripts");
 sh("git add -A");
-sh(`git commit -m "Versión ${v}"`);
+if (sh("git status --porcelain")) sh(`git commit -m "Versión ${v}"`);
 sh(`git tag v${v}`);
 const branch = sh("git rev-parse --abbrev-ref HEAD");
 console.log(`\nListo: versión ${v} preparada no teu ordenador.\nPara publicala, executa:\n\n  git push origin ${branch}\n  git push origin v${v}\n`);

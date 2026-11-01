@@ -326,3 +326,27 @@ fn perfil_minidv_desentrelaza_fixa_aspecto_e_usa_high() {
     // yadif=1 dobra a cadencia: 25 -> 50 cadros por segundo.
     assert_eq!(v["r_frame_rate"], "50/1");
 }
+
+#[test]
+fn un_tramo_de_vista_previa_empeza_onde_se_pide_e_dura_o_pedido() {
+    if ffmpeg::ffmpeg_path().is_err() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("cinta.avi");
+    let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+        .args(["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=25:duration=20"])
+        .args(["-f", "lavfi", "-i", "sine=frequency=300:duration=20", "-shortest", "-c:v", "mpeg4", "-q:v", "4"])
+        .arg(&src)
+        .status()
+        .unwrap();
+    assert!(st.success());
+    let out = dir.path().join("tramo.mp4");
+    let pre = vec!["-ss".to_string(), "10.000".to_string()];
+    let args: Vec<String> = ["-t", "5.000", "-vf", "yadif=0:-1:1", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "17", "-c:a", "aac", "-pix_fmt", "yuv420p"].iter().map(|s| s.to_string()).collect();
+    ffmpeg::convert_media_seek(&src, &out, true, &pre, &args).unwrap();
+    let info = ffmpeg::probe(&out).unwrap();
+    let d: f64 = info["format"]["duration"].as_str().unwrap().parse().unwrap();
+    assert!((d - 5.0).abs() < 0.3, "duración {d}");
+    assert_eq!(info["streams"][0]["width"], 320);
+}

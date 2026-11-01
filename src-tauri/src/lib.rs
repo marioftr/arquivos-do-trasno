@@ -71,6 +71,7 @@ pub fn run() {
             commands::reveal_in_folder,
             commands::allow_view_dir,
             commands::make_preview,
+            commands::make_preview_chunk,
             commands::write_bytes,
             commands::compress_image,
             commands::estimate_image,
