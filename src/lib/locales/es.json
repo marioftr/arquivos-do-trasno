@@ -864,5 +864,12 @@
   "Ancho do panel de ferramentas": "Ancho del panel de herramientas",
   "Mostrar o panel": "Mostrar el panel",
   "Agochar o panel": "Ocultar el panel",
-  "Ancho do panel": "Ancho del panel"
+  "Ancho do panel": "Ancho del panel",
+  "Privacidade": "Privacidad",
+  "Termos de uso": "Términos de uso",
+  "Licenza do programa": "Licencia del programa",
+  "Asinado de código": "Firma de código",
+  "Última actualización": "Última actualización",
+  "Contacto: incidencias no repositorio": "Contacto: incidencias en el repositorio",
+  "Ver LICENSE no repositorio": "Ver LICENSE en el repositorio"
 }

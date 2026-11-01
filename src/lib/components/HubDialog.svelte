@@ -12,6 +12,8 @@
   import ToolsPanel from "./ToolsPanel.svelte";
   import NewsPanel from "./NewsPanel.svelte";
   import CreditsPanel from "./CreditsPanel.svelte";
+  import LegalPanel from "./LegalPanel.svelte";
+  import type { DocId } from "../legal";
 
   /** Todo o que non son ferramentas, nunha soa xanela: a árbore da esquerda leva a calquera páxina. */
   $: running = $procs.filter((p) => p.state === "running").length;
@@ -35,7 +37,18 @@
       ],
     },
     { id: "news", label: $t("Novidades"), icon: "info", items: [{ id: "changelog", label: $t("Rexistro de cambios") }, { id: "updates", label: $t("Actualizacións"), dot: $updateAvailable }] },
-    { id: "about", label: $t("Sobre o trasno"), icon: "puzzle", items: [{ id: "credits", label: $t("Créditos e licenzas") }] },
+    {
+      id: "about",
+      label: $t("Sobre o trasno"),
+      icon: "puzzle",
+      items: [
+        { id: "credits", label: $t("Créditos e licenzas") },
+        { id: "privacy", label: $t("Privacidade") },
+        { id: "terms", label: $t("Termos de uso") },
+        { id: "license", label: $t("Licenza do programa") },
+        { id: "signing", label: $t("Asinado de código") },
+      ],
+    },
   ] as { id: string; label: string; icon: string; items: Item[] }[]);
   $: [grp, sub] = $hubPage.split(".");
   $: title = groups.find((g) => g.id === grp)?.label ?? "";
@@ -68,6 +81,7 @@
       {:else if $hubPage === "news.changelog"}<NewsPanel part="changelog" />
       {:else if $hubPage === "news.updates"}<NewsPanel part="updates" />
       {:else if $hubPage === "about.credits"}<CreditsPanel />
+      {:else if $hubPage.startsWith("about.")}<LegalPanel doc={$hubPage.slice(6) as DocId} />
       {/if}
     </div>
   </div>
