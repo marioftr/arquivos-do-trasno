@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { askPath, askDir } from "./shared";
   import { onMount } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
   import { join } from "@tauri-apps/api/path";
@@ -23,7 +24,6 @@
 
   const job = createJob();
   const busy = job.busy;
-  let outputDir: string | null = null;
 
   $: total = file.pages ?? 0;
 
@@ -63,11 +63,6 @@
     }
   })();
 
-  async function chooseDir() {
-    const chosen = await open({ directory: true });
-    if (typeof chosen === "string") outputDir = chosen;
-  }
-
   async function run() {
     let list: number[][];
     try {
@@ -76,9 +71,8 @@
       job.say(false, errText(e));
       return;
     }
-    const dir = outputDir ?? ((await open({ directory: true })) as string | null);
+    const dir = await askDir(file.path);
     if (!dir) return;
-    outputDir = dir;
     const dot = file.name.lastIndexOf(".");
     const base = dot > 0 ? file.name.slice(0, dot) : file.name;
     job.busy.set(true);
@@ -118,7 +112,6 @@
     {/if}
     {#if preview !== null}<p class="group-note">{$t("Resultado: {n} PDF", { n: preview })} · {$t("O PDF ten {n} páxinas.", { n: total })}</p>{/if}
   </div>
-  <button class="btn" on:click={chooseDir} disabled={$busy}><Icon name="folder" size={14} /> {outputDir ? fileNameOf(outputDir) : $t("Cartafol de saída")}</button>
   <button class="btn primary block" on:click={run} disabled={$busy || preview === null}>{$t("Dividir o PDF")}</button>
   <JobStatus {job} />
 </div>

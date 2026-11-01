@@ -11,7 +11,7 @@
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
   import { targetsForCategory, withExtension, fileNameOf, formatBytes, AUDIO_TARGETS, TRASNO, fallo, listo } from "../../formats";
-  import { samePath } from "./shared";
+  import { samePath, askPath, askDir } from "./shared";
   import Icon from "../Icon.svelte";
   import Slider from "../ui/Slider.svelte";
   import NumberField from "../ui/NumberField.svelte";
@@ -50,7 +50,6 @@
 
   const job = createJob();
   const busy = job.busy;
-  let outputDir: string | null = null;
   let results: { name: string; state: "agarda" | "feito" | "erro"; text?: string }[] = [];
 
   function onW(raw: string) {
@@ -100,7 +99,7 @@
   }
 
   async function convertSingle() {
-    const out = await save({ defaultPath: withExtension(first.path, $form.targetExt) });
+    const out = await askPath(withExtension(first.path, $form.targetExt));
     if (!out) return;
     if (samePath(out, first.path)) {
       job.say(false, tr("Non vou sobrescribir o ficheiro orixinal. Escolle outro nome."));
@@ -112,15 +111,9 @@
     });
   }
 
-  async function chooseDir() {
-    const chosen = await open({ directory: true });
-    if (typeof chosen === "string") outputDir = chosen;
-  }
-
   async function convertBatch() {
-    const dir = outputDir ?? ((await open({ directory: true })) as string | null);
+    const dir = await askDir(selection[0].path);
     if (!dir) return;
-    outputDir = dir;
     const ext = $form.targetExt;
     results = selection.map((f) => ({ name: f.name, state: "agarda" }));
     job.busy.set(true);
@@ -200,10 +193,6 @@
   </div>
 
   {#if multi}
-    <button class="btn" on:click={chooseDir} disabled={$busy} title={$t("Gardar todo neste cartafol")}>
-      <Icon name="folder" size={14} />
-      {outputDir ? fileNameOf(outputDir) : $t("Cartafol de saída")}
-    </button>
     <button class="btn primary block" on:click={convertBatch} disabled={$busy || !$form.targetExt}>
       {$t("Converter {n} ficheiros", { n: selection.length })}
     </button>

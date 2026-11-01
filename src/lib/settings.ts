@@ -42,8 +42,48 @@ theme.subscribe((t) => {
 });
 media?.addEventListener("change", () => apply(get(theme)));
 
+/** Onde se gardan os resultados: preguntar cada vez, xunto ao orixinal ou nun cartafol fixo. */
+export type OutputMode = "ask" | "beside" | "folder";
+function persisted<T extends string>(key: string, allowed: T[], fallback: T) {
+  let v = fallback;
+  try {
+    const s = localStorage.getItem(key);
+    if (s && (allowed as string[]).includes(s)) v = s as T;
+  } catch {
+    // ignorar
+  }
+  const store = writable<T>(v);
+  store.subscribe((x) => {
+    try {
+      localStorage.setItem(key, x);
+    } catch {
+      // ignorar
+    }
+  });
+  return store;
+}
+export const outputMode = persisted<OutputMode>("arquivos-do-trasno.output-mode", ["ask", "beside", "folder"], "ask");
+function persistedText(key: string) {
+  let v = "";
+  try {
+    v = localStorage.getItem(key) ?? "";
+  } catch {
+    // ignorar
+  }
+  const store = writable<string>(v);
+  store.subscribe((x) => {
+    try {
+      localStorage.setItem(key, x);
+    } catch {
+      // ignorar
+    }
+  });
+  return store;
+}
+export const outputFolder = persistedText("arquivos-do-trasno.output-folder");
+
 /** Que xanela modal está aberta. */
-export const dialog = writable<"tools" | "credits" | null>(null);
+export const dialog = writable<"tools" | "credits" | "settings" | null>(null);
 
 /** Programas externos que a app aproveita. `null` ata saber o resultado. */
 export const tools = writable<engine.ToolsStatus | null>(null);

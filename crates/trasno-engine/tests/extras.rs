@@ -140,15 +140,34 @@ fn mkv_quita_pistas_e_cambia_nomes_sen_recodificar() {
     assert_eq!(before["tracks"].as_array().unwrap().len(), 2);
 
     let out = dir.path().join("so-video.mkv");
-    let edits = [mkv::TrackEdit { id: 0, name: Some("Principal".into()), language: Some("glg".into()), default: Some(true) }];
-    mkv::remux(&src, &out, false, &[0], &edits).unwrap();
+    let edits = vec![mkv::TrackEdit { id: 0, name: Some("Principal".into()), language: Some("glg".into()), default: Some(true) }];
+    let one = |keep: Vec<u64>, edits: Vec<mkv::TrackEdit>| [mkv::MuxInput { path: src.clone(), keep, edits }];
+    mkv::mux(&one(vec![0], edits), &[], &out, false).unwrap();
     let after = mkv::tracks(&out).unwrap();
     let list = after["tracks"].as_array().unwrap();
     assert_eq!(list.len(), 1);
     assert_eq!(list[0]["properties"]["track_name"], "Principal");
     assert_eq!(list[0]["properties"]["language"], "glg");
     // Sen pistas non hai nada que gardar, e o orixinal queda igual.
-    assert!(mkv::remux(&src, &dir.path().join("x.mkv"), false, &[], &[]).is_err());
+    assert!(mkv::mux(&one(vec![], vec![]), &[], &dir.path().join("x.mkv"), false).is_err());
+    // Idioma inválido: rexeitado antes de lanzar nada.
+    let bad = vec![mkv::TrackEdit { id: 0, name: None, language: Some("--x".into()), default: None }];
+    assert!(mkv::mux(&one(vec![0], bad), &[], &dir.path().join("y.mkv"), false).is_err());
+    // Mestura de dous ficheiros coa orde cambiada: o audio de b antes do vídeo de a.
+    let b = dir.path().join("b.mkv");
+    std::fs::copy(&src, &b).unwrap();
+    let both = [
+        mkv::MuxInput { path: src.clone(), keep: vec![0], edits: vec![] },
+        mkv::MuxInput { path: b.clone(), keep: vec![1], edits: vec![] },
+    ];
+    let order = [mkv::TrackRef { input: 1, id: 1 }, mkv::TrackRef { input: 0, id: 0 }];
+    let mixed = dir.path().join("mix.mkv");
+    mkv::mux(&both, &order, &mixed, false).unwrap();
+    let t = mkv::tracks(&mixed).unwrap();
+    let list = t["tracks"].as_array().unwrap();
+    assert_eq!(list.len(), 2);
+    assert_eq!(list[0]["type"], "audio");
+    assert_eq!(list[1]["type"], "video");
     assert_eq!(mkv::tracks(&src).unwrap()["tracks"].as_array().unwrap().len(), 2);
 }
 

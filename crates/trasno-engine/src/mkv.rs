@@ -69,30 +69,49 @@ pub struct TrackEdit {
     pub default: Option<bool>,
 }
 
-/// Garda unha copia con só as pistas indicadas e os cambios de nome, idioma
-/// e pista por defecto. Non se recodifica nada. O orixinal non se toca.
-pub fn remux(input: &Path, output: &Path, overwrite: bool, keep: &[u64], edits: &[TrackEdit]) -> Result<PathBuf> {
-    ensure_distinct(&[input], output)?;
-    if output.exists() && !overwrite {
-        return Err(EngineError::DestinationExists(output.to_path_buf()));
+/// Un ficheiro de orixe da mestura: as pistas que se queren del e os cambios que se lles fan.
+#[derive(Debug, Clone, Deserialize)]
+pub struct MuxInput {
+    pub path: PathBuf,
+    pub keep: Vec<u64>,
+    #[serde(default)]
+    pub edits: Vec<TrackEdit>,
+}
+
+/// Unha pista na orde final: o ficheiro (posición en `inputs`) e o seu id.
+#[derive(Debug, Clone, Deserialize)]
+pub struct TrackRef {
+    pub input: usize,
+    pub id: u64,
+}
+
+fn valid_language(l: &str) -> bool {
+    !l.is_empty()
+        && l.len() <= 12
+        && l.split('-').all(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_alphanumeric()))
+        && l.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
+}
+
+/// Mestura as pistas de un ou varios ficheiros nun MKV novo, na orde indicada,
+/// con nomes, idiomas e pista por defecto. Non se recodifica nada e os
+/// orixinais non se tocan.
+pub fn mux(inputs: &[MuxInput], order: &[TrackRef], output: &Path, overwrite: bool) -> Result<PathBuf> {
+    if inputs.is_empty() || inputs.iter().all(|i| i.keep.is_empty()) {
+        return Err(EngineError::IntegrityCheck("Hai que deixar polo menos unha pista.".into()));
     }
-    let info = tracks(input)?;
-    let list = info["tracks"].as_array().cloned().unwrap_or_default();
-    let mut by_type: std::collections::BTreeMap<&str, Vec<String>> = Default::default();
-    for t in &list {
-        let (Some(id), Some(ty)) = (t["id"].as_u64(), t["type"].as_str()) else { continue };
-        if keep.contains(&id) {
-            let key = match ty {
-                "video" => "video",
-                "audio" => "audio",
-                "subtitles" => "subtitle",
-                _ => "other",
-            };
-            by_type.entry(key).or_default().push(id.to_string());
+    for i in inputs {
+        if !i.path.is_file() {
+            return Err(EngineError::InputNotFound(i.path.clone()));
+        }
+        // Un nome que empece por «-» podería tomarse por unha opción de mkvmerge.
+        if i.path.to_string_lossy().starts_with('-') {
+            return Err(EngineError::IntegrityCheck("O nome do ficheiro empeza por «-»: usa a ruta completa.".into()));
         }
     }
-    if by_type.is_empty() {
-        return Err(EngineError::IntegrityCheck("Hai que deixar polo menos unha pista.".into()));
+    let refs: Vec<&Path> = inputs.iter().map(|i| i.path.as_path()).collect();
+    ensure_distinct(&refs, output)?;
+    if output.exists() && !overwrite {
+        return Err(EngineError::DestinationExists(output.to_path_buf()));
     }
 
     let dir = output.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or_else(|| Path::new("."));
@@ -101,27 +120,54 @@ pub fn remux(input: &Path, output: &Path, overwrite: bool, keep: &[u64], edits: 
     let temp = dir.join(format!(".trasno-{}.part.{}", uuid::Uuid::new_v4(), ext));
 
     let mut args: Vec<std::ffi::OsString> = vec!["-o".into(), temp.as_os_str().to_owned()];
-    for (opt, none) in [("video", "--no-video"), ("audio", "--no-audio"), ("subtitle", "--no-subtitles")] {
-        match by_type.get(opt) {
-            Some(ids) => args.extend([format!("--{opt}-tracks").into(), ids.join(",").into()]),
-            None => args.push(none.into()),
-        }
-    }
-    args.push("--no-attachments".into());
-    for e in edits.iter().filter(|e| keep.contains(&e.id)) {
-        if let Some(n) = &e.name {
-            args.extend(["--track-name".into(), format!("{}:{}", e.id, n).into()]);
-        }
-        if let Some(l) = &e.language {
-            if !l.is_empty() {
-                args.extend(["--language".into(), format!("{}:{}", e.id, l).into()]);
+    for inp in inputs {
+        let info = tracks(&inp.path)?;
+        let list = info["tracks"].as_array().cloned().unwrap_or_default();
+        let mut by_type: std::collections::BTreeMap<&str, Vec<String>> = Default::default();
+        for t in &list {
+            let (Some(id), Some(ty)) = (t["id"].as_u64(), t["type"].as_str()) else { continue };
+            if inp.keep.contains(&id) {
+                let key = match ty {
+                    "video" => "video",
+                    "audio" => "audio",
+                    "subtitles" => "subtitle",
+                    _ => "other",
+                };
+                by_type.entry(key).or_default().push(id.to_string());
             }
         }
-        if let Some(d) = e.default {
-            args.extend(["--default-track-flag".into(), format!("{}:{}", e.id, if d { 1 } else { 0 }).into()]);
+        for (opt, none) in [("video", "--no-video"), ("audio", "--no-audio"), ("subtitle", "--no-subtitles")] {
+            match by_type.get(opt) {
+                Some(ids) => args.extend([format!("--{opt}-tracks").into(), ids.join(",").into()]),
+                None => args.push(none.into()),
+            }
         }
+        args.push("--no-attachments".into());
+        for e in inp.edits.iter().filter(|e| inp.keep.contains(&e.id)) {
+            if let Some(n) = &e.name {
+                args.extend(["--track-name".into(), format!("{}:{}", e.id, n).into()]);
+            }
+            if let Some(l) = &e.language {
+                if !valid_language(l) {
+                    return Err(EngineError::IntegrityCheck("O código de idioma non é válido (por exemplo: glg, spa, eng).".into()));
+                }
+                args.extend(["--language".into(), format!("{}:{}", e.id, l).into()]);
+            }
+            if let Some(d) = e.default {
+                args.extend(["--default-track-flag".into(), format!("{}:{}", e.id, if d { 1 } else { 0 }).into()]);
+            }
+        }
+        args.push(inp.path.as_os_str().to_owned());
     }
-    args.push(input.as_os_str().to_owned());
+    // Orde das pistas na saída (só as que se conservan).
+    let wanted: Vec<String> = order
+        .iter()
+        .filter(|r| inputs.get(r.input).is_some_and(|i| i.keep.contains(&r.id)))
+        .map(|r| format!("{}:{}", r.input, r.id))
+        .collect();
+    if !wanted.is_empty() {
+        args.extend(["--track-order".into(), wanted.join(",").into()]);
+    }
 
     if let Err(e) = run(&args) {
         let _ = std::fs::remove_file(&temp);

@@ -270,6 +270,8 @@ export async function pdfRepair(input: string, output: string, overwrite = false
   return call("pdf_repair", { input, output, overwrite });
 }
 
+export const uniquePath = (path: string): Promise<string> => call("unique_path", { path });
+
 export interface ToolsStatus {
   ffmpeg: boolean;
   ffprobe: boolean;
@@ -291,8 +293,17 @@ export interface TrackEdit {
   language?: string;
   default?: boolean;
 }
-export const mkvRemux = (input: string, output: string, keep: number[], edits: TrackEdit[], overwrite = false): Promise<string> =>
-  call("mkv_remux", { input, output, overwrite, keep, edits });
+export interface MuxInput {
+  path: string;
+  keep: number[];
+  edits: TrackEdit[];
+}
+export interface TrackRef {
+  input: number;
+  id: number;
+}
+export const mkvMux = (inputs: MuxInput[], order: TrackRef[], output: string, overwrite = false): Promise<string> =>
+  call("mkv_mux", { inputs, order, output, overwrite });
 
 export type LinkId = "ffmpeg" | "ffmpeg-license" | "mkvtoolnix" | "mkvtoolnix-license";
 export const openLink = (id: LinkId): Promise<void> => call("open_link", { id });

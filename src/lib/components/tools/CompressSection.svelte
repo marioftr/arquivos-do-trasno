@@ -9,7 +9,7 @@
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
-  import { samePath } from "./shared";
+  import { samePath, askPath, askDir } from "./shared";
   import Icon from "../Icon.svelte";
   import Slider from "../ui/Slider.svelte";
   import NumberField from "../ui/NumberField.svelte";
@@ -52,7 +52,6 @@
 
   const job = createJob();
   const busy = job.busy;
-  let outputDir: string | null = null;
   let estimating = false;
   let estimate: number | null = null;
   let results: { name: string; state: "agarda" | "feito" | "erro"; text?: string }[] = [];
@@ -123,7 +122,7 @@
 
   async function runSingle() {
     const stem = first.path.replace(/\.[^.\\/]+$/, "");
-    const out = await save({ defaultPath: withExtension(`${stem}${tr("-comprimido")}`, outExt()) });
+    const out = await askPath(withExtension(`${stem}${tr("-comprimido")}`, outExt()));
     if (!out) return;
     if (samePath(out, first.path)) {
       job.say(false, tr("Non vou sobrescribir o ficheiro orixinal. Escolle outro nome."));
@@ -135,15 +134,9 @@
     });
   }
 
-  async function chooseDir() {
-    const chosen = await open({ directory: true });
-    if (typeof chosen === "string") outputDir = chosen;
-  }
-
   async function runBatch() {
-    const dir = outputDir ?? ((await open({ directory: true })) as string | null);
+    const dir = await askDir(selection[0].path);
     if (!dir) return;
-    outputDir = dir;
     results = selection.map((f) => ({ name: f.name, state: "agarda" }));
     job.busy.set(true);
     job.text.set(tr(TRASNO.comprimindo));
@@ -251,10 +244,6 @@
   {/if}
 
   {#if multi}
-    <button class="btn" on:click={chooseDir} disabled={$busy} title={$t("Gardar todo neste cartafol")}>
-      <Icon name="folder" size={14} />
-      {outputDir ? fileNameOf(outputDir) : $t("Cartafol de saída")}
-    </button>
     <button class="btn primary block" on:click={runBatch} disabled={$busy}>
       {isImage ? $t("Comprimir {n} imaxes", { n: selection.length }) : $t("Comprimir {n} vídeos", { n: selection.length })}
     </button>

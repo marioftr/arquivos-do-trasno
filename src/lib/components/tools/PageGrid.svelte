@@ -12,7 +12,7 @@
   export let file: FileEntry;
   export let selected: number[] = [];
 
-  const dispatch = createEventDispatcher<{ toggle: number }>();
+  const dispatch = createEventDispatcher<{ toggle: number; total: number }>();
   let thumbs: string[] = [];
   let loading = true;
   let error = "";
@@ -22,6 +22,7 @@
     try {
       const res = await fetch(await viewUrl(file.path));
       const doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()) }).promise;
+      dispatch("total", doc.numPages);
       for (let n = 1; n <= doc.numPages && alive; n++) {
         const page = await doc.getPage(n);
         const vp = page.getViewport({ scale: 0.3 });

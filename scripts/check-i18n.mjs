@@ -58,8 +58,9 @@ for (const file of walk(root)) {
     add("Ruta", rel);
   }
   // Pestanas das ferramentas
-  if (rel.endsWith("ToolsDialog.svelte") || rel.endsWith("CreditsDialog.svelte") || rel.endsWith("MkvTracksSection.svelte")) {
-    for (const m of src.matchAll(new RegExp(String.raw`\b(?:why|unlocks|what)\s*:\s*${str}`, "g"))) add(unesc(m[1]), rel);
+  if (rel.endsWith("ToolsDialog.svelte") || rel.endsWith("CreditsDialog.svelte") || rel.endsWith("MkvTracksSection.svelte") || rel.endsWith("SettingsDialog.svelte")) {
+    for (const m of src.matchAll(new RegExp(String.raw`\b(?:why|unlocks|what|d)\s*:\s*${str}`, "g"))) add(unesc(m[1]), rel);
+    if (rel.endsWith("SettingsDialog.svelte")) for (const m of src.matchAll(new RegExp(String.raw`\btitle\s*:\s*${str}`, "g"))) add(unesc(m[1]), rel);
     for (const m of src.matchAll(new RegExp(String.raw`\b(?:video|audio|subtitles)\s*:\s*${str}`, "g"))) add(unesc(m[1]), rel);
   }
   if (rel.endsWith("Tools.svelte")) for (const m of src.matchAll(new RegExp(String.raw`\b(?:tab|m)\(\s*"[a-z]+"\s*,\s*${str}`, "g"))) add(unesc(m[1]), rel);

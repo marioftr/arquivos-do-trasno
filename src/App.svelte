@@ -14,6 +14,7 @@
   import { t, lang, LANGS, type Lang } from "./lib/i18n";
   import { theme, dialog, tools, welcomeIfNeeded, type Theme } from "./lib/settings";
   import ToolsDialog from "./lib/components/ToolsDialog.svelte";
+  import SettingsDialog from "./lib/components/SettingsDialog.svelte";
   import CreditsDialog from "./lib/components/CreditsDialog.svelte";
 
   let dragging = false;
@@ -83,23 +84,12 @@
   <header class="top">
     <span class="brand"><BrandMark size={20} /> Arquivos do Trasno</span>
     <span class="grow"></span>
-    <label class="langsel">
-      <span class="muted">{$t("Tema")}</span>
-      <select value={$theme} on:change={(e) => theme.set(e.currentTarget.value as Theme)} aria-label={$t("Tema")}>
-        {#each THEMES as x}<option value={x.id}>{$t(x.label)}</option>{/each}
-      </select>
-    </label>
-    <label class="langsel">
-      <span class="muted">{$t("Idioma")}</span>
-      <select value={$lang} on:change={(e) => lang.set(e.currentTarget.value as Lang)} aria-label={$t("Idioma")}>
-        {#each LANGS as l}<option value={l.id}>{l.label}</option>{/each}
-      </select>
-    </label>
     {#if ffmpegOk === false && needsFfmpeg}
       <button class="aviso" on:click={() => dialog.set("tools")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: ver como instalalo")}</button>
     {/if}
     <button class="btn ghost" on:click={() => dialog.set("tools")} title={$t("Extensións")}><Icon name="puzzle" size={15} /> {$t("Extensións")}</button>
     <button class="btn ghost" on:click={() => dialog.set("credits")} title={$t("Créditos e licenzas")}><Icon name="info" size={15} /> {$t("Créditos")}</button>
+    <button class="btn ghost" on:click={() => dialog.set("settings")} title={$t("Axustes")}><Icon name="gear" size={15} /> {$t("Axustes")}</button>
   </header>
 
   {#if $files.length === 0}
@@ -126,7 +116,7 @@
     </main>
   {/if}
 
-  {#if $dialog === "tools"}<ToolsDialog />{:else if $dialog === "credits"}<CreditsDialog />{/if}
+  {#if $dialog === "tools"}<ToolsDialog />{:else if $dialog === "settings"}<SettingsDialog />{:else if $dialog === "credits"}<CreditsDialog />{/if}
 
   {#if dragging}
     <div class="veil"><span>{$t("Solta os ficheiros para que o trasno os colla")}</span></div>
@@ -138,8 +128,6 @@
   .top { display: flex; align-items: center; gap: 0.8rem; padding: 0.55rem 1rem; border-bottom: 1px solid var(--border); background: var(--bg-rail); min-height: 46px; }
   .brand { display: inline-flex; align-items: center; gap: 0.55rem; font-weight: 650; font-size: 0.92rem; }
   .grow { flex: 1; }
-  .langsel { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; }
-  .langsel select { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0.25em 0.5em; font-size: 0.8rem; }
   .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.82rem; }
 
   .home { flex: 1; min-height: 0; display: flex; padding: 1.5rem; }
@@ -151,7 +139,7 @@
   .drop p { margin: 0; max-width: 54ch; }
   .formatos { font-size: 0.75rem; letter-spacing: 0.04em; margin-top: 0.8rem !important; }
 
-  .work { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(210px, 270px) minmax(0, 1fr) minmax(320px, 390px); }
+  .work { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(210px, 270px) minmax(0, 1fr) minmax(320px, 390px); }
   .left, .right { min-height: 0; min-width: 0; background: var(--bg-rail); }
   .left { border-right: 1px solid var(--border); }
   .right { border-left: 1px solid var(--border); }

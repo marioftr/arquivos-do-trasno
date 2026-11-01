@@ -1,4 +1,8 @@
-import { save } from "@tauri-apps/plugin-dialog";
+import { save, open } from "@tauri-apps/plugin-dialog";
+import { join } from "@tauri-apps/api/path";
+import { get } from "svelte/store";
+import * as engine from "../../engine";
+import { outputMode, outputFolder } from "../../settings";
 import { withExtension } from "../../formats";
 import { tr } from "../../i18n";
 import type { FileEntry } from "../../files";
@@ -7,10 +11,33 @@ export function samePath(a: string, b: string): boolean {
   return a.replace(/\\/g, "/").toLowerCase() === b.replace(/\\/g, "/").toLowerCase();
 }
 
+const baseName = (p: string) => p.replace(/^.*[\\/]/, "");
+const dirName = (p: string) => p.replace(/[\\/][^\\/]*$/, "");
+
+/** Onde gardar un ficheiro, segundo a preferencia de Axustes: pregunta, xunto ao orixinal ou no cartafol fixo.
+ * Cando non pregunta, nunca pisa un ficheiro que xa exista (engade « (2)»...). */
+export async function askPath(defaultPath: string): Promise<string | null> {
+  const mode = get(outputMode);
+  const folder = get(outputFolder);
+  if (mode === "ask" || (mode === "folder" && !folder)) return (await save({ defaultPath })) ?? null;
+  const target = mode === "folder" ? await join(folder, baseName(defaultPath)) : defaultPath;
+  return engine.uniquePath(target);
+}
+
+/** O mesmo para lotes: devolve o cartafol onde se gardan todos os resultados. */
+export async function askDir(anchorPath: string): Promise<string | null> {
+  const mode = get(outputMode);
+  const folder = get(outputFolder);
+  if (mode === "beside") return dirName(anchorPath);
+  if (mode === "folder" && folder) return folder;
+  const chosen = await open({ directory: true });
+  return typeof chosen === "string" ? chosen : null;
+}
+
 /** Pide onde gardar o resultado. Nunca devolve a ruta do orixinal. */
 export async function askOutput(f: FileEntry, suffix: string, ext: string = f.ext): Promise<string | null> {
   const stem = f.path.replace(/\.[^.\\/]+$/, "");
-  const out = await save({ defaultPath: withExtension(`${stem}${suffix}`, ext) });
+  const out = await askPath(withExtension(`${stem}${suffix}`, ext));
   if (!out) return null;
   if (samePath(out, f.path)) {
     throw new Error(tr("Non vou sobrescribir o ficheiro orixinal. Escolle outro nome."));

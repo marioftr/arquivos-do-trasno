@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { askPath, askDir } from "./shared";
   import { onMount } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
   import { join } from "@tauri-apps/api/path";
@@ -27,7 +28,6 @@
 
   const job = createJob();
   const busy = job.busy;
-  let outputDir: string | null = null;
 
   function parsePages(spec: string, total: number): number[] {
     if (!spec.trim()) return Array.from({ length: total }, (_, i) => i + 1);
@@ -48,15 +48,9 @@
     return pages;
   }
 
-  async function chooseDir() {
-    const chosen = await open({ directory: true });
-    if (typeof chosen === "string") outputDir = chosen;
-  }
-
   async function run() {
-    const dir = outputDir ?? ((await open({ directory: true })) as string | null);
+    const dir = await askDir(file.path);
     if (!dir) return;
-    outputDir = dir;
     const f = $form;
     job.busy.set(true);
     job.clear();
@@ -114,10 +108,6 @@
     <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
   </div>
 
-  <button class="btn" on:click={chooseDir} disabled={$busy} title={$t("Gardar todo neste cartafol")}>
-    <Icon name="folder" size={14} />
-    {outputDir ? fileNameOf(outputDir) : $t("Cartafol de saída")}
-  </button>
   <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Converter a imaxes")}</button>
   <JobStatus {job} />
 </div>

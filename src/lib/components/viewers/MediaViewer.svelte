@@ -221,7 +221,7 @@
 <style>
   .wrap { height: 100%; display: flex; align-items: center; justify-content: center; background: var(--viewer-bg); }
   .vid { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
-  video { flex: 1; min-height: 0; width: 100%; object-fit: contain; cursor: pointer; background: #000; }
+  video { flex: 1; min-height: 0; width: 100%; object-fit: contain; cursor: pointer; background: transparent; }
   .under { padding: 0.7rem 1rem 0.6rem; background: var(--bg-rail); border-top: 1px solid var(--border); }
   .audio { display: flex; flex-direction: column; gap: 0.9rem; align-items: stretch; padding: 2rem; width: min(820px, 100%); }
   .nome { color: var(--text-muted); text-align: center; }
@@ -229,8 +229,9 @@
   .ctl.center { justify-content: center; }
   .tlw { flex: 1; min-width: 0; }
   .vol { width: 88px; accent-color: var(--accent); }
-  .vid { background: #000; }
-  .vid:fullscreen .under { background: rgba(14, 14, 17, 0.92); }
+  .vid { background: var(--viewer-bg); }
+  .vid:fullscreen, .vid::backdrop { background: var(--viewer-bg); }
+  .vid:fullscreen .under { background: var(--bg-rail); }
   .time { font-variant-numeric: tabular-nums; font-size: 0.85rem; }
   .ph { text-align: center; font-size: 0.82rem; }
   .msg { padding: 2rem; text-align: center; }

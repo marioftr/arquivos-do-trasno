@@ -42,12 +42,13 @@
     const tab = (id: string, label: string) => ({ id, label: tt(label) });
     // Os contedores Matroska teñen a súa propia pestana de pistas (MKVToolNix).
     const mkvTab = () => (["mkv", "mka", "webm"].includes(ext) ? [tab("mkv", "Pistas")] : []);
+    const multiMkv = () => [tab("mkv", "Pistas")];
     if (!cat) return [];
     if (many) {
       if (pdf) return [tab("merge", "Unir")];
       if (cat === "imaxe") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("merge", "Unir")];
-      if (cat === "video") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("merge", "Unir")];
-      if (cat === "audio") return [tab("convert", "Converter"), tab("merge", "Unir")];
+      if (cat === "video") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("merge", "Unir"), ...multiMkv()];
+      if (cat === "audio") return [tab("convert", "Converter"), tab("merge", "Unir"), ...multiMkv()];
       return [tab("convert", "Converter")];
     }
     switch (cat) {
@@ -98,11 +99,7 @@
   $: mode = modes.length ? sub[current] : "";
 
   // Sen os programas externos, as ferramentas que dependen deles quedan bloqueadas (e explícase por que).
-  $: locked = !!$tools && !multi
-    ? current === "mkv"
-      ? !$tools.mkvmerge
-      : (category === "audio" || category === "video") && !$tools.ffmpeg
-    : !!$tools && multi && (category === "audio" || category === "video") && !$tools.ffmpeg;
+  $: locked = !!$tools && (current === "mkv" ? !$tools.mkvmerge : (category === "audio" || category === "video") && !$tools.ffmpeg);
 </script>
 
 <div class="tools">
@@ -139,7 +136,7 @@
             <button class="btn primary" on:click={() => dialog.set("tools")}>{$t("Ver como instalalo")}</button>
           </div>
         {:else if current === "mkv" && first}
-          <MkvTracksSection file={first} />
+          <MkvTracksSection {selection} />
         {:else if current === "convert" && mode === "images" && first}
           <PdfImagesSection file={first} />
         {:else if current === "convert"}

@@ -26,7 +26,10 @@
   const job = createJob();
 
   // Vista previa: páxinas escollidas e xiro, antes de gardar nada.
-  $: sel = safePages($form.pageSpec, file.pages);
+  // O número de páxinas pode non vir co ficheiro: tómase das miniaturas.
+  let gridTotal = 0;
+  $: total = file.pages ?? (gridTotal || undefined);
+  $: sel = safePages($form.pageSpec, total);
   $: pdfOverlay.set({
     select: sel ?? undefined,
     rotate: $form.degrees ? { degrees: $form.degrees, page: $form.rotateAll ? null : $form.rotatePage } : undefined,
@@ -66,7 +69,7 @@
     }
     form.update((v) => ({ ...v, pageSpec: parts.join(",") }));
   }
-  const selectAll = () => file.pages && form.update((v) => ({ ...v, pageSpec: `1-${file.pages}` }));
+  const selectAll = () => total && form.update((v) => ({ ...v, pageSpec: `1-${total}` }));
   const selectNone = () => form.update((v) => ({ ...v, pageSpec: "" }));
 
   async function extract() {
@@ -102,10 +105,10 @@
     <h4 class="group-title">{$t("Extraer páxinas")}</h4>
     <p class="group-note">{$t("Marca as páxinas que queres nas miniaturas, ou escribe os números.")}</p>
     <div class="pair">
-      <button class="btn" on:click={selectAll} disabled={!file.pages}>{$t("Todas")}</button>
+      <button class="btn" on:click={selectAll} disabled={!total}>{$t("Todas")}</button>
       <button class="btn" on:click={selectNone}>{$t("Ningunha")}</button>
     </div>
-    <PageGrid {file} selected={sel ?? []} on:toggle={(e) => togglePage(e.detail)} />
+    <PageGrid {file} selected={sel ?? []} on:toggle={(e) => togglePage(e.detail)} on:total={(e) => (gridTotal = e.detail)} />
     <TextField label={$t("Páxinas")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
     <button class="btn block" on:click={extract} disabled={$busy || !$form.pageSpec}>{$t("Extraer a un novo PDF")}</button>
   </div>

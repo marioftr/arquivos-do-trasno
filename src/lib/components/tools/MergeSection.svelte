@@ -7,7 +7,7 @@
   import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createJob } from "../../job";
-  import { samePath } from "./shared";
+  import { samePath, askPath } from "./shared";
   import Icon from "../Icon.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
@@ -59,9 +59,7 @@
 
   async function merge() {
     const asPdf = isPdf || category === "imaxe";
-    const out = await save({
-      defaultPath: await join(first.path.replace(/[\\/][^\\/]*$/, ""), `${tr("unido")}.${asPdf ? "pdf" : first.ext}`),
-    });
+    const out = await askPath(await join(first.path.replace(/[\\/][^\\/]*$/, ""), `${tr("unido")}.${asPdf ? "pdf" : first.ext}`));
     if (!out) return;
     const inputs = items.map((s) => s.path);
     if (inputs.some((p) => samePath(p, out))) {

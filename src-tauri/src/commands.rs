@@ -620,19 +620,37 @@ pub async fn mkv_tracks(path: String) -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
-pub async fn mkv_remux(
-    input: String,
+pub async fn mkv_mux(
+    inputs: Vec<trasno_engine::mkv::MuxInput>,
+    order: Vec<trasno_engine::mkv::TrackRef>,
     output: String,
     overwrite: bool,
-    keep: Vec<u64>,
-    edits: Vec<trasno_engine::mkv::TrackEdit>,
 ) -> Result<String, String> {
     blocking(move || {
-        trasno_engine::mkv::remux(&PathBuf::from(input), &PathBuf::from(output), overwrite, &keep, &edits)
+        trasno_engine::mkv::mux(&inputs, &order, &PathBuf::from(output), overwrite)
             .map(|p| p.to_string_lossy().to_string())
             .map_err(to_err)
     })
     .await
+}
+
+/// Se o camiño xa existe, devolve outro libre co mesmo nome e un « (2)», « (3)»...
+#[tauri::command]
+pub fn unique_path(path: String) -> String {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return path;
+    }
+    let stem = p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+    let ext = p.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    let dir = p.parent().map(|d| d.to_path_buf()).unwrap_or_default();
+    for n in 2..10_000 {
+        let cand = dir.join(format!("{stem} ({n}){ext}"));
+        if !cand.exists() {
+            return cand.to_string_lossy().to_string();
+        }
+    }
+    path
 }
 
 /// Abre unha páxina web fixa (nunca un enderezo que veña da interface).
