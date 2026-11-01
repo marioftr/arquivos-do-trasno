@@ -9,18 +9,25 @@
   import FileList from "./lib/components/FileList.svelte";
   import Viewer from "./lib/components/Viewer.svelte";
   import Tools from "./lib/components/Tools.svelte";
-  import { files, activePath, checked, addPaths, removeFile } from "./lib/files";
+  import { files, activePath, checked, addPaths, removeFile, restoreSession } from "./lib/files";
+  import Toasts from "./lib/components/ui/Toasts.svelte";
   import { activeForm } from "./lib/forms";
   import { get } from "svelte/store";
   import * as engine from "./lib/engine";
   import { t, lang, LANGS, type Lang } from "./lib/i18n";
   import { theme, dialog, openSettings, welcomeIfNeeded, type Theme } from "./lib/settings";
   import QuickJob from "./lib/components/QuickJob.svelte";
+  import ProcessesDialog from "./lib/components/ProcessesDialog.svelte";
+  import { procs, refreshProcs } from "./lib/procs";
+  import { reportProgress } from "./lib/job";
   import SettingsDialog from "./lib/components/SettingsDialog.svelte";
 
   let dragging = false;
   let unlisten: (() => void) | null = null;
   let unlistenOpen: (() => void) | null = null;
+  let unlistenProgress: (() => void) | null = null;
+  let procTimer: ReturnType<typeof setInterval>;
+  $: runningProcs = $procs.filter((p) => p.state === "running").length;
   let ffmpegOk: boolean | null = null;
 
   engine.ffmpegAvailable().then((v) => (ffmpegOk = v));
@@ -45,11 +52,22 @@
       requestAnimationFrame(() => getCurrentWindow().show().catch(() => {}));
       welcomeIfNeeded();
     }
-    engine.startupFiles().then((paths) => { if (paths.length) addPaths(paths); });
+    // Primeiro volve a lista da última vez; despois entran os ficheiros co que se abriu a aplicación.
+    engine.startupJob().then((j) => {
+      if (j !== null) return; // xanela rápida do clic dereito: non toca a lista
+      restoreSession().then(() => engine.startupFiles().then((paths) => { if (paths.length) addPaths(paths); }));
+    });
     // Outra apertura (clic dereito → «Abrir», «Abrir con») manda aquí os ficheiros en vez de abrir outra app.
     unlistenOpen = await listen<string[]>("trasno://open", (e) => {
       if (e.payload?.length) addPaths(e.payload);
     });
+    // Avance real dos traballos desta aplicación e lista de procesos (tamén os das xanelas rápidas).
+    if ((await engine.startupJob().catch(() => null)) === null) {
+      engine.enableProgress().catch(() => {});
+      unlistenProgress = await listen<number>("trasno://progress", (e) => reportProgress(e.payload));
+      refreshProcs();
+      procTimer = setInterval(refreshProcs, 2000);
+    }
     unlisten = await getCurrentWebview().onDragDropEvent((event) => {
       const p = event.payload;
       if (p.type === "drop") {
@@ -87,6 +105,8 @@
   onDestroy(() => {
     unlisten?.();
     unlistenOpen?.();
+    unlistenProgress?.();
+    clearInterval(procTimer);
   });
 
   $: active = $files.find((f) => f.path === $activePath) ?? null;
@@ -111,6 +131,9 @@
     {#if ffmpegOk === false && needsFfmpeg}
       <button class="aviso" on:click={() => openSettings("tools")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: ver como instalalo")}</button>
     {/if}
+    <button class="btn ghost" on:click={() => dialog.set("procs")} title={$t("Procesos")}>
+      <Icon name="layers" size={15} /> {$t("Procesos")}{#if runningProcs} <span class="badge">{runningProcs}</span>{/if}
+    </button>
     <button class="btn ghost" on:click={() => openSettings("general")} title={$t("Axustes")}><Icon name="gear" size={15} /> {$t("Axustes")}</button>
   </header>
 
@@ -138,7 +161,9 @@
     </main>
   {/if}
 
-  {#if $dialog === "settings"}<SettingsDialog />{/if}
+  <Toasts />
+
+  {#if $dialog === "settings"}<SettingsDialog />{:else if $dialog === "procs"}<ProcessesDialog />{/if}
 
   {#if dragging}
     <div class="veil"><span>{$t("Solta os ficheiros para que o trasno os colla")}</span></div>
@@ -151,6 +176,7 @@
   .top { display: flex; align-items: center; gap: 0.8rem; padding: 0.55rem 1rem; border-bottom: 1px solid var(--border); background: var(--bg-rail); min-height: 46px; }
   .brand { display: inline-flex; align-items: center; gap: 0.55rem; font-weight: 650; font-size: 0.92rem; }
   .grow { flex: 1; }
+  .badge { background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.7rem; font-weight: 700; padding: 0 0.45em; min-width: 1.3em; text-align: center; }
   .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.82rem; }
 
   .home { flex: 1; min-height: 0; display: flex; padding: 1.5rem; }

@@ -7,6 +7,8 @@ import { call } from "./errors";
 import * as engine from "./engine";
 import type { Category } from "./engine";
 import { extensionOf, fileNameOf } from "./formats";
+import { tr } from "./i18n";
+import { toast } from "./toasts";
 
 export interface FileEntry {
   path: string;
@@ -44,8 +46,24 @@ function patch(path: string, change: Partial<FileEntry>) {
 export async function addPaths(paths: string[]) {
   let selectedNew = false;
   for (const path of paths) {
-    if (get(files).some((f) => f.path === path)) continue;
-    const category = await engine.detectCategory(path);
+    if (get(files).some((f) => f.path === path)) {
+      // Xa estaba: avísase e queda á vista.
+      toast(tr("«{name}» xa estaba na lista.", { name: fileNameOf(path) }));
+      if (!selectedNew) activePath.set(path);
+      selectedNew = true;
+      continue;
+    }
+    let category: Category;
+    try {
+      category = await engine.detectCategory(path);
+    } catch {
+      toast(tr("O trasno non puido ler «{name}».", { name: fileNameOf(path) }), { kind: "warn" });
+      continue;
+    }
+    if (category === "descoñecido") {
+      toast(tr("O trasno non sabe que facer cun ficheiro «.{ext}» («{name}»).", { ext: extensionOf(path) || "?", name: fileNameOf(path) }), { kind: "warn" });
+      continue;
+    }
     const entry: FileEntry = { path, name: fileNameOf(path), ext: extensionOf(path), category };
     files.update((list) => [...list, entry]);
     // O primeiro ficheiro recén importado queda seleccionado e á vista.
@@ -78,7 +96,28 @@ export async function addPaths(paths: string[]) {
   }
 }
 
+// O último ficheiro quitado, para poder desfacelo.
+let lastRemoved: { entry: FileEntry; index: number; wasChecked: boolean } | null = null;
+
+export function undoRemove() {
+  const r = lastRemoved;
+  if (!r || get(files).some((f) => f.path === r.entry.path)) return;
+  lastRemoved = null;
+  files.update((l) => {
+    const next = [...l];
+    next.splice(Math.min(r.index, next.length), 0, r.entry);
+    return next;
+  });
+  if (r.wasChecked) checked.update((s) => new Set(s).add(r.entry.path));
+  activePath.set(r.entry.path);
+}
+
 export function removeFile(path: string) {
+  const index = get(files).findIndex((f) => f.path === path);
+  if (index >= 0) {
+    lastRemoved = { entry: get(files)[index], index, wasChecked: get(checked).has(path) };
+    toast(tr("Quitouse «{name}» da lista.", { name: lastRemoved.entry.name }), { action: { label: tr("Desfacer"), run: undoRemove } });
+  }
   const list = get(files).filter((f) => f.path !== path);
   files.set(list);
   checked.update((s) => {
@@ -106,6 +145,29 @@ export function toggleChecked(path: string) {
 
 export function setChecked(paths: string[]) {
   checked.set(new Set(paths));
+}
+
+/** Move o ficheiro da posición `from` á posición `to` da lista. */
+export function moveFileTo(from: number, to: number) {
+  files.update((list) => {
+    to = Math.max(0, Math.min(list.length - 1, to));
+    if (from === to || from < 0 || from >= list.length) return list;
+    const next = [...list];
+    const [x] = next.splice(from, 1);
+    next.splice(to, 0, x);
+    return next;
+  });
+}
+
+/** Marca todos os ficheiros entre dous índices (Maiús + clic). */
+export function checkRange(a: number, b: number) {
+  const list = get(files);
+  const [lo, hi] = a < b ? [a, b] : [b, a];
+  checked.update((s) => {
+    const next = new Set(s);
+    for (let i = lo; i <= hi; i++) if (list[i]) next.add(list[i].path);
+    return next;
+  });
 }
 
 export function moveFile(path: string, delta: -1 | 1) {
@@ -165,3 +227,50 @@ export const trimRange = writable<{ start: number; end: number } | null>(null);
 
 /** Proporción fixa do recorte (ancho / alto) ou null para libre. */
 export const imageCropAspect = writable<number | null>(null);
+
+// ----------------------------------------------------- lembrar a sesión
+
+const SESSION_KEY = "arquivos-do-trasno.session";
+let restored = false;
+
+/** Garda a lista, o ficheiro activo e os marcados cada vez que cambian (só despois de restaurar, para non pisar o gardado). */
+function startSaving() {
+  const save = () => {
+    if (!restored) return;
+    try {
+      localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({ paths: get(files).map((f) => f.path), active: get(activePath), checked: [...get(checked)] }),
+      );
+    } catch {
+      // sen almacenamento: simplemente non se lembra
+    }
+  };
+  files.subscribe(save);
+  activePath.subscribe(save);
+  checked.subscribe(save);
+}
+startSaving();
+
+/** Volve poñer os ficheiros da última vez que seguen existindo. Chámase unha vez ao abrir a aplicación. */
+export async function restoreSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw) {
+      const s = JSON.parse(raw) as { paths?: string[]; active?: string | null; checked?: string[] };
+      const alive: string[] = [];
+      for (const p of s.paths ?? []) {
+        if (await engine.fileSize(p).then(() => true).catch(() => false)) alive.push(p);
+      }
+      const missing = (s.paths?.length ?? 0) - alive.length;
+      await addPaths(alive);
+      if (s.active && alive.includes(s.active)) activePath.set(s.active);
+      checked.set(new Set((s.checked ?? []).filter((p) => alive.includes(p))));
+      if (missing > 0) toast(tr("{n} ficheiros da última vez xa non están no seu sitio e non se abriron.", { n: missing }), { kind: "warn" });
+    }
+  } catch {
+    // sesión rota: empézase en branco
+  }
+  restored = true;
+  files.update((l) => l); // fixa o estado actual
+}

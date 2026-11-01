@@ -98,6 +98,24 @@
       ],
     },
     {
+      title: "Lista de ficheiros",
+      keys: [
+        { k: "↑ ↓ · Inicio · Fin · Espazo · Ctrl + A", d: "Moverse pola lista, marcar con Espazo, marcar todo" },
+        { k: "Maiús / Ctrl + clic", d: "Maiús ou Ctrl + clic marcan varios ficheiros" },
+        { k: "Alt + ↑ ↓", d: "Mover o ficheiro na lista" },
+        { k: "Ctrl + Z", d: "Desfacer ter quitado un ficheiro (coa lista en foco)" },
+      ],
+    },
+    {
+      title: "PDF e texto",
+      keys: [
+        { k: "Ctrl + F", d: "Buscar no PDF ou no texto" },
+        { k: "← → · PáxAv · PáxRe", d: "Páxina anterior e seguinte" },
+        { k: "Inicio · Fin", d: "Primeira e última páxina" },
+        { k: "+ · − · 0", d: "Zoom do PDF (0 restablece)" },
+      ],
+    },
+    {
       title: "Imaxe",
       keys: [
         { k: "+ · −", d: "Ampliar e reducir" },

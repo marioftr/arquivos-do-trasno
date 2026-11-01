@@ -7,6 +7,7 @@
   export let job: Job;
   $: busy = job.busy;
   $: text = job.text;
+  $: progress = job.progress;
   $: message = job.message;
 
   // Cancelar pide confirmación; o traballo en marcha para e non queda ningún ficheiro a medias.
@@ -31,7 +32,7 @@
 
 {#if $busy}
   <div class="busyrow">
-    <p class="busy"><span class="spin"></span>{$text}</p>
+    <p class="busy"><span class="spin"></span>{$text}{#if $progress !== null} · {Math.round($progress * 100)} %{/if}</p>
     {#if asking}
       <span class="ask">{$t("Cancelar e non gardar nada?")}</span>
       <button class="btn danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
@@ -40,6 +41,9 @@
       <button class="btn ghost" on:click={() => (asking = true)}>{$t("Cancelar")}</button>
     {/if}
   </div>
+  {#if $progress !== null}
+    <div class="pbar"><div class="pfill" style={`width:${Math.round($progress * 100)}%`}></div></div>
+  {/if}
 {/if}
 {#if $message}
   <div class="msg-wrap" class:ok={$message.ok} class:err={!$message.ok}>
@@ -51,6 +55,9 @@
 {/if}
 
 <style>
+  .busyrow :global(.btn) { height: var(--control-h); min-height: var(--control-h); padding-block: 0; box-sizing: border-box; }
+  .pbar { height: 6px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
+  .pfill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.3s ease; }
   .busyrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
   .ask { font-size: 0.82rem; }
   .busy { margin: 0; display: flex; align-items: center; gap: 0.6rem; font-size: 0.86rem; color: var(--text-muted); }

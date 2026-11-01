@@ -1,10 +1,13 @@
 // Estado dun traballo longo (converter, comprimir...): ocupado, texto do
-// trasno e mensaxe final. Os erros levan unha frase do trasno e despois o erro real.
+// trasno, progreso e mensaxe final. Os erros levan unha frase do trasno e despois o erro real.
+// Cada traballo queda rexistrado na lista de procesos.
 
-import { writable, type Writable } from "svelte/store";
+import { writable, get, type Writable } from "svelte/store";
 import { tr } from "./i18n";
 import { errText, isCancelled } from "./errors";
 import { beginJob } from "./engine";
+import { track, type Tracker } from "./procs";
+import { files, activePath } from "./files";
 
 export interface JobMessage {
   ok: boolean;
@@ -14,32 +17,58 @@ export interface JobMessage {
 export interface Job {
   busy: Writable<boolean>;
   text: Writable<string>;
+  /** Avance real (0 a 1) cando o motor o dá; `null` se non se sabe. */
+  progress: Writable<number | null>;
   message: Writable<JobMessage | null>;
   run: (working: string, fail: string, job: () => Promise<string | void>) => Promise<void>;
   say: (ok: boolean, text: string) => void;
   clear: () => void;
 }
 
+let active: { tracker: Tracker; progress: Writable<number | null> } | null = null;
+
+/** Chámase cando chega un aviso de progreso do motor: vai ao traballo da app que estea en marcha. */
+export function reportProgress(f: number) {
+  if (!active) return;
+  active.progress.set(f);
+  active.tracker.update({ progress: f });
+}
+
 export function createJob(): Job {
   const busy = writable(false);
   const text = writable("");
+  const progress = writable<number | null>(null);
   const message = writable<JobMessage | null>(null);
   return {
     busy,
     text,
+    progress,
     message,
     async run(working, fail, job) {
       busy.set(true);
       text.set(tr(working));
+      progress.set(null);
       message.set(null);
       await beginJob().catch(() => {});
+      const current = get(files).find((f) => f.path === get(activePath));
+      const tracker = track({ title: current?.name ?? tr("Traballo"), subtitle: tr(working), source: "app" });
+      active = { tracker, progress };
       try {
         const done = await job();
         if (done) message.set({ ok: true, text: done });
+        tracker.finish("done", { detail: done ? String(done).slice(0, 200) : undefined });
       } catch (e) {
         // Cancelar non é un fallo: sen frase de «tropezou».
-        message.set(isCancelled(e) ? { ok: true, text: tr("Cancelaches o traballo. Non quedou ningún ficheiro a medias.") } : { ok: false, text: `${tr(fail)}\n${errText(e)}` });
+        if (isCancelled(e)) {
+          message.set({ ok: true, text: tr("Cancelaches o traballo. Non quedou ningún ficheiro a medias.") });
+          tracker.finish("cancelled");
+        } else {
+          message.set({ ok: false, text: `${tr(fail)}\n${errText(e)}` });
+          tracker.finish("error", { detail: errText(e).slice(0, 200) });
+        }
       } finally {
+        active = null;
+        progress.set(null);
         busy.set(false);
       }
     },

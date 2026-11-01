@@ -79,6 +79,30 @@
   let current = "convert";
   $: if (tabs.length && !tabs.some((x) => x.id === current)) current = tabs[0].id;
 
+  // Lembra a última pestana usada con cada tipo de ficheiro (e co lote).
+  const TAB_KEY = "arquivos-do-trasno.tabs";
+  let tabMem: Record<string, string> = {};
+  try {
+    tabMem = JSON.parse(localStorage.getItem(TAB_KEY) ?? "{}");
+  } catch {
+    tabMem = {};
+  }
+  $: memKey = category ? `${category}${multi ? "+" : ""}` : "";
+  let lastKey = "";
+  $: if (memKey !== lastKey) {
+    lastKey = memKey;
+    const saved = memKey ? tabMem[memKey] : "";
+    if (saved && tabs.some((x) => x.id === saved)) current = saved;
+  }
+  $: if (memKey && memKey === lastKey && tabs.some((x) => x.id === current) && tabMem[memKey] !== current) {
+    tabMem[memKey] = current;
+    try {
+      localStorage.setItem(TAB_KEY, JSON.stringify(tabMem));
+    } catch {
+      // ignorar
+    }
+  }
+
   /** Algunhas pestanas agrupan ferramentas parecidas: un selector enriba escolle cal. */
   function modesFor(tab: string, pdf: boolean, many: boolean, cat: Category | null, tt: (k: string) => string): { value: string; label: string }[] {
     if (many) return [];

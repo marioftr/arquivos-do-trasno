@@ -5,6 +5,8 @@
   import { viewUrl, pdfOverlay, type FileEntry, type PdfOverlay } from "../../files";
   import { t } from "../../i18n";
   import Slider from "../ui/Slider.svelte";
+  import FindBar from "../ui/FindBar.svelte";
+  import { tick } from "svelte";
 
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -27,6 +29,129 @@
   let encrypted = false;
   let token = 0;
   let pages: PageInfo[] = [];
+  let current = 1; // páxina que se está vendo
+
+  // ---- buscar (Ctrl+F): o texto de cada páxina léese a petición e márcanse os cadros onde aparece
+  interface Hit { page: number; rect: HTMLDivElement | null; item: any; at: number }
+  let find = false;
+  let query = "";
+  let hits: Hit[] = [];
+  let cur = 0; // 1..hits.length
+  let searching = false;
+  let searchToken = 0;
+  const textCache = new Map<number, any[]>();
+  let debounce: ReturnType<typeof setTimeout>;
+  $: query, find, schedule();
+
+  function schedule() {
+    clearTimeout(debounce);
+    if (!find || !query.trim()) {
+      hits = [];
+      cur = 0;
+      clearMarks();
+      return;
+    }
+    debounce = setTimeout(runSearch, 250);
+  }
+  function clearMarks() {
+    container?.querySelectorAll(".hl").forEach((e) => e.remove());
+  }
+  async function runSearch() {
+    const mine = ++searchToken;
+    const d = doc;
+    if (!d) return;
+    searching = true;
+    const q = query.trim().toLowerCase();
+    const found: Hit[] = [];
+    for (let n = 1; n <= d.numPages; n++) {
+      if (mine !== searchToken) return;
+      let items = textCache.get(n);
+      if (!items) {
+        items = (await (await d.getPage(n)).getTextContent()).items.filter((i: any) => typeof i.str === "string" && i.str);
+        textCache.set(n, items);
+      }
+      for (const item of items) {
+        const low = item.str.toLowerCase();
+        for (let i = low.indexOf(q); i !== -1; i = low.indexOf(q, i + q.length)) found.push({ page: n, rect: null, item, at: i });
+      }
+    }
+    if (mine !== searchToken) return;
+    searching = false;
+    hits = found;
+    cur = found.length ? 1 : 0;
+    await drawHits();
+    goHit();
+  }
+  /** Debuxa un cadro amarelo sobre cada resultado das páxinas xa pintadas. */
+  async function drawHits() {
+    clearMarks();
+    const d = doc;
+    if (!d || !hits.length) return;
+    const q = query.trim().length;
+    for (const h of hits) {
+      const p = pages[h.page - 1];
+      if (!p) continue;
+      const vp = (await d.getPage(h.page)).getViewport({ scale: p.s });
+      const tx = pdfjs.Util.transform(vp.transform, h.item.transform);
+      const len = Math.max(1, h.item.str.length);
+      const w = h.item.width * p.s;
+      const ht = (h.item.height || Math.abs(tx[3])) * p.s;
+      const el = document.createElement("div");
+      el.className = "hl";
+      el.style.cssText = `left:${tx[4] + (w * h.at) / len}px;top:${tx[5] - ht}px;width:${(w * q) / len}px;height:${ht}px`;
+      p.wrap.appendChild(el);
+      h.rect = el;
+    }
+    markCurrent();
+  }
+  function markCurrent() {
+    hits.forEach((h, i) => h.rect?.classList.toggle("cur", i + 1 === cur));
+  }
+  function goHit() {
+    markCurrent();
+    const h = hits[cur - 1];
+    if (!h) return;
+    (h.rect ?? pages[h.page - 1]?.wrap)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+  const step = (d: number) => {
+    if (!hits.length) return;
+    cur = ((cur - 1 + d + hits.length) % hits.length) + 1;
+    goHit();
+  };
+
+  // ---- páxinas
+  function onScroll() {
+    if (!container || !pages.length) return;
+    const mid = container.scrollTop + container.clientHeight / 3;
+    let n = 1;
+    for (const p of pages) if (p.wrap.offsetTop - container.offsetTop <= mid) n = p.n;
+    current = n;
+  }
+  function goto(n: number) {
+    if (!doc) return;
+    const k = Math.max(1, Math.min(doc.numPages, Math.round(n)));
+    pages[k - 1]?.wrap.scrollIntoView({ block: "start" });
+    current = k;
+  }
+
+  function key(e: KeyboardEvent) {
+    const t = e.target as HTMLElement;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      find = true;
+      return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey || t.closest("input, select, textarea, [contenteditable], [data-filelist]")) return;
+    if (e.key === "PageDown" || e.key === "ArrowRight") goto(current + 1);
+    else if (e.key === "PageUp" || e.key === "ArrowLeft") goto(current - 1);
+    else if (e.key === "Home") goto(1);
+    else if (e.key === "End" && doc) goto(doc.numPages);
+    else if (e.key === "+" || e.key === "=") scale = Math.min(250, scale + 10);
+    else if (e.key === "-") scale = Math.max(40, scale - 10);
+    else if (e.key === "0") scale = 80;
+    else return;
+    e.preventDefault();
+  }
 
   $: open(file.path);
   $: if (doc && container) render(scale);
@@ -84,7 +209,14 @@
         transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
       }).promise;
     }
-    if (mine === token) pages = built;
+    if (mine === token) {
+      pages = built;
+      onScroll();
+      if (find && query.trim() && hits.length) {
+        await tick();
+        drawHits();
+      }
+    }
   }
 
   /** Debuxa os cambios pendentes por riba das páxinas (non toca o PDF). */
@@ -167,22 +299,32 @@
   });
 </script>
 
+<svelte:window on:keydown={key} />
+
 <div class="wrap">
+  {#if find}
+    <FindBar bind:query count={hits.length} current={cur} busy={searching} on:next={() => step(1)} on:prev={() => step(-1)} on:close={() => ((find = false), (query = ""))} />
+  {/if}
   {#if encrypted}
     <p class="muted msg">{$t("Este PDF ten contrasinal. Desbloquéao na pestana Seguridade para velo.")}</p>
   {:else if error}
     <p class="muted msg">{$t("Non puiden abrir o PDF: {error}", { error })}</p>
   {:else}
-    <div class="pages scrollbar-thin" bind:this={container}></div>
+    <div class="pages scrollbar-thin" bind:this={container} on:scroll={onScroll}></div>
   {/if}
   <div class="bar">
     <Slider compact label={$t("Zoom")} unit="%" min={40} max={250} bind:value={scale} />
-    {#if doc}<span class="muted pag">{$t("{n} páxinas", { n: doc.numPages })}</span>{/if}
+    {#if doc}
+      <span class="pag pgbox">
+        <input type="number" min="1" max={doc.numPages} value={current} on:change={(e) => goto(Number(e.currentTarget.value))} aria-label={$t("Páxina")} />
+        <span class="muted">/ {doc.numPages}</span>
+      </span>
+    {/if}
   </div>
 </div>
 
 <style>
-  .wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  .wrap { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .pages {
     flex: 1; min-height: 0; overflow: auto;
     display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
@@ -194,5 +336,10 @@
   .pages :global(canvas) { display: block; background: #fff; }
   .bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
   .pag { margin-left: auto; }
+  .pgbox { display: flex; align-items: center; gap: 0.35rem; }
+  .pgbox input { width: 3.4rem; height: 26px; text-align: center; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: 5px; font: inherit; font-size: 0.82rem; }
+  .pgbox input:focus { outline: none; border-color: var(--accent); }
+  .pages :global(.hl) { position: absolute; background: color-mix(in srgb, #ffd54a 55%, transparent); mix-blend-mode: multiply; pointer-events: none; border-radius: 2px; }
+  .pages :global(.hl.cur) { background: color-mix(in srgb, #ff9f1a 70%, transparent); outline: 2px solid #ff9f1a; }
   .msg { padding: 2rem; }
 </style>

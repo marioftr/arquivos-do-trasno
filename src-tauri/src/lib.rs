@@ -1,5 +1,6 @@
 mod commands;
 mod explorer;
+mod procs;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -44,6 +45,11 @@ pub fn run() {
             commands::begin_job,
             commands::cancel_job,
             commands::discard_output,
+            procs::proc_upsert,
+            procs::proc_list,
+            procs::proc_request_cancel,
+            procs::proc_cancel_requested,
+            procs::proc_clear_finished,
             commands::mkv_tracks,
             commands::mkv_mux,
             commands::open_link,

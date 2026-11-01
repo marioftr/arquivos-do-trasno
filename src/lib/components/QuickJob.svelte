@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
   import { listen } from "@tauri-apps/api/event";
   import * as engine from "../engine";
@@ -7,6 +7,7 @@
   import { fallo, fileNameOf, listo, TRASNO } from "../formats";
   import { t, tr } from "../i18n";
   import { runOne } from "../quickjob";
+  import { track, cancelRequested, type Tracker } from "../procs";
   import BrandMark from "./BrandMark.svelte";
   import Icon from "./Icon.svelte";
 
@@ -27,9 +28,12 @@
   let keepOpen = false;
   let countdown = 8;
   let asking = false; // pedindo confirmación para cancelar
-  let cancelled = false;
+  let cancelMode: "partial" | "all" | null = null;
+  let cancelPct = 0; // onde estaba a barra ao cancelar
   let running = true;
   const win = getCurrentWindow();
+  let tracker: Tracker | null = null;
+  let poll: ReturnType<typeof setInterval> | null = null;
 
   // Que se lle vai facer aos ficheiros, en claro.
   $: what = (() => {
@@ -49,18 +53,26 @@
   $: total = items.length;
   $: doneCount = items.filter((i) => i.state === "feito" || i.state === "erro").length;
   $: working = items.some((i) => i.state === "traballa");
-  // A barra avanza por ficheiros rematados e medio máis mentres hai un en marcha (non hai progreso interno por ficheiro).
-  // Avance real do ffmpeg para o ficheiro en marcha (0 a 1); as imaxes e os PDF non o dan e usan un avance estimado.
+  // Avance real do ffmpeg para o ficheiro en marcha (0 a 1). As imaxes e os PDF non o dan: a barra móvese sen número.
   let frac = 0;
   let realProgress = false;
-  $: inner = realProgress ? frac : working ? 0.4 : 0;
-  $: pct = finished ? 100 : Math.min(99, Math.round(((doneCount + inner) / total) * 100));
+  $: indeterminate = working && !realProgress && !cancelMode;
+  $: pct = cancelMode ? cancelPct : finished ? 100 : Math.min(99, Math.round(((doneCount + (realProgress ? frac : 0)) / total) * 100));
   $: itemPct = Math.round(frac * 100);
+  $: tracker?.update({ progress: pct / 100, outputs: items.filter((i) => i.out).map((i) => i.out!) });
 
-  /** Cancelar: para o ffmpeg, esquece o resto e borra o que este traballo leva creado (tamén os ficheiros xa rematados). */
-  async function doCancel() {
+  const CANCEL_PHRASES = [
+    "Vale, o trasno déixao estar e recolle as ferramentas.",
+    "Proceso cancelado: o trasno gárdase o gorro e aquí non pasou nada.",
+    "Cancelado! O trasno borra as pegadas e non di nada.",
+  ];
+
+  /** Cancelar: para o ffmpeg e o resto da lista. `partial` borra só o que quedou a medias; `all` tamén o que xa estaba rematado. */
+  async function doCancel(mode: "partial" | "all") {
+    if (cancelMode) return;
     asking = false;
-    cancelled = true;
+    cancelPct = pct;
+    cancelMode = mode;
     headline = tr("Cancelando…");
     await engine.cancelJob().catch(() => false);
   }
@@ -73,9 +85,9 @@
   }
 
   onMount(async () => {
-    // Pechar coa X mentres traballa equivale a cancelar: antes pídese confirmación.
+    // Pechar coa X mentres traballa equivale a querer cancelar: antes pídese confirmación.
     await win.onCloseRequested((e) => {
-      if (running && !cancelled) {
+      if (running && !cancelMode) {
         e.preventDefault();
         asking = true;
       }
@@ -84,13 +96,19 @@
       await win.setTitle("Arquivos do Trasno");
       await win.setResizable(false);
       await win.setMaximizable(false);
-      await win.setSize(new LogicalSize(500, Math.min(560, 210 + items.length * 34)));
+      await win.setSize(new LogicalSize(520, Math.min(580, 230 + items.length * 34)));
       await win.center();
     } catch {
       // sen permiso para axustar a xanela: segue igual
     }
     // A xanela naceu agochada: móstrase xa co tamaño bo e co contido pintado.
     await win.show();
+
+    tracker = track({ title: items.length === 1 ? fileNameOf(items[0].path) : tr("{n} ficheiros", { n: items.length }), subtitle: what, source: "quick" });
+    // A aplicación principal pode pedir cancelar este traballo desde a lista de procesos.
+    poll = setInterval(async () => {
+      if (!cancelMode && tracker && (await cancelRequested(tracker.id).catch(() => false))) doCancel("partial");
+    }, 700);
 
     let unlisten: (() => void) | null = null;
     try {
@@ -100,13 +118,10 @@
         frac = Math.max(0, Math.min(1, e.payload));
       });
     } catch {
-      // sen avance real: a barra usa o estimado
+      // sen avance real: a barra móvese sen número
     }
     for (const it of items) {
-      if (cancelled) {
-        it.state = "agarda";
-        continue;
-      }
+      if (cancelMode) break;
       await engine.beginJob().catch(() => {});
       frac = 0;
       realProgress = false;
@@ -118,8 +133,8 @@
         it.note = r.note;
         it.state = "feito";
       } catch (e) {
-        if (cancelled || isCancelled(e)) {
-          cancelled = true;
+        if (cancelMode || isCancelled(e)) {
+          if (!cancelMode) await doCancel("partial");
           it.state = "agarda";
         } else {
           it.state = "erro";
@@ -130,17 +145,21 @@
       items = items;
     }
     unlisten?.();
+    if (poll) clearInterval(poll);
     running = false;
-    if (cancelled) {
-      await discardAll();
+    if (cancelMode) {
+      if (cancelMode === "all") await discardAll();
       items = items;
       finished = true;
-      headline = tr("Cancelaches o traballo. Non quedou ningún ficheiro a medias.");
-      setTimeout(() => win.destroy(), 2500);
-      return;
+      headline = tr(CANCEL_PHRASES[Math.floor(Math.random() * CANCEL_PHRASES.length)]);
+      tracker.finish("cancelled", { outputs: items.filter((i) => i.out).map((i) => i.out!) });
+      countdown = 6;
+    } else {
+      finished = true;
+      headline = failedAny ? fallo(job.action === "convert" ? "convertendo" : job.action === "compress" ? "comprimindo" : "editando") : listo();
+      tracker.finish(failedAny ? "error" : "done", { detail: items.find((i) => i.error)?.error });
     }
-    finished = true;
-    headline = failedAny ? fallo(job.action === "convert" ? "convertendo" : job.action === "compress" ? "comprimindo" : "editando") : listo();
+    // Contador de peche: tamén cando se cancela. Un clic en calquera sitio ou un erro deixan a xanela aberta.
     if (!failedAny) {
       const timer = setInterval(() => {
         if (keepOpen) return clearInterval(timer);
@@ -153,10 +172,17 @@
     }
   });
 
+  onDestroy(() => {
+    if (poll) clearInterval(poll);
+  });
+
   const firstOut = () => items.find((i) => i.out)?.out;
 </script>
 
-<svelte:window on:pointerdown={() => (keepOpen = true)} on:keydown={(e) => e.key === "Escape" && (running && !cancelled ? (asking = true) : win.destroy())} />
+<svelte:window
+  on:pointerdown={() => (keepOpen = true)}
+  on:keydown={(e) => e.key === "Escape" && (running && !cancelMode ? (asking = true) : win.destroy())}
+/>
 
 <main>
   <header>
@@ -167,12 +193,16 @@
     </div>
   </header>
 
-  <p class="head" class:bad={finished && failedAny}>{headline}</p>
+  <p class="head" class:bad={finished && failedAny} class:cancel={!!cancelMode}>{headline}</p>
 
-  <div class="bar" class:busy={!finished} role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}>
+  <div class="bar" class:indet={indeterminate} class:cancel={!!cancelMode && finished} role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}>
     <div class="fill" class:bad={finished && failedAny} style={`width:${pct}%`}></div>
   </div>
-  <p class="muted count">{total > 1 ? `${doneCount} / ${total} · ` : ""}{pct} %</p>
+  <p class="muted count">
+    {#if cancelMode && finished}{$t("Proceso cancelado")}
+    {:else if realProgress || finished || doneCount > 0}{total > 1 ? `${doneCount} / ${total} · ` : ""}{pct} %
+    {:else}&nbsp;{/if}
+  </p>
 
   <ul class="selectable scrollbar-thin">
     {#each items as it}
@@ -191,6 +221,8 @@
             <span class="err">{it.error}</span>
           {:else if it.state === "traballa"}
             <span class="muted sub">{realProgress ? `${itemPct} %` : $t("Traballando…")}</span>
+          {:else if cancelMode && finished}
+            <span class="muted sub">{$t("Cancelado")}</span>
           {:else}
             <span class="muted sub">{$t("Agardando")}</span>
           {/if}
@@ -203,17 +235,24 @@
   </ul>
 
   <footer>
-    {#if finished && !failedAny && !cancelled && !keepOpen}<span class="muted">{$t("Péchase en {s} s…", { s: countdown })}</span>{/if}
+    {#if finished && !failedAny && !keepOpen}<span class="muted">{$t("Péchase en {s} s…", { s: countdown })}</span>{/if}
     <span class="grow"></span>
-    {#if finished && !cancelled && firstOut()}<button class="btn" on:click={() => engine.revealInFolder(firstOut()!)}><Icon name="folder" size={14} /> {$t("Amosar no cartafol")}</button>{/if}
     {#if asking}
-      <span class="ask">{$t("Cancelar e borrar o que leva feito?")}</span>
-      <button class="btn danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
-      <button class="btn" on:click={() => (asking = false)}>{$t("Seguir")}</button>
-    {:else if running && !cancelled}
-      <button class="btn" on:click={() => (asking = true)}>{$t("Cancelar")}</button>
-    {:else}
-      <button class="btn primary" on:click={() => win.destroy()}>{$t("Pechar")}</button>
+      <span class="ask">{$t("Cancelar o traballo?")}</span>
+      <div class="acts">
+        <button class="btn danger" on:click={() => doCancel("partial")} title={$t("Para o traballo e borra só o ficheiro que quedaba a medias")}>{$t("Borrar só o incompleto")}</button>
+        {#if doneCount > 0}
+          <button class="btn danger" on:click={() => doCancel("all")} title={$t("Para o traballo e borra tamén o que xa estaba feito")}>{$t("Borrar todo")}</button>
+        {/if}
+        <button class="btn" on:click={() => (asking = false)}>{$t("Seguir")}</button>
+      </div>
+    {:else if running && !cancelMode}
+      <div class="acts"><button class="btn" on:click={() => (asking = true)}>{$t("Cancelar")}</button></div>
+    {:else if finished}
+      <div class="acts">
+        {#if !cancelMode && firstOut()}<button class="btn" on:click={() => engine.revealInFolder(firstOut()!)}><Icon name="folder" size={14} /> {$t("Amosar no cartafol")}</button>{/if}
+        <button class="btn primary" on:click={() => win.destroy()}>{$t("Pechar")}</button>
+      </div>
     {/if}
   </footer>
 </main>
@@ -226,13 +265,16 @@
   .what { font-size: 0.8rem; }
   .head { margin: 0.2rem 0 0; font-size: 1.02rem; font-weight: 600; color: var(--text); }
   .head.bad { color: var(--accent-video); }
+  .head.cancel { color: var(--accent-pdf); }
 
   .bar { position: relative; height: 8px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
   .fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.35s ease; }
   .fill.bad { background: var(--accent-video); }
-  .bar.busy .fill { background-image: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.4) 50%, transparent 70%); background-size: 200% 100%; background-color: var(--accent); animation: slide 1.2s linear infinite; }
-  @keyframes slide { from { background-position: 200% 0; } to { background-position: -200% 0; } }
-  .count { margin: -0.25rem 0 0; font-size: 0.75rem; text-align: right; font-variant-numeric: tabular-nums; }
+  .bar.cancel .fill { background: var(--accent-pdf); }
+  /* Sen avance medible (imaxes, PDF ou o ffmpeg aínda sen dato): unha franxa que vai e vén, sen porcentaxe inventada. */
+  .bar.indet .fill { width: 30% !important; transition: none; animation: vaivén 1.1s ease-in-out infinite alternate; }
+  @keyframes vaivén { from { margin-left: 0; } to { margin-left: 70%; } }
+  .count { margin: -0.25rem 0 0; font-size: 0.75rem; text-align: right; font-variant-numeric: tabular-nums; min-height: 1.1em; }
 
   ul { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.15rem; }
   li { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.4rem; border-radius: var(--radius-sm); min-width: 0; }
@@ -248,7 +290,10 @@
   .sub { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .note { color: var(--accent); font-weight: 600; }
   .err { font-size: 0.78rem; color: var(--accent-video); word-break: break-word; }
-  footer { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; padding-top: 0.2rem; border-top: 1px solid var(--border); }
+  footer { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
   .grow { flex: 1; }
   .ask { font-size: 0.8rem; color: var(--text); }
+  /* Todos os botóns do pé miden o mesmo. */
+  .acts { display: flex; gap: 0.4rem; align-items: center; }
+  .acts :global(.btn) { height: var(--control-h); min-height: var(--control-h); padding-block: 0; box-sizing: border-box; }
 </style>

@@ -64,7 +64,7 @@
   // ---- teclado (só co visor aberto; non actúa se se está escribindo nun campo) ----
   function key(e: KeyboardEvent) {
     if (!el || e.ctrlKey || e.metaKey || e.altKey) return;
-    if ((e.target as HTMLElement).closest("input, select, textarea, [contenteditable]")) return;
+    if ((e.target as HTMLElement).closest("input, select, textarea, [contenteditable], [data-filelist]")) return;
     const step = e.shiftKey ? 1 : 5;
     switch (e.key) {
       case " ":

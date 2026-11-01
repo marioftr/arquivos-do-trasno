@@ -83,7 +83,7 @@ function persistedText(key: string) {
 export const outputFolder = persistedText("arquivos-do-trasno.output-folder");
 
 /** Que xanela modal está aberta. */
-export const dialog = writable<"settings" | null>(null);
+export const dialog = writable<"settings" | "procs" | null>(null);
 export type SettingsTab = "general" | "shortcuts" | "tools" | "credits";
 export const settingsTab = writable<SettingsTab>("general");
 export function openSettings(tab: SettingsTab = "general") {
