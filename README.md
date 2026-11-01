@@ -8,6 +8,41 @@ A idea non é clonar Photoshop, Premiere ou Acrobat, senón cubrir o 80% do
 que a xente usa deses programas día a día, cunha soa aplicación lixeira,
 rápida e en galego.
 
+## Descarga
+
+Os instaladores para Windows están en [Releases](https://github.com/marioftr/arquivos-do-trasno/releases/latest).
+A app busca versións novas ao abrirse (pódese desactivar en Novidades → Actualizacións).
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org/).
+
+Roles of the team members:
+
+- **Authors, reviewers and approvers:** [marioftr](https://github.com/marioftr)
+
+Binaries are built automatically by GitHub Actions from the source code in this repository (see
+`.github/workflows/release.yml`); every release needs manual approval before it is signed.
+
+## Privacy policy
+
+This program does not collect, store or send personal data, and it does not send telemetry. The files you open
+are processed locally and the originals are never modified.
+
+The only network connection the program makes by itself is a check for new versions: it requests the public file
+`latest.json` from this project's GitHub Releases (and, if you accept an update, downloads the installer from there).
+No information about you or your files is sent in that request beyond what any HTTPS request reveals (your IP address).
+You can turn the automatic check off in *Novidades → Actualizacións*. Links shown in the app (for example, where to
+download ffmpeg) open in your browser only when you click them.
+
+The program only changes system configuration when you ask it to: the *Explorer right-click menu* is added or removed
+with explicit buttons in *Axustes → Xeral*, writes only to your user registry (no administrator rights) and is removed
+by uninstalling the program or with the *Quitar do menú* button.
+
+## Licenza
+
+[MIT](LICENSE).
+
 ## Estado actual (fase 0 → 1)
 
 Este é un proxecto novo, construído dende cero. O que xa funciona:
