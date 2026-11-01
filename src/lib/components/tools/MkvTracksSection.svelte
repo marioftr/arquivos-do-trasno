@@ -214,6 +214,6 @@
   .mini { flex: 0 0 auto; display: flex; width: 22px; height: 22px; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); border-radius: 4px; padding: 0; }
   .mini:hover:not(:disabled) { color: var(--text); background: var(--bg-hover); }
   .mini:disabled { opacity: 0.25; cursor: default; }
-  .mini.def.on { background: var(--accent); color: #fff; }
+  .mini.def.on { background: var(--accent); color: var(--on-accent); }
   .mini.ph { visibility: hidden; }
 </style>

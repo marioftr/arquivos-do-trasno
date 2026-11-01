@@ -19,6 +19,7 @@
   --accent-video: #cf5c46;
   --accent-conversor: #3f92d6;
   --accent: var(--accent-conversor);
+  --on-accent: #06121d; /* texto sobre botóns de cor */
 
   /* fondos dos visores */
   --viewer-bg: #0f0f12;
@@ -56,7 +57,8 @@
   --accent-audio: #5d52c4;
   --accent-pdf: #a3720f;
   --accent-video: #b8442f;
-  --accent-conversor: #2a76b8;
+  --accent-conversor: #1f68ad;
+  --on-accent: #ffffff;
 
   --viewer-bg: #d9dae1;
   --checker-a: #e4e4ea;
@@ -131,7 +133,7 @@ input[type="number"],
 .btn.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #06121d;
+  color: var(--on-accent);
   font-weight: 600;
 }
 
