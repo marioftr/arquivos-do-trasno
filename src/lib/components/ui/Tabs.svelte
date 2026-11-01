@@ -1,6 +1,8 @@
 <script lang="ts">
   export let tabs: { id: string; label: string }[];
+  import { createEventDispatcher } from "svelte";
   export let value: string;
+  const dispatch = createEventDispatcher<{ again: void }>();
 
   let bar: HTMLDivElement;
   function key(e: KeyboardEvent) {
@@ -18,7 +20,7 @@
 <!-- svelte-ignore a11y_interactive_supports_focus -->
 <div class="tabs" role="tablist" on:keydown={key} bind:this={bar}>
   {#each tabs as tab}
-    <button role="tab" tabindex={value === tab.id ? 0 : -1} aria-selected={value === tab.id} class:on={value === tab.id} on:click={() => (value = tab.id)}>{tab.label}</button>
+    <button role="tab" tabindex={value === tab.id ? 0 : -1} aria-selected={value === tab.id} class:on={value === tab.id} on:click={() => (value === tab.id ? dispatch("again") : (value = tab.id))}>{tab.label}</button>
   {/each}
 </div>
 

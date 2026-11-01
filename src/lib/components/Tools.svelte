@@ -26,6 +26,7 @@
   import InfoSection from "./tools/InfoSection.svelte";
 
   export let selection: FileEntry[] = [];
+  let body: HTMLDivElement;
 
   $: multi = selection.length > 1;
   $: first = selection[0] as FileEntry | undefined;
@@ -157,9 +158,9 @@
       </p>
     </header>
 
-    <Tabs {tabs} bind:value={current} />
+    <Tabs {tabs} bind:value={current} on:again={() => body?.scrollTo({ top: 0, behavior: "smooth" })} />
 
-    <div class="body scrollbar-thin">
+    <div class="body scrollbar-thin" bind:this={body}>
       {#if modes.length}
         <div class="modes"><Segmented options={modes} bind:value={sub[current]} /></div>
       {/if}

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import InfoTip from "./InfoTip.svelte";
+  import { HINTS } from "../../hints";
   import Icon from "../Icon.svelte";
   import { t } from "../../i18n";
 
@@ -15,6 +17,7 @@
   /** Sen etiqueta nin botón de restaurar: para barras de ferramentas. */
   export let compact = false;
 
+  $: tip = hint || (label && HINTS[label] ? $t(HINTS[label]) : "");
   $: span = max - min;
   $: pct = span > 0 ? ((Math.min(Math.max(value, min), max) - min) / span) * 100 : 0;
   $: changed = def !== undefined && value !== def;
@@ -31,9 +34,9 @@
   }
 </script>
 
-<div class="field" class:compact title={hint || undefined}>
+<div class="field" class:compact>
   <div class="head" class:hidden={compact}>
-    <span class="lab">{label}</span>
+    <span class="lab">{label}{#if tip}<InfoTip text={tip} />{/if}</span>
     {#if changed}
       <button class="reset" on:click={() => (value = def as number)} title={$t("Restaurar o valor por defecto ({v})", { v: def as number })} aria-label={$t("Restaurar o valor por defecto ({v})", { v: def as number })}>
         <Icon name="reset" size={13} />

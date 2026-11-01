@@ -4,6 +4,25 @@
   import { t } from "../i18n";
   import { tools, refreshTools } from "../settings";
   import Icon from "./Icon.svelte";
+  import { toast } from "../toasts";
+  import { tr } from "../i18n";
+
+  let checking = false;
+  async function recheck() {
+    checking = true;
+    const before = $tools;
+    try {
+      const s = await refreshTools();
+      const found = [!before?.ffmpeg && s.ffmpeg ? "FFmpeg" : "", !before?.mkvmerge && s.mkvmerge ? "MKVToolNix" : ""].filter(Boolean);
+      if (found.length) toast(tr("O trasno atopou {list}.", { list: found.join(" e ") }));
+      else if (s.ffmpeg && s.mkvmerge) toast(tr("O trasno comprobouno: está todo instalado."));
+      else toast(tr("O trasno non atopa o que falta. Se o acabas de instalar, pecha e abre a aplicación unha vez."), { kind: "warn", ms: 8000 });
+    } catch {
+      toast(tr("O trasno non puido comprobalo."), { kind: "warn" });
+    } finally {
+      checking = false;
+    }
+  }
 
   onMount(() => {
     refreshTools();
@@ -56,7 +75,7 @@
   {/each}
 
   <div class="foot">
-    <button class="btn" on:click={refreshTools}><Icon name="reset" size={14} /> {$t("Volver comprobar")}</button>
+    <button class="btn" on:click={recheck} disabled={checking}><Icon name="reset" size={14} /> {checking ? $t("Comprobando…") : $t("Volver comprobar")}</button>
     <span class="muted">{$t("Tamén se aceptan ao carón do executable da app (ffmpeg.exe, ffprobe.exe, mkvmerge.exe).")}</span>
   </div>
 </div>

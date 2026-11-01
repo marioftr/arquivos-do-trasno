@@ -42,7 +42,8 @@
     youtube: { label: "Para subir a YouTube", hint: "Calidade alta e MP4 con «faststart», que é o que YouTube recomenda. Non reduce a resolución.", v: { crf: 18, maxHeight: 0, audioKbps: 192, deinterlace: 1, compat: true } },
     movil: { label: "Móbil e mensaxería", hint: "Máis pequeno para enviar por WhatsApp ou correo: 720p e calidade equilibrada.", v: { crf: 26, maxHeight: 720, audioKbps: 128, deinterlace: 1, compat: true } },
   };
-  const initialProfile = !isImage && ["avi", "dv"].includes(first.ext.toLowerCase()) ? "minidv" : "custom";
+  // O perfil de partida é o universal; os outros (Mini DV, YouTube...) escóllense á man.
+  const initialProfile = isImage ? "custom" : "universal";
   const DARS = ["", "4/3", "16/9"];
   const UNITS = [
     { id: "KB", mult: 1024 },
@@ -64,7 +65,7 @@
     videoKbps: 2000,
     sizeValue: 10,
     unit: "MB",
-  }, `comprimir-${category}`);
+  }, `comprimir2-${category}`);
   onMount(() => useForm(form));
 
   const job = createJob();

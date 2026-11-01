@@ -67,7 +67,7 @@
           </button>
         </li>
       {/each}
-      {#if !shown.length}<li class="muted none">{$t("O trasno non atopa nada así.")}</li>{/if}
+      {#if !shown.length}<li class="muted none">{$t("O trasno non atopa ningunha acción con ese nome.")}</li>{/if}
     </ul>
     <p class="muted foot">↑↓ · Enter · Esc</p>
   </div>

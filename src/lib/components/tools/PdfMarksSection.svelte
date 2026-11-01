@@ -153,6 +153,7 @@
       />
       <SelectField
         label={$t("Formato")}
+        hint={$t("Como se escribe o número: só o número, ou «3 / 10» para saber tamén o total de páxinas.")}
         bind:value={$form.numFormat}
         def={"{n}"}
         options={[

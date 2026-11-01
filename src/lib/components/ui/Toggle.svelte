@@ -1,12 +1,16 @@
 <script lang="ts">
+  import InfoTip from "./InfoTip.svelte";
+  import { HINTS } from "../../hints";
+  import { t } from "../../i18n";
   export let label: string;
   export let checked: boolean;
   export let hint = "";
   export let disabled = false;
+  $: tip = hint || (label && HINTS[label] ? $t(HINTS[label]) : "");
 </script>
 
-<label class="toggle" class:disabled title={hint || undefined}>
-  <span class="lab">{label}</span>
+<label class="toggle" class:disabled>
+  <span class="lab">{label}{#if tip}<InfoTip text={tip} />{/if}</span>
   <input type="checkbox" role="switch" bind:checked {disabled} />
   <span class="track"><span class="knob"></span></span>
 </label>

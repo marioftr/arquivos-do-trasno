@@ -1,12 +1,16 @@
 <script lang="ts">
+  import InfoTip from "./InfoTip.svelte";
+  import { HINTS } from "../../hints";
+  import { t } from "../../i18n";
   export let label = "";
   export let value: string;
   export let placeholder = "";
   export let hint = "";
+  $: tip = label && HINTS[label] ? $t(HINTS[label]) : "";
 </script>
 
 <div class="field">
-  {#if label}<span class="lab">{label}</span>{/if}
+  {#if label}<span class="lab">{label}{#if tip}<InfoTip text={tip} />{/if}</span>{/if}
   <input type="text" bind:value {placeholder} aria-label={label} />
   {#if hint}<span class="hint">{hint}</span>{/if}
 </div>

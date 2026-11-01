@@ -20,6 +20,7 @@
   import ProcessesDialog from "./lib/components/ProcessesDialog.svelte";
   import { procs, refreshProcs } from "./lib/procs";
   import { reportProgress } from "./lib/job";
+  import { actionFor } from "./lib/keymap";
   import CommandPalette from "./lib/components/CommandPalette.svelte";
   import SettingsDialog from "./lib/components/SettingsDialog.svelte";
 
@@ -87,23 +88,23 @@
 
   function onKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement;
-    const k = e.key.toLowerCase();
-    if ((e.ctrlKey || e.metaKey) && k === "k") {
+    const id = actionFor(e, "general");
+    if (id === "g.palette") {
       e.preventDefault();
       dialog.update((d) => (d === "palette" ? null : "palette"));
       return;
     }
-    if (t.closest("input, select, textarea")) return;
-    if ((e.ctrlKey || e.metaKey) && k === "z" && !e.shiftKey) {
+    if (!id || t.closest("input, select, textarea")) return;
+    if (id === "g.undo") {
       e.preventDefault();
       get(activeForm)?.undo();
-    } else if ((e.ctrlKey || e.metaKey) && (k === "y" || (k === "z" && e.shiftKey))) {
+    } else if (id === "g.redo") {
       e.preventDefault();
       get(activeForm)?.redo();
-    } else if ((e.ctrlKey || e.metaKey) && k === "o") {
+    } else if (id === "g.open") {
       e.preventDefault();
       escoller();
-    } else if (e.key === "Delete" && $activePath) {
+    } else if (id === "g.remove" && $activePath) {
       removeFile($activePath);
     }
   }

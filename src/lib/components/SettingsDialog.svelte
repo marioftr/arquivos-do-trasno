@@ -6,6 +6,7 @@
   import * as engine from "../engine";
   import { errText } from "../errors";
   import Modal from "./ui/Modal.svelte";
+  import ShortcutsPanel from "./ShortcutsPanel.svelte";
   import Segmented from "./ui/Segmented.svelte";
   import Icon from "./Icon.svelte";
   import ToolsPanel from "./ToolsPanel.svelte";
@@ -74,57 +75,6 @@
     if (typeof c === "string") outputFolder.set(c);
   }
 
-  // Cada atallo: teclas e descrición.
-  const groups: { title: string; keys: { k: string; d: string }[] }[] = [
-    {
-      title: "Xeral",
-      keys: [
-        { k: "Ctrl + O", d: "Abrir ficheiros" },
-        { k: "Ctrl + K", d: "Buscar unha acción ou ferramenta" },
-        { k: "← → (nas pestanas)", d: "Moverse entre pestanas e opcións" },
-        { k: "Supr", d: "Quitar da lista o ficheiro que se está vendo" },
-        { k: "Ctrl + Z / Ctrl + Y", d: "Desfacer e refacer os axustes da ferramenta" },
-      ],
-    },
-    {
-      title: "Audio e vídeo",
-      keys: [
-        { k: "Espazo · K", d: "Reproducir e pausar" },
-        { k: "← →", d: "Saltar 5 segundos (con Maiús, 1 segundo)" },
-        { k: "J · L", d: "Saltar 10 segundos" },
-        { k: "↑ ↓", d: "Subir e baixar o volume" },
-        { k: "M", d: "Silenciar" },
-        { k: "F", d: "Pantalla completa (vídeo)" },
-        { k: "Inicio · Fin", d: "Ir ao principio ou ao final" },
-        { k: ", · .", d: "Un fotograma cara atrás ou adiante (vídeo)" },
-      ],
-    },
-    {
-      title: "Lista de ficheiros",
-      keys: [
-        { k: "↑ ↓ · Inicio · Fin · Espazo · Ctrl + A", d: "Moverse pola lista, marcar con Espazo, marcar todo" },
-        { k: "Maiús / Ctrl + clic", d: "Maiús ou Ctrl + clic marcan varios ficheiros" },
-        { k: "Alt + ↑ ↓", d: "Mover o ficheiro na lista" },
-        { k: "Ctrl + Z", d: "Desfacer ter quitado un ficheiro (coa lista en foco)" },
-      ],
-    },
-    {
-      title: "PDF e texto",
-      keys: [
-        { k: "Ctrl + F", d: "Buscar no PDF ou no texto" },
-        { k: "← → · PáxAv · PáxRe", d: "Páxina anterior e seguinte" },
-        { k: "Inicio · Fin", d: "Primeira e última páxina" },
-        { k: "+ · − · 0", d: "Zoom do PDF (0 restablece)" },
-      ],
-    },
-    {
-      title: "Imaxe",
-      keys: [
-        { k: "+ · −", d: "Ampliar e reducir" },
-        { k: "0 · 1", d: "Axustar á xanela · tamaño real" },
-      ],
-    },
-  ];
 </script>
 
 <Modal title={$t("Axustes")} tall onClose={() => dialog.set(null)}>
@@ -188,16 +138,7 @@
   </section>
   {/if}
   {:else if tab === "shortcuts"}
-  <section>
-    {#each groups as g}
-      <div class="grp">
-        <h4>{$t(g.title)}</h4>
-        {#each g.keys as r}
-          <div class="row"><kbd>{r.k}</kbd><span>{$t(r.d)}</span></div>
-        {/each}
-      </div>
-    {/each}
-  </section>
+  <ShortcutsPanel />
   {:else if tab === "tools"}
     <ToolsPanel />
   {:else}
@@ -218,10 +159,6 @@
   @media (max-width: 640px) { .split { flex-direction: column; } .side { flex-direction: row; flex-wrap: wrap; flex-basis: auto; } }
   section { display: flex; flex-direction: column; gap: 0.6rem; }
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
-  h4 { margin: 0.3rem 0 0.1rem; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: none; }
   .note { margin: 0; font-size: 0.8rem; }
   .exrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
-  .grp { display: flex; flex-direction: column; }
-  .row { display: flex; align-items: center; gap: 0.8rem; padding: 0.25rem 0; border-top: 1px solid var(--border); font-size: 0.85rem; }
-  kbd { flex: 0 0 11rem; font-family: inherit; font-size: 0.78rem; background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: 5px; padding: 1px 7px; width: fit-content; }
 </style>

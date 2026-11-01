@@ -1,4 +1,6 @@
 <script lang="ts">
+  import InfoTip from "./InfoTip.svelte";
+  import { HINTS } from "../../hints";
   import Icon from "../Icon.svelte";
   import { t } from "../../i18n";
 
@@ -9,13 +11,14 @@
   export let hint = "";
   export let disabled = false;
 
+  $: tip = hint || (label && HINTS[label] ? $t(HINTS[label]) : "");
   $: changed = def !== undefined && value !== def;
 </script>
 
-<div class="field" title={hint || undefined}>
+<div class="field">
   {#if label}
     <div class="head">
-      <span class="lab">{label}</span>
+      <span class="lab">{label}{#if tip}<InfoTip text={tip} />{/if}</span>
       {#if changed}
         <button class="reset" on:click={() => (value = def as string | number)} title={$t("Restaurar o valor por defecto ({v})", { v: String(def) })} aria-label={$t("Restaurar o valor por defecto ({v})", { v: String(def) })}>
           <Icon name="reset" size={13} />

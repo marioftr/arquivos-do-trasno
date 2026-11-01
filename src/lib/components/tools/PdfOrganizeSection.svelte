@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import * as pdfjs from "pdfjs-dist";
-  import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+  import { tick } from "svelte";
+  import { getPdf, cachedThumbs, thumbVersion, wantThumb, dropThumb, prefetchThumbs } from "../../pdfCache";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
-  import { viewUrl, type FileEntry } from "../../files";
+  import type { FileEntry } from "../../files";
   import { fallo, fileNameOf, listo, TRASNO } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createJob } from "../../job";
@@ -12,7 +12,6 @@
   import Icon from "../Icon.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
   export let file: FileEntry;
 
@@ -21,7 +20,6 @@
     rotate: number;
     removed: boolean;
   }
-  let thumbs: Record<number, string> = {};
 
   let tiles: Tile[] = [];
   let original: Tile[] = [];
@@ -29,69 +27,56 @@
   let loadError = "";
   const job = createJob();
   const busy = job.busy;
-  let alive = true;
 
-  // As miniaturas debúxanse só cando se ven (un PDF de 300 páxinas non conxela a xanela).
-  let doc: pdfjs.PDFDocumentProxy | null = null;
+  // Só se piden as miniaturas que se ven; o resto vai chegando en segundo plano e queda gardado para o outro modo.
+  let thumbs: Record<number, string> = {};
   let io: IntersectionObserver | null = null;
-  const wanted = new Set<number>();
-  let drawing = false;
-
-  async function drain() {
-    if (drawing) return;
-    drawing = true;
-    while (alive && doc && wanted.size) {
-      const n = [...wanted].sort((x, y) => x - y)[0];
-      wanted.delete(n);
-      if (thumbs[n]) continue;
-      try {
-        const page = await doc.getPage(n);
-        const vp = page.getViewport({ scale: 0.35 });
-        const canvas = document.createElement("canvas");
-        canvas.width = vp.width;
-        canvas.height = vp.height;
-        const ctx = canvas.getContext("2d")!;
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-        thumbs[n] = canvas.toDataURL("image/jpeg", 0.7);
-        thumbs = thumbs;
-      } catch {
-        // unha páxina que non se debuxa queda en branco
-      }
-    }
-    drawing = false;
-  }
+  let alive = true;
+  const sync = () => {
+    const m = cachedThumbs(file.path);
+    let changed = false;
+    for (const [n, u] of m) if (thumbs[n] !== u) { thumbs[n] = u; changed = true; }
+    if (changed) thumbs = thumbs;
+  };
+  const unsub = thumbVersion.subscribe(() => sync());
   function seen(node: HTMLElement, n: number) {
     node.dataset.page = String(n);
     io?.observe(node);
     return { destroy: () => io?.unobserve(node) };
   }
-
-  onMount(async () => {
-    try {
-      const res = await fetch(await viewUrl(file.path));
-      doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()) }).promise;
-      io = new IntersectionObserver(
-        (entries) => {
-          for (const e of entries) if (e.isIntersecting) wanted.add(Number((e.target as HTMLElement).dataset.page));
-          drain();
-        },
-        { rootMargin: "300px" },
-      );
-      const list: Tile[] = Array.from({ length: doc.numPages }, (_, k) => ({ page: k + 1, rotate: 0, removed: false }));
-      tiles = list;
-      original = list.map((x) => ({ ...x }));
-    } catch (e) {
-      loadError = errText(e);
-    } finally {
-      loading = false;
-    }
-  });
+  function start(total: number) {
+    io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const n = Number((e.target as HTMLElement).dataset.page);
+          if (e.isIntersecting) wantThumb(file.path, n);
+          else dropThumb(file.path, n);
+        }
+      },
+      { rootMargin: "400px" },
+    );
+    prefetchThumbs(file.path, total);
+    sync();
+  }
   onDestroy(() => {
     alive = false;
     io?.disconnect();
-    doc?.destroy();
+    unsub();
+  });
+
+  onMount(async () => {
+    try {
+      const doc = await getPdf(file.path);
+      const list: Tile[] = Array.from({ length: doc.numPages }, (_, k) => ({ page: k + 1, rotate: 0, removed: false }));
+      tiles = list;
+      original = list.map((x) => ({ ...x }));
+      loading = false;
+      await tick();
+      start(doc.numPages);
+    } catch (e) {
+      loadError = errText(e);
+      loading = false;
+    }
   });
 
   function move(i: number, d: -1 | 1) {

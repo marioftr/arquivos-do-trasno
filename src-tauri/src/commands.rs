@@ -468,7 +468,15 @@ pub async fn make_preview(path: String, head_seconds: Option<f64>) -> Result<Str
                     (name("video"), name("audio"))
                 });
                 let copyable = matches!(&codecs, Some((Some(v), a)) if v == "h264" && a.as_deref().map_or(true, |a| matches!(a, "aac" | "mp3")));
-                if copyable {
+                let webm_copyable = matches!(&codecs, Some((Some(v), a)) if matches!(v.as_str(), "vp8" | "vp9" | "av1") && a.as_deref().map_or(true, |a| matches!(a, "opus" | "vorbis")));
+                if webm_copyable {
+                    let out = dir.join(format!("{stem}.remux.webm"));
+                    if !out.exists() {
+                        let args: Vec<String> = ["-c", "copy"].iter().map(|s| s.to_string()).collect();
+                        trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
+                    }
+                    out
+                } else if copyable {
                     let out = dir.join(format!("{stem}.remux.mp4"));
                     if !out.exists() {
                         let args: Vec<String> = ["-c", "copy", "-movflags", "+faststart"].iter().map(|s| s.to_string()).collect();
@@ -484,7 +492,8 @@ pub async fn make_preview(path: String, head_seconds: Option<f64>) -> Result<Str
                             args.extend(["-t".to_string(), h.to_string()]);
                         }
                         args.extend(
-                            ["-vf", "scale=-2:trunc(min(ih\\,720)/2)*2", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "27", "-c:a", "aac", "-b:a", "128k", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
+                            // Misma resolución e calidade case idéntica; só desentrelaza o que está marcado como entrelazado.
+                            ["-vf", "yadif=0:-1:1", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "17", "-c:a", "aac", "-b:a", "256k", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
                                 .iter().map(|s| s.to_string()),
                         );
                         trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
@@ -493,9 +502,9 @@ pub async fn make_preview(path: String, head_seconds: Option<f64>) -> Result<Str
                 }
             }
             Category::Audio => {
-                let out = dir.join(format!("{stem}.mp3"));
+                let out = dir.join(format!("{stem}.flac"));
                 if !out.exists() {
-                    let args: Vec<String> = ["-vn", "-b:a", "128k"].iter().map(|s| s.to_string()).collect();
+                    let args: Vec<String> = ["-vn", "-c:a", "flac"].iter().map(|s| s.to_string()).collect();
                     trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
                 }
                 out
@@ -742,9 +751,65 @@ pub async fn pdf_repair(input: String, output: String, overwrite: bool) -> Resul
     .await
 }
 
+/// Un programa instalado mentres a app está aberta non aparece no PATH que ela herdou ao arrancar:
+/// volve ler o PATH do sistema e o do usuario desde o rexistro de Windows.
+#[cfg(windows)]
+fn refresh_path() {
+    fn read(key: &str) -> String {
+        let mut cmd = std::process::Command::new("reg");
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x0800_0000);
+        }
+        let Ok(out) = cmd.args(["query", key, "/v", "Path"]).output() else { return String::new() };
+        let text = String::from_utf8_lossy(&out.stdout).to_string();
+        text.lines()
+            .find(|l| l.trim_start().starts_with("Path"))
+            .and_then(|l| l.split("REG_EXPAND_SZ").nth(1).or_else(|| l.split("REG_SZ").nth(1)))
+            .map(|v| v.trim().to_string())
+            .unwrap_or_default()
+    }
+    fn expand(v: &str) -> String {
+        let mut out = String::new();
+        let mut rest = v;
+        while let Some(i) = rest.find('%') {
+            out.push_str(&rest[..i]);
+            let tail = &rest[i + 1..];
+            match tail.find('%') {
+                Some(j) => {
+                    out.push_str(&std::env::var(&tail[..j]).unwrap_or_default());
+                    rest = &tail[j + 1..];
+                }
+                None => {
+                    out.push('%');
+                    rest = tail;
+                }
+            }
+        }
+        out.push_str(rest);
+        out
+    }
+    let machine = read(r"HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment");
+    let user = read(r"HKCU\Environment");
+    let current = std::env::var("PATH").unwrap_or_default();
+    let joined = [expand(&machine), expand(&user), current].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(";");
+    std::env::set_var("PATH", joined);
+}
+#[cfg(not(windows))]
+fn refresh_path() {}
+
 /// Programas externos que a app aproveita se están instalados.
 #[tauri::command]
-pub fn tools_status() -> serde_json::Value {
+pub async fn tools_status() -> serde_json::Value {
+    blocking(|| {
+        refresh_path();
+        Ok::<_, String>(tools_now())
+    })
+    .await
+    .unwrap_or_default()
+}
+
+fn tools_now() -> serde_json::Value {
     serde_json::json!({
         "ffmpeg": trasno_engine::ffmpeg::ffmpeg_path().is_ok(),
         "ffprobe": trasno_engine::ffmpeg::ffprobe_path().is_ok(),

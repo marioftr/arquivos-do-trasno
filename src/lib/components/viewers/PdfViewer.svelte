@@ -1,15 +1,15 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import * as pdfjs from "pdfjs-dist";
-  import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-  import { viewUrl, pdfOverlay, type FileEntry, type PdfOverlay } from "../../files";
+  import { getPdf } from "../../pdfCache";
+  import { actionFor } from "../../keymap";
+  import { pdfOverlay, type FileEntry, type PdfOverlay } from "../../files";
   import { t } from "../../i18n";
   import Slider from "../ui/Slider.svelte";
   import FindBar from "../ui/FindBar.svelte";
   import { tick, onMount } from "svelte";
   import "pdfjs-dist/web/pdf_viewer.css";
 
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
   export let file: FileEntry;
 
@@ -21,6 +21,7 @@
     h: number;
     view: number[]; // caixa da páxina en puntos [x0, y0, x1, y1]
     s: number; // píxeles CSS por punto
+    done: boolean; // xa ten a súa imaxe debuxada
   }
 
   let container: HTMLDivElement;
@@ -163,20 +164,21 @@
 
   function key(e: KeyboardEvent) {
     const t = e.target as HTMLElement;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+    const id = actionFor(e, "pdf");
+    if (id === "p.find") {
       e.preventDefault();
       find = true;
       return;
     }
-    if (e.ctrlKey || e.metaKey || e.altKey || t.closest("input, select, textarea, [contenteditable], [data-filelist]")) return;
-    if (e.key === "PageDown" || e.key === "ArrowRight") goto(current + 1);
-    else if (e.key === "PageUp" || e.key === "ArrowLeft") goto(current - 1);
-    else if (e.key === "Home") goto(1);
-    else if (e.key === "End" && doc) goto(doc.numPages);
-    else if (e.key === "+" || e.key === "=") ((fitMode = "none"), (scale = Math.min(250, scale + 10)));
-    else if (e.key === "-") ((fitMode = "none"), (scale = Math.max(20, scale - 10)));
-    else if (e.key === "0") setFit("width");
-    else if (e.key === "9") setFit("page");
+    if (!id || t.closest("input, select, textarea, [contenteditable], [data-filelist]")) return;
+    if (id === "p.next") goto(current + 1);
+    else if (id === "p.prev") goto(current - 1);
+    else if (id === "p.first") goto(1);
+    else if (id === "p.last" && doc) goto(doc.numPages);
+    else if (id === "p.zoomIn") ((fitMode = "none"), (scale = Math.min(250, scale + 10)));
+    else if (id === "p.zoomOut") ((fitMode = "none"), (scale = Math.max(20, scale - 10)));
+    else if (id === "p.fitWidth") setFit("width");
+    else if (id === "p.fitPage") setFit("page");
     else return;
     e.preventDefault();
   }
@@ -190,15 +192,9 @@
     error = "";
     encrypted = false;
     try {
-      await doc?.destroy();
       doc = null;
-      const res = await fetch(await viewUrl(path));
-      const data = new Uint8Array(await res.arrayBuffer());
-      const loaded = await pdfjs.getDocument({ data }).promise;
-      if (mine !== token) {
-        loaded.destroy();
-        return;
-      }
+      const loaded = await getPdf(path);
+      if (mine !== token) return;
       doc = loaded;
     } catch (e: any) {
       if (e?.name === "PasswordException") encrypted = true;
@@ -206,50 +202,134 @@
     }
   }
 
+  // ---- debuxo preguiceiro: primeiro as páxinas que o usuario ten diante, o resto cando se achegan
+  const DPR = () => window.devicePixelRatio || 1;
+  let io: IntersectionObserver | null = null;
+  const pending: PageInfo[] = [];
+  let painting = false;
+  const proxies = new Map<number, pdfjs.PDFPageProxy>();
+
+  function observePage(p: PageInfo) {
+    (p.wrap as any).__p = p;
+    io?.observe(p.wrap);
+  }
+  function enqueue(p: PageInfo) {
+    if (p.done || pending.includes(p)) return;
+    pending.push(p);
+    pump();
+  }
+  async function pump() {
+    if (painting) return;
+    painting = true;
+    const mine = token;
+    while (pending.length && mine === token) {
+      // a que está máis preto do que se está vendo, primeiro
+      const mid = container.scrollTop + container.clientHeight / 2;
+      pending.sort((x, y) => Math.abs(x.wrap.offsetTop - container.offsetTop + x.h / 2 - mid) - Math.abs(y.wrap.offsetTop - container.offsetTop + y.h / 2 - mid));
+      const pg = pending.shift()!;
+      if (pg.done) continue;
+      await paintPage(pg, mine);
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    painting = false;
+  }
+  async function paintPage(pg: PageInfo, mine: number) {
+    if (!doc) return;
+    const page = proxies.get(pg.n) ?? (await doc.getPage(pg.n));
+    proxies.set(pg.n, page);
+    if (mine !== token || !pg.wrap.isConnected) return;
+    const viewport = page.getViewport({ scale: pg.s });
+    const dpr = DPR();
+    pg.canvas.width = viewport.width * dpr;
+    pg.canvas.height = viewport.height * dpr;
+    pg.done = true;
+    try {
+      await page.render({ canvasContext: pg.canvas.getContext("2d")!, viewport, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined }).promise;
+      // Capa de texto invisible por riba: permite seleccionar e copiar.
+      pg.wrap.querySelector(".textLayer")?.remove();
+      const layer = document.createElement("div");
+      layer.className = "textLayer";
+      layer.style.setProperty("--scale-factor", String(pg.s));
+      pg.wrap.appendChild(layer);
+      await new pdfjs.TextLayer({ textContentSource: page.streamTextContent(), container: layer, viewport }).render();
+    } catch {
+      // sen capa de texto ou debuxo cortado: o resto do PDF segue vendose
+    }
+  }
+  /** Páxinas que quedan lonxe da pantalla liberan a súa imaxe (un PDF longo non enche a memoria). */
+  function release(pg: PageInfo) {
+    if (!pg.done) return;
+    pg.done = false;
+    pg.canvas.width = 1;
+    pg.canvas.height = 1;
+    pg.wrap.querySelector(".textLayer")?.remove();
+  }
+
   async function render(percent: number) {
     const mine = ++token;
-    const current = doc;
-    if (!current) return;
+    const d = doc;
+    if (!d) return;
+    const keep = current;
+    io?.disconnect();
+    pending.length = 0;
     container.replaceChildren();
     pages = [];
-    const dpr = window.devicePixelRatio || 1;
+    const s = (percent / 100) * 1.333;
+    const first = proxies.get(1) ?? (await d.getPage(1));
+    proxies.set(1, first);
+    if (mine !== token) return;
+    io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const pg = (e.target as any).__p as PageInfo;
+          if (e.isIntersecting) enqueue(pg);
+          else release(pg);
+        }
+      },
+      { root: container, rootMargin: "900px 0px" },
+    );
+    // Todos os ocos ao tamaño da primeira páxina (a pantalla non agarda); os tamaños reais corrixense axiña.
+    const vp1 = first.getViewport({ scale: s });
     const built: PageInfo[] = [];
-    for (let n = 1; n <= current.numPages; n++) {
-      if (mine !== token) return;
-      const page = await current.getPage(n);
-      const s = (percent / 100) * 1.333;
-      const viewport = page.getViewport({ scale: s });
+    for (let n = 1; n <= d.numPages; n++) {
       const wrap = document.createElement("div");
       wrap.className = "pg";
-      wrap.style.width = `${viewport.width}px`;
-      wrap.style.height = `${viewport.height}px`;
+      wrap.style.width = `${vp1.width}px`;
+      wrap.style.height = `${vp1.height}px`;
       const canvas = document.createElement("canvas");
-      canvas.width = viewport.width * dpr;
-      canvas.height = viewport.height * dpr;
-      canvas.style.width = `${viewport.width}px`;
-      canvas.style.height = `${viewport.height}px`;
+      canvas.style.width = `${vp1.width}px`;
+      canvas.style.height = `${vp1.height}px`;
+      canvas.width = 1;
+      canvas.height = 1;
       wrap.appendChild(canvas);
       container.appendChild(wrap);
-      built.push({ n, wrap, canvas, w: viewport.width, h: viewport.height, view: page.view, s });
-      await page.render({
-        canvasContext: canvas.getContext("2d")!,
-        viewport,
-        transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
-      }).promise;
-      // Capa de texto invisible por riba: permite seleccionar e copiar.
-      try {
-        const layer = document.createElement("div");
-        layer.className = "textLayer";
-        layer.style.setProperty("--scale-factor", String(s));
-        wrap.appendChild(layer);
-        await new pdfjs.TextLayer({ textContentSource: page.streamTextContent(), container: layer, viewport }).render();
-      } catch {
-        // sen capa de texto: o PDF segue vendose
+      const info: PageInfo = { n, wrap, canvas, w: vp1.width, h: vp1.height, view: first.view, s, done: false };
+      built.push(info);
+      observePage(info);
+    }
+    pages = built;
+    goto(keep);
+    onScroll();
+    // Tamaños reais das páxinas, en segundo plano (hai PDFs con páxinas de tamaños distintos).
+    for (let n = 2; n <= d.numPages; n++) {
+      if (mine !== token) return;
+      const page = proxies.get(n) ?? (await d.getPage(n));
+      proxies.set(n, page);
+      const vp = page.getViewport({ scale: s });
+      const pg = built[n - 1];
+      if (Math.abs(vp.width - pg.w) > 0.5 || Math.abs(vp.height - pg.h) > 0.5) {
+        pg.w = vp.width;
+        pg.h = vp.height;
+        pg.view = page.view;
+        pg.wrap.style.width = `${vp.width}px`;
+        pg.wrap.style.height = `${vp.height}px`;
+        pg.canvas.style.width = `${vp.width}px`;
+        pg.canvas.style.height = `${vp.height}px`;
       }
+      if (n % 25 === 0) await new Promise((r) => setTimeout(r, 0));
     }
     if (mine === token) {
-      pages = built;
-      onScroll();
+      pages = pages;
       if (find && query.trim() && hits.length) {
         await tick();
         drawHits();
@@ -335,7 +415,7 @@
 
   onDestroy(() => {
     token++;
-    doc?.destroy();
+    io?.disconnect();
   });
 </script>
 

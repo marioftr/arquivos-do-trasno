@@ -2,6 +2,9 @@
   import { onDestroy } from "svelte";
   import { viewUrl, mediaPreview, mediaSeek, mediaTime, trimRange, type FileEntry } from "../../files";
   import * as engine from "../../engine";
+  import { actionFor } from "../../keymap";
+  import { errText } from "../../errors";
+  import { tools, openSettings } from "../../settings";
   import { t } from "../../i18n";
   import Timeline from "../ui/Timeline.svelte";
   import Icon from "../Icon.svelte";
@@ -63,57 +66,38 @@
   }
   // ---- teclado (só co visor aberto; non actúa se se está escribindo nun campo) ----
   function key(e: KeyboardEvent) {
-    if (!el || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!el) return;
     if ((e.target as HTMLElement).closest("input, select, textarea, [contenteditable], [data-filelist]")) return;
-    const step = e.shiftKey ? 1 : 5;
-    switch (e.key) {
-      case " ":
-      case "k":
-        e.preventDefault();
-        toggle();
-        break;
-      case "ArrowLeft":
-      case "j":
-        e.preventDefault();
-        seek(Math.max(0, now - (e.key === "j" ? 10 : step)));
-        break;
-      case "ArrowRight":
-      case "l":
-        e.preventDefault();
-        seek(Math.min(duration || Infinity, now + (e.key === "l" ? 10 : step)));
-        break;
-      case "ArrowUp":
-        e.preventDefault();
+    const id = actionFor(e, "media");
+    if (!id) return;
+    const jump = (d: number) => seek(Math.min(duration || Infinity, Math.max(0, now + d)));
+    switch (id) {
+      case "m.play": toggle(); break;
+      case "m.back5": jump(-5); break;
+      case "m.fwd5": jump(5); break;
+      case "m.back1": jump(-1); break;
+      case "m.fwd1": jump(1); break;
+      case "m.back10": jump(-10); break;
+      case "m.fwd10": jump(10); break;
+      case "m.volUp":
         vol = Math.min(1, Math.round((vol + 0.05) * 100) / 100);
         muted = false;
         break;
-      case "ArrowDown":
-        e.preventDefault();
-        vol = Math.max(0, Math.round((vol - 0.05) * 100) / 100);
-        break;
-      case "m":
-        muted = !muted;
-        break;
-      case "f":
-        if (file.category === "video") fullscreen();
-        break;
-      case "Home":
-        e.preventDefault();
-        seek(0);
-        break;
-      case "End":
-        e.preventDefault();
-        if (duration) seek(duration);
-        break;
-      case ",":
-      case ".":
+      case "m.volDown": vol = Math.max(0, Math.round((vol - 0.05) * 100) / 100); break;
+      case "m.mute": muted = !muted; break;
+      case "m.fullscreen": if (file.category === "video") fullscreen(); break;
+      case "m.start": seek(0); break;
+      case "m.end": if (duration) seek(duration); break;
+      case "m.framePrev":
+      case "m.frameNext":
         // un fotograma cara atrás ou adiante (con pausa)
         if (file.category === "video") {
           el.pause();
-          seek(Math.max(0, now + (e.key === "." ? 1 : -1) / 30));
+          seek(Math.max(0, now + (id === "m.frameNext" ? 1 : -1) / 30));
         }
         break;
     }
+    e.preventDefault();
   }
   // O espazo non debe «premer» tamén o botón que teña o foco.
   function keyup(e: KeyboardEvent) {
@@ -152,10 +136,16 @@
 
   const tick_ = () => new Promise((r) => setTimeout(r, 120));
   let preparing = false;
+  let converted = false; // a vista previa non é o ficheiro orixinal (recodificada)
+  let finishing = false; // a versión completa aínda se está preparando
+  let failMsg = "";
   let triedPreview = false;
 
   async function load(path: string) {
     failed = false;
+    failMsg = "";
+    converted = false;
+    finishing = false;
     triedPreview = false;
     preparing = false;
     playing = false;
@@ -175,8 +165,10 @@
     try {
       // Primeiro só o comezo (sae en segundos); o resto prepárase detrás e cámbiase sen perder o punto.
       const first = await engine.makePreview(file.path, file.category === "video" ? 30 : undefined);
+      converted = !first.includes(".remux.");
       url = await viewUrl(first);
-      if (file.category === "video") {
+      if (file.category === "video" && converted) {
+        finishing = true;
         engine
           .makePreview(file.path)
           .then(async (full) => {
@@ -190,10 +182,14 @@
               if (was) el.play().catch(() => {});
             }
           })
-          .catch(() => {});
+          .catch(() => {})
+          .finally(() => {
+            if (file.path === mine) finishing = false;
+          });
       }
-    } catch {
+    } catch (e) {
       failed = true;
+      failMsg = errText(e);
     } finally {
       preparing = false;
     }
@@ -204,14 +200,27 @@
 
 <div class="wrap">
   {#if preparing}
-    <p class="muted msg">{$t("O trasno está preparando unha vista previa de {ext}…", { ext: file.ext.toUpperCase() })}</p>
+    <div class="msg loading" role="status">
+      <p class="muted">{$t("O trasno está preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}</p>
+      <div class="indet" aria-hidden="true"><span></span></div>
+      <p class="muted tiny">{$t("O navegador non entende este formato, así que se prepara unha copia só para velo. O ficheiro orixinal non se toca.")}</p>
+    </div>
   {:else if failed}
-    <p class="muted msg">{$t("O trasno non puido preparar a vista previa; quizais falta ffmpeg.")}</p>
+    <div class="msg">
+      <p class="muted">
+        {#if $tools && !$tools.ffmpeg}{$t("O trasno non pode preparar a vista previa porque falta ffmpeg.")}{:else}{$t("O trasno non puido preparar a vista previa.")}{/if}
+      </p>
+      {#if failMsg && !($tools && !$tools.ffmpeg)}<p class="muted tiny selectable">{failMsg}</p>{/if}
+      {#if $tools && !$tools.ffmpeg}<button class="btn" on:click={() => openSettings("tools")}>{$t("Ver como instalalo")}</button>{/if}
+    </div>
   {:else if url && file.category === "video"}
     <div class="vid" bind:this={stage}>
       <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
       <video bind:this={el} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={tick} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></video>
       <div class="under">
+        {#if converted}
+          <p class="note" role="note"><Icon name="info" size={13} /> {finishing ? $t("Vista previa recodificada (a versión completa aínda se está preparando). O ficheiro orixinal non cambia.") : $t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}</p>
+        {/if}
         <div class="ctl">
           <button class="btn icon" on:click={toggle} aria-label={playing ? $t("Pausa") : $t("Reproducir")} title={`${playing ? $t("Pausa") : $t("Reproducir")} (${$t("Espazo")})`}><Icon name={playing ? "pause" : "play"} size={15} /></button>
           <div class="tlw"><Timeline {duration} {now} height={34} on:seek={(e) => seek(e.detail)} /></div>
@@ -242,6 +251,13 @@
   .wrap { height: 100%; display: flex; align-items: center; justify-content: center; background: var(--viewer-bg); }
   .vid { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
   video { flex: 1; min-height: 0; width: 100%; object-fit: contain; cursor: pointer; background: transparent; }
+  .loading { display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
+  .loading p { margin: 0; }
+  .tiny { font-size: 0.78rem; }
+  .indet { width: min(280px, 70%); height: 5px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; position: relative; }
+  .indet span { position: absolute; inset: 0 auto 0 0; width: 40%; border-radius: 99px; background: var(--accent); animation: vai 1.2s ease-in-out infinite alternate; }
+  @keyframes vai { from { transform: translateX(0); } to { transform: translateX(150%); } }
+  .note { display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.45rem; font-size: 0.76rem; color: var(--text-muted); }
   .under { padding: 0.7rem 1rem 0.6rem; background: var(--bg-rail); border-top: 1px solid var(--border); }
   .audio { display: flex; flex-direction: column; gap: 0.9rem; align-items: stretch; padding: 2rem; width: min(820px, 100%); }
   .nome { color: var(--text-muted); text-align: center; }

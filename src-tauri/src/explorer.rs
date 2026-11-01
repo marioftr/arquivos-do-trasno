@@ -106,14 +106,15 @@ fn menu_for(ext: &str, kind: Kind, l: &Labels) -> Vec<Item> {
             .map(|(i, p)| Item::Cmd { id: format!("q{i}_{p}"), label: l.fill("quality", &[("p", &p.to_string())]), args: format!("--compress {p}") })
             .collect(),
     };
-    let rotate = |slug: &str| Item::Sub {
-        id: slug.to_string(),
-        label: l.get("rotate"),
-        items: vec![
+    let rotate = |slug: &str, with_half: bool| {
+        let mut items = vec![
             Item::Cmd { id: "r1_left".into(), label: l.get("left"), args: "--rotate 270".into() },
             Item::Cmd { id: "r2_right".into(), label: l.get("right"), args: "--rotate 90".into() },
-            Item::Cmd { id: "r3_half".into(), label: l.get("half"), args: "--rotate 180".into() },
-        ],
+        ];
+        if with_half {
+            items.push(Item::Cmd { id: "r3_half".into(), label: l.get("half"), args: "--rotate 180".into() });
+        }
+        Item::Sub { id: slug.to_string(), label: l.get("rotate"), items }
     };
     let mut push_cmds = |items: &mut Vec<Item>, list: Vec<(String, String)>| {
         for (label, args) in list {
@@ -122,13 +123,11 @@ fn menu_for(ext: &str, kind: Kind, l: &Labels) -> Vec<Item> {
         }
     };
     match kind {
+        // Windows só amosa 16 entradas en total (submenús incluídos) nun menú de rexistro: cada tipo axústase a ese tope.
         Kind::Image => {
-            push_cmds(&mut items, convert(&["png", "jpg", "webp", "pdf"]));
-            let more = convert(&["gif", "bmp", "tiff", "ico"]);
-            if !more.is_empty() {
-                let sub: Vec<Item> = more.into_iter().enumerate().map(|(i, (label, args))| Item::Cmd { id: format!("m{i}"), label, args }).collect();
-                items.push(Item::Sub { id: next("more"), label: l.get("more"), items: sub });
-            }
+            let mut top = convert(&["png", "jpg", "webp", "pdf"]);
+            top.truncate(4);
+            push_cmds(&mut items, top);
             items.push(Item::Sub {
                 id: next("resize"),
                 label: l.get("resize"),
@@ -138,12 +137,15 @@ fn menu_for(ext: &str, kind: Kind, l: &Labels) -> Vec<Item> {
                     .map(|(i, p)| Item::Cmd { id: format!("s{i}_{p}"), label: l.fill("percent", &[("p", &p.to_string())]), args: format!("--resize p{p}") })
                     .collect(),
             });
-            items.push(rotate(&next("rotate")));
+            items.push(rotate(&next("rotate"), false));
             items.push(quality(&next("compress")));
         }
         Kind::Video => {
-            push_cmds(&mut items, convert(&["mp4", "mkv", "webm", "mp3"]));
-            let more = convert(&["mov", "avi", "gif", "wav"]);
+            let mut top = convert(&["mp4", "mkv", "webm", "mp3"]);
+            let mut more = top.split_off(top.len().min(3));
+            more.extend(convert(&["mov", "avi", "gif", "wav"]));
+            more.truncate(3);
+            push_cmds(&mut items, top);
             let sub: Vec<Item> = more.into_iter().enumerate().map(|(i, (label, args))| Item::Cmd { id: format!("m{i}"), label, args }).collect();
             items.push(Item::Sub { id: next("more"), label: l.get("more"), items: sub });
             items.push(Item::Sub {
@@ -166,7 +168,7 @@ fn menu_for(ext: &str, kind: Kind, l: &Labels) -> Vec<Item> {
         Kind::Text => push_cmds(&mut items, convert(&["pdf"])),
         Kind::Pdf => {
             push_cmds(&mut items, convert(&["txt"]));
-            items.push(rotate(&next("rotate")));
+            items.push(rotate(&next("rotate"), true));
             items.push(quality(&next("compress")));
         }
     }
@@ -533,6 +535,17 @@ mod tests {
         let png: String = reg.split("[HKEY_CURRENT_USER").filter(|b| b.starts_with(r"\Software\Classes\SystemFileAssociations\.png\")).collect();
         assert!(!png.contains("--convert png "));
         assert!(!reg.contains("[-HKEY"));
+    }
+
+    #[test]
+    fn ningun_menu_pasa_do_tope_de_16_entradas_de_windows() {
+        fn count(items: &[Item]) -> usize {
+            items.iter().map(|i| match i { Item::Cmd { .. } => 1, Item::Sub { items, .. } => 1 + count(items) }).sum()
+        }
+        for (ext, kind) in sources() {
+            let n = 1 + count(&menu_for(ext, kind, &labels()));
+            assert!(n <= 16, ".{ext} ten {n} entradas");
+        }
     }
 
     #[test]

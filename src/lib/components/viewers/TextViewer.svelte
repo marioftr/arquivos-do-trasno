@@ -4,6 +4,7 @@
   import { viewUrl, type FileEntry } from "../../files";
   import { tr } from "../../i18n";
   import FindBar from "../ui/FindBar.svelte";
+  import { actionFor } from "../../keymap";
 
   export let file: FileEntry;
 
@@ -55,7 +56,7 @@
   };
 
   function key(e: KeyboardEvent) {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+    if (actionFor(e, "pdf") === "p.find") {
       e.preventDefault();
       find = true;
     }

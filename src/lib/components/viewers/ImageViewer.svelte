@@ -4,6 +4,7 @@
   import * as engine from "../../engine";
   import { t } from "../../i18n";
   import Slider from "../ui/Slider.svelte";
+  import { actionFor } from "../../keymap";
 
   export let file: FileEntry;
 
@@ -125,21 +126,23 @@
 
   const up = () => (drag = null);
 
-  // Teclado: + e - para o zoom, 0 para axustar.
+  // Teclado (configurable en Axustes → Atallos).
   function key(e: KeyboardEvent) {
-    if (e.ctrlKey || e.metaKey || e.altKey || (e.target as HTMLElement).closest("input, select, textarea, [contenteditable]")) return;
-    if (e.key === "+" || e.key === "=") {
+    if ((e.target as HTMLElement).closest("input, select, textarea, [contenteditable]")) return;
+    const id = actionFor(e, "image");
+    if (id === "i.zoomIn") {
       fit = false;
       zoom = Math.min(400, Math.round(zoom * 1.25));
-    } else if (e.key === "-") {
+    } else if (id === "i.zoomOut") {
       fit = false;
       zoom = Math.max(10, Math.round(zoom / 1.25));
-    } else if (e.key === "0") {
+    } else if (id === "i.fit") {
       fit = true;
-    } else if (e.key === "1") {
+    } else if (id === "i.actual") {
       fit = false;
       zoom = 100;
-    }
+    } else return;
+    e.preventDefault();
   }
 
   const HANDLES = ["tl", "t", "tr", "r", "br", "b", "bl", "l"];
