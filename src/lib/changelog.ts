@@ -29,7 +29,7 @@ export const CHANGELOG: Release[] = [
       { kind: "better", gl: "O volume lémbrase ao cambiar de ficheiro, e se a vista previa falla hai un botón para tentar de novo.", es: "El volumen se recuerda al cambiar de archivo, y si la vista previa falla hay un botón para intentarlo de nuevo.", en: "Volume is remembered when switching files, and if a preview fails there is a button to try again." },
       { kind: "fixed", gl: "Converter un AVI de miniDV daba erro cando o nome de saída non levaba extensión.", es: "Convertir un AVI de miniDV daba error cuando el nombre de salida no llevaba extensión.", en: "Converting a miniDV AVI failed when the output name had no extension." },
       { kind: "fixed", gl: "A estimación do tamaño volve calcularse ao cambiar de perfil e hai un botón «Estimar de novo».", es: "La estimación del tamaño vuelve a calcularse al cambiar de perfil y hay un botón «Estimar de nuevo».", en: "The size estimate is recalculated when the profile changes, and there is an “Estimate again” button." },
-      { kind: "fixed", gl: "O aviso de cancelado xa non sae en verde e arranxei separadores «·» que se xuntaban co texto.", es: "El aviso de cancelado ya no sale en verde y arreglé separadores «·» que se pegaban al texto.", en: "The cancelled notice is no longer green and “·” separators that stuck to the text are fixed." },
+      { kind: "fixed", gl: "O aviso de cancelado xa non se mostra en verde e corrixiuse o espazado dos separadores «·».", es: "El aviso de cancelado ya no se muestra en verde y se ha corregido el espaciado de los separadores «·».", en: "The cancelled notice is no longer shown in green and the spacing of “·” separators has been corrected." },
     ],
   },
   {

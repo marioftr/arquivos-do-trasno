@@ -174,7 +174,7 @@ export const DOCS: Record<DocId, LegalDoc> = {
       {
         h: { gl: "MIT License", es: "MIT License", en: "MIT License" },
         p: [
-          { gl: "Copyright (c) 2026 marioftr", es: "Copyright (c) 2026 Proxecto Trasno", en: "Copyright (c) 2026 Proxecto Trasno" },
+          { gl: "Copyright (c) 2026 marioftr", es: "Copyright (c) 2026 marioftr", en: "Copyright (c) 2026 marioftr" },
           {
             gl: "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:",
             es: "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:",
