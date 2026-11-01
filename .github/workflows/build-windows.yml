@@ -1,8 +1,7 @@
 name: Empaquetar para Windows
 
 on:
-  push:
-    branches: [claude/vigilant-newton-ofasgr]
+  # Só a man (Actions → Run workflow). As versións publícanse co fluxo «Publicar versión».
   workflow_dispatch:
 
 jobs:

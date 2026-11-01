@@ -17,6 +17,17 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.1.1",
+    date: "2026-11-01",
+    title: { gl: "Paneis e pistas", es: "Paneles y pistas", en: "Panels and tracks" },
+    changes: [
+      { kind: "new", gl: "Os dous paneis laterais pódense axustar de ancho e pregar para ver o contido máis grande; un botón na divisoria volve despregalos.", es: "Los dos paneles laterales se pueden ajustar de ancho y plegar para ver el contenido más grande; un botón en la divisoria vuelve a desplegarlos.", en: "Both side panels can be resized and folded away to see the content bigger; a button on the divider unfolds them again." },
+      { kind: "new", gl: "Nos vídeos podes escoller que pista de vídeo, audio ou subtítulos reproducir, nun panel novo xunto ao visor.", es: "En los vídeos puedes elegir qué pista de vídeo, audio o subtítulos reproducir, en un panel nuevo junto al visor.", en: "In videos you can choose which video, audio or subtitle track to play, in a new panel beside the viewer." },
+      { kind: "better", gl: "O panel do visor 3D está redeseñado: acoplado ao lado (sen tapar o modelo), con seccións pregables e ancho axustable.", es: "El panel del visor 3D está rediseñado: acoplado al lado (sin tapar el modelo), con secciones plegables y ancho ajustable.", en: "The 3D viewer panel is redesigned: docked beside the model (not covering it), with collapsible sections and adjustable width." },
+      { kind: "fixed", gl: "Ao redimensionar paneis, o visor 3D e o PDF xa non parpadean.", es: "Al redimensionar paneles, el visor 3D y el PDF ya no parpadean.", en: "Resizing panels no longer makes the 3D viewer and PDF flicker." },
+    ],
+  },
+  {
     version: "0.1.0",
     date: "2026-11-01",
     title: { gl: "Primeira versión", es: "Primera versión", en: "First version" },
