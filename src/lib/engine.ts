@@ -166,8 +166,9 @@ export async function revealInFolder(path: string): Promise<void> {
 }
 
 /** Copia lixeira que o visor sabe amosar (PNG, MP4 pequeno ou MP3). */
-export async function makePreview(path: string): Promise<string> {
-  return call("make_preview", { path });
+/** `headSeconds`: só prepara o comezo (sae antes); sen el, o ficheiro enteiro. */
+export async function makePreview(path: string, headSeconds?: number): Promise<string> {
+  return call("make_preview", { path, headSeconds: headSeconds ?? null });
 }
 
 export interface ImageCompressReport {
@@ -197,12 +198,25 @@ export async function estimateImage(input: string, quality: number, maxSide?: nu
   return call("estimate_image", { input, quality, maxSide: maxSide ?? null });
 }
 
+/** Troca os cartafoles polos ficheiros que levan dentro. */
+export async function expandPaths(paths: string[]): Promise<string[]> {
+  return call("expand_paths", { paths });
+}
+
+/** Abre ficheiros na aplicación completa (na xa aberta, ou nunha nova). */
+export async function openInApp(paths: string[]): Promise<void> {
+  return call("open_in_app", { paths });
+}
+
 export interface VideoCompressOpts {
   crf: number;
   targetBytes?: number;
   maxHeight?: number;
   audioKbps: number;
   videoKbps?: number;
+  deinterlace?: 0 | 1 | 2;
+  compat?: boolean;
+  dar?: string;
 }
 
 export async function compressVideo(input: string, output: string, o: VideoCompressOpts, overwrite = false): Promise<string> {
@@ -215,6 +229,9 @@ export async function compressVideo(input: string, output: string, o: VideoCompr
     maxHeight: o.maxHeight ?? null,
     audioKbps: o.audioKbps,
     videoKbps: o.videoKbps ?? null,
+    deinterlace: o.deinterlace ?? null,
+    compat: o.compat ?? null,
+    dar: o.dar ?? null,
   });
 }
 

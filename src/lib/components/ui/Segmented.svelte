@@ -2,13 +2,25 @@
   export let options: { value: string | number; label: string; hint?: string }[];
   export let value: string | number;
   export let label = "";
+
+  let seg: HTMLDivElement;
+  function key(e: KeyboardEvent) {
+    const i = Math.max(0, options.findIndex((o) => o.value === value));
+    const d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    if (!d) return;
+    e.preventDefault();
+    const j = (i + d + options.length) % options.length;
+    value = options[j].value;
+    requestAnimationFrame(() => seg?.querySelectorAll<HTMLElement>("button")[j]?.focus());
+  }
 </script>
 
 <div class="wrap">
   {#if label}<span class="lab">{label}</span>{/if}
-  <div class="seg" role="group" aria-label={label}>
+  <!-- svelte-ignore a11y_interactive_supports_focus -->
+  <div class="seg" role="radiogroup" aria-label={label} on:keydown={key} bind:this={seg}>
     {#each options as o}
-      <button class:on={value === o.value} title={o.hint} on:click={() => (value = o.value)}>{o.label}</button>
+      <button role="radio" aria-checked={value === o.value} tabindex={value === o.value ? 0 : -1} class:on={value === o.value} title={o.hint} on:click={() => (value = o.value)}>{o.label}</button>
     {/each}
   </div>
 </div>

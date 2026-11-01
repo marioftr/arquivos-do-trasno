@@ -158,7 +158,7 @@ pub fn compress_image(
 
 // ----------------------------------------------------------------- vídeo
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct VideoCompress {
     /// CRF de x264 (18 case sen perdas ... 40 moi comprimido). Ignórase se hai `target_bytes`.
     pub crf: u8,
@@ -169,6 +169,12 @@ pub struct VideoCompress {
     pub audio_kbps: u32,
     /// Bitrate fixo da imaxe (kbps), nunha soa pasada. Ignórase se hai `target_bytes`.
     pub video_kbps: Option<u32>,
+    /// Desentrelazar: 0 non, 1 só os cadros entrelazados (mantén a cadencia), 2 todos (dobra a cadencia, como o DV orixinal en «yadif=1»).
+    pub deinterlace: u8,
+    /// Preset lento de x264 e perfil High 4.1: máis eficiente e compatible con case todo.
+    pub compat: bool,
+    /// Relación de aspecto de pantalla forzada (p. ex. «4/3» ou «16/9»), útil nos vídeos DV anamórficos.
+    pub dar: Option<String>,
 }
 
 fn scale_filter(max_height: Option<u32>) -> Option<String> {
@@ -239,12 +245,38 @@ pub fn estimate_video_bytes(input: &Path, crf: u8, max_height: Option<u32>, audi
     Ok((sample / len * s.duration) as u64)
 }
 
+/// Filtros de vídeo do perfil: desentrelazar, escalar e fixar a relación de aspecto, por esa orde.
+fn filters(o: &VideoCompress) -> Option<String> {
+    let mut f: Vec<String> = Vec::new();
+    match o.deinterlace {
+        1 => f.push("yadif=0:-1:1".into()),
+        2 => f.push("yadif=1".into()),
+        _ => {}
+    }
+    if let Some(s) = scale_filter(o.max_height) {
+        f.push(s);
+    }
+    if let Some(d) = o.dar.as_deref().filter(|d| d.chars().all(|c| c.is_ascii_digit() || c == '/' || c == ':')) {
+        f.push(format!("setdar={}", d.replace(':', "/")));
+    }
+    if f.is_empty() { None } else { Some(f.join(",")) }
+}
+
+/// Axustes de x264 que se engaden ao final (o último valor de cada opción gaña).
+fn compat_args(o: &VideoCompress) -> Vec<String> {
+    if o.compat {
+        ["-preset", "slow", "-profile:v", "high", "-level", "4.1"].iter().map(|s| s.to_string()).collect()
+    } else {
+        Vec::new()
+    }
+}
+
 pub fn compress_video(input: &Path, output: &Path, overwrite: bool, o: &VideoCompress) -> Result<PathBuf> {
     if !input.is_file() {
         return Err(EngineError::InputNotFound(input.to_path_buf()));
     }
     ensure_distinct(&[input], output)?;
-    let vf = scale_filter(o.max_height);
+    let vf = filters(o);
     let audio_kbps = o.audio_kbps.clamp(32, 320);
 
     if o.target_bytes.is_none() {
@@ -253,6 +285,7 @@ pub fn compress_video(input: &Path, output: &Path, overwrite: bool, o: &VideoCom
                 return Err(EngineError::IntegrityCheck("O bitrate do vídeo non é válido.".into()));
             }
             let mut args = x264_common(None, Some(vk), &vf);
+            args.extend(compat_args(o));
             args.extend(["-maxrate".into(), format!("{}k", vk * 3 / 2), "-bufsize".into(), format!("{}k", vk * 2)]);
             args.extend(["-c:a".into(), "aac".into(), "-b:a".into(), format!("{audio_kbps}k"), "-movflags".into(), "+faststart".into()]);
             return ffmpeg::convert_media(input, output, overwrite, &args);
@@ -260,6 +293,7 @@ pub fn compress_video(input: &Path, output: &Path, overwrite: bool, o: &VideoCom
     }
     let Some(target) = o.target_bytes else {
         let mut args = x264_common(Some(o.crf), None, &vf);
+        args.extend(compat_args(o));
         args.extend(["-c:a".into(), "aac".into(), "-b:a".into(), format!("{audio_kbps}k"), "-movflags".into(), "+faststart".into()]);
         return ffmpeg::convert_media(input, output, overwrite, &args);
     };
@@ -299,9 +333,11 @@ pub fn compress_video(input: &Path, output: &Path, overwrite: bool, o: &VideoCom
         let vk = v_kbps as u32;
         let mut p1: Vec<std::ffi::OsString> = vec!["-i".into(), input.as_os_str().to_owned()];
         p1.extend(x264_common(None, Some(vk), &vf).into_iter().map(Into::into));
+        p1.extend(compat_args(o).into_iter().map(Into::into));
         p1.extend(["-pass".into(), "1".into(), "-passlogfile".into(), log.as_os_str().to_owned(), "-an".into(), "-f".into(), "null".into(), null_sink().into()]);
         let mut p2: Vec<std::ffi::OsString> = vec!["-i".into(), input.as_os_str().to_owned()];
         p2.extend(x264_common(None, Some(vk), &vf).into_iter().map(Into::into));
+        p2.extend(compat_args(o).into_iter().map(Into::into));
         p2.extend(["-pass".into(), "2".into(), "-passlogfile".into(), log.as_os_str().to_owned()]);
         if s.has_audio {
             p2.extend(["-c:a".into(), "aac".into(), "-b:a".into(), format!("{audio_kbps}k").into()]);

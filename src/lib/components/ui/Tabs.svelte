@@ -1,11 +1,24 @@
 <script lang="ts">
   export let tabs: { id: string; label: string }[];
   export let value: string;
+
+  let bar: HTMLDivElement;
+  function key(e: KeyboardEvent) {
+    const i = tabs.findIndex((x) => x.id === value);
+    const to = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : -1;
+    if (to < 0) return;
+    e.preventDefault();
+    const j = (to + tabs.length) % tabs.length;
+    value = tabs[j].id;
+    requestAnimationFrame(() => bar?.querySelectorAll<HTMLElement>('[role="tab"]')[j]?.focus());
+  }
 </script>
 
-<div class="tabs" role="tablist">
+<!-- Frechas para moverse entre pestanas; só a activa entra co Tab (como nos controis nativos). -->
+<!-- svelte-ignore a11y_interactive_supports_focus -->
+<div class="tabs" role="tablist" on:keydown={key} bind:this={bar}>
   {#each tabs as tab}
-    <button role="tab" aria-selected={value === tab.id} class:on={value === tab.id} on:click={() => (value = tab.id)}>{tab.label}</button>
+    <button role="tab" tabindex={value === tab.id ? 0 : -1} aria-selected={value === tab.id} class:on={value === tab.id} on:click={() => (value = tab.id)}>{tab.label}</button>
   {/each}
 </div>
 

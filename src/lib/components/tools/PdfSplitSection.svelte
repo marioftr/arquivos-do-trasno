@@ -19,7 +19,7 @@
 
   export let file: FileEntry;
 
-  const form = createForm({ mode: "each" as "each" | "every" | "ranges", every: 2, ranges: "" });
+  const form = createForm({ mode: "each" as "each" | "every" | "ranges", every: 2, ranges: "" }, "pdf-dividir");
   onMount(() => useForm(form));
 
   const job = createJob();

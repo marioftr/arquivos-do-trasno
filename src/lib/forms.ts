@@ -19,14 +19,43 @@ export const activeForm = writable<Form<any> | null>(null);
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-export function createForm<T extends Record<string, any>>(defaults: T): Form<T> {
-  const store = writable<T>({ ...defaults });
+// Os axustes de cada ferramenta lémbranse (por tipo de ficheiro) ao cambiar de pestana e entre sesións.
+const MEMORY_KEY = "arquivos-do-trasno.axustes";
+let memory: Record<string, Record<string, unknown>> | null = null;
+function loadMemory() {
+  if (memory) return memory;
+  try {
+    memory = JSON.parse(localStorage.getItem(MEMORY_KEY) ?? "{}");
+  } catch {
+    memory = {};
+  }
+  return memory!;
+}
+let memTimer: ReturnType<typeof setTimeout> | undefined;
+function remember(key: string, value: Record<string, unknown>) {
+  loadMemory()[key] = value;
+  clearTimeout(memTimer);
+  memTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+    } catch {
+      // sen almacenamento: só vale mentres a app está aberta
+    }
+  }, 400);
+}
+
+export function createForm<T extends Record<string, any>>(defaults: T, memoryKey?: string): Form<T> {
+  // Con `memoryKey`, arranca cos últimos valores usados (só os campos que seguen existindo).
+  const saved = memoryKey ? loadMemory()[memoryKey] : undefined;
+  const start = { ...defaults } as T;
+  if (saved) for (const k of Object.keys(defaults)) if (k in saved && typeof saved[k] === typeof defaults[k]) (start as any)[k] = saved[k];
+  const store = writable<T>({ ...start });
   const canUndo = writable(false);
   const canRedo = writable(false);
   const dirty = writable(false);
   const past: T[] = [];
   let future: T[] = [];
-  let last: T = { ...defaults };
+  let last: T = { ...start };
   let burstStart: T | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let applying = false;
@@ -49,6 +78,7 @@ export function createForm<T extends Record<string, any>>(defaults: T): Form<T> 
   };
 
   store.subscribe((v) => {
+    if (memoryKey) remember(memoryKey, v);
     if (applying || same(v, last)) return;
     if (!burstStart) burstStart = { ...last };
     last = { ...v };

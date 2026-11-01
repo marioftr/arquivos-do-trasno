@@ -13,17 +13,25 @@
   export let selected: number[] = [];
 
   const dispatch = createEventDispatcher<{ toggle: number; total: number }>();
-  let thumbs: string[] = [];
-  let loading = true;
+  let total = 0;
+  let thumbs: Record<number, string> = {};
   let error = "";
   let alive = true;
+  let doc: pdfjs.PDFDocumentProxy | null = null;
+  let grid: HTMLDivElement;
+  let io: IntersectionObserver | null = null;
+  const wanted = new Set<number>();
+  let drawing = false;
 
-  onMount(async () => {
-    try {
-      const res = await fetch(await viewUrl(file.path));
-      const doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()) }).promise;
-      dispatch("total", doc.numPages);
-      for (let n = 1; n <= doc.numPages && alive; n++) {
+  // Só se debuxan as miniaturas que se ven (ou están a piques de verse): un PDF de 300 páxinas non conxela a xanela.
+  async function drain() {
+    if (drawing) return;
+    drawing = true;
+    while (alive && doc && wanted.size) {
+      const n = [...wanted].sort((x, y) => x - y)[0];
+      wanted.delete(n);
+      if (thumbs[n]) continue;
+      try {
         const page = await doc.getPage(n);
         const vp = page.getViewport({ scale: 0.3 });
         const canvas = document.createElement("canvas");
@@ -33,16 +41,43 @@
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         await page.render({ canvasContext: ctx, viewport: vp }).promise;
-        thumbs = [...thumbs, canvas.toDataURL("image/jpeg", 0.7)];
+        thumbs[n] = canvas.toDataURL("image/jpeg", 0.7);
+        thumbs = thumbs;
+      } catch {
+        // unha páxina que non se debuxa queda en branco
       }
-      await doc.destroy();
+    }
+    drawing = false;
+  }
+
+  function seen(node: HTMLElement, n: number) {
+    io?.observe(node);
+    node.dataset.n = String(n);
+    return { destroy: () => io?.unobserve(node) };
+  }
+
+  onMount(async () => {
+    try {
+      const res = await fetch(await viewUrl(file.path));
+      doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()) }).promise;
+      io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) if (e.isIntersecting) wanted.add(Number((e.target as HTMLElement).dataset.n));
+          drain();
+        },
+        { rootMargin: "300px" },
+      );
+      total = doc.numPages;
+      dispatch("total", total);
     } catch (e) {
       error = errText(e);
-    } finally {
-      loading = false;
     }
   });
-  onDestroy(() => (alive = false));
+  onDestroy(() => {
+    alive = false;
+    io?.disconnect();
+    doc?.destroy();
+  });
 
   $: set = new Set(selected);
 </script>
@@ -50,15 +85,14 @@
 {#if error}
   <p class="group-note">{$t("Non puiden abrir o PDF: {error}", { error })}</p>
 {:else}
-  <div class="grid">
-    {#each thumbs as src, i}
-      <button class="tile" class:on={set.has(i + 1)} on:click={() => dispatch("toggle", i + 1)} aria-pressed={set.has(i + 1)} title={$t("Páxina {n}", { n: i + 1 })}>
-        <span class="thumb"><img {src} alt={String(i + 1)} draggable="false" on:dragstart|preventDefault /></span>
-        <span class="num">{i + 1}</span>
+  <div class="grid" bind:this={grid}>
+    {#each Array.from({ length: total }, (_, k) => k + 1) as n (n)}
+      <button class="tile" class:on={set.has(n)} on:click={() => dispatch("toggle", n)} aria-pressed={set.has(n)} title={$t("Páxina {n}", { n })} use:seen={n}>
+        <span class="thumb">{#if thumbs[n]}<img src={thumbs[n]} alt={String(n)} draggable="false" on:dragstart|preventDefault />{/if}</span>
+        <span class="num">{n}</span>
       </button>
     {/each}
   </div>
-  {#if loading}<p class="group-note">{$t("O trasno está debuxando as miniaturas…")}</p>{/if}
 {/if}
 
 <style>

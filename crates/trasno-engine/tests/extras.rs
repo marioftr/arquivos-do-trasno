@@ -253,7 +253,7 @@ fn comprimir_video_por_calidade_e_por_tamano_maximo() {
     let src_size = std::fs::metadata(&src).unwrap().len();
 
     let by_crf = dir.path().join("crf.mp4");
-    compress::compress_video(&src, &by_crf, false, &compress::VideoCompress { crf: 32, target_bytes: None, max_height: Some(240), audio_kbps: 64, video_kbps: None }).unwrap();
+    compress::compress_video(&src, &by_crf, false, &compress::VideoCompress { crf: 32, target_bytes: None, max_height: Some(240), audio_kbps: 64, video_kbps: None, ..Default::default() }).unwrap();
     let crf_size = std::fs::metadata(&by_crf).unwrap().len();
     assert!(crf_size < src_size, "{crf_size} !< {src_size}");
     let info = ffmpeg::probe(&by_crf).unwrap();
@@ -261,7 +261,7 @@ fn comprimir_video_por_calidade_e_por_tamano_maximo() {
 
     let target = 250_000u64;
     let by_size = dir.path().join("size.mp4");
-    compress::compress_video(&src, &by_size, false, &compress::VideoCompress { crf: 28, target_bytes: Some(target), max_height: None, audio_kbps: 64, video_kbps: None }).unwrap();
+    compress::compress_video(&src, &by_size, false, &compress::VideoCompress { crf: 28, target_bytes: Some(target), max_height: None, audio_kbps: 64, video_kbps: None, ..Default::default() }).unwrap();
     let got = std::fs::metadata(&by_size).unwrap().len();
     assert!(got <= target, "{got} > {target}");
     assert!(got > target / 3, "demasiado lonxe do obxectivo: {got}");
@@ -271,7 +271,7 @@ fn comprimir_video_por_calidade_e_por_tamano_maximo() {
 
     // Obxectivo imposible: erro claro, sen ficheiro.
     let tiny = dir.path().join("tiny.mp4");
-    assert!(compress::compress_video(&src, &tiny, false, &compress::VideoCompress { crf: 28, target_bytes: Some(2_000), max_height: None, audio_kbps: 64, video_kbps: None }).is_err());
+    assert!(compress::compress_video(&src, &tiny, false, &compress::VideoCompress { crf: 28, target_bytes: Some(2_000), max_height: None, audio_kbps: 64, video_kbps: None, ..Default::default() }).is_err());
     assert!(!tiny.exists());
 
     // Estimación razoable do modo por calidade.
@@ -294,9 +294,35 @@ fn comprimir_video_por_bitrate_da_imaxe() {
         .unwrap();
     assert!(st.success());
     let out = dir.path().join("b.mp4");
-    compress::compress_video(&src, &out, false, &compress::VideoCompress { crf: 28, target_bytes: None, max_height: None, audio_kbps: 64, video_kbps: Some(300) }).unwrap();
+    compress::compress_video(&src, &out, false, &compress::VideoCompress { crf: 28, target_bytes: None, max_height: None, audio_kbps: 64, video_kbps: Some(300), ..Default::default() }).unwrap();
     let bytes = std::fs::metadata(&out).unwrap().len() as f64;
     // ~300 kbps durante 6 s = ~225 KB (con marxe).
     assert!(bytes < 400_000.0 && bytes > 50_000.0, "{bytes}");
-    assert!(compress::compress_video(&src, &dir.path().join("c.mp4"), false, &compress::VideoCompress { crf: 28, target_bytes: None, max_height: None, audio_kbps: 64, video_kbps: Some(5) }).is_err());
+    assert!(compress::compress_video(&src, &dir.path().join("c.mp4"), false, &compress::VideoCompress { crf: 28, target_bytes: None, max_height: None, audio_kbps: 64, video_kbps: Some(5), ..Default::default() }).is_err());
+}
+
+#[test]
+fn perfil_minidv_desentrelaza_fixa_aspecto_e_usa_high() {
+    if ffmpeg::ffmpeg_path().is_err() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("cinta.avi");
+    let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+        .args(["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=720x576:rate=25:duration=2"])
+        .args(["-f", "lavfi", "-i", "sine=frequency=300:duration=2", "-shortest", "-c:v", "mpeg4", "-q:v", "3", "-flags", "+ilme+ildct"])
+        .arg(&src)
+        .status()
+        .unwrap();
+    assert!(st.success());
+    let out = dir.path().join("cinta.mp4");
+    let o = compress::VideoCompress { crf: 18, audio_kbps: 192, deinterlace: 2, compat: true, dar: Some("16/9".into()), ..Default::default() };
+    compress::compress_video(&src, &out, false, &o).unwrap();
+    let info = ffmpeg::probe(&out).unwrap();
+    let v = &info["streams"][0];
+    assert_eq!(v["codec_name"], "h264");
+    assert_eq!(v["profile"], "High");
+    assert_eq!(v["display_aspect_ratio"], "16:9");
+    // yadif=1 dobra a cadencia: 25 -> 50 cadros por segundo.
+    assert_eq!(v["r_frame_rate"], "50/1");
 }

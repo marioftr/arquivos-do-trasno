@@ -20,8 +20,8 @@
     page: number;
     rotate: number;
     removed: boolean;
-    thumb: string;
   }
+  let thumbs: Record<number, string> = {};
 
   let tiles: Tile[] = [];
   let original: Tile[] = [];
@@ -31,12 +31,20 @@
   const busy = job.busy;
   let alive = true;
 
-  onMount(async () => {
-    try {
-      const res = await fetch(await viewUrl(file.path));
-      const doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()) }).promise;
-      const list: Tile[] = [];
-      for (let n = 1; n <= doc.numPages && alive; n++) {
+  // As miniaturas debúxanse só cando se ven (un PDF de 300 páxinas non conxela a xanela).
+  let doc: pdfjs.PDFDocumentProxy | null = null;
+  let io: IntersectionObserver | null = null;
+  const wanted = new Set<number>();
+  let drawing = false;
+
+  async function drain() {
+    if (drawing) return;
+    drawing = true;
+    while (alive && doc && wanted.size) {
+      const n = [...wanted].sort((x, y) => x - y)[0];
+      wanted.delete(n);
+      if (thumbs[n]) continue;
+      try {
         const page = await doc.getPage(n);
         const vp = page.getViewport({ scale: 0.35 });
         const canvas = document.createElement("canvas");
@@ -46,18 +54,45 @@
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         await page.render({ canvasContext: ctx, viewport: vp }).promise;
-        list.push({ page: n, rotate: 0, removed: false, thumb: canvas.toDataURL("image/jpeg", 0.7) });
-        tiles = [...list];
+        thumbs[n] = canvas.toDataURL("image/jpeg", 0.7);
+        thumbs = thumbs;
+      } catch {
+        // unha páxina que non se debuxa queda en branco
       }
+    }
+    drawing = false;
+  }
+  function seen(node: HTMLElement, n: number) {
+    node.dataset.page = String(n);
+    io?.observe(node);
+    return { destroy: () => io?.unobserve(node) };
+  }
+
+  onMount(async () => {
+    try {
+      const res = await fetch(await viewUrl(file.path));
+      doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()) }).promise;
+      io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) if (e.isIntersecting) wanted.add(Number((e.target as HTMLElement).dataset.page));
+          drain();
+        },
+        { rootMargin: "300px" },
+      );
+      const list: Tile[] = Array.from({ length: doc.numPages }, (_, k) => ({ page: k + 1, rotate: 0, removed: false }));
+      tiles = list;
       original = list.map((x) => ({ ...x }));
-      await doc.destroy();
     } catch (e) {
       loadError = errText(e);
     } finally {
       loading = false;
     }
   });
-  onDestroy(() => (alive = false));
+  onDestroy(() => {
+    alive = false;
+    io?.disconnect();
+    doc?.destroy();
+  });
 
   function move(i: number, d: -1 | 1) {
     const j = i + d;
@@ -145,9 +180,10 @@
             class:lifted={dragging && dragFrom === i}
             class:target={dragging && dragOver === i && dragFrom !== i}
             data-i={i}
+            use:seen={tile.page}
             style={dragging && dragFrom === i ? `transform: translate(${ox}px, ${oy}px)` : ""}
           >
-            <div class="thumb" on:pointerdown={(e) => pdown(e, i)} on:pointermove={pmove} on:pointerup={pup} on:pointercancel={pup} role="presentation"><img src={tile.thumb} alt={String(tile.page)} draggable="false" on:dragstart|preventDefault style={`transform: rotate(${tile.rotate}deg)`} /></div>
+            <div class="thumb" on:pointerdown={(e) => pdown(e, i)} on:pointermove={pmove} on:pointerup={pup} on:pointercancel={pup} role="presentation">{#if thumbs[tile.page]}<img src={thumbs[tile.page]} alt={String(tile.page)} draggable="false" on:dragstart|preventDefault style={`transform: rotate(${tile.rotate}deg)`} />{/if}</div>
             <label class="num" title={$t("Posición")}><input class="pos" type="number" min="1" max={tiles.length} value={i + 1} on:change={(e) => setPos(i, e)} /><span>({tile.page})</span></label>
             <div class="acts">
               <button class="mini" on:click={() => move(i, -1)} disabled={i === 0} aria-label={$t("Mover cara atrás")} title={$t("Mover cara atrás")}><Icon name="back" size={13} /></button>
@@ -158,7 +194,6 @@
           </div>
         {/each}
       </div>
-      {#if loading}<p class="group-note">{$t("O trasno está debuxando as miniaturas…")}</p>{/if}
     {/if}
   </div>
   <button class="btn primary block" on:click={save} disabled={$busy || loading || !changed || kept.length === 0}>

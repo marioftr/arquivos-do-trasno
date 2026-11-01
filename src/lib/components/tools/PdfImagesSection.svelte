@@ -23,7 +23,7 @@
 
   export let file: FileEntry;
 
-  const form = createForm({ format: "png", dpi: 150, quality: 90, pageSpec: "" });
+  const form = createForm({ format: "png", dpi: 150, quality: 90, pageSpec: "" }, "pdf-imaxes");
   onMount(() => useForm(form));
 
   const job = createJob();

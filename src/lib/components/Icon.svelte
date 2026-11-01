@@ -32,6 +32,10 @@
     <path d="M13.5 2.5V8h5" />
     <line x1="8.3" y1="13" x2="15.7" y2="13" />
     <line x1="8.3" y1="16.6" x2="15.7" y2="16.6" />
+  {:else if name === "open"}
+    <path d="M14 3h7v7" />
+    <path d="M21 3l-9 9" />
+    <path d="M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5" />
   {:else if name === "video"}
     <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" />
     <polygon points="10 9 15.5 12 10 15" />
@@ -61,6 +65,9 @@
   {:else if name === "arrow-right"}
     <line x1="4.5" y1="12" x2="18" y2="12" />
     <polyline points="12.5 6 18.5 12 12.5 18" />
+  {:else if name === "search"}
+    <circle cx="11" cy="11" r="6.5" />
+    <line x1="16" y1="16" x2="21" y2="21" />
   {:else if name === "layers"}
     <polygon points="12 2.5 22 8 12 13.5 2 8 12 2.5" />
     <polyline points="2 15 12 20.5 22 15" />

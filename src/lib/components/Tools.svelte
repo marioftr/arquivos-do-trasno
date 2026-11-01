@@ -21,7 +21,7 @@
   import Lazy from "./ui/Lazy.svelte";
   import MkvTracksSection from "./tools/MkvTracksSection.svelte";
   import Icon from "./Icon.svelte";
-  import { tools, openSettings } from "../settings";
+  import { tools, openSettings, toolActions, jump } from "../settings";
   import MergeSection from "./tools/MergeSection.svelte";
   import InfoSection from "./tools/InfoSection.svelte";
 
@@ -124,6 +124,19 @@
   $: modes = modesFor(current, isPdf, multi, category, $t);
   $: if (modes.length && !modes.some((x) => x.value === sub[current])) sub[current] = modes[0].value;
   $: mode = modes.length ? sub[current] : "";
+
+  // Ctrl+K: lista das ferramentas dispoñibles e salto directo a unha delas.
+  $: toolActions.set(
+    tabs.flatMap((tb) => {
+      const ms = modesFor(tb.id, isPdf, multi, category, $t);
+      return ms.length ? ms.map((m) => ({ id: `${tb.id}:${m.value}`, label: `${tb.label} · ${m.label}`, tab: tb.id, mode: m.value })) : [{ id: tb.id, label: tb.label, tab: tb.id }];
+    }),
+  );
+  $: if ($jump && tabs.some((x) => x.id === $jump!.tab)) {
+    current = $jump.tab;
+    if ($jump.mode) sub[current] = $jump.mode;
+    jump.set(null);
+  }
 
   // Sen os programas externos, as ferramentas que dependen deles quedan bloqueadas (e explícase por que).
   $: locked = !!$tools && (current === "mkv" ? !$tools.mkvmerge : (category === "audio" || category === "video") && !$tools.ffmpeg);

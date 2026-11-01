@@ -43,24 +43,48 @@ function patch(path: string, change: Partial<FileEntry>) {
   files.update((list) => list.map((f) => (f.path === path ? { ...f, ...change } : f)));
 }
 
-export async function addPaths(paths: string[]) {
+// Lecturas pesadas (ffprobe) de catro en catro: con cen ficheiros non se lanzan cen procesos á vez.
+const queue: (() => Promise<void>)[] = [];
+let running = 0;
+function later(job: () => Promise<void>) {
+  queue.push(job);
+  pump();
+}
+function pump() {
+  while (running < 4 && queue.length) {
+    const job = queue.shift()!;
+    running++;
+    job().catch(() => {}).finally(() => {
+      running--;
+      pump();
+    });
+  }
+}
+
+export async function addPaths(input: string[]) {
   let selectedNew = false;
-  for (const path of paths) {
+  // Os cartafoles abren as súas ficheiros; as categorías míranse todas á vez e despois entran por orde.
+  const paths = [...new Set(await engine.expandPaths(input).catch(() => input))];
+  let skipped = 0;
+  const kinds = await Promise.all(paths.map((p) => engine.detectCategory(p).then((c) => ({ c }), () => ({ c: null as Category | null }))));
+  for (const [idx, path] of paths.entries()) {
     if (get(files).some((f) => f.path === path)) {
       // Xa estaba: avísase e queda á vista.
-      toast(tr("«{name}» xa estaba na lista.", { name: fileNameOf(path) }));
+      toast(tr("«{name}» xa estaba na lista; o trasno non o garda dúas veces.", { name: fileNameOf(path) }));
       if (!selectedNew) activePath.set(path);
       selectedNew = true;
       continue;
     }
-    let category: Category;
-    try {
-      category = await engine.detectCategory(path);
-    } catch {
+    const category = kinds[idx].c;
+    if (!category) {
       toast(tr("O trasno non puido ler «{name}».", { name: fileNameOf(path) }), { kind: "warn" });
       continue;
     }
     if (category === "descoñecido") {
+      if (paths.length > 3) {
+        skipped++;
+        continue;
+      }
       toast(tr("O trasno non sabe que facer cun ficheiro «.{ext}» («{name}»).", { ext: extensionOf(path) || "?", name: fileNameOf(path) }), { kind: "warn" });
       continue;
     }
@@ -77,7 +101,8 @@ export async function addPaths(paths: string[]) {
       engine.pdfPageCount(path).then((pages) => patch(path, { pages })).catch(() => {});
     }
     if (category === "audio" || category === "video") {
-      engine
+      later(() =>
+        engine
         .probeMedia(path)
         .then((info) => {
           const v = info.streams?.find((s) => s.codec_type === "video");
@@ -88,12 +113,13 @@ export async function addPaths(paths: string[]) {
             height: v?.height,
           });
         })
-        .catch(() => {});
+        .catch(() => {}));
     }
     if (category === "imaxe") {
       engine.imageDimensions(path).then(([width, height]) => patch(path, { width, height })).catch(() => {});
     }
   }
+  if (skipped) toast(tr("O trasno deixou {n} ficheiros sen abrir porque non sabe que facer con eles.", { n: skipped }), { kind: "warn" });
 }
 
 // O último ficheiro quitado, para poder desfacelo.
@@ -116,7 +142,7 @@ export function removeFile(path: string) {
   const index = get(files).findIndex((f) => f.path === path);
   if (index >= 0) {
     lastRemoved = { entry: get(files)[index], index, wasChecked: get(checked).has(path) };
-    toast(tr("Quitouse «{name}» da lista.", { name: lastRemoved.entry.name }), { action: { label: tr("Desfacer"), run: undoRemove } });
+    toast(tr("O trasno quitou «{name}» da lista.", { name: lastRemoved.entry.name }), { action: { label: tr("Desfacer"), run: undoRemove } });
   }
   const list = get(files).filter((f) => f.path !== path);
   files.set(list);
@@ -266,7 +292,7 @@ export async function restoreSession() {
       await addPaths(alive);
       if (s.active && alive.includes(s.active)) activePath.set(s.active);
       checked.set(new Set((s.checked ?? []).filter((p) => alive.includes(p))));
-      if (missing > 0) toast(tr("{n} ficheiros da última vez xa non están no seu sitio e non se abriron.", { n: missing }), { kind: "warn" });
+      if (missing > 0) toast(tr("{n} ficheiros da última vez xa non están no seu sitio: o trasno non os atopa.", { n: missing }), { kind: "warn" });
     }
   } catch {
     // sesión rota: empézase en branco

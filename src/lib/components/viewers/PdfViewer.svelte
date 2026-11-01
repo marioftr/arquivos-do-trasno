@@ -6,7 +6,8 @@
   import { t } from "../../i18n";
   import Slider from "../ui/Slider.svelte";
   import FindBar from "../ui/FindBar.svelte";
-  import { tick } from "svelte";
+  import { tick, onMount } from "svelte";
+  import "pdfjs-dist/web/pdf_viewer.css";
 
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -30,6 +31,32 @@
   let token = 0;
   let pages: PageInfo[] = [];
   let current = 1; // páxina que se está vendo
+
+  // ---- axustar ao espazo dispoñible (ancho ou páxina enteira); segue o tamaño da xanela
+  let fitMode: "none" | "width" | "page" = "width";
+  let ro: ResizeObserver;
+  async function applyFit() {
+    if (!doc || !container || fitMode === "none") return;
+    const pg = await doc.getPage(Math.max(1, Math.min(doc.numPages, current)));
+    const [x0, y0, x1, y1] = pg.view;
+    const w = (x1 - x0) * 1.333;
+    const h = (y1 - y0) * 1.333;
+    const availW = container.clientWidth - 32;
+    const availH = container.clientHeight - 32;
+    const pct = fitMode === "width" ? (availW / w) * 100 : Math.min(availW / w, availH / h) * 100;
+    const next = Math.max(20, Math.min(250, Math.round(pct)));
+    if (next !== scale) scale = next;
+  }
+  function setFit(m: "width" | "page") {
+    fitMode = m;
+    applyFit();
+  }
+  $: if (doc && container && fitMode !== "none") applyFit();
+  onMount(() => {
+    ro = new ResizeObserver(() => applyFit());
+    return () => ro.disconnect();
+  });
+  $: if (ro && container) ro.observe(container);
 
   // ---- buscar (Ctrl+F): o texto de cada páxina léese a petición e márcanse os cadros onde aparece
   interface Hit { page: number; rect: HTMLDivElement | null; item: any; at: number }
@@ -146,9 +173,10 @@
     else if (e.key === "PageUp" || e.key === "ArrowLeft") goto(current - 1);
     else if (e.key === "Home") goto(1);
     else if (e.key === "End" && doc) goto(doc.numPages);
-    else if (e.key === "+" || e.key === "=") scale = Math.min(250, scale + 10);
-    else if (e.key === "-") scale = Math.max(40, scale - 10);
-    else if (e.key === "0") scale = 80;
+    else if (e.key === "+" || e.key === "=") ((fitMode = "none"), (scale = Math.min(250, scale + 10)));
+    else if (e.key === "-") ((fitMode = "none"), (scale = Math.max(20, scale - 10)));
+    else if (e.key === "0") setFit("width");
+    else if (e.key === "9") setFit("page");
     else return;
     e.preventDefault();
   }
@@ -208,6 +236,16 @@
         viewport,
         transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
       }).promise;
+      // Capa de texto invisible por riba: permite seleccionar e copiar.
+      try {
+        const layer = document.createElement("div");
+        layer.className = "textLayer";
+        layer.style.setProperty("--scale-factor", String(s));
+        wrap.appendChild(layer);
+        await new pdfjs.TextLayer({ textContentSource: page.streamTextContent(), container: layer, viewport }).render();
+      } catch {
+        // sen capa de texto: o PDF segue vendose
+      }
     }
     if (mine === token) {
       pages = built;
@@ -224,6 +262,8 @@
     for (const p of list) {
       p.wrap.querySelectorAll(".ov").forEach((e) => e.remove());
       p.wrap.classList.remove("sel", "dim");
+      const tl = p.wrap.querySelector<HTMLElement>(".textLayer");
+      if (tl) tl.style.display = ov?.rotate && ov.rotate.degrees % 360 !== 0 && (ov.rotate.page === null || ov.rotate.page === p.n) ? "none" : "";
       p.canvas.style.transform = "";
       p.canvas.style.position = "";
       p.wrap.style.width = `${p.w}px`;
@@ -313,7 +353,9 @@
     <div class="pages scrollbar-thin" bind:this={container} on:scroll={onScroll}></div>
   {/if}
   <div class="bar">
-    <Slider compact label={$t("Zoom")} unit="%" min={40} max={250} bind:value={scale} />
+    <button class="btn" class:on={fitMode === "width"} on:click={() => setFit("width")} title={$t("Axustar ao ancho (0)")}>{$t("Ancho")}</button>
+    <button class="btn" class:on={fitMode === "page"} on:click={() => setFit("page")} title={$t("Páxina enteira (9)")}>{$t("Páxina enteira")}</button>
+    <Slider compact label={$t("Zoom")} unit="%" min={20} max={250} bind:value={scale} on:input={() => (fitMode = "none")} />
     {#if doc}
       <span class="pag pgbox">
         <input type="number" min="1" max={doc.numPages} value={current} on:change={(e) => goto(Number(e.currentTarget.value))} aria-label={$t("Páxina")} />
@@ -342,4 +384,9 @@
   .pages :global(.hl) { position: absolute; background: color-mix(in srgb, #ffd54a 55%, transparent); mix-blend-mode: multiply; pointer-events: none; border-radius: 2px; }
   .pages :global(.hl.cur) { background: color-mix(in srgb, #ff9f1a 70%, transparent); outline: 2px solid #ff9f1a; }
   .msg { padding: 2rem; }
+  .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
+  .pages :global(.textLayer) { user-select: text; z-index: 1; }
+  .pages :global(.textLayer *) { user-select: text; }
+  .pages :global(.textLayer ::selection) { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .pages :global(.hl) { z-index: 0; }
 </style>

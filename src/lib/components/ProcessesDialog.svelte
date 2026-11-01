@@ -5,6 +5,7 @@
   import { procs, refreshProcs, requestCancel, clearFinished, type Proc } from "../procs";
   import { cancelJob, revealInFolder } from "../engine";
   import { fileNameOf } from "../formats";
+  import { addPaths } from "../files";
   import Modal from "./ui/Modal.svelte";
   import Icon from "./Icon.svelte";
 
@@ -36,7 +37,8 @@
     s === "done" ? $t("Rematado") : s === "error" ? $t("Con erro") : s === "cancelled" ? $t("Cancelado") : s === "interrupted" ? $t("Interrompido") : $t("En marcha");
 </script>
 
-<Modal title={$t("Procesos")} onClose={() => dialog.set(null)}>
+<Modal title={$t("Procesos")} tall onClose={() => dialog.set(null)}>
+  <div class="scroll scrollbar-thin">
   <section>
     <h3>{$t("En marcha")} <span class="muted">{running.length}</span></h3>
     {#if !running.length}
@@ -80,14 +82,17 @@
           {#if p.outputs?.length}<span class="muted sub">→ {p.outputs.map(fileNameOf).join(", ")}</span>{/if}
         </div>
         {#if p.outputs?.length}
+          <button class="btn ghost icon" on:click={() => { addPaths(p.outputs ?? []); dialog.set(null); }} title={$t("Abrir co programa completo")} aria-label={$t("Abrir co programa completo")}><Icon name="open" size={15} /></button>
           <button class="btn ghost icon" on:click={() => revealInFolder(p.outputs![0])} title={$t("Amosar no cartafol")} aria-label={$t("Amosar no cartafol")}><Icon name="folder" size={15} /></button>
         {/if}
       </div>
     {/each}
   </section>
+  </div>
 </Modal>
 
 <style>
+  .scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.2rem; }
   section { display: flex; flex-direction: column; gap: 0.5rem; }
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
   .hh { display: flex; align-items: center; justify-content: space-between; }

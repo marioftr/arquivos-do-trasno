@@ -150,6 +150,7 @@
     }
   }
 
+  const tick_ = () => new Promise((r) => setTimeout(r, 120));
   let preparing = false;
   let triedPreview = false;
 
@@ -170,8 +171,27 @@
     }
     triedPreview = true;
     preparing = true;
+    const mine = file.path;
     try {
-      url = await viewUrl(await engine.makePreview(file.path));
+      // Primeiro só o comezo (sae en segundos); o resto prepárase detrás e cámbiase sen perder o punto.
+      const first = await engine.makePreview(file.path, file.category === "video" ? 30 : undefined);
+      url = await viewUrl(first);
+      if (file.category === "video") {
+        engine
+          .makePreview(file.path)
+          .then(async (full) => {
+            if (full === first || file.path !== mine) return;
+            const at = el?.currentTime ?? 0;
+            const was = playing;
+            url = await viewUrl(full);
+            await tick_();
+            if (el) {
+              el.currentTime = at;
+              if (was) el.play().catch(() => {});
+            }
+          })
+          .catch(() => {});
+      }
     } catch {
       failed = true;
     } finally {

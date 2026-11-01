@@ -83,7 +83,17 @@ function persistedText(key: string) {
 export const outputFolder = persistedText("arquivos-do-trasno.output-folder");
 
 /** Que xanela modal está aberta. */
-export const dialog = writable<"settings" | "procs" | null>(null);
+export const dialog = writable<"settings" | "procs" | "palette" | null>(null);
+
+/** Ferramentas do ficheiro actual (para o buscador Ctrl+K) e petición de saltar a unha delas. */
+export interface ToolAction {
+  id: string;
+  label: string;
+  tab: string;
+  mode?: string;
+}
+export const toolActions = writable<ToolAction[]>([]);
+export const jump = writable<{ tab: string; mode?: string } | null>(null);
 export type SettingsTab = "general" | "shortcuts" | "tools" | "credits";
 export const settingsTab = writable<SettingsTab>("general");
 export function openSettings(tab: SettingsTab = "general") {

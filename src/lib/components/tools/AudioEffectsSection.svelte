@@ -14,7 +14,7 @@
 
   export let file: FileEntry;
 
-  const form = createForm({ fade: 2, echo: 300, bass: 6, treble: 6 });
+  const form = createForm({ fade: 2, echo: 300, bass: 6, treble: 6 }, "audio-efectos");
   onMount(() => useForm(form));
 
   const job = createJob();

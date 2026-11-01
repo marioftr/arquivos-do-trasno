@@ -1,6 +1,7 @@
 <script lang="ts">
   import { errText } from "../../errors";
   import { onMount } from "svelte";
+  import { get } from "svelte/store";
   import { open, save } from "@tauri-apps/plugin-dialog";
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
@@ -31,6 +32,18 @@
     { label: "Forte", crf: 33, hint: "Moi pequeno; nótanse perdas de nitidez" },
   ];
   const HEIGHTS = [0, 1080, 720, 480, 360];
+
+  // Perfís de saída para vídeo: cada un fixa a calidade e os axustes de compatibilidade.
+  // `deinterlace`: 0 non, 1 só se está entrelazado, 2 sempre (cadencia dobre, como facía o DV orixinal).
+  const PROFILES: Record<string, { label: string; hint: string; v: { crf: number; maxHeight: number; audioKbps: number; deinterlace: number; compat: boolean } }> = {
+    custom: { label: "Personalizado", hint: "Axustas ti a calidade, a altura e o audio.", v: { crf: 28, maxHeight: 0, audioKbps: 128, deinterlace: 0, compat: false } },
+    minidv: { label: "Mini DV a MP4 (sen perda visible)", hint: "Para cintas dixitalizadas en AVI/DV: desentrelaza, calidade moi alta e MP4 que se ve en todas partes. Pesa moito menos que o AVI.", v: { crf: 18, maxHeight: 0, audioKbps: 192, deinterlace: 2, compat: true } },
+    universal: { label: "Universal optimizado", hint: "MP4 H.264 que abre en móbiles, televisións e navegadores. Case idéntico ao orixinal e bastante máis lixeiro.", v: { crf: 20, maxHeight: 0, audioKbps: 160, deinterlace: 1, compat: true } },
+    youtube: { label: "Para subir a YouTube", hint: "Calidade alta e MP4 con «faststart», que é o que YouTube recomenda. Non reduce a resolución.", v: { crf: 18, maxHeight: 0, audioKbps: 192, deinterlace: 1, compat: true } },
+    movil: { label: "Móbil e mensaxería", hint: "Máis pequeno para enviar por WhatsApp ou correo: 720p e calidade equilibrada.", v: { crf: 26, maxHeight: 720, audioKbps: 128, deinterlace: 1, compat: true } },
+  };
+  const initialProfile = !isImage && ["avi", "dv"].includes(first.ext.toLowerCase()) ? "minidv" : "custom";
+  const DARS = ["", "4/3", "16/9"];
   const UNITS = [
     { id: "KB", mult: 1024 },
     { id: "MB", mult: 1024 ** 2 },
@@ -41,13 +54,17 @@
     mode: "quality" as "quality" | "bitrate" | "size",
     quality: 75,
     maxSide: null as number | null,
-    crf: 28,
-    maxHeight: 0,
-    audioKbps: 128,
+    profile: initialProfile,
+    deinterlace: PROFILES[initialProfile].v.deinterlace,
+    compat: PROFILES[initialProfile].v.compat,
+    dar: "",
+    crf: PROFILES[initialProfile].v.crf,
+    maxHeight: PROFILES[initialProfile].v.maxHeight,
+    audioKbps: PROFILES[initialProfile].v.audioKbps,
     videoKbps: 2000,
     sizeValue: 10,
     unit: "MB",
-  });
+  }, `comprimir-${category}`);
   onMount(() => useForm(form));
 
   const job = createJob();
@@ -61,6 +78,16 @@
   $: paramsKey = `${v.mode}|${v.quality}|${v.maxSide}|${v.crf}|${v.maxHeight}|${v.audioKbps}|${v.videoKbps}`;
   $: invalidate(paramsKey);
   $: if (isImage && !multi && v.mode === "quality") scheduleImageEstimate(paramsKey);
+
+  // Ao escoller un perfil aplícanse os seus valores; despois pódese seguir afinando.
+  let appliedProfile = get(form).profile;
+  function applyProfile(id: string) {
+    if (isImage || id === appliedProfile) return;
+    appliedProfile = id;
+    const p = PROFILES[id];
+    if (p) form.update((f) => ({ ...f, mode: "quality" as const, ...p.v }));
+  }
+  $: applyProfile(v.profile);
 
   let lastKey = "";
   function invalidate(key: string) {
@@ -112,7 +139,16 @@
     const done = await engine.compressVideo(
       f.path,
       out,
-      { crf: v.crf, targetBytes: v.mode === "size" ? targetBytes : undefined, maxHeight: v.maxHeight || undefined, audioKbps: v.audioKbps, videoKbps: v.mode === "bitrate" ? v.videoKbps : undefined },
+      {
+        crf: v.crf,
+        targetBytes: v.mode === "size" ? targetBytes : undefined,
+        maxHeight: v.maxHeight || undefined,
+        audioKbps: v.audioKbps,
+        videoKbps: v.mode === "bitrate" ? v.videoKbps : undefined,
+        deinterlace: v.deinterlace as 0 | 1 | 2,
+        compat: v.compat,
+        dar: v.dar || undefined,
+      },
       overwrite,
     );
     return await engine.fileSize(done);
@@ -175,6 +211,27 @@
 
 <div class="stack">
   <FormBar {form} />
+
+  {#if !isImage}
+    <div class="group">
+      <SelectField
+        label={$t("Perfil de saída")}
+        bind:value={$form.profile}
+        options={Object.entries(PROFILES).map(([id, p]) => ({ value: id, label: $t(p.label) }))}
+        def={initialProfile}
+      />
+      <p class="group-note">{$t(PROFILES[v.profile]?.hint ?? "")}</p>
+      {#if v.profile !== "custom"}
+        <SelectField
+          label={$t("Relación de aspecto")}
+          bind:value={$form.dar}
+          options={DARS.map((d) => ({ value: d, label: d ? d.replace("/", ":") : $t("orixinal") }))}
+          def=""
+          hint={$t("Só se o vídeo se ve esticado ou aplastado; no resto déixao en orixinal.")}
+        />
+      {/if}
+    </div>
+  {/if}
 
   <Segmented
     options={isImage

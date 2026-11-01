@@ -102,7 +102,8 @@ fn menu_for(ext: &str, kind: Kind, l: &Labels) -> Vec<Item> {
         label: l.get("compress"),
         items: [75, 50, 25]
             .iter()
-            .map(|p| Item::Cmd { id: format!("q{p}"), label: l.fill("quality", &[("p", &p.to_string())]), args: format!("--compress {p}") })
+            .enumerate()
+            .map(|(i, p)| Item::Cmd { id: format!("q{i}_{p}"), label: l.fill("quality", &[("p", &p.to_string())]), args: format!("--compress {p}") })
             .collect(),
     };
     let rotate = |slug: &str| Item::Sub {
@@ -133,7 +134,8 @@ fn menu_for(ext: &str, kind: Kind, l: &Labels) -> Vec<Item> {
                 label: l.get("resize"),
                 items: [75, 50, 25]
                     .iter()
-                    .map(|p| Item::Cmd { id: format!("s{p}"), label: l.fill("percent", &[("p", &p.to_string())]), args: format!("--resize p{p}") })
+                    .enumerate()
+                    .map(|(i, p)| Item::Cmd { id: format!("s{i}_{p}"), label: l.fill("percent", &[("p", &p.to_string())]), args: format!("--resize p{p}") })
                     .collect(),
             });
             items.push(rotate(&next("rotate")));
@@ -149,7 +151,8 @@ fn menu_for(ext: &str, kind: Kind, l: &Labels) -> Vec<Item> {
                 label: l.get("scale"),
                 items: [1080, 720, 480]
                     .iter()
-                    .map(|h| Item::Cmd { id: format!("h{h}"), label: format!("{h}p"), args: format!("--resize h{h}") })
+                    .enumerate()
+                    .map(|(i, h)| Item::Cmd { id: format!("h{i}_{h}"), label: format!("{h}p"), args: format!("--resize h{h}") })
                     .collect(),
             });
             items.push(quality(&next("compress")));
@@ -411,6 +414,20 @@ fn gate_main() {
             Err(_) => {}
         }
     }
+}
+
+/// Abre ficheiros na aplicación completa: se xa está aberta recíbeos ela (a nova instancia só llos pasa e remata);
+/// se non, esta nova instancia convértese na principal.
+#[tauri::command]
+pub fn open_in_app(paths: Vec<String>) -> Result<(), String> {
+    let files: Vec<String> = paths.into_iter().filter(|p| PathBuf::from(p).is_file()).collect();
+    if files.is_empty() {
+        return Err("Non hai ficheiros que abrir.".into());
+    }
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let mut cmd = std::process::Command::new(exe);
+    cmd.args(files);
+    cmd.spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 /// Fío da aplicación principal: recolle os ficheiros que mandan as outras aperturas e avisa á interface.

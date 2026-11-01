@@ -176,7 +176,15 @@
     if (poll) clearInterval(poll);
   });
 
-  const firstOut = () => items.find((i) => i.out)?.out;
+  const outs = () => items.filter((i) => i.out).map((i) => i.out!);
+  async function openFull() {
+    try {
+      await engine.openInApp(outs());
+      win.destroy();
+    } catch {
+      // se non se puido abrir, a xanela queda para amosar no cartafol
+    }
+  }
 </script>
 
 <svelte:window
@@ -250,7 +258,7 @@
       <div class="acts"><button class="btn" on:click={() => (asking = true)}>{$t("Cancelar")}</button></div>
     {:else if finished}
       <div class="acts">
-        {#if !cancelMode && firstOut()}<button class="btn" on:click={() => engine.revealInFolder(firstOut()!)}><Icon name="folder" size={14} /> {$t("Amosar no cartafol")}</button>{/if}
+        {#if !cancelMode && outs().length}<button class="btn" on:click={openFull} title={$t("Abre o resultado na aplicación completa, para velo ou seguir traballando con el")}><Icon name="open" size={14} /> {$t("Abrir co programa completo")}</button>{/if}
         <button class="btn primary" on:click={() => win.destroy()}>{$t("Pechar")}</button>
       </div>
     {/if}

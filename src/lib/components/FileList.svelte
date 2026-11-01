@@ -20,6 +20,22 @@
 
   $: allChecked = $files.length > 0 && $checked.size === $files.length;
   $: activeIndex = $files.findIndex((f) => f.path === $activePath);
+  $: if (activeIndex >= 0 && box) reveal(activeIndex);
+
+  // ---- lista longa: só se debuxan as filas que se ven (cada fila mide o mesmo)
+  const ROW = 54;
+  let box: HTMLUListElement;
+  let scrollTop = 0;
+  let viewH = 600;
+  $: first = Math.max(0, Math.floor(scrollTop / ROW) - 8);
+  $: last = Math.min($files.length, Math.ceil((scrollTop + viewH) / ROW) + 8);
+  $: shown = $files.slice(first, last);
+  function reveal(j: number) {
+    if (!box) return;
+    const top = j * ROW;
+    if (top < box.scrollTop) box.scrollTop = top;
+    else if (top + ROW > box.scrollTop + box.clientHeight) box.scrollTop = top + ROW - box.clientHeight;
+  }
 
   // ---- clic: Ctrl alterna a marca, Maiús marca un intervalo; sen modificadores, só se ve ese ficheiro
   let anchor = -1;
@@ -45,7 +61,7 @@
       activePath.set($files[j].path);
       if (e.shiftKey && anchor >= 0) checkRange(anchor, j);
       else anchor = j;
-      document.querySelector<HTMLElement>(`[data-i="${j}"]`)?.scrollIntoView({ block: "nearest" });
+      reveal(j);
       e.preventDefault();
     };
     if (e.key === "ArrowDown") go((activeIndex < 0 ? -1 : activeIndex) + 1);
@@ -102,9 +118,9 @@
   async function copyPath(p: string) {
     try {
       await navigator.clipboard.writeText(p);
-      toast(tr("Ruta copiada."));
+      toast(tr("O trasno copiou a ruta."));
     } catch {
-      toast(tr("Non puiden copiar a ruta."), { kind: "warn" });
+      toast(tr("O trasno non puido copiar a ruta."), { kind: "warn" });
     }
   }
 </script>
@@ -118,8 +134,10 @@
   </div>
 
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
-  <ul class="scrollbar-thin" tabindex="0" role="listbox" aria-label={$t("Ficheiros")} on:keydown={key}>
-    {#each $files as f, i (f.path)}
+  <ul class="scrollbar-thin" tabindex="0" role="listbox" aria-label={$t("Ficheiros")} on:keydown={key} bind:this={box} bind:clientHeight={viewH} on:scroll={() => (scrollTop = box.scrollTop)}>
+    {#if first > 0}<li class="spacer" aria-hidden="true" style={`height:${first * ROW}px`}></li>{/if}
+    {#each shown as f, k (f.path)}
+      {@const i = first + k}
       <li
         class:active={$activePath === f.path}
         class:lifted={dragging && dragFrom === i}
@@ -154,6 +172,7 @@
         </span>
       </li>
     {/each}
+    {#if last < $files.length}<li class="spacer" aria-hidden="true" style={`height:${($files.length - last) * ROW}px`}></li>{/if}
   </ul>
 
   <div class="foot">
@@ -181,6 +200,8 @@
   .titulo { font-weight: 600; font-size: 0.88rem; }
   ul { list-style: none; margin: 0; padding: 0.3rem 0; flex: 1; min-height: 0; overflow-y: auto; outline: none; }
   ul:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+  li.spacer { padding: 0; border: none; background: none; pointer-events: none; }
+  li:not(.spacer) { height: 54px; box-sizing: border-box; overflow: hidden; }
   li { display: flex; align-items: center; gap: 0.4rem; padding: 0 0.5rem 0 0.3rem; border-left: 2px solid transparent; background: var(--bg-rail); }
   li:hover { background: var(--bg-hover); }
   li.active { background: var(--bg-hover); border-left-color: var(--accent-conversor); }

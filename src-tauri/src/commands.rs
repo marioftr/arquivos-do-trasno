@@ -320,6 +320,46 @@ pub async fn media_edit(
     .await
 }
 
+/// Troca os cartafoles por os ficheiros que levan dentro (ata 6 niveis e 3000 ficheiros); os ficheiros pasan tal cal.
+#[tauri::command]
+pub async fn expand_paths(paths: Vec<String>) -> Vec<String> {
+    blocking(move || {
+        fn walk(dir: &std::path::Path, depth: u32, out: &mut Vec<String>) {
+            let Ok(rd) = std::fs::read_dir(dir) else { return };
+            let mut entries: Vec<_> = rd.flatten().map(|e| e.path()).collect();
+            entries.sort();
+            for p in entries {
+                if out.len() >= 3000 {
+                    return;
+                }
+                let hidden = p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with('.'));
+                if hidden {
+                    continue;
+                }
+                if p.is_dir() {
+                    if depth < 6 {
+                        walk(&p, depth + 1, out);
+                    }
+                } else if p.is_file() {
+                    out.push(p.to_string_lossy().to_string());
+                }
+            }
+        }
+        let mut out = Vec::new();
+        for p in paths {
+            let path = PathBuf::from(&p);
+            if path.is_dir() {
+                walk(&path, 0, &mut out);
+            } else {
+                out.push(p);
+            }
+        }
+        Ok::<_, String>(out)
+    })
+    .await
+    .unwrap_or_default()
+}
+
 #[tauri::command]
 pub async fn probe_media(path: String) -> Result<serde_json::Value, String> {
     blocking(move || trasno_engine::ffmpeg::probe(&PathBuf::from(path)).map_err(to_err)).await
@@ -397,7 +437,7 @@ pub fn clean_previews() {
 /// navegador non le; MP4 pequeno ou MP3 para audio e vídeo). O orixinal non
 /// se toca.
 #[tauri::command]
-pub async fn make_preview(path: String) -> Result<String, String> {
+pub async fn make_preview(path: String, head_seconds: Option<f64>) -> Result<String, String> {
     blocking(move || {
         let input = PathBuf::from(&path);
         let category = trasno_engine::formats::category_of_path(&input);
@@ -419,13 +459,38 @@ pub async fn make_preview(path: String) -> Result<String, String> {
                 out
             }
             Category::Video => {
-                let out = dir.join(format!("{stem}.mp4"));
-                if !out.exists() {
-                    let args: Vec<String> = ["-vf", "scale=-2:480", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "30", "-c:a", "aac", "-b:a", "96k", "-pix_fmt", "yuv420p"]
-                        .iter().map(|s| s.to_string()).collect();
-                    trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
+                // Os contedores que o visor non entende (AVI, MKV...) a miúdo levan códecs que si entende: nese caso
+                // só se cambia a caixa (en segundos e sen perder calidade). Se non, transcódase a 720p como moito.
+                let codecs = trasno_engine::ffmpeg::probe(&input).ok().map(|info| {
+                    let name = |kind: &str| {
+                        info["streams"].as_array().and_then(|l| l.iter().find(|s| s["codec_type"] == kind)).and_then(|s| s["codec_name"].as_str()).map(|s| s.to_string())
+                    };
+                    (name("video"), name("audio"))
+                });
+                let copyable = matches!(&codecs, Some((Some(v), a)) if v == "h264" && a.as_deref().map_or(true, |a| matches!(a, "aac" | "mp3")));
+                if copyable {
+                    let out = dir.join(format!("{stem}.remux.mp4"));
+                    if !out.exists() {
+                        let args: Vec<String> = ["-c", "copy", "-movflags", "+faststart"].iter().map(|s| s.to_string()).collect();
+                        trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
+                    }
+                    out
+                } else {
+                    let head = head_seconds.filter(|h| *h > 0.0);
+                    let out = dir.join(if head.is_some() { format!("{stem}.head.mp4") } else { format!("{stem}.mp4") });
+                    if !out.exists() {
+                        let mut args: Vec<String> = Vec::new();
+                        if let Some(h) = head {
+                            args.extend(["-t".to_string(), h.to_string()]);
+                        }
+                        args.extend(
+                            ["-vf", "scale=-2:trunc(min(ih\\,720)/2)*2", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "27", "-c:a", "aac", "-b:a", "128k", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
+                                .iter().map(|s| s.to_string()),
+                        );
+                        trasno_engine::ffmpeg::convert_media(&input, &out, true, &args).map_err(to_err)?;
+                    }
+                    out
                 }
-                out
             }
             Category::Audio => {
                 let out = dir.join(format!("{stem}.mp3"));
@@ -520,9 +585,21 @@ pub async fn compress_video(
     max_height: Option<u32>,
     audio_kbps: u32,
     video_kbps: Option<u32>,
+    deinterlace: Option<u8>,
+    compat: Option<bool>,
+    dar: Option<String>,
 ) -> Result<String, String> {
     blocking(move || {
-        let o = trasno_engine::compress::VideoCompress { crf, target_bytes, max_height, audio_kbps, video_kbps };
+        let o = trasno_engine::compress::VideoCompress {
+            crf,
+            target_bytes,
+            max_height,
+            audio_kbps,
+            video_kbps,
+            deinterlace: deinterlace.unwrap_or(0),
+            compat: compat.unwrap_or(false),
+            dar,
+        };
         trasno_engine::compress::compress_video(&PathBuf::from(input), &PathBuf::from(output), overwrite, &o)
             .map(|p| p.to_string_lossy().to_string())
             .map_err(to_err)

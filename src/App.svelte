@@ -20,6 +20,7 @@
   import ProcessesDialog from "./lib/components/ProcessesDialog.svelte";
   import { procs, refreshProcs } from "./lib/procs";
   import { reportProgress } from "./lib/job";
+  import CommandPalette from "./lib/components/CommandPalette.svelte";
   import SettingsDialog from "./lib/components/SettingsDialog.svelte";
 
   let dragging = false;
@@ -86,8 +87,13 @@
 
   function onKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement;
-    if (t.closest("input, select, textarea")) return;
     const k = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && k === "k") {
+      e.preventDefault();
+      dialog.update((d) => (d === "palette" ? null : "palette"));
+      return;
+    }
+    if (t.closest("input, select, textarea")) return;
     if ((e.ctrlKey || e.metaKey) && k === "z" && !e.shiftKey) {
       e.preventDefault();
       get(activeForm)?.undo();
@@ -131,6 +137,7 @@
     {#if ffmpegOk === false && needsFfmpeg}
       <button class="aviso" on:click={() => openSettings("tools")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: ver como instalalo")}</button>
     {/if}
+    <button class="btn ghost" on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")}><Icon name="search" size={15} /> Ctrl+K</button>
     <button class="btn ghost" on:click={() => dialog.set("procs")} title={$t("Procesos")}>
       <Icon name="layers" size={15} /> {$t("Procesos")}{#if runningProcs} <span class="badge">{runningProcs}</span>{/if}
     </button>
@@ -163,7 +170,7 @@
 
   <Toasts />
 
-  {#if $dialog === "settings"}<SettingsDialog />{:else if $dialog === "procs"}<ProcessesDialog />{/if}
+  {#if $dialog === "settings"}<SettingsDialog />{:else if $dialog === "procs"}<ProcessesDialog />{:else if $dialog === "palette"}<CommandPalette onAdd={escoller} />{/if}
 
   {#if dragging}
     <div class="veil"><span>{$t("Solta os ficheiros para que o trasno os colla")}</span></div>

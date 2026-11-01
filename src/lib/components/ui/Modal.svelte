@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from "svelte";
   import { t } from "../../i18n";
   import Icon from "../Icon.svelte";
 
@@ -7,8 +8,29 @@
   /** Altura fixa: o diálogo non cambia de tamaño ao cambiar de pestana. */
   export let tall = false;
 
+  let box: HTMLDivElement;
+  let before: HTMLElement | null = null;
+  onMount(() => {
+    before = document.activeElement as HTMLElement | null;
+    box?.querySelector<HTMLElement>("button.btn, input, select, [tabindex='0']")?.focus() ?? box?.focus();
+  });
+  onDestroy(() => before?.focus?.());
+
+  // O foco queda dentro do diálogo: Tab desde o último elemento volve ao primeiro, e ao revés.
   function key(e: KeyboardEvent) {
     if (e.key === "Escape") onClose();
+    if (e.key !== "Tab" || !box) return;
+    const items = [...box.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea, [tabindex="0"]')].filter((x) => x.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !box.contains(document.activeElement))) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !box.contains(document.activeElement))) {
+      e.preventDefault();
+      first.focus();
+    }
   }
 </script>
 
@@ -16,7 +38,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div class="veil" on:click={onClose}>
-  <div class="box" role="dialog" tabindex="-1" aria-modal="true" aria-label={title} on:click|stopPropagation>
+  <div class="box" role="dialog" tabindex="-1" aria-modal="true" aria-label={title} bind:this={box} on:click|stopPropagation>
     <header>
       <h2>{title}</h2>
       <button class="btn ghost icon" on:click={onClose} aria-label={$t("Pechar")} title={$t("Pechar")}><Icon name="close" size={15} /></button>

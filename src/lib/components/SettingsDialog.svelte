@@ -80,6 +80,8 @@
       title: "Xeral",
       keys: [
         { k: "Ctrl + O", d: "Abrir ficheiros" },
+        { k: "Ctrl + K", d: "Buscar unha acción ou ferramenta" },
+        { k: "← → (nas pestanas)", d: "Moverse entre pestanas e opcións" },
         { k: "Supr", d: "Quitar da lista o ficheiro que se está vendo" },
         { k: "Ctrl + Z / Ctrl + Y", d: "Desfacer e refacer os axustes da ferramenta" },
       ],

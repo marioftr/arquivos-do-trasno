@@ -422,7 +422,7 @@
     </aside>
   </div>
   <div class="bar">
-    <button class="btn" on:click={() => model && frame(model, true)}>{$t("Recentrar")}</button>
+    <button class="btn" title={$t("Axustar o modelo ao espazo dispoñible")} on:click={() => model && frame(model, true)}>{$t("Recentrar")}</button>
     <label class="chk"><input type="checkbox" bind:checked={wireframe} /> {$t("Malla")}</label>
     <label class="chk"><input type="checkbox" bind:checked={grid} /> {$t("Cuadrícula")}</label>
     <span class="muted stats">{stats || $t("Arrastra para rotar · roda para zoom · botón dereito para mover")}</span>
