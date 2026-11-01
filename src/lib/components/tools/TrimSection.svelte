@@ -1,7 +1,8 @@
 <script lang="ts">
   import { errText } from "../../errors";
-  import { onMount } from "svelte";
-  import { mediaSeek, mediaTime } from "../../files";
+  import { onMount, onDestroy } from "svelte";
+  import { get } from "svelte/store";
+  import { mediaTime, trimRange } from "../../files";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
   import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
@@ -21,17 +22,23 @@
   const form = createForm({ start: 0, end: total });
   onMount(() => useForm(form));
 
-  // Ao mover o inicio ou o fin, o visor salta a ese instante para ver onde corta.
-  let lastStart = $form.start;
-  let lastEnd = $form.end;
-  $: if ($form.start !== lastStart) {
-    lastStart = $form.start;
-    mediaSeek.set({ t: lastStart, stamp: Date.now() });
+  // O visor móstrase o corte sobre a liña de tempo e as súas asas móvense: sempre sincronizado cos campos.
+  const r1 = (v: number) => Math.round(v * 10) / 10;
+  $: if (total) {
+    const r = { start: $form.start, end: $form.end || total };
+    const cur = get(trimRange);
+    if (!cur || cur.start !== r.start || cur.end !== r.end) trimRange.set(r);
   }
-  $: if ($form.end !== lastEnd) {
-    lastEnd = $form.end;
-    if (lastEnd) mediaSeek.set({ t: Math.max(0, lastEnd - 0.05), stamp: Date.now() });
-  }
+  onMount(() =>
+    trimRange.subscribe((r) => {
+      if (!r || !total) return;
+      const start = r1(r.start);
+      const end = r1(r.end) >= r1(total) ? total : r1(r.end);
+      const f = get(form);
+      if (f.start !== start || (f.end || total) !== end) form.update((v) => ({ ...v, start, end }));
+    }),
+  );
+  onDestroy(() => trimRange.set(null));
 
   const job = createJob();
   const busy = job.busy;

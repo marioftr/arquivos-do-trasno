@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { viewUrl, mediaPreview, mediaSeek, mediaTime, type FileEntry } from "../../files";
+  import { viewUrl, mediaPreview, mediaSeek, mediaTime, trimRange, type FileEntry } from "../../files";
   import * as engine from "../../engine";
   import { t } from "../../i18n";
+  import Timeline from "../ui/Timeline.svelte";
 
   export let file: FileEntry;
 
@@ -21,16 +22,38 @@
   // Instante actual, para que as ferramentas (fotograma, corte) o poidan usar.
   let now = 0;
   let duration = 0;
+  let playing = false;
   function tick() {
     if (!el) return;
     now = el.currentTime;
-    duration = el.duration || 0;
+    duration = Number.isFinite(el.duration) && el.duration ? el.duration : (file.duration ?? 0);
     mediaTime.set(Math.round(now * 100) / 100);
+    // Con un corte activo, a reprodución salta a parte que se perde.
+    const r = $trimRange;
+    if (r && playing) {
+      if (now < r.start - 0.05) el.currentTime = r.start;
+      else if (now >= r.end) {
+        el.pause();
+        el.currentTime = r.start;
+      }
+    }
   }
   onDestroy(() => mediaTime.set(0));
 
+  function seek(t: number) {
+    if (el) el.currentTime = t;
+  }
+  function toggle() {
+    if (!el) return;
+    if (el.paused) {
+      const r = $trimRange;
+      if (r && (el.currentTime < r.start || el.currentTime >= r.end)) el.currentTime = r.start;
+      el.play();
+    } else el.pause();
+  }
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
   // ---- onda de son (só audio): picos por columna, calculados no navegador ----
-  let canvas: HTMLCanvasElement | undefined;
   let peaks: number[] = [];
   let waveFor = "";
   $: if (file.category === "audio" && url && url !== waveFor) analyse(url);
@@ -57,28 +80,6 @@
       peaks = [];
     }
   }
-  $: if (canvas) draw(peaks, now, duration);
-  function draw(p: number[], at: number, dur: number) {
-    if (!canvas) return;
-    const w = (canvas.width = canvas.clientWidth * devicePixelRatio);
-    const h = (canvas.height = canvas.clientHeight * devicePixelRatio);
-    const g = canvas.getContext("2d")!;
-    g.clearRect(0, 0, w, h);
-    if (!p.length) return;
-    const accent = getComputedStyle(canvas).getPropertyValue("--accent").trim() || "#7aa2f7";
-    const played = dur ? at / dur : 0;
-    const bw = w / p.length;
-    for (let i = 0; i < p.length; i++) {
-      const bh = Math.max(1, p[i] * h * 0.95);
-      g.fillStyle = i / p.length <= played ? accent : "rgba(160,160,175,0.55)";
-      g.fillRect(i * bw, (h - bh) / 2, Math.max(1, bw - 1), bh);
-    }
-  }
-  function seekWave(ev: MouseEvent) {
-    if (!el || !duration) return;
-    const r = (ev.currentTarget as HTMLElement).getBoundingClientRect();
-    el.currentTime = ((ev.clientX - r.left) / r.width) * duration;
-  }
 
   let preparing = false;
   let triedPreview = false;
@@ -87,6 +88,7 @@
     failed = false;
     triedPreview = false;
     preparing = false;
+    playing = false;
     url = await viewUrl(path);
   }
 
@@ -115,29 +117,36 @@
   {:else if failed}
     <p class="muted msg">{$t("O trasno non puido preparar a vista previa; quizais falta ffmpeg.")}</p>
   {:else if url && file.category === "video"}
-    <!-- svelte-ignore a11y_media_has_caption -->
-    <video bind:this={el} src={url} controls on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={tick}></video>
+    <div class="vid">
+      <!-- svelte-ignore a11y_media_has_caption -->
+      <video bind:this={el} src={url} controls on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={tick} on:play={() => (playing = true)} on:pause={() => (playing = false)}></video>
+      {#if $trimRange}
+        <div class="under"><Timeline {duration} {now} height={34} on:seek={(e) => seek(e.detail)} /></div>
+      {/if}
+    </div>
   {:else if url}
     <div class="audio">
       <div class="nome">{file.name}</div>
-      <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-      <div class="wave" on:click={seekWave}>
-        <canvas bind:this={canvas}></canvas>
-        {#if !peaks.length}<span class="muted ph">{$t("O trasno está lendo as ondas do son…")}</span>{/if}
+      <Timeline {duration} {now} {peaks} height={150} on:seek={(e) => seek(e.detail)} />
+      {#if !peaks.length}<span class="muted ph">{$t("O trasno está lendo as ondas do son…")}</span>{/if}
+      <div class="ctl">
+        <button class="btn" on:click={toggle}>{playing ? $t("Pausa") : $t("Reproducir")}</button>
+        <span class="muted time">{fmt(now)} / {fmt(duration)}</span>
       </div>
-      <audio bind:this={el} src={url} controls on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={tick}></audio>
+      <audio bind:this={el} src={url} on:error={prepare} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={tick} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></audio>
     </div>
   {/if}
 </div>
 
 <style>
   .wrap { height: 100%; display: flex; align-items: center; justify-content: center; background: #0b0b0d; }
-  video { max-width: 100%; max-height: 100%; }
-  .audio { display: flex; flex-direction: column; gap: 1rem; align-items: center; padding: 2rem; width: min(760px, 100%); }
-  audio { width: 100%; }
-  .wave { position: relative; width: 100%; height: 140px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
-  .wave canvas { width: 100%; height: 100%; display: block; }
-  .ph { position: absolute; inset: 0; display: grid; place-items: center; font-size: 0.85rem; }
-  .nome { color: var(--text-muted); }
+  .vid { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
+  video { flex: 1; min-height: 0; width: 100%; object-fit: contain; }
+  .under { padding: 0.9rem 1rem 0.7rem; background: var(--bg-rail); border-top: 1px solid var(--border); }
+  .audio { display: flex; flex-direction: column; gap: 0.9rem; align-items: stretch; padding: 2rem; width: min(820px, 100%); }
+  .nome { color: var(--text-muted); text-align: center; }
+  .ctl { display: flex; align-items: center; gap: 0.8rem; justify-content: center; }
+  .time { font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+  .ph { text-align: center; font-size: 0.82rem; }
   .msg { padding: 2rem; text-align: center; }
 </style>

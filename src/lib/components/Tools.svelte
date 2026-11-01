@@ -80,7 +80,7 @@
     if (!pdf || many) return [];
     const m = (value: string, label: string) => ({ value, label: tt(label) });
     switch (tab) {
-      case "convert": return [m("format", "A outro formato"), m("images", "A imaxes")];
+      case "convert": return [m("images", "A imaxes"), m("format", "A outro formato")];
       case "pages": return [m("organize", "Ordenar"), m("extract", "Extraer"), m("split", "Dividir")];
       case "shape": return [m("rotate", "Xirar"), m("crop", "Recortar")];
       case "optimize": return [m("compress", "Comprimir"), m("repair", "Reparar")];

@@ -366,7 +366,6 @@
   "Listo! O trasno deixou o PDF en {to} ({pct} % menos; antes eran {from}).": "Ready! The trasno left the PDF at {to} ({pct} % smaller; it was {from}).",
   "Marca de auga": "Watermark",
   "Marcas": "Marks",
-  "Move, xira ou quita páxinas. O PDF orixinal non se toca: gárdase unha copia.": "Move, rotate or remove pages. The original PDF isn't touched: a copy is saved.",
   "Mover cara adiante": "Move forward",
   "Mover cara atrás": "Move back",
   "Márxenes que se quitan": "Margins to remove",
@@ -460,5 +459,10 @@
   "-eco": "-echo",
   "A duración do efecto non é válida.": "The effect duration isn't valid.",
   "O atraso do eco non é válido.": "The echo delay isn't valid.",
-  "Os decibelios teñen que estar entre -12 e 12.": "Decibels must be between -12 and 12."
+  "Os decibelios teñen que estar entre -12 e 12.": "Decibels must be between -12 and 12.",
+  "Arrastra as páxinas ou escribe a posición onde queres poñelas. Tamén podes xirar ou quitar. O PDF orixinal non se toca: gárdase unha copia.": "Drag the pages or type the position where you want them. You can also rotate or remove. The original PDF isn't touched: a copy is saved.",
+  "Pausa": "Pause",
+  "Reproducir": "Play",
+  "Inicio do corte": "Cut start",
+  "Fin do corte": "Cut end"
 }
