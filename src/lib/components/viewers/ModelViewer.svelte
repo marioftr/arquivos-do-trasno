@@ -139,6 +139,9 @@
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    // setSize borra o lenzo: volve debuxar na mesma quenda para que non se vexa un fotograma en branco ao redimensionar.
+    controls?.update();
+    renderer.render(scene, camera);
   }
 
   /** Dirección unitaria da luz a partir de azimut e altura. */

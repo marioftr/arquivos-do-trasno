@@ -58,7 +58,12 @@
   }
   $: if (doc && container && fitMode !== "none") applyFit();
   onMount(() => {
-    ro = new ResizeObserver(() => applyFit());
+    // Ao redimensionar, o axuste ao ancho agarda a que se solte (se non, as páxinas redebuxaríanse en cada píxel e parpadearían).
+    let fitTimer: ReturnType<typeof setTimeout>;
+    ro = new ResizeObserver(() => {
+      clearTimeout(fitTimer);
+      fitTimer = setTimeout(applyFit, 180);
+    });
     return () => ro.disconnect();
   });
   $: if (ro && container) ro.observe(container);
@@ -331,7 +336,6 @@
     const keep = current;
     io?.disconnect();
     pending.length = 0;
-    container.replaceChildren();
     pages = [];
     const s = (percent / 100) * 1.333;
     const first = proxies.get(1) ?? (await d.getPage(1));
@@ -350,6 +354,7 @@
     // Todos os ocos ao tamaño da primeira páxina (a pantalla non agarda); os tamaños reais corrixense axiña.
     const vp1 = first.getViewport({ scale: s });
     const built: PageInfo[] = [];
+    const frag = document.createDocumentFragment();
     for (let n = 1; n <= d.numPages; n++) {
       const wrap = document.createElement("div");
       wrap.className = "pg";
@@ -361,11 +366,13 @@
       canvas.width = 1;
       canvas.height = 1;
       wrap.appendChild(canvas);
-      container.appendChild(wrap);
+      frag.appendChild(wrap);
       const info: PageInfo = { n, wrap, canvas, w: vp1.width, h: vp1.height, view: first.view, s, done: false };
       built.push(info);
-      observePage(info);
     }
+    // Cámbiase todo dunha vez: o contido vello vese ata o último momento.
+    container.replaceChildren(frag);
+    for (const b of built) observePage(b);
     pages = built;
     goto(keep);
     onScroll();
