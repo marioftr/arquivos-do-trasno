@@ -149,6 +149,10 @@
         ? $t("Escolle as pistas de cada ficheiro e ordénaas: sairá un só MKV. Non se recodifica nada e os orixinais non se tocan.")
         : $t("Quita ou reordena as pistas e cambia o nome ou o idioma. Non se recodifica nada e o orixinal non se toca.")}
     </p>
+    <div class="help">
+      <button class="btn ghost" on:click={() => engine.openLink("iso639-2")} title={$t("Abre a lista oficial de códigos de idioma (ISO 639-2) no navegador")}><Icon name="info" size={14} /> {$t("Códigos de idioma")}</button>
+      <button class="btn ghost" on:click={() => engine.openLink("mkvmerge-doc")} title={$t("Abre a documentación oficial de mkvmerge no navegador")}><Icon name="info" size={14} /> {$t("Guía de MKVToolNix")}</button>
+    </div>
     {#if multi}
       <ul class="legend">
         {#each selection as f, i}<li><span class="dot" style={`background:${colorOf(i)}`}></span><span class="fn" title={f.path}>{f.name}</span></li>{/each}
@@ -194,6 +198,7 @@
 </div>
 
 <style>
+  .help { display: flex; flex-wrap: wrap; gap: 0.3rem; }
   .legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.8rem; }
   .legend li { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
   .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }

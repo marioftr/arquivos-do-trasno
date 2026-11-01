@@ -39,9 +39,12 @@
       const p = event.payload;
       if (p.type === "drop") {
         dragging = false;
-        addPaths(p.paths);
-      } else if (p.type === "enter" || p.type === "over") {
-        dragging = true;
+        if (p.paths.length) addPaths(p.paths);
+      } else if (p.type === "enter") {
+        // Arrastrar texto ou elementos da propia interface non trae ficheiros: nese caso non se amosa nada.
+        dragging = p.paths.length > 0;
+      } else if (p.type === "over") {
+        // mantense o que decidiu «enter»
       } else {
         dragging = false;
       }

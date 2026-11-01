@@ -559,5 +559,10 @@
   "Instante": "Moment",
   "Esta é a imaxe que se vai gardar.": "This is the image that will be saved.",
   "Gardar este fotograma": "Save this frame",
-  "Non hai vista previa deste fotograma.": "No preview of this frame."
+  "Non hai vista previa deste fotograma.": "No preview of this frame.",
+  "Velocidade e volume": "Speed and volume",
+  "Códigos de idioma": "Language codes",
+  "Guía de MKVToolNix": "MKVToolNix guide",
+  "Abre a lista oficial de códigos de idioma (ISO 639-2) no navegador": "Opens the official language code list (ISO 639-2) in the browser",
+  "Abre a documentación oficial de mkvmerge no navegador": "Opens the official mkvmerge documentation in the browser"
 }

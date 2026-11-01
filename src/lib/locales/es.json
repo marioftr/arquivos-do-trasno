@@ -559,5 +559,10 @@
   "Instante": "Instante",
   "Esta é a imaxe que se vai gardar.": "Esta es la imagen que se va a guardar.",
   "Gardar este fotograma": "Guardar este fotograma",
-  "Non hai vista previa deste fotograma.": "No hay vista previa de este fotograma."
+  "Non hai vista previa deste fotograma.": "No hay vista previa de este fotograma.",
+  "Velocidade e volume": "Velocidad y volumen",
+  "Códigos de idioma": "Códigos de idioma",
+  "Guía de MKVToolNix": "Guía de MKVToolNix",
+  "Abre a lista oficial de códigos de idioma (ISO 639-2) no navegador": "Abre la lista oficial de códigos de idioma (ISO 639-2) en el navegador",
+  "Abre a documentación oficial de mkvmerge no navegador": "Abre la documentación oficial de mkvmerge en el navegador"
 }

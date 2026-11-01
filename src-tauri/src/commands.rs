@@ -661,6 +661,8 @@ pub fn open_link(id: String) -> Result<(), String> {
         "ffmpeg-license" => "https://ffmpeg.org/legal.html",
         "mkvtoolnix" => "https://mkvtoolnix.download/downloads.html",
         "mkvtoolnix-license" => "https://mkvtoolnix.download/doc/COPYING",
+        "iso639-2" => "https://www.loc.gov/standards/iso639-2/php/code_list.php",
+        "mkvmerge-doc" => "https://mkvtoolnix.download/doc/mkvmerge.html",
         _ => return Err(msg("Non coñezo esa ligazón.", serde_json::json!({}))),
     };
     #[cfg(windows)]

@@ -1,30 +1,30 @@
 :root {
   color-scheme: dark;
 
-  --bg: #131316;
-  --bg-rail: #0e0e11;
-  --bg-elevated: #1a1b1f;
-  --bg-card: #1c1d22;
-  --bg-hover: #232429;
-  --bg-input: #16171a;
-  --border: #26272c;
-  --border-strong: #34353c;
-  --text: #e8e9ec;
-  --text-muted: #94969e;
-  --text-faint: #64656d;
+  --bg: #111613;
+  --bg-rail: #0c110e;
+  --bg-elevated: #171e19;
+  --bg-card: #19211b;
+  --bg-hover: #212b24;
+  --bg-input: #141a16;
+  --border: #222d25;
+  --border-strong: #33423a;
+  --text: #e6ece7;
+  --text-muted: #93a198;
+  --text-faint: #637067;
 
-  --accent-imaxe: #4caf68;
-  --accent-audio: #7b70e0;
+  --accent-imaxe: #68d058;
+  --accent-audio: #8a86e8;
   --accent-pdf: #c6902f;
   --accent-video: #cf5c46;
-  --accent-conversor: #3f92d6;
+  --accent-conversor: #68d058;
   --accent: var(--accent-conversor);
-  --on-accent: #06121d; /* texto sobre botóns de cor */
+  --on-accent: #07140a; /* texto sobre botóns de cor */
 
   /* fondos dos visores */
-  --viewer-bg: #0f0f12;
-  --checker-a: #17171a;
-  --checker-b: #1b1b1f;
+  --viewer-bg: #0d120e;
+  --checker-a: #131914;
+  --checker-b: #171e18;
 
   --sidebar-w: 190px;
   --radius-sm: 6px;
@@ -41,28 +41,28 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --bg: #f5f5f8;
-  --bg-rail: #ebebf0;
+  --bg: #f2f6f1;
+  --bg-rail: #e6ede5;
   --bg-elevated: #ffffff;
   --bg-card: #ffffff;
-  --bg-hover: #e2e2e9;
+  --bg-hover: #dae4d9;
   --bg-input: #ffffff;
-  --border: #dcdce3;
-  --border-strong: #bfc0ca;
-  --text: #1c1d22;
-  --text-muted: #5b5d68;
-  --text-faint: #8a8c97;
+  --border: #d3ddd1;
+  --border-strong: #b3c3b0;
+  --text: #17211a;
+  --text-muted: #53635a;
+  --text-faint: #84928a;
 
-  --accent-imaxe: #2c8a49;
+  --accent-imaxe: #2a7a30;
   --accent-audio: #5d52c4;
   --accent-pdf: #a3720f;
   --accent-video: #b8442f;
-  --accent-conversor: #1f68ad;
+  --accent-conversor: #2c7a31;
   --on-accent: #ffffff;
 
-  --viewer-bg: #d9dae1;
-  --checker-a: #e4e4ea;
-  --checker-b: #dbdbe2;
+  --viewer-bg: #d6e0d5;
+  --checker-a: #e1e9e0;
+  --checker-b: #d8e1d7;
 }
 
 * {

@@ -55,9 +55,9 @@
       case "imaxe":
         return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("info", "Información")];
       case "video":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("trim", "Cortar"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
-        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("effects", "Efectos"), tab("trim", "Cortar"), ...mkvTab(), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), ...mkvTab(), tab("info", "Información")];
       case "documento":
         return pdf
           ? [
@@ -82,9 +82,14 @@
   $: if (tabs.length && !tabs.some((x) => x.id === current)) current = tabs[0].id;
 
   /** Algunhas pestanas agrupan ferramentas parecidas: un selector enriba escolle cal. */
-  function modesFor(tab: string, pdf: boolean, many: boolean, tt: (k: string) => string): { value: string; label: string }[] {
-    if (!pdf || many) return [];
+  function modesFor(tab: string, pdf: boolean, many: boolean, cat: Category | null, tt: (k: string) => string): { value: string; label: string }[] {
+    if (many) return [];
     const m = (value: string, label: string) => ({ value, label: tt(label) });
+    if (!pdf) {
+      if (tab === "edit" && cat === "video") return [m("tune", "Velocidade e volume"), m("trim", "Cortar")];
+      if (tab === "edit" && cat === "audio") return [m("tune", "Velocidade e volume"), m("trim", "Cortar"), m("effects", "Efectos")];
+      return [];
+    }
     switch (tab) {
       case "convert": return [m("images", "A imaxes"), m("format", "A outro formato")];
       case "pages": return [m("organize", "Ordenar"), m("extract", "Extraer"), m("split", "Dividir")];
@@ -94,7 +99,7 @@
     }
   }
   const sub: Record<string, string> = {};
-  $: modes = modesFor(current, isPdf, multi, $t);
+  $: modes = modesFor(current, isPdf, multi, category, $t);
   $: if (modes.length && !modes.some((x) => x.value === sub[current])) sub[current] = modes[0].value;
   $: mode = modes.length ? sub[current] : "";
 
@@ -143,16 +148,16 @@
           <ConvertSection {selection} {category} />
         {:else if current === "compress" && (category === "imaxe" || category === "video")}
           <CompressSection {selection} {category} />
+        {:else if current === "edit" && mode === "trim" && first}
+          <TrimSection file={first} />
+        {:else if current === "edit" && mode === "effects" && first}
+          <AudioEffectsSection file={first} />
         {:else if current === "edit" && first && category === "imaxe"}
           <ImageEditSection file={first} />
         {:else if current === "edit" && first}
           <MediaEditSection file={first} />
         {:else if current === "extract" && first}
           <ExtractSection file={first} />
-        {:else if current === "effects" && first}
-          <AudioEffectsSection file={first} />
-        {:else if current === "trim" && first}
-          <TrimSection file={first} />
         {:else if current === "pages" && mode === "extract" && first}
           <PdfPagesSection file={first} part="extract" />
         {:else if current === "pages" && mode === "split" && first}

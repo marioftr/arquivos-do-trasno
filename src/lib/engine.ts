@@ -305,5 +305,5 @@ export interface TrackRef {
 export const mkvMux = (inputs: MuxInput[], order: TrackRef[], output: string, overwrite = false): Promise<string> =>
   call("mkv_mux", { inputs, order, output, overwrite });
 
-export type LinkId = "ffmpeg" | "ffmpeg-license" | "mkvtoolnix" | "mkvtoolnix-license";
+export type LinkId = "ffmpeg" | "ffmpeg-license" | "mkvtoolnix" | "mkvtoolnix-license" | "iso639-2" | "mkvmerge-doc";
 export const openLink = (id: LinkId): Promise<void> => call("open_link", { id });
