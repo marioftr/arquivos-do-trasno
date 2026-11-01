@@ -37,7 +37,7 @@ download ffmpeg) open in your browser only when you click them.
 
 The program only changes system configuration when you ask it to: the *Explorer right-click menu* is added or removed
 with explicit buttons in *Axustes → Xeral*, writes only to your user registry (no administrator rights) and is removed
-by uninstalling the program or with the *Quitar do menú* button.
+with the *Quitar do menú* button (do this before uninstalling).
 
 ## Licenza
 
