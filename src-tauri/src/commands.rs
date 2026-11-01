@@ -254,6 +254,14 @@ pub async fn media_edit(
         "mute" => MediaOp::Mute,
         "volume" => MediaOp::Volume(value),
         "scale" => MediaOp::ScaleHeight(value.max(0.0) as u32),
+        "normalize" => MediaOp::Normalize,
+        "reverse" => MediaOp::Reverse,
+        "fadein" => MediaOp::FadeIn(value),
+        "fadeout" => MediaOp::FadeOut(value),
+        "echo" => MediaOp::Echo(value),
+        "bass" => MediaOp::Bass(value),
+        "treble" => MediaOp::Treble(value),
+        "denoise" => MediaOp::Denoise,
         other => return Err(msg("Non coñezo a operación «{op}».", serde_json::json!({ "op": other }))),
     };
     blocking(move || {

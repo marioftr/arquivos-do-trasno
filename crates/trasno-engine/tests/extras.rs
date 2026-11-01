@@ -91,6 +91,37 @@ fn operacions_de_media_funcionan_con_ffmpeg_real() {
 }
 
 #[test]
+fn efectos_de_audio_funcionan_con_ffmpeg_real() {
+    if !ffmpeg::is_available() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("a.wav");
+    let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+        .args(["-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=2"])
+        .arg(&src)
+        .status()
+        .unwrap();
+    assert!(st.success());
+    let ops = [
+        ffmpeg::MediaOp::Normalize,
+        ffmpeg::MediaOp::Reverse,
+        ffmpeg::MediaOp::FadeIn(0.5),
+        ffmpeg::MediaOp::FadeOut(0.5),
+        ffmpeg::MediaOp::Echo(200.0),
+        ffmpeg::MediaOp::Bass(6.0),
+        ffmpeg::MediaOp::Treble(-6.0),
+        ffmpeg::MediaOp::Denoise,
+    ];
+    for (i, op) in ops.into_iter().enumerate() {
+        let out = dir.path().join(format!("o{i}.wav"));
+        ffmpeg::media_edit(&src, &out, false, op, false).unwrap_or_else(|e| panic!("{op:?}: {e}"));
+        assert!(std::fs::metadata(&out).unwrap().len() > 0, "{op:?}");
+    }
+    assert!(ffmpeg::media_edit(&src, &dir.path().join("x.wav"), false, ffmpeg::MediaOp::Bass(99.0), false).is_err());
+}
+
+#[test]
 fn xuntar_e_convertir_media_con_ffmpeg_real() {
     if !ffmpeg::is_available() {
         return;

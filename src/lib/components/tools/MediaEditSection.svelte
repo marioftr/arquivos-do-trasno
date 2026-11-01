@@ -3,14 +3,12 @@
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
   import { mediaPreview, type FileEntry } from "../../files";
-  import { fileNameOf, TRASNO, fallo, listo, AUDIO_TARGETS } from "../../formats";
+  import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
   import Slider from "../ui/Slider.svelte";
-  import NumberField from "../ui/NumberField.svelte";
-  import SelectField from "../ui/SelectField.svelte";
   import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
@@ -19,12 +17,8 @@
   const isVideo = file.category === "video";
 
   const form = createForm({
-    frameAt: 0,
     speed: 1,
     volume: 1,
-    height: Math.min(720, file.height ?? 720),
-    audioExt: "mp3",
-    audioKbps: 192,
   });
   onMount(() => useForm(form));
   // O visor reproduce xa coa velocidade e o volume elixidos.
@@ -44,13 +38,9 @@
     }
   }
 
-  const frame = () => run("-fotograma", "png", (o) => engine.mediaEdit(file.path, o, "frame", $form.frameAt, true, true));
   const speed = () => run("-velocidade", file.ext, (o) => engine.mediaEdit(file.path, o, "speed", $form.speed, isVideo, true));
   const volume = () => run("-volume", file.ext, (o) => engine.mediaEdit(file.path, o, "volume", $form.volume, isVideo, true));
   const mute = () => run("-mudo", file.ext, (o) => engine.mediaEdit(file.path, o, "mute", 0, true, true));
-  const scale = () => run(`-${$form.height}p`, file.ext, (o) => engine.mediaEdit(file.path, o, "scale", $form.height, true, true));
-  const audio = () =>
-    run("", $form.audioExt, async (o) => (await engine.convertFile(file.path, o, { overwrite: true, bitrateKbps: $form.audioKbps })).output_path);
 </script>
 
 <div class="stack">
@@ -70,31 +60,6 @@
       <button class="btn block" on:click={mute} disabled={$busy}>{$t("Quitar o son")}</button>
     {/if}
   </div>
-
-  {#if isVideo}
-    <div class="group">
-      <h4 class="group-title">{$t("Imaxe")}</h4>
-      <div class="pair">
-        <NumberField label={$t("Instante do fotograma")} unit="s" min={0} step={0.1} bind:value={$form.frameAt} def={0} />
-        <NumberField label={$t("Nova altura")} unit="px" min={16} step={2} bind:value={$form.height} />
-      </div>
-      <div class="pair">
-        <button class="btn" on:click={frame} disabled={$busy}>{$t("Gardar fotograma")}</button>
-        <button class="btn" on:click={scale} disabled={$busy}>{$t("Reducir vídeo")}</button>
-      </div>
-    </div>
-  {/if}
-
-  {#if isVideo}
-    <div class="group">
-      <h4 class="group-title">{$t("Extraer audio")}</h4>
-      <div class="pair">
-        <SelectField label={$t("Formato")} bind:value={$form.audioExt} options={AUDIO_TARGETS.map((x) => ({ value: x, label: x.toUpperCase() }))} def="mp3" />
-        <NumberField label={$t("Bitrate de audio")} unit="kbps" min={32} max={320} bind:value={$form.audioKbps} def={192} />
-      </div>
-      <button class="btn block" on:click={audio} disabled={$busy}>{$t("Extraer o audio")}</button>
-    </div>
-  {/if}
 
   <JobStatus {job} />
 </div>

@@ -289,6 +289,23 @@ pub enum MediaOp {
     Volume(f64),
     /// Cambia a altura do vídeo (en píxeles, par) mantendo a proporción.
     ScaleHeight(u32),
+    /// Efectos de audio (só para ficheiros de son).
+    /// Iguala o volume percibido (EBU R128).
+    Normalize,
+    /// Dálle a volta ao son.
+    Reverse,
+    /// Aparece aos poucos durante N segundos.
+    FadeIn(f64),
+    /// Esvaece durante os últimos N segundos.
+    FadeOut(f64),
+    /// Eco; o valor é o atraso en milisegundos.
+    Echo(f64),
+    /// Graves en dB (-12 a 12).
+    Bass(f64),
+    /// Agudos en dB (-12 a 12).
+    Treble(f64),
+    /// Reduce o ruído de fondo.
+    Denoise,
 }
 
 pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has_video: bool) -> Result<PathBuf> {
@@ -338,6 +355,35 @@ pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has
             }
             args.extend(["-vf".into(), format!("scale=-2:{}", h - h % 2)]);
         }
+        MediaOp::Normalize => args.extend(["-af".into(), "loudnorm=I=-16:TP=-1.5:LRA=11".into()]),
+        MediaOp::Reverse => args.extend(["-af".into(), "areverse".into()]),
+        MediaOp::FadeIn(d) => {
+            if !d.is_finite() || !(0.05..=600.0).contains(&d) {
+                return bad("A duración do efecto non é válida.");
+            }
+            args.extend(["-af".into(), format!("afade=t=in:st=0:d={d}")]);
+        }
+        MediaOp::FadeOut(d) => {
+            if !d.is_finite() || !(0.05..=600.0).contains(&d) {
+                return bad("A duración do efecto non é válida.");
+            }
+            let total = probe(input)?["format"]["duration"].as_str().and_then(|x| x.parse::<f64>().ok()).unwrap_or(0.0);
+            args.extend(["-af".into(), format!("afade=t=out:st={}:d={d}", (total - d).max(0.0))]);
+        }
+        MediaOp::Echo(ms) => {
+            if !ms.is_finite() || !(20.0..=2000.0).contains(&ms) {
+                return bad("O atraso do eco non é válido.");
+            }
+            args.extend(["-af".into(), format!("aecho=0.8:0.6:{ms}:0.4")]);
+        }
+        MediaOp::Bass(db) | MediaOp::Treble(db) => {
+            if !db.is_finite() || !(-12.0..=12.0).contains(&db) {
+                return bad("Os decibelios teñen que estar entre -12 e 12.");
+            }
+            let f = if matches!(op, MediaOp::Bass(_)) { "bass" } else { "treble" };
+            args.extend(["-af".into(), format!("{f}=g={db}")]);
+        }
+        MediaOp::Denoise => args.extend(["-af".into(), "afftdn=nr=12".into()]),
     }
     convert_media(input, output, overwrite, &args)
 }

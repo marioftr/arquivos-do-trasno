@@ -127,7 +127,7 @@ export async function imagesToPdf(inputs: string[], output: string, overwrite = 
   return call("images_to_pdf", { inputs, output, overwrite });
 }
 
-export type MediaOp = "frame" | "speed" | "mute" | "volume" | "scale";
+export type MediaOp = "frame" | "speed" | "mute" | "volume" | "scale" | "normalize" | "reverse" | "fadein" | "fadeout" | "echo" | "bass" | "treble" | "denoise";
 
 export async function mediaEdit(
   input: string,

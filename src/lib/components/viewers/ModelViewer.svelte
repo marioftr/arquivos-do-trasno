@@ -34,7 +34,6 @@
   let hemi: THREE.HemisphereLight;
   let sun: THREE.DirectionalLight;
   let marker: THREE.Mesh;
-  let ray: THREE.Line;
   let model: THREE.Object3D | null = null;
   let radius = 1;
   let center = new THREE.Vector3();
@@ -85,15 +84,8 @@
     scene.add(hemi);
     sun = new THREE.DirectionalLight(0xffffff, intensity);
     scene.add(sun, sun.target);
-    marker = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0xffd36a, depthTest: false }));
-    marker.renderOrder = 10;
+    marker = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0xffd36a }));
     scene.add(marker);
-    ray = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
-      new THREE.LineBasicMaterial({ color: 0xffd36a, transparent: true, opacity: 0.6, depthTest: false }),
-    );
-    ray.renderOrder = 9;
-    scene.add(ray);
     gridHelper = new THREE.GridHelper(10, 20, 0x3a3a42, 0x26262c);
     scene.add(gridHelper);
 
@@ -155,9 +147,7 @@
     // O símbolo da luz vai preto do modelo, onde si se ve, e arrástrase co rato.
     marker.position.copy(c).addScaledVector(dir, r * 1.15);
     marker.scale.setScalar(Math.max(r * 0.05, 0.001));
-    ray.geometry.setFromPoints([marker.position.clone(), c.clone()]);
     marker.visible = mark;
-    ray.visible = mark;
   }
 
   // ---- arrastrar a luz co rato ----

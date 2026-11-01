@@ -1,7 +1,7 @@
 <script lang="ts">
   import { errText } from "../../errors";
   import { onMount } from "svelte";
-  import { mediaSeek } from "../../files";
+  import { mediaSeek, mediaTime } from "../../files";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
   import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
@@ -66,6 +66,10 @@
         <NumberField label={$t("Fin")} unit="s" min={0} step={0.1} placeholder={$t("fin")} bind:value={$form.end} def={0} />
       </div>
     {/if}
+    <div class="pair">
+      <button class="btn" on:click={() => form.update((v) => ({ ...v, start: Math.min($mediaTime, v.end || total || Infinity) }))}>{$t("Inicio: onde está o visor")}</button>
+      <button class="btn" on:click={() => form.update((v) => ({ ...v, end: Math.max($mediaTime, v.start) }))}>{$t("Fin: onde está o visor")}</button>
+    </div>
     {#if total}
       <p class="group-note">
         {$t("Duración total: {s} s", { s: total.toFixed(1) })}{#if kept !== null} · {$t("Queda: {s} s", { s: kept.toFixed(1) })}{/if}

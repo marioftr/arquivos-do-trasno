@@ -8,6 +8,8 @@
   import CompressSection from "./tools/CompressSection.svelte";
   import ImageEditSection from "./tools/ImageEditSection.svelte";
   import MediaEditSection from "./tools/MediaEditSection.svelte";
+  import ExtractSection from "./tools/ExtractSection.svelte";
+  import AudioEffectsSection from "./tools/AudioEffectsSection.svelte";
   import TrimSection from "./tools/TrimSection.svelte";
   import PdfPagesSection from "./tools/PdfPagesSection.svelte";
   import PdfImagesSection from "./tools/PdfImagesSection.svelte";
@@ -47,9 +49,9 @@
       case "imaxe":
         return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("info", "Información")];
       case "video":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("trim", "Cortar"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("trim", "Cortar"), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
-        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("trim", "Cortar"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("effects", "Efectos"), tab("trim", "Cortar"), tab("info", "Información")];
       case "documento":
         return pdf
           ? [
@@ -123,6 +125,10 @@
           <ImageEditSection file={first} />
         {:else if current === "edit" && first}
           <MediaEditSection file={first} />
+        {:else if current === "extract" && first}
+          <ExtractSection file={first} />
+        {:else if current === "effects" && first}
+          <AudioEffectsSection file={first} />
         {:else if current === "trim" && first}
           <TrimSection file={first} />
         {:else if current === "pages" && mode === "extract" && first}

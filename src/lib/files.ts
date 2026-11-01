@@ -158,6 +158,8 @@ export interface MediaPreview {
 }
 export const mediaPreview = writable<MediaPreview | null>(null);
 export const mediaSeek = writable<{ t: number; stamp: number } | null>(null);
+/** Instante (s) en que está o reprodutor do visor, para usalo nas ferramentas. */
+export const mediaTime = writable<number>(0);
 
 /** Proporción fixa do recorte (ancho / alto) ou null para libre. */
 export const imageCropAspect = writable<number | null>(null);
