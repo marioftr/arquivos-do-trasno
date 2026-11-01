@@ -89,7 +89,7 @@
 
 <style>
   .split { display: flex; gap: 1rem; min-height: 0; flex: 1; }
-  .side { flex: 0 0 12.5rem; display: flex; flex-direction: column; gap: 0.7rem; overflow-y: auto; padding: 3px 0.4rem 3px 3px; }
+  .side { flex: 0 0 clamp(9.5rem, 24%, 12.5rem); display: flex; flex-direction: column; gap: 0.7rem; overflow-y: auto; padding: 3px 0.4rem 3px 3px; }
   .side button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .grp { display: flex; flex-direction: column; gap: 0.1rem; }
   .gh { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.6rem; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-faint); }
@@ -102,5 +102,5 @@
   .pane { flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.3rem; }
   h2 { margin: 0; font-size: 1rem; font-weight: 600; }
   .sep::before { content: "·"; margin: 0 0.55em; }
-  @media (max-width: 700px) { .split { flex-direction: column; } .side { flex-basis: auto; flex-direction: row; flex-wrap: wrap; } }
+  @media (max-width: 640px) { .split { flex-direction: column; } .side { flex-basis: auto; flex-direction: row; flex-wrap: wrap; } }
 </style>
