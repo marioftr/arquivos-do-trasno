@@ -1,6 +1,7 @@
 // Preferencias da interface (tema) e estado dos programas externos (extensións).
 
 import { writable, get } from "svelte/store";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as engine from "./engine";
 
 export type Theme = "system" | "light" | "dark";
@@ -18,12 +19,17 @@ function savedTheme(): Theme {
 }
 
 export const theme = writable<Theme>(savedTheme());
+/** Tema que se está vendo de verdade (o «sistema» xa resolto). */
+export const resolvedTheme = writable<"light" | "dark">("dark");
 
 const media = typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: light)") : null;
 
 function apply(t: Theme) {
   const light = t === "light" || (t === "system" && !!media?.matches);
   document.documentElement.dataset.theme = light ? "light" : "dark";
+  resolvedTheme.set(light ? "light" : "dark");
+  // A barra de título nativa tamén segue o tema.
+  getCurrentWindow().setTheme(t === "system" ? null : light ? "light" : "dark").catch(() => {});
 }
 
 theme.subscribe((t) => {

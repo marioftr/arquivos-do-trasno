@@ -38,10 +38,10 @@
   $: selKey = selection.map((f) => f.path).join("|");
 
   /** Cada tipo de ficheiro (ou lote) ten as súas pestañas: unha tarefa por pestana. */
-  function tabsFor(cat: Category | null, many: boolean, pdf: boolean, tt: (k: string) => string): { id: string; label: string }[] {
+  function tabsFor(cat: Category | null, many: boolean, pdf: boolean, ext: string, tt: (k: string) => string): { id: string; label: string }[] {
     const tab = (id: string, label: string) => ({ id, label: tt(label) });
     // Os contedores Matroska teñen a súa propia pestana de pistas (MKVToolNix).
-    const mkvTab = () => (["mkv", "mka", "webm"].includes(first?.ext ?? "") ? [tab("mkv", "Pistas")] : []);
+    const mkvTab = () => (["mkv", "mka", "webm"].includes(ext) ? [tab("mkv", "Pistas")] : []);
     if (!cat) return [];
     if (many) {
       if (pdf) return [tab("merge", "Unir")];
@@ -76,7 +76,7 @@
     }
   }
 
-  $: tabs = tabsFor(category, multi, isPdf, $t);
+  $: tabs = tabsFor(category, multi, isPdf, first?.ext ?? "", $t);
   let current = "convert";
   $: if (tabs.length && !tabs.some((x) => x.id === current)) current = tabs[0].id;
 

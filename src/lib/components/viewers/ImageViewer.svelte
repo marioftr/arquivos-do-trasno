@@ -125,9 +125,28 @@
 
   const up = () => (drag = null);
 
+  // Teclado: + e - para o zoom, 0 para axustar.
+  function key(e: KeyboardEvent) {
+    if (e.ctrlKey || e.metaKey || e.altKey || (e.target as HTMLElement).closest("input, select, textarea, [contenteditable]")) return;
+    if (e.key === "+" || e.key === "=") {
+      fit = false;
+      zoom = Math.min(400, Math.round(zoom * 1.25));
+    } else if (e.key === "-") {
+      fit = false;
+      zoom = Math.max(10, Math.round(zoom / 1.25));
+    } else if (e.key === "0") {
+      fit = true;
+    } else if (e.key === "1") {
+      fit = false;
+      zoom = 100;
+    }
+  }
+
   const HANDLES = ["tl", "t", "tr", "r", "br", "b", "bl", "l"];
   const pos = (h: string) => `left:${h.includes("l") ? 0 : h.includes("r") ? 100 : 50}%;top:${h.includes("t") ? 0 : h.includes("b") ? 100 : 50}%;cursor:${{ tl: "nwse", br: "nwse", tr: "nesw", bl: "nesw", t: "ns", b: "ns", l: "ew", r: "ew" }[h]}-resize`;
 </script>
+
+<svelte:window on:keydown={key} />
 
 <div class="wrap">
   <div class="stage scrollbar-thin" class:fit bind:this={stage}>
@@ -184,7 +203,7 @@
     position: relative;
     flex: 1; min-height: 0; overflow: auto;
     display: flex; align-items: center; justify-content: center;
-    background: repeating-conic-gradient(#17171a 0% 25%, #1b1b1f 0% 50%) 0 0 / 20px 20px;
+    background: repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 0 0 / 20px 20px;
   }
   .stage.fit img { max-width: 100%; max-height: 100%; object-fit: contain; }
   .stage:not(.fit) { display: block; }

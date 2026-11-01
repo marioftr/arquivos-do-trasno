@@ -10,6 +10,7 @@
   import Slider from "../ui/Slider.svelte";
   import SelectField from "../ui/SelectField.svelte";
   import Icon from "../Icon.svelte";
+  import { resolvedTheme } from "../../settings";
   import {
     loadModelDetailed,
     fallbackMaterial,
@@ -119,6 +120,13 @@
 
   $: if (ready) load(file, false);
   $: if (ready) gridHelper.visible = grid;
+  $: if (ready) {
+    const light = $resolvedTheme === "light";
+    scene.background = new THREE.Color(light ? 0xe4e5ea : 0x141417);
+    const mats = (Array.isArray(gridHelper.material) ? gridHelper.material : [gridHelper.material]) as THREE.LineBasicMaterial[];
+    mats[0]?.color.set(light ? 0xa9abb6 : 0x3a3a42);
+    mats[1]?.color.set(light ? 0xc6c8d1 : 0x26262c);
+  }
   $: if (ready) applyView(channel, wireframe, isolated);
   $: if (ready) updateLight(azimuth, elevation, intensity, ambient, showMarker, radius, center);
 

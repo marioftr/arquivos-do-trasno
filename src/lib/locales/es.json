@@ -41,7 +41,6 @@
   "Imaxes a PDF": "Imágenes a PDF",
   "Xuntar vídeos": "Juntar vídeos",
   "Xuntar audios": "Juntar audios",
-  "Vaise facer na orde da lista; usa as frechas para reordenar.": "Se hará en el orden de la lista; usa las flechas para reordenar.",
   "Unir nun só PDF": "Unir en un solo PDF",
   "Facer un PDF cunha imaxe por páxina": "Crear un PDF con una imagen por página",
   "Xuntar nun só ficheiro": "Juntar en un solo archivo",
@@ -194,7 +193,6 @@
   "1 = igual que o orixinal": "1 = igual que el original",
   "Gardar fotograma": "Guardar fotograma",
   "Extraer o audio": "Extraer el audio",
-  "O PDF ten {n} páxinas. Serve tamén para reordenar.": "El PDF tiene {n} páginas. Sirve también para reordenar.",
   "Inicio": "Inicio",
   "Fin": "Fin",
   "Queda: {s} s": "Queda: {s} s",
@@ -523,5 +521,14 @@
   "Lectura e escritura de imaxes": "Lectura y escritura de imágenes",
   "Motor da aplicación": "Motor de la aplicación",
   "Aviso": "Aviso",
-  "Este software ofrécese «tal cal», sen garantía de ningún tipo. Os nomes FFmpeg, MKVToolNix, PDF.js, Tauri e os demais pertencen aos seus respectivos autores, que non avalan nin están asociados a esta aplicación. Cada biblioteca mantense baixo a súa propia licenza, que se conserva nos seus repositorios.": "Este software se ofrece «tal cual», sin garantía de ningún tipo. Los nombres FFmpeg, MKVToolNix, PDF.js, Tauri y los demás pertenecen a sus respectivos autores, que no avalan ni están asociados a esta aplicación. Cada biblioteca se mantiene bajo su propia licencia, que se conserva en sus repositorios."
+  "Este software ofrécese «tal cal», sen garantía de ningún tipo. Os nomes FFmpeg, MKVToolNix, PDF.js, Tauri e os demais pertencen aos seus respectivos autores, que non avalan nin están asociados a esta aplicación. Cada biblioteca mantense baixo a súa propia licenza, que se conserva nos seus repositorios.": "Este software se ofrece «tal cual», sin garantía de ningún tipo. Los nombres FFmpeg, MKVToolNix, PDF.js, Tauri y los demás pertenecen a sus respectivos autores, que no avalan ni están asociados a esta aplicación. Cada biblioteca se mantiene bajo su propia licencia, que se conserva en sus repositorios.",
+  "Marca as páxinas que queres nas miniaturas, ou escribe os números.": "Marca las páginas que quieres en las miniaturas, o escribe los números.",
+  "Todas": "Todas",
+  "Ningunha": "Ninguna",
+  "Páxina {n}": "Página {n}",
+  "Vaise facer nesta orde (a da lista). Arrastra os ficheiros, usa as frechas ou escribe a posición para cambiala.": "Se hará en este orden (el de la lista). Arrastra los archivos, usa las flechas o escribe la posición para cambiarlo.",
+  "Arrastra para mover": "Arrastra para mover",
+  "Espazo": "Espacio",
+  "Silenciar": "Silenciar",
+  "Pantalla completa": "Pantalla completa"
 }

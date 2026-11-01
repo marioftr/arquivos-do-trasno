@@ -41,7 +41,6 @@
   "Imaxes a PDF": "Images to PDF",
   "Xuntar vídeos": "Join videos",
   "Xuntar audios": "Join audio files",
-  "Vaise facer na orde da lista; usa as frechas para reordenar.": "It follows the list order; use the arrows to reorder.",
   "Unir nun só PDF": "Merge into one PDF",
   "Facer un PDF cunha imaxe por páxina": "Make a PDF with one image per page",
   "Xuntar nun só ficheiro": "Join into one file",
@@ -194,7 +193,6 @@
   "1 = igual que o orixinal": "1 = same as the original",
   "Gardar fotograma": "Save frame",
   "Extraer o audio": "Extract the audio",
-  "O PDF ten {n} páxinas. Serve tamén para reordenar.": "The PDF has {n} pages. Also works for reordering.",
   "Inicio": "Start",
   "Fin": "End",
   "Queda: {s} s": "Kept: {s} s",
@@ -523,5 +521,14 @@
   "Lectura e escritura de imaxes": "Image reading and writing",
   "Motor da aplicación": "Application engine",
   "Aviso": "Notice",
-  "Este software ofrécese «tal cal», sen garantía de ningún tipo. Os nomes FFmpeg, MKVToolNix, PDF.js, Tauri e os demais pertencen aos seus respectivos autores, que non avalan nin están asociados a esta aplicación. Cada biblioteca mantense baixo a súa propia licenza, que se conserva nos seus repositorios.": "This software is provided “as is”, without warranty of any kind. The names FFmpeg, MKVToolNix, PDF.js, Tauri and the rest belong to their respective authors, who do not endorse and are not affiliated with this application. Each library remains under its own licence, which is kept in its repository."
+  "Este software ofrécese «tal cal», sen garantía de ningún tipo. Os nomes FFmpeg, MKVToolNix, PDF.js, Tauri e os demais pertencen aos seus respectivos autores, que non avalan nin están asociados a esta aplicación. Cada biblioteca mantense baixo a súa propia licenza, que se conserva nos seus repositorios.": "This software is provided “as is”, without warranty of any kind. The names FFmpeg, MKVToolNix, PDF.js, Tauri and the rest belong to their respective authors, who do not endorse and are not affiliated with this application. Each library remains under its own licence, which is kept in its repository.",
+  "Marca as páxinas que queres nas miniaturas, ou escribe os números.": "Pick the pages you want in the thumbnails, or type the numbers.",
+  "Todas": "All",
+  "Ningunha": "None",
+  "Páxina {n}": "Page {n}",
+  "Vaise facer nesta orde (a da lista). Arrastra os ficheiros, usa as frechas ou escribe a posición para cambiala.": "It will be done in this order (the list's). Drag the files, use the arrows or type a position to change it.",
+  "Arrastra para mover": "Drag to move",
+  "Espazo": "Space",
+  "Silenciar": "Mute",
+  "Pantalla completa": "Full screen"
 }

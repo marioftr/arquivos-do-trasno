@@ -186,7 +186,7 @@
   .pages {
     flex: 1; min-height: 0; overflow: auto;
     display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
-    padding: 16px; background: #0f0f12;
+    padding: 16px; background: var(--viewer-bg);
   }
   .pages :global(.pg) { position: relative; flex-shrink: 0; margin-inline: auto; background: #fff; overflow: hidden; transition: opacity 0.12s ease; }
   .pages :global(.pg.sel) { outline: 3px solid var(--accent); outline-offset: 0; }

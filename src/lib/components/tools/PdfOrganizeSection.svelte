@@ -147,7 +147,7 @@
             data-i={i}
             style={dragging && dragFrom === i ? `transform: translate(${ox}px, ${oy}px)` : ""}
           >
-            <div class="thumb" on:pointerdown={(e) => pdown(e, i)} on:pointermove={pmove} on:pointerup={pup} on:pointercancel={pup} role="presentation"><img src={tile.thumb} alt={String(tile.page)} style={`transform: rotate(${tile.rotate}deg)`} /></div>
+            <div class="thumb" on:pointerdown={(e) => pdown(e, i)} on:pointermove={pmove} on:pointerup={pup} on:pointercancel={pup} role="presentation"><img src={tile.thumb} alt={String(tile.page)} draggable="false" on:dragstart|preventDefault style={`transform: rotate(${tile.rotate}deg)`} /></div>
             <label class="num" title={$t("Posición")}><input class="pos" type="number" min="1" max={tiles.length} value={i + 1} on:change={(e) => setPos(i, e)} /><span>({tile.page})</span></label>
             <div class="acts">
               <button class="mini" on:click={() => move(i, -1)} disabled={i === 0} aria-label={$t("Mover cara atrás")} title={$t("Mover cara atrás")}><Icon name="back" size={13} /></button>
@@ -177,7 +177,8 @@
   .num { font-size: 0.74rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem; }
   .pos { width: 3.2rem; height: 1.7rem; text-align: center; background: var(--bg); color: var(--text); border: 1px solid var(--border-strong); border-radius: 4px; font: inherit; font-size: 0.8rem; }
   .pos:focus { outline: none; border-color: var(--accent); }
-  .thumb { cursor: grab; touch-action: none; }
+  .thumb { cursor: grab; touch-action: none; user-select: none; }
+  .thumb img { -webkit-user-drag: none; pointer-events: none; }
   .tile.lifted { position: relative; z-index: 5; pointer-events: none; opacity: 0.85; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); }
   .tile.target { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg-input)); }
   .acts { display: flex; gap: 0.1rem; }

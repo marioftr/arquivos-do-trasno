@@ -20,6 +20,11 @@
   --accent-conversor: #3f92d6;
   --accent: var(--accent-conversor);
 
+  /* fondos dos visores */
+  --viewer-bg: #0f0f12;
+  --checker-a: #17171a;
+  --checker-b: #1b1b1f;
+
   --sidebar-w: 190px;
   --radius-sm: 6px;
   --radius-md: 9px;
@@ -52,6 +57,10 @@
   --accent-pdf: #a3720f;
   --accent-video: #b8442f;
   --accent-conversor: #2a76b8;
+
+  --viewer-bg: #d9dae1;
+  --checker-a: #e4e4ea;
+  --checker-b: #dbdbe2;
 }
 
 * {

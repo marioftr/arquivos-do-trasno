@@ -96,6 +96,24 @@
     <circle cx="12" cy="12" r="9" />
     <line x1="12" y1="11" x2="12" y2="16.5" />
     <line x1="12" y1="7.6" x2="12" y2="7.7" />
+  {:else if name === "play"}
+    <polygon points="7 4.5 19 12 7 19.5 7 4.5" />
+  {:else if name === "pause"}
+    <line x1="8" y1="5" x2="8" y2="19" />
+    <line x1="16" y1="5" x2="16" y2="19" />
+  {:else if name === "volume"}
+    <polygon points="4 9.5 8 9.5 13 5.5 13 18.5 8 14.5 4 14.5 4 9.5" />
+    <path d="M16.5 8.5a5 5 0 0 1 0 7" />
+    <path d="M19 6a8.5 8.5 0 0 1 0 12" />
+  {:else if name === "mute"}
+    <polygon points="4 9.5 8 9.5 13 5.5 13 18.5 8 14.5 4 14.5 4 9.5" />
+    <line x1="17" y1="9.5" x2="22" y2="14.5" />
+    <line x1="22" y1="9.5" x2="17" y2="14.5" />
+  {:else if name === "expand"}
+    <polyline points="4 9 4 4 9 4" />
+    <polyline points="20 9 20 4 15 4" />
+    <polyline points="4 15 4 20 9 20" />
+    <polyline points="20 15 20 20 15 20" />
   {:else if name === "copy"}
     <rect x="9" y="9" width="12" height="12" rx="2" />
     <path d="M5 15V5a2 2 0 0 1 2-2h10" />

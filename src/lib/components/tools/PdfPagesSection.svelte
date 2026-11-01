@@ -14,6 +14,7 @@
   import Segmented from "../ui/Segmented.svelte";
   import FormBar from "../ui/FormBar.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
+  import PageGrid from "./PageGrid.svelte";
 
   export let file: FileEntry;
   /** Extraer páxinas e xirar van en pestanas distintas; esta sección serve para as dúas. */
@@ -50,6 +51,24 @@
     return pages;
   }
 
+  /** Marca ou desmarca unha páxina nas miniaturas; o campo de texto recibe o resultado como intervalos. */
+  function togglePage(n: number) {
+    const cur = new Set(sel ?? []);
+    if (cur.has(n)) cur.delete(n);
+    else cur.add(n);
+    const list = [...cur].sort((a, b) => a - b);
+    const parts: string[] = [];
+    for (let i = 0; i < list.length; ) {
+      let j = i;
+      while (j + 1 < list.length && list[j + 1] === list[j] + 1) j++;
+      parts.push(j > i + 1 ? `${list[i]}-${list[j]}` : list.slice(i, j + 1).join(","));
+      i = j + 1;
+    }
+    form.update((v) => ({ ...v, pageSpec: parts.join(",") }));
+  }
+  const selectAll = () => file.pages && form.update((v) => ({ ...v, pageSpec: `1-${file.pages}` }));
+  const selectNone = () => form.update((v) => ({ ...v, pageSpec: "" }));
+
   async function extract() {
     try {
       const pages = parsePages($form.pageSpec);
@@ -81,7 +100,13 @@
   {#if part === "extract"}
   <div class="group">
     <h4 class="group-title">{$t("Extraer páxinas")}</h4>
-    <TextField label={$t("Páxinas")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas. Serve tamén para reordenar.", { n: file.pages }) : ""} />
+    <p class="group-note">{$t("Marca as páxinas que queres nas miniaturas, ou escribe os números.")}</p>
+    <div class="pair">
+      <button class="btn" on:click={selectAll} disabled={!file.pages}>{$t("Todas")}</button>
+      <button class="btn" on:click={selectNone}>{$t("Ningunha")}</button>
+    </div>
+    <PageGrid {file} selected={sel ?? []} on:toggle={(e) => togglePage(e.detail)} />
+    <TextField label={$t("Páxinas")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
     <button class="btn block" on:click={extract} disabled={$busy || !$form.pageSpec}>{$t("Extraer a un novo PDF")}</button>
   </div>
   {:else}

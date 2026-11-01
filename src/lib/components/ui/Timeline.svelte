@@ -88,7 +88,7 @@
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .cut { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, rgba(10, 10, 14, 0.7) 0 6px, rgba(10, 10, 14, 0.55) 6px 12px); pointer-events: none; }
   .keep { position: absolute; top: 0; bottom: 0; border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent); pointer-events: none; }
-  .head { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5); pointer-events: none; }
+  .head { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text); box-shadow: 0 0 0 1px var(--bg); pointer-events: none; }
   .handle { position: absolute; top: -4px; bottom: -4px; width: 14px; margin-left: -7px; cursor: ew-resize; display: flex; justify-content: center; }
   .handle::before { content: ""; width: 4px; height: 100%; border-radius: 2px; background: var(--accent); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45); }
   .tag { position: absolute; bottom: calc(100% + 2px); font-size: 0.68rem; background: rgba(0, 0, 0, 0.75); color: #fff; padding: 1px 5px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
