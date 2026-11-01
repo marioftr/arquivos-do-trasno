@@ -22,7 +22,10 @@
     ],
     "security": {
       "csp": "default-src 'self'; script-src 'self'; worker-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost asset: http://asset.localhost blob: data: ws://localhost:1420; img-src 'self' data: blob: asset: http://asset.localhost; media-src 'self' blob: asset: http://asset.localhost; font-src 'self' data:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
-      "assetProtocol": { "enable": true, "scope": [] }
+      "assetProtocol": {
+        "enable": true,
+        "scope": []
+      }
     }
   },
   "bundle": {
@@ -34,6 +37,18 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ2NkE0NEQzNTIyNEE5QTYKUldTbXFTUlMwMFJxUm11YkRWZVhncGlZdGVYcGI5TzVGdmxoS3FYa2J3ZTgvTFFmVWdMWXJkNlkK",
+      "endpoints": [
+        "https://github.com/marioftr/arquivos-do-trasno/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

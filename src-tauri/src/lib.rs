@@ -11,6 +11,8 @@ pub fn run() {
     }
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .on_window_event(|_window, event| {
             // Se se pecha a xanela con ffmpeg a medias, non pode quedar un ffmpeg orfo escribindo un ficheiro roto:
             // mátase e dáselle un instante ao traballo para borrar o seu temporal.

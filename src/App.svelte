@@ -15,14 +15,15 @@
   import { get } from "svelte/store";
   import * as engine from "./lib/engine";
   import { t, lang, LANGS, type Lang } from "./lib/i18n";
-  import { theme, dialog, openSettings, welcomeIfNeeded, type Theme } from "./lib/settings";
+  import { theme, dialog, openSettings, openHub, welcomeIfNeeded, type Theme } from "./lib/settings";
+  import { updateAvailable, autoCheck, checkForUpdate, applyPendingMenuRefresh } from "./lib/updates";
+  import { installExplorerMenu } from "./lib/explorerMenu";
   import QuickJob from "./lib/components/QuickJob.svelte";
-  import ProcessesDialog from "./lib/components/ProcessesDialog.svelte";
+  import HubDialog from "./lib/components/HubDialog.svelte";
   import { procs, refreshProcs } from "./lib/procs";
   import { reportProgress } from "./lib/job";
   import { actionFor } from "./lib/keymap";
   import CommandPalette from "./lib/components/CommandPalette.svelte";
-  import SettingsDialog from "./lib/components/SettingsDialog.svelte";
 
   let dragging = false;
   let unlisten: (() => void) | null = null;
@@ -53,6 +54,12 @@
       // Apertura normal: a xanela móstrase cando a interface xa está pintada.
       requestAnimationFrame(() => getCurrentWindow().show().catch(() => {}));
       welcomeIfNeeded();
+      // Se se acaba de actualizar pedindo refrescar o menú do Explorador, faise agora coa versión nova.
+      applyPendingMenuRefresh(installExplorerMenu);
+      // Busca de versións novas, un pouco despois de abrir para non estorbar.
+      setTimeout(() => {
+        if (get(autoCheck)) checkForUpdate(true);
+      }, 6000);
     }
     // Primeiro volve a lista da última vez; despois entran os ficheiros co que se abriu a aplicación.
     engine.startupJob().then((j) => {
@@ -139,10 +146,11 @@
       <button class="aviso" on:click={() => openSettings("tools")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: ver como instalalo")}</button>
     {/if}
     <button class="btn ghost" on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")}><Icon name="search" size={15} /> Ctrl+K</button>
-    <button class="btn ghost" on:click={() => dialog.set("procs")} title={$t("Procesos")}>
+    <button class="btn ghost" on:click={() => openHub("procs.running")} title={$t("Procesos")}>
       <Icon name="layers" size={15} /> {$t("Procesos")}{#if runningProcs} <span class="badge">{runningProcs}</span>{/if}
     </button>
-    <button class="btn ghost" on:click={() => openSettings("general")} title={$t("Axustes")}><Icon name="gear" size={15} /> {$t("Axustes")}</button>
+    <button class="btn ghost" on:click={() => openHub("news.changelog")} title={$t("Novidades")}><Icon name="info" size={15} /> {$t("Novidades")}{#if $updateAvailable} <span class="newdot" aria-hidden="true"></span>{/if}</button>
+    <button class="btn ghost" on:click={() => openHub("settings.general")} title={$t("Axustes")}><Icon name="gear" size={15} /> {$t("Axustes")}</button>
   </header>
 
   {#if $files.length === 0}
@@ -171,7 +179,7 @@
 
   <Toasts />
 
-  {#if $dialog === "settings"}<SettingsDialog />{:else if $dialog === "procs"}<ProcessesDialog />{:else if $dialog === "palette"}<CommandPalette onAdd={escoller} />{/if}
+  {#if $dialog === "hub"}<HubDialog />{:else if $dialog === "palette"}<CommandPalette onAdd={escoller} />{/if}
 
   {#if dragging}
     <div class="veil"><span>{$t("Solta os ficheiros para que o trasno os colla")}</span></div>
@@ -185,6 +193,7 @@
   .brand { display: inline-flex; align-items: center; gap: 0.55rem; font-weight: 650; font-size: 0.92rem; }
   .grow { flex: 1; }
   .badge { background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.7rem; font-weight: 700; padding: 0 0.45em; min-width: 1.3em; text-align: center; }
+  .newdot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
   .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.82rem; }
 
   .home { flex: 1; min-height: 0; display: flex; padding: 1.5rem; }

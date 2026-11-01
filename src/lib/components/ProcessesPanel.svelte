@@ -2,11 +2,11 @@
   import { onMount, onDestroy } from "svelte";
   import { t } from "../i18n";
   import { dialog } from "../settings";
+  export let part: "running" | "history" = "running";
   import { procs, refreshProcs, requestCancel, clearFinished, type Proc } from "../procs";
   import { cancelJob, revealInFolder } from "../engine";
   import { fileNameOf } from "../formats";
   import { addPaths } from "../files";
-  import Modal from "./ui/Modal.svelte";
   import Icon from "./Icon.svelte";
 
   let timer: ReturnType<typeof setInterval>;
@@ -37,8 +37,7 @@
     s === "done" ? $t("Rematado") : s === "error" ? $t("Con erro") : s === "cancelled" ? $t("Cancelado") : s === "interrupted" ? $t("Interrompido") : $t("En marcha");
 </script>
 
-<Modal title={$t("Procesos")} tall onClose={() => dialog.set(null)}>
-  <div class="scroll scrollbar-thin">
+{#if part === "running"}
   <section>
     <h3>{$t("En marcha")} <span class="muted">{running.length}</span></h3>
     {#if !running.length}
@@ -65,6 +64,7 @@
     {/each}
   </section>
 
+{:else}
   <section>
     <div class="hh">
       <h3>{$t("Historial")} <span class="muted">{history.length}</span></h3>
@@ -88,11 +88,9 @@
       </div>
     {/each}
   </section>
-  </div>
-</Modal>
+{/if}
 
 <style>
-  .scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.2rem; }
   section { display: flex; flex-direction: column; gap: 0.5rem; }
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
   .hh { display: flex; align-items: center; justify-content: space-between; }

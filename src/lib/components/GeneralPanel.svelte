@@ -1,20 +1,15 @@
 <script lang="ts">
   import { open } from "@tauri-apps/plugin-dialog";
   import { t, lang, LANGS, type Lang } from "../i18n";
-  import { theme, outputMode, outputFolder, dialog, settingsTab, type Theme, type OutputMode } from "../settings";
+  import { theme, outputMode, outputFolder, type Theme, type OutputMode } from "../settings";
+  import { installExplorerMenu } from "../explorerMenu";
+  import { autoCheck } from "../updates";
+  import Toggle from "./ui/Toggle.svelte";
   import { fileNameOf } from "../formats";
   import * as engine from "../engine";
   import { errText } from "../errors";
-  import Modal from "./ui/Modal.svelte";
-  import ShortcutsPanel from "./ShortcutsPanel.svelte";
-  import ProfilesPanel from "./ProfilesPanel.svelte";
   import Segmented from "./ui/Segmented.svelte";
   import Icon from "./Icon.svelte";
-  import ToolsPanel from "./ToolsPanel.svelte";
-  import CreditsPanel from "./CreditsPanel.svelte";
-
-  let tab: string = $settingsTab;
-  $: settingsTab.set(tab as typeof $settingsTab);
 
   // Segmented usa texto; as tendas teñen tipos máis estritos.
   let langV: string = $lang;
@@ -34,21 +29,7 @@
     exBusy = true;
     exMsg = "";
     try {
-      await engine.explorerInstall({
-        title: "Arquivos do Trasno",
-        open: $t("Abrir en Arquivos do Trasno"),
-        convert: $t("Converter a {ext}", { ext: "{ext}" }),
-        more: $t("Máis formatos"),
-        resize: $t("Cambiar tamaño"),
-        scale: $t("Escalar"),
-        rotate: $t("Xirar"),
-        left: $t("Á esquerda"),
-        right: $t("Á dereita"),
-        half: $t("Dar a volta (180°)"),
-        compress: $t("Comprimir"),
-        quality: $t("Calidade {p} %", { p: "{p}" }),
-        percent: $t("{p} %", { p: "{p}" }),
-      });
+      await installExplorerMenu();
       exMsg = $t("Feito. O menú do clic dereito xa ten as entradas do trasno.");
     } catch (e) {
       exMsg = errText(e);
@@ -78,15 +59,6 @@
 
 </script>
 
-<Modal title={$t("Axustes")} tall onClose={() => dialog.set(null)}>
-  <div class="split">
-  <div class="side" role="tablist" aria-orientation="vertical">
-    {#each [{ id: "general", label: $t("Xeral"), icon: "gear" }, { id: "shortcuts", label: $t("Atallos de teclado"), icon: "keyboard" }, { id: "profiles", label: $t("Perfís de saída"), icon: "convert" }, { id: "tools", label: $t("Extensións"), icon: "puzzle" }, { id: "credits", label: $t("Créditos e licenzas"), icon: "info" }] as it}
-      <button role="tab" aria-selected={tab === it.id} class:on={tab === it.id} on:click={() => (tab = it.id)}><Icon name={it.icon} size={16} /><span>{it.label}</span></button>
-    {/each}
-  </div>
-  <div class="pane scrollbar-thin">
-  {#if tab === "general"}
   <section>
     <h3>{$t("Aparencia")}</h3>
     <Segmented
@@ -103,6 +75,11 @@
       ]}
       bind:value={themeV}
     />
+  </section>
+
+  <section>
+    <h3>{$t("Actualizacións")}</h3>
+    <Toggle label={$t("Buscar versións novas ao abrir a app")} bind:checked={$autoCheck} />
   </section>
 
   <section>
@@ -138,28 +115,9 @@
     {#if exMsg}<p class="note selectable">{exMsg}</p>{/if}
   </section>
   {/if}
-  {:else if tab === "shortcuts"}
-  <ShortcutsPanel />
-  {:else if tab === "profiles"}
-    <ProfilesPanel />
-  {:else if tab === "tools"}
-    <ToolsPanel />
-  {:else}
-    <CreditsPanel />
-  {/if}
-  </div>
-  </div>
-</Modal>
+  
 
 <style>
-  .split { display: flex; gap: 1rem; min-height: 0; flex: 1; }
-  .side { flex: 0 0 11.5rem; display: flex; flex-direction: column; gap: 0.15rem; }
-  .side button { display: flex; align-items: center; gap: 0.6rem; text-align: left; background: none; border: none; color: var(--text-muted); padding: 0.55rem 0.7rem; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 500; }
-  .side button:hover { background: var(--bg-hover); color: var(--text); }
-  .side button.on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); font-weight: 600; }
-  .side button.on :global(svg) { color: var(--accent); }
-  .pane { flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.2rem; }
-  @media (max-width: 640px) { .split { flex-direction: column; } .side { flex-direction: row; flex-wrap: wrap; flex-basis: auto; } }
   section { display: flex; flex-direction: column; gap: 0.6rem; }
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
   .note { margin: 0; font-size: 0.8rem; }

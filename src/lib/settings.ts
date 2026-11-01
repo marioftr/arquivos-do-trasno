@@ -82,8 +82,14 @@ function persistedText(key: string) {
 }
 export const outputFolder = persistedText("arquivos-do-trasno.output-folder");
 
-/** Que xanela modal está aberta. */
-export const dialog = writable<"settings" | "procs" | "palette" | null>(null);
+/** Que xanela modal está aberta: o centro (procesos, axustes, novidades, créditos) ou o buscador de accións. */
+export const dialog = writable<"hub" | "palette" | null>(null);
+/** Páxina aberta no centro, como «grupo.subcategoría». */
+export const hubPage = writable("settings.general");
+export function openHub(page: string) {
+  hubPage.set(page);
+  dialog.set("hub");
+}
 
 /** Ferramentas do ficheiro actual (para o buscador Ctrl+K) e petición de saltar a unha delas. */
 export interface ToolAction {
@@ -134,10 +140,8 @@ export function summaryOf(v: ProfileValues): string {
   const bits = [v.mode === "bitrate" ? `${v.videoKbps} kbps` : `CRF ${v.crf}`, v.maxHeight ? `${v.maxHeight}p` : "", `${v.audioKbps} kbps audio`, v.deinterlace === 2 ? "yadif×2" : v.deinterlace === 1 ? "yadif" : "", v.dar ? v.dar.replace("/", ":") : ""];
   return bits.filter(Boolean).join(" · ");
 }
-export const settingsTab = writable<SettingsTab>("general");
 export function openSettings(tab: SettingsTab = "general") {
-  settingsTab.set(tab);
-  dialog.set("settings");
+  openHub(tab === "credits" ? "about.credits" : `settings.${tab}`);
 }
 
 /** Programas externos que a app aproveita. `null` ata saber o resultado. */

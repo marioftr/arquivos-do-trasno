@@ -2,7 +2,7 @@
   import { onMount, tick } from "svelte";
   import { t } from "../i18n";
   import { get } from "svelte/store";
-  import { dialog, openSettings, toolActions, jump, theme, resolvedTheme } from "../settings";
+  import { dialog, openSettings, openHub, toolActions, jump, theme, resolvedTheme } from "../settings";
   import { files } from "../files";
   import Icon from "./Icon.svelte";
 
@@ -27,7 +27,8 @@
   $: cmds = [
     ...$toolActions.map((a): Cmd => ({ id: a.id, label: a.label, hint: $t("Ferramenta"), icon: "convert", run: () => (close(), jump.set({ tab: a.tab, mode: a.mode })) })),
     { id: "add", label: $t("Engadir ficheiros"), icon: "plus", run: () => (close(), onAdd()) },
-    { id: "procs", label: $t("Procesos"), icon: "layers", run: () => dialog.set("procs") },
+    { id: "procs", label: $t("Procesos"), icon: "layers", run: () => openHub("procs.running") },
+    { id: "news", label: $t("Novidades e rexistro de cambios"), icon: "info", run: () => openHub("news.changelog") },
     { id: "settings", label: $t("Axustes"), icon: "gear", run: () => openSettings("general") },
     { id: "shortcuts", label: $t("Atallos de teclado"), icon: "keyboard", run: () => openSettings("shortcuts") },
     { id: "theme", label: $t("Cambiar o tema (claro/escuro)"), icon: "gear", run: () => (close(), theme.set(get(resolvedTheme) === "dark" ? "light" : "dark")) },
