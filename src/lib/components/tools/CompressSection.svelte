@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
@@ -271,7 +272,7 @@
           options={DARS.map((d) => ({ value: d, label: d ? d.replace("/", ":") : $t("orixinal") }))}
           bind:value={$form.dar}
         />
-        <p class="group-note">{$t("Só se o vídeo se ve esticado ou aplastado; no resto déixao en orixinal.")}</p>
+        <GroupNote text={$t("Só se o vídeo se ve esticado ou aplastado; no resto déixao en orixinal.")} />
       {/if}
     </div>
   {/if}

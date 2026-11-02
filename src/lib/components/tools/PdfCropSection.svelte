@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { claim } from "../../claim";
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
@@ -57,7 +58,7 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Márxenes que se quitan")}</h4>
-    <p class="group-note">{$t("As zonas escuras do visor son o que se vai cortar.")}</p>
+    <GroupNote text={$t("As zonas escuras do visor son o que se vai cortar.")} />
     <Toggle label={$t("Os catro márxenes iguais")} bind:checked={$form.same} />
     <Slider label={$t("Esquerda")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.left} def={0} />
     {#if !f.same}

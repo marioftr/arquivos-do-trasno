@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { save } from "@tauri-apps/plugin-dialog";
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
@@ -80,7 +81,7 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{title}</h4>
-    <p class="group-note">{$t("Vaise facer nesta orde (a da lista). Arrastra os ficheiros, usa as frechas ou escribe a posición para cambiala.")}</p>
+    <GroupNote text={$t("Vaise facer nesta orde (a da lista). Arrastra os ficheiros, usa as frechas ou escribe a posición para cambiala.")} />
     <ol class="order">
       {#each items as f, i (f.path)}
         <li

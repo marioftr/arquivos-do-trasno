@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from "../Icon.svelte";
+  import TrasnoSprite from "./TrasnoSprite.svelte";
   import { t } from "../../i18n";
   import type { Job } from "../../job";
   import { cancelJob } from "../../engine";
@@ -32,7 +33,7 @@
 
 {#if $busy}
   <div class="busyrow">
-    <p class="busy"><span class="spin"></span>{$text}{#if $progress !== null}&nbsp;·&nbsp;{Math.round($progress * 100)} %{/if}</p>
+    <p class="busy"><TrasnoSprite state="working" size={32} />{$text}{#if $progress !== null}&nbsp;·&nbsp;{Math.round($progress * 100)} %{/if}</p>
     {#if asking}
       <span class="ask">{$t("Cancelar e non gardar nada?")}</span>
       <button class="btn danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
@@ -61,8 +62,6 @@
   .busyrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
   .ask { font-size: 0.82rem; }
   .busy { margin: 0; display: flex; align-items: center; gap: 0.6rem; font-size: 0.86rem; color: var(--text-muted); }
-  .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: spin 0.8s linear infinite; flex-shrink: 0; }
-  @keyframes spin { to { transform: rotate(360deg); } }
   .msg-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem; border-left: 2px solid var(--border-strong); padding: 0.1rem 0 0.1rem 0.75rem; }
   .msg-wrap.ok { border-left-color: var(--accent-imaxe); }
   .msg-wrap.err { border-left-color: var(--accent-video); }

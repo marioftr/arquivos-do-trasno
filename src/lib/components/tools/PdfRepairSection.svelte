@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
   import type { FileEntry } from "../../files";
@@ -26,7 +27,7 @@
 
 <div class="stack">
   <div class="group">
-    <p class="group-note">{$t("Volve gardar o PDF limpo, reconstruíndo as súas referencias e quitando o que sobra. Axuda con PDF que se abren mal.")}</p>
+    <GroupNote text={$t("Volve gardar o PDF limpo, reconstruíndo as súas referencias e quitando o que sobra. Axuda con PDF que se abren mal.")} />
   </div>
   <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Reparar o PDF")}</button>
   <JobStatus {job} />

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { claim } from "../../claim";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
@@ -103,7 +104,7 @@
   {#if part === "extract"}
   <div class="group">
     <h4 class="group-title">{$t("Extraer páxinas")}</h4>
-    <p class="group-note">{$t("Marca as páxinas que queres nas miniaturas, ou escribe os números.")}</p>
+    <GroupNote text={$t("Marca as páxinas que queres nas miniaturas, ou escribe os números.")} />
     <div class="pair">
       <button class="btn" on:click={selectAll} disabled={!total}>{$t("Todas")}</button>
       <button class="btn" on:click={selectNone}>{$t("Ningunha")}</button>

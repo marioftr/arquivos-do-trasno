@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { claim } from "../../claim";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
@@ -170,7 +171,7 @@
         <Slider label={$t("Tamaño do texto")} unit="px" min={8} max={300} bind:value={$annoStyle.size} def={40} />
       {/if}
     {:else if tool === "select"}
-      <p class="group-note">{$t("Preme unha figura para movela, cambiar o seu aspecto, escalala coa esquina ou xirala co círculo.")}</p>
+      <GroupNote text={$t("Preme unha figura para movela, cambiar o seu aspecto, escalala coa esquina ou xirala co círculo.")} />
     {/if}
   </div>
 

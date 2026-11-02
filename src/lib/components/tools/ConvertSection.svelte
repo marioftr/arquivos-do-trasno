@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { errText } from "../../errors";
   import { onMount } from "svelte";
   import { open, save } from "@tauri-apps/plugin-dialog";
@@ -157,7 +158,7 @@
     />
 
     {#if category === "imaxe" && $form.targetExt === "pdf"}
-      <p class="group-note">{$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")}</p>
+      <GroupNote text={$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")} />
     {:else if category === "imaxe"}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto = mellor imaxe e máis peso (só JPG)")} />
       <Segmented options={PRESETS.map((p) => ({ value: p.value, label: $t(p.label), hint: $t(p.hint) }))} bind:value={$form.quality} />
@@ -171,7 +172,7 @@
         <Toggle label={$t("Manter proporción")} bind:checked={$form.keepRatio} />
       {/if}
     {:else if category === "video" && AUDIO_TARGETS.includes($form.targetExt)}
-      <p class="group-note">{$t("Só se garda o son do vídeo.")}</p>
+      <GroupNote text={$t("Só se garda o son do vídeo.")} />
       <Slider label={$t("Bitrate de audio")} unit="kbps" min={32} max={320} step={8} bind:value={$form.audioBitrate} def={form.defaults.audioBitrate} hint={$t("Máis alto = máis calidade e máis tamaño")} />
     {:else if isMedia}
       <Slider
@@ -185,7 +186,7 @@
         hint={$t("Máis alto = máis calidade e máis tamaño")}
       />
     {:else if category === "modelo3d" && !ENGINE_3D.includes(first.ext)}
-      <p class="group-note">{$t("Os FBX e glTF conviértense co mesmo cargador do visor.")}</p>
+      <GroupNote text={$t("Os FBX e glTF conviértense co mesmo cargador do visor.")} />
     {/if}
   </div>
 

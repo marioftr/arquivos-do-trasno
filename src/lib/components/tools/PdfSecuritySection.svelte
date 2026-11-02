@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { onMount } from "svelte";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
@@ -70,14 +71,14 @@
       </label>
       <Toggle label={$t("Permitir imprimir")} bind:checked={allowPrint} />
       <Toggle label={$t("Permitir copiar texto")} bind:checked={allowCopy} />
-      <p class="group-note">{$t("Gárdase unha copia cifrada; o PDF orixinal queda como estaba. Se perdes o contrasinal non hai maneira de recuperalo.")}</p>
+      <GroupNote text={$t("Gárdase unha copia cifrada; o PDF orixinal queda como estaba. Se perdes o contrasinal non hai maneira de recuperalo.")} />
     {:else}
       {#if encrypted === false}<p class="group-note">{$t("Este PDF non ten contrasinal.")}</p>{/if}
       <label class="pw">
         <span class="lab">{$t("Contrasinal actual")}</span>
         <input type="password" bind:value={password} autocomplete="off" />
       </label>
-      <p class="group-note">{$t("Hai que saber o contrasinal: o trasno quita o bloqueo, non o rompe.")}</p>
+      <GroupNote text={$t("Hai que saber o contrasinal: o trasno quita o bloqueo, non o rompe.")} />
     {/if}
   </div>
 

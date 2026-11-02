@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { errText } from "../../errors";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
@@ -382,7 +383,7 @@
   {/if}
 
   <div class="group">
-    <p class="group-note">{$t("Pegada dixital do ficheiro: se dous ficheiros teñen o mesmo SHA-256, son idénticos byte a byte")}</p>
+    <GroupNote text={$t("Pegada dixital do ficheiro: se dous ficheiros teñen o mesmo SHA-256, son idénticos byte a byte")} />
     <button class="btn block" on:click={computeHash} disabled={hashing}>{hashing ? $t("Calculando…") : $t("Calcular SHA-256")}</button>
     <button class="btn block" on:click={() => engine.revealInFolder(file.path)}>{$t("Mostrar no cartafol")}</button>
   </div>

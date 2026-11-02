@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { claim } from "../../claim";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
@@ -186,7 +187,7 @@
 
   <div class="group">
     <h4 class="group-title">{$t("Recortar")}</h4>
-    <p class="group-note">{$t("Arrastra sobre a imaxe para escoller o que queda. Despois podes mover o rectángulo ou tirar das esquinas.")}</p>
+    <GroupNote text={$t("Arrastra sobre a imaxe para escoller o que queda. Despois podes mover o rectángulo ou tirar das esquinas.")} />
     <Segmented
       label={$t("Proporción")}
       options={[

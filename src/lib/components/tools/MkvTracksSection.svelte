@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { onMount } from "svelte";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
@@ -161,7 +162,7 @@
     {#if loadError}
       <p class="group-note">{loadError}</p>
     {:else if loading}
-      <p class="group-note">{$t("O trasno está lendo as pistas…")}</p>
+      <GroupNote text={$t("O trasno está lendo as pistas…")} />
     {:else}
       <div class="list">
         {#each rows as r, i (r.key)}

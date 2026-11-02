@@ -139,8 +139,6 @@
   "Materiais de cor negra postos en gris: {n}": "Materiales de color negro puestos en gris: {n}",
   "(sen nome)": "(sin nombre)",
   "Idioma": "Idioma",
-  "O trasno agarda os teus ficheiros": "El trasno espera tus archivos",
-  "Arrastra aquí o que sexa: imaxes, audio, vídeo, PDF, texto ou modelos 3D. Podes soltar varios á vez para unilos, comprimilos ou convertelos en lote.": "Arrastra aquí lo que sea: imágenes, audio, vídeo, PDF, texto o modelos 3D. Puedes soltar varios a la vez para unirlos, comprimirlos o convertirlos en lote.",
   "Escoller ficheiros": "Elegir archivos",
   "Solta os ficheiros para que o trasno os colla": "Suelta los archivos para que el trasno los coja",
   "Comprimir": "Comprimir",
@@ -1165,5 +1163,6 @@
   "Traballo cancelado. O trasno deixou todo ordenado, sen ficheiros a medias.": "Trabajo cancelado. El trasno lo ha dejado todo ordenado, sin archivos a medias.",
   "Perfil «{name}» gardado: o trasno non o esquece.": "Perfil «{name}» guardado: el trasno no lo olvida.",
   "Borrar todas as anotacións": "Borrar todas las anotaciones",
-  "Cor do recheo": "Color del relleno"
+  "Cor do recheo": "Color del relleno",
+  "Arrastra os ficheiros aquí": "Arrastra los archivos aquí"
 }

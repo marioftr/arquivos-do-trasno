@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { onMount } from "svelte";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
@@ -61,7 +62,7 @@
     <h4 class="group-title">{$t("Imaxes dentro do PDF")}</h4>
     <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={70} />
     <Slider label={$t("Tamaño das imaxes")} unit="%" min={20} max={100} step={5} bind:value={$form.scale} def={75} hint={$t("100 % = sen reducir")} />
-    <p class="group-note">{$t("Tamén se comprime o resto do contido e se quita o que non se usa.")}</p>
+    <GroupNote text={$t("Tamén se comprime o resto do contido e se quita o que non se usa.")} />
   </div>
   <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Comprimir PDF")}</button>
   <JobStatus {job} />

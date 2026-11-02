@@ -1,14 +1,14 @@
 <script lang="ts">
   import { toasts, dismiss } from "../../toasts";
   import { t } from "../../i18n";
-  import BrandMark from "../BrandMark.svelte";
+  import TrasnoSprite from "./TrasnoSprite.svelte";
   import Icon from "../Icon.svelte";
 </script>
 
 <div class="toasts" aria-live="polite">
   {#each $toasts as n (n.id)}
     <div class="toast" class:warn={n.kind === "warn"} style={`--ms:${n.ms}ms`} role={n.kind === "warn" ? "alert" : "status"}>
-      <span class="face"><BrandMark size={28} /></span>
+      <span class="face"><TrasnoSprite state={n.kind === "warn" ? "warn" : "idle"} size={32} /></span>
       <div class="body">
         <span class="who">{n.kind === "warn" ? $t("O trasno tropezou") : $t("O trasno avisa")}</span>
         <span class="tx">{n.text}</span>
@@ -33,7 +33,6 @@
     animation: entra 0.18s ease-out;
   }
   .face { flex-shrink: 0; margin-top: 1px; }
-  .toast.warn .face { filter: hue-rotate(-60deg) saturate(1.3); }
   .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.12rem; }
   .who { font-size: 0.7rem; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; color: var(--accent); }
   .toast.warn .who { color: var(--accent-pdf); }

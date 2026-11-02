@@ -1,17 +1,17 @@
 :root {
   color-scheme: dark;
 
-  --bg: #111613;
-  --bg-rail: #0c110e;
-  --bg-elevated: #171e19;
-  --bg-card: #19211b;
-  --bg-hover: #212b24;
-  --bg-input: #141a16;
-  --border: #222d25;
-  --border-strong: #33423a;
-  --text: #e6ece7;
-  --text-muted: #93a198;
-  --text-faint: #637067;
+  --bg: #151618;
+  --bg-rail: #101113;
+  --bg-elevated: #1b1c1f;
+  --bg-card: #1b1c1f;
+  --bg-hover: #25272b;
+  --bg-input: #141517;
+  --border: #26282c;
+  --border-strong: #383b41;
+  --text: #e8e9eb;
+  --text-muted: #9a9ea6;
+  --text-faint: #686c74;
 
   --accent-imaxe: #68d058;
   --accent-audio: #8a86e8;
@@ -22,14 +22,14 @@
   --on-accent: #07140a; /* texto sobre botóns de cor */
 
   /* fondos dos visores */
-  --viewer-bg: #0d120e;
-  --checker-a: #131914;
-  --checker-b: #171e18;
+  --viewer-bg: #0f1012;
+  --checker-a: #141518;
+  --checker-b: #191a1e;
 
   --sidebar-w: 190px;
-  --radius-sm: 6px;
-  --radius-md: 9px;
-  --radius-lg: 11px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 
   /* Todos os controis (botóns, campos, selectores) miden o mesmo. */
   --control-h: 32px;
@@ -41,17 +41,17 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --bg: #f4f6f4;
-  --bg-rail: #eaedea;
+  --bg: #f3f4f5;
+  --bg-rail: #e9ebed;
   --bg-elevated: #ffffff;
   --bg-card: #ffffff;
-  --bg-hover: #e0e4e0;
+  --bg-hover: #e2e4e7;
   --bg-input: #ffffff;
-  --border: #dadeda;
-  --border-strong: #bdc4bd;
-  --text: #1a201b;
-  --text-muted: #586059;
-  --text-faint: #899089;
+  --border: #dcdfe2;
+  --border-strong: #bfc4c9;
+  --text: #1b1d20;
+  --text-muted: #5a6068;
+  --text-faint: #8b9199;
 
   --accent-imaxe: #2a7a30;
   --accent-audio: #5d52c4;
@@ -60,9 +60,9 @@
   --accent-conversor: #2c7a31;
   --on-accent: #ffffff;
 
-  --viewer-bg: #d9ded9;
-  --checker-a: #e3e6e3;
-  --checker-b: #dadeda;
+  --viewer-bg: #dde0e3;
+  --checker-a: #e4e6e8;
+  --checker-b: #dbdee1;
 }
 
 * {
@@ -78,7 +78,7 @@ body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -371,6 +371,7 @@ dd {
 }
 
 .group {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

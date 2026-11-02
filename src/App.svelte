@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TrasnoSprite from "./lib/components/ui/TrasnoSprite.svelte";
   import { onMount, onDestroy } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
@@ -181,11 +182,8 @@
   {#if $files.length === 0}
     <main class="home">
       <div class="drop">
-        <BrandMark size={44} />
-        <h1>{$t("O trasno agarda os teus ficheiros")}</h1>
-        <p class="muted">
-          {$t("Arrastra aquí o que sexa: imaxes, audio, vídeo, PDF, texto ou modelos 3D. Podes soltar varios á vez para unilos, comprimilos ou convertelos en lote.")}
-        </p>
+        <TrasnoSprite state="idle" size={64} />
+        <h1>{$t("Arrastra os ficheiros aquí")}</h1>
         <button class="btn primary" on:click={escoller}><Icon name="folder" size={16} /> {$t("Escoller ficheiros")}</button>
         <p class="muted formatos">
           PNG · JPG · WEBP · GIF · MP3 · WAV · FLAC · MP4 · MKV · WEBM · PDF · TXT · FBX · GLB · OBJ · STL · PLY

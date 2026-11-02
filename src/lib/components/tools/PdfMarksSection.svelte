@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { claim } from "../../claim";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
@@ -333,7 +334,7 @@
       {/if}
     {:else}
       <button class="btn" on:click={chooseImage}><Icon name="image" size={14} /> {imagePath ? fileNameOf(imagePath) : $t("Escoller imaxe…")}</button>
-      <p class="group-note">{$t("Vale un PNG con fondo transparente, por exemplo a túa firma.")}</p>
+      <GroupNote text={$t("Vale un PNG con fondo transparente, por exemplo a túa firma.")} />
       <Slider label={$t("Posición horizontal")} unit="%" min={0} max={100} bind:value={$form.imX} def={80} />
       <Slider label={$t("Posición vertical")} unit="%" min={0} max={100} bind:value={$form.imY} def={12} hint={$t("0 % = abaixo; 100 % = arriba")} />
       <Slider label={$t("Ancho")} unit="%" min={3} max={90} bind:value={$form.imWidth} def={25} />

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GroupNote from "../ui/GroupNote.svelte";
   import { askPath, askDir } from "./shared";
   import { onMount } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
@@ -102,7 +103,7 @@
   />
   <div class="group">
     {#if $form.mode === "each"}
-      <p class="group-note">{$t("Sairá un PDF por cada páxina.")}</p>
+      <GroupNote text={$t("Sairá un PDF por cada páxina.")} />
     {:else if $form.mode === "every"}
       <NumberField label={$t("Páxinas por parte")} min={1} bind:value={$form.every} def={2} />
     {:else}
