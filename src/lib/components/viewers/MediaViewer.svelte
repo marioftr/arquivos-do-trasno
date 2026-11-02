@@ -9,6 +9,7 @@
   import InfoTip from "../ui/InfoTip.svelte";
   import { errText } from "../../errors";
   import { tools, openSettings } from "../../settings";
+  import { requestTool } from "../../toolinstall";
   import { t } from "../../i18n";
   import Timeline from "../ui/Timeline.svelte";
   import Icon from "../Icon.svelte";
@@ -451,7 +452,7 @@
         {#if $tools && !$tools.ffmpeg}{$t("O trasno non pode preparar a vista previa porque falta ffmpeg.")}{:else}{$t("O trasno non puido preparar a vista previa.")}{/if}
       </p>
       {#if failMsg && !($tools && !$tools.ffmpeg)}<p class="muted tiny selectable">{failMsg}</p>{/if}
-      {#if $tools && !$tools.ffmpeg}<button class="btn" on:click={() => openSettings("tools")}>{$t("Ver como instalalo")}</button>
+      {#if $tools && !$tools.ffmpeg}<button class="btn primary" on:click={() => requestTool("ffmpeg", tr("Para ver este vídeo ou audio o trasno precisa FFmpeg, que non está instalado."), retry)}>{$t("Instalar agora")}</button>
       {:else}<button class="btn" on:click={retry}><Icon name="reset" size={14} /> {$t("Tentar de novo")}</button>{/if}
     </div>
   {:else if url && file.category === "video"}

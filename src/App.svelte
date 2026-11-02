@@ -22,6 +22,8 @@
   import HubDialog from "./lib/components/HubDialog.svelte";
   import { procs, refreshProcs } from "./lib/procs";
   import { reportProgress } from "./lib/job";
+  import { requestTool } from "./lib/toolinstall";
+  import ToolNeedDialog from "./lib/components/ToolNeedDialog.svelte";
   import { actionFor } from "./lib/keymap";
   import Splitter from "./lib/components/ui/Splitter.svelte";
   import CommandPalette from "./lib/components/CommandPalette.svelte";
@@ -166,7 +168,7 @@
     <span class="brand"><BrandMark size={20} /> Arquivos do Trasno</span>
     <span class="grow"></span>
     {#if ffmpegOk === false && needsFfmpeg}
-      <button class="aviso" on:click={() => openSettings("tools")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: ver como instalalo")}</button>
+      <button class="aviso" on:click={() => requestTool("ffmpeg")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: instalalo agora")}</button>
     {/if}
     <button class="btn ghost" on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")}><Icon name="search" size={15} /> Ctrl+K</button>
     <button class="btn ghost" on:click={() => openHub("procs.running")} title={$t("Procesos")}>
@@ -205,6 +207,7 @@
   <Toasts />
 
   {#if $dialog === "hub"}<HubDialog />{:else if $dialog === "palette"}<CommandPalette onAdd={escoller} />{/if}
+  <ToolNeedDialog />
 
   {#if dragging}
     <div class="veil"><span>{$t("Solta os ficheiros para que o trasno os colla")}</span></div>

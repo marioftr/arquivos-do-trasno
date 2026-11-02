@@ -31,9 +31,17 @@ export async function call<T>(cmd: string, args?: InvokeArgs, options?: InvokeOp
     if (typeof out === "string" && out) outputHook.fn?.(out);
     return r;
   } catch (e) {
-    throw new Error(localizeError(e));
+    const err = new Error(localizeError(e)) as MissingToolError;
+    const raw = e instanceof Error ? e.message : String(e);
+    if (raw.includes("Non atopo ffmpeg")) err.missingTool = "ffmpeg";
+    else if (raw.includes("Falta MKVToolNix")) err.missingTool = "mkvmerge";
+    throw err;
   }
 }
+
+export type MissingToolError = Error & { missingTool?: "ffmpeg" | "mkvmerge" };
+/** Se o erro é porque falta FFmpeg ou MKVToolNix, cal dos dous. */
+export const missingToolOf = (e: unknown): "ffmpeg" | "mkvmerge" | null => (e as MissingToolError)?.missingTool ?? null;
 
 /** Se o erro é só que o usuario cancelou o traballo (non é un fallo). */
 export function isCancelled(e: unknown): boolean {

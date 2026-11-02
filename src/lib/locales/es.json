@@ -894,5 +894,16 @@
   "A suma de comprobación publicada non ten o formato esperado.": "La suma de comprobación publicada no tiene el formato esperado.",
   "A versión de MKVToolNix que anuncia a web non é válida.": "La versión de MKVToolNix que anuncia la web no es válida.",
   "A descarga automática só está dispoñible en Windows.": "La descarga automática solo está disponible en Windows.",
-  "O ficheiro descargado non coincide coa suma de comprobación publicada, así que non o instalo.": "El archivo descargado no coincide con la suma de comprobación publicada, así que no lo instalo."
+  "O ficheiro descargado non coincide coa suma de comprobación publicada, así que non o instalo.": "El archivo descargado no coincide con la suma de comprobación publicada, así que no lo instalo.",
+  "Falta un complemento": "Falta un complemento",
+  "Para facer isto o trasno precisa FFmpeg, que non está instalado.": "Para hacer esto el trasno necesita FFmpeg, que no está instalado.",
+  "Para facer isto o trasno precisa MKVToolNix, que non está instalado.": "Para hacer esto el trasno necesita MKVToolNix, que no está instalado.",
+  "Para ver este vídeo ou audio o trasno precisa FFmpeg, que non está instalado.": "Para ver este vídeo o audio el trasno necesita FFmpeg, que no está instalado.",
+  "O trasno descargará {name} (uns {size}) de {source}, comprobará que o ficheiro está íntegro e deixarao na súa carpeta de datos. Non fai falta ser administrador.": "El trasno descargará {name} (unos {size}) de {source}, comprobará que el archivo está íntegro y lo dejará en su carpeta de datos. No hace falta ser administrador.",
+  "Ir á páxina oficial": "Ir a la página oficial",
+  "Se o prefires, instálao ti e despois preme «Volver comprobar» en Axustes → Extensións.": "Si lo prefieres, instálalo tú y luego pulsa «Volver a comprobar» en Ajustes → Extensiones.",
+  "Repetir agora": "Repetir ahora",
+  "Instalar agora": "Instalar ahora",
+  "Falta ffmpeg: instalalo agora": "Falta ffmpeg: instalarlo ahora",
+  "Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: o trasno pode descargalos por ti ou podes instalalos ti e a app detectaos soa.": "Arquivos do Trasno trabaja solo con las imágenes, los PDF y el 3D. Para audio, vídeo y MKV se ayuda de dos programas gratuitos que no van incluidos: el trasno puede descargarlos por ti o puedes instalarlos tú y la app los detecta sola."
 }

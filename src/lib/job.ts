@@ -4,7 +4,8 @@
 
 import { writable, get, type Writable } from "svelte/store";
 import { tr } from "./i18n";
-import { errText, isCancelled, outputHook } from "./errors";
+import { errText, isCancelled, missingToolOf, outputHook } from "./errors";
+import { requestTool } from "./toolinstall";
 import { beginJob } from "./engine";
 import { track, type Tracker } from "./procs";
 import { files, activePath } from "./files";
@@ -70,6 +71,8 @@ export function createJob(): Job {
           message.set({ ok: true, neutral: true, text: tr("Cancelaches o traballo. Non quedou ningún ficheiro a medias.") });
           tracker.finish("cancelled");
         } else {
+          const missing = missingToolOf(e);
+          if (missing) requestTool(missing, undefined, () => void this.run(working, fail, job));
           message.set({ ok: false, text: `${tr(fail)}\n${errText(e)}` });
           tracker.finish("error", { detail: errText(e).slice(0, 200) });
         }

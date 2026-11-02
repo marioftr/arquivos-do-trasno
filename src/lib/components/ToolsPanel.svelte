@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
-  import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-  import * as engine from "../engine";
-  import { openLink, type LinkId } from "../engine";
-  import { errText, isCancelled } from "../errors";
+  import { onMount } from "svelte";
+  import { openLink, cancelToolInstall, type ToolId } from "../engine";
   import { t } from "../i18n";
   import { tools, refreshTools } from "../settings";
+  import { installing, installError, installToolNow, removeToolNow, overall, phaseText, TOOL_INFO } from "../toolinstall";
   import Icon from "./Icon.svelte";
   import { toast } from "../toasts";
   import { tr } from "../i18n";
@@ -27,82 +25,28 @@
     }
   }
 
-  // Descarga e instalación desde a propia app.
-  type Key = "ffmpeg" | "mkvmerge";
-  let confirming: Key | null = null;
-  let installing: Key | null = null;
-  let phase: "download" | "verify" | "extract" = "download";
-  let progress = 0;
-  let failure: { key: Key; text: string } | null = null;
-  let unlisten: UnlistenFn | undefined;
-
-  onMount(async () => {
+  onMount(() => {
     refreshTools();
-    unlisten = await listen<{ tool: string; phase: typeof phase; progress: number }>("trasno://tool-install", (e) => {
-      phase = e.payload.phase;
-      progress = e.payload.progress;
-    });
   });
-  onDestroy(() => unlisten?.());
 
-  async function install(key: Key) {
+  const keys: ToolId[] = ["ffmpeg", "mkvmerge"];
+  // Antes de descargar pídese a aceptación expresa do usuario.
+  let confirming: ToolId | null = null;
+  async function accept(k: ToolId) {
     confirming = null;
-    failure = null;
-    installing = key;
-    phase = "download";
-    progress = 0;
-    try {
-      tools.set(await engine.installTool(key));
-      toast(tr("{name} instalado. Xa se pode usar.", { name: items.find((i) => i.key === key)!.name }));
-    } catch (e) {
-      if (isCancelled(e)) toast(tr("Cancelaches a descarga."));
-      else failure = { key, text: errText(e) };
-    } finally {
-      installing = null;
-    }
+    await installToolNow(k);
   }
-  async function remove(key: Key) {
-    try {
-      tools.set(await engine.removeTool(key));
-    } catch (e) {
-      failure = { key, text: errText(e) };
-    }
-  }
-  const phaseText = (p: typeof phase) => (p === "download" ? tr("Descargando…") : p === "verify" ? tr("Comprobando a descarga…") : tr("Instalando…"));
-  /** Avance global: a descarga é case todo o tempo. */
-  $: overall = phase === "download" ? progress * 0.8 : phase === "verify" ? 0.8 : 0.8 + progress * 0.2;
-
-  const items: { key: Key; name: string; why: string; unlocks: string; link: LinkId; winget: string; size: string; source: string }[] = [
-    {
-      key: "ffmpeg",
-      name: "FFmpeg",
-      why: "Lee e escribe case todos os formatos de audio e vídeo.",
-      unlocks: "Convertir, comprimir, editar, cortar e unir audio e vídeo, extraer fotogramas e audio, efectos de son e vistas previas de MKV, AVI ou AIFF.",
-      link: "ffmpeg",
-      winget: "winget install ffmpeg",
-      size: "115 MB",
-      source: "gyan.dev",
-    },
-    {
-      key: "mkvmerge",
-      name: "MKVToolNix",
-      why: "Edita os contedores Matroska (MKV) sen recodificar nada, así que non hai perda de calidade.",
-      unlocks: "Quitar ou reordenar pistas de audio e subtítulos nun MKV, cambiarlles o nome e o idioma e marcar cal vai por defecto.",
-      link: "mkvtoolnix",
-      winget: "winget install MoritzBunkus.MKVToolNix",
-      size: "104 MB",
-      source: "mkvtoolnix.download",
-    },
-  ];
 </script>
 
 <div class="panel">
   <p class="muted lead">
-    {$t("Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: instálaos e a app detectaos soa.")}
+    {$t("Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: o trasno pode descargalos por ti ou podes instalalos ti e a app detectaos soa.")}
   </p>
 
-  {#each items as it}
-    {@const ok = $tools?.[it.key]}
+  {#each keys as key}
+    {@const it = TOOL_INFO[key]}
+    {@const ok = $tools?.[key]}
+    {@const busy = $installing?.tool === key ? $installing : null}
     <section class="card" class:ok>
       <div class="head">
         <strong>{it.name}</strong>
@@ -113,33 +57,34 @@
       </div>
       <p class="muted">{$t(it.why)}</p>
       <p><span class="muted">{$t("Desbloquea:")}</span> {$t(it.unlocks)}</p>
-      {#if installing === it.key}
+      {#if busy}
+        {@const pct = Math.round(overall(busy) * 100)}
         <div class="prog">
-          <div class="line"><span>{phaseText(phase)}</span><span class="muted pct">{Math.round(overall * 100)} %</span></div>
-          <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(overall * 100)}><div class="fill" style={`width:${Math.round(overall * 100)}%`}></div></div>
-          <div class="acts"><button class="btn" on:click={() => engine.cancelToolInstall()}>{$t("Cancelar descarga")}</button></div>
+          <div class="line"><span>{phaseText(busy.phase)}</span><span class="muted pct">{pct} %</span></div>
+          <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}><div class="fill" style={`width:${pct}%`}></div></div>
+          <div class="acts"><button class="btn" on:click={() => cancelToolInstall()}>{$t("Cancelar descarga")}</button></div>
         </div>
-      {:else if confirming === it.key}
+      {:else if confirming === key}
         <div class="ask">
-          <p>{$t("O trasno vai descargar {name} (uns {size}) de {source}, comprobar que o ficheiro está íntegro e deixalo na súa carpeta de datos. Non fai falta ser administrador.", { name: it.name, size: it.size, source: it.source })}</p>
+          <p>{$t("O trasno descargará {name} (uns {size}) de {source}, comprobará que o ficheiro está íntegro e deixarao na súa carpeta de datos. Non fai falta ser administrador.", { name: it.name, size: it.size, source: it.source })}</p>
           <div class="acts">
-            <button class="btn primary" on:click={() => install(it.key)}>{$t("Aceptar e descargar")}</button>
+            <button class="btn primary" on:click={() => accept(key)}>{$t("Aceptar e descargar")}</button>
             <button class="btn" on:click={() => (confirming = null)}>{$t("Agora non")}</button>
           </div>
         </div>
       {:else if !ok}
         <div class="acts">
-          <button class="btn primary" on:click={() => (confirming = it.key)} disabled={installing !== null}>{$t("Descargar e instalar")} <span class="muted">· {it.size}</span></button>
+          <button class="btn primary" on:click={() => (confirming = key)} disabled={!!$installing}>{$t("Descargar e instalar")} <span class="muted">· {it.size}</span></button>
           <button class="btn ghost" on:click={() => openLink(it.link)}>{$t("Abrir a páxina de descarga")}</button>
         </div>
         <p class="muted small">{$t("ou, en Windows, no terminal:")} <code class="selectable">{it.winget}</code></p>
-      {:else if $tools?.[`${it.key}_own`]}
+      {:else if $tools?.[`${key}_own`]}
         <div class="acts">
           <span class="muted small">{$t("Descargado polo trasno.")}</span>
-          <button class="btn ghost" on:click={() => remove(it.key)} disabled={installing !== null}>{$t("Quitar")}</button>
+          <button class="btn ghost" on:click={() => removeToolNow(key)} disabled={!!$installing}>{$t("Quitar")}</button>
         </div>
       {/if}
-      {#if failure?.key === it.key}<p class="fail selectable">{failure.text}</p>{/if}
+      {#if $installError?.tool === key}<p class="fail selectable">{$installError.text}</p>{/if}
     </section>
   {/each}
 

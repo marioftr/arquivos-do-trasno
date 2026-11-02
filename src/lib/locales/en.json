@@ -894,5 +894,16 @@
   "A suma de comprobación publicada non ten o formato esperado.": "The published checksum does not have the expected format.",
   "A versión de MKVToolNix que anuncia a web non é válida.": "The MKVToolNix version announced by the website is not valid.",
   "A descarga automática só está dispoñible en Windows.": "Automatic download is only available on Windows.",
-  "O ficheiro descargado non coincide coa suma de comprobación publicada, así que non o instalo.": "The downloaded file does not match the published checksum, so I will not install it."
+  "O ficheiro descargado non coincide coa suma de comprobación publicada, así que non o instalo.": "The downloaded file does not match the published checksum, so I will not install it.",
+  "Falta un complemento": "A add-on is missing",
+  "Para facer isto o trasno precisa FFmpeg, que non está instalado.": "To do this the trasno needs FFmpeg, which is not installed.",
+  "Para facer isto o trasno precisa MKVToolNix, que non está instalado.": "To do this the trasno needs MKVToolNix, which is not installed.",
+  "Para ver este vídeo ou audio o trasno precisa FFmpeg, que non está instalado.": "To view this video or audio the trasno needs FFmpeg, which is not installed.",
+  "O trasno descargará {name} (uns {size}) de {source}, comprobará que o ficheiro está íntegro e deixarao na súa carpeta de datos. Non fai falta ser administrador.": "The trasno will download {name} (about {size}) from {source}, check that the file is intact and keep it in its data folder. No administrator rights needed.",
+  "Ir á páxina oficial": "Go to the official page",
+  "Se o prefires, instálao ti e despois preme «Volver comprobar» en Axustes → Extensións.": "If you prefer, install it yourself and then press “Check again” in Settings → Extensions.",
+  "Repetir agora": "Repeat now",
+  "Instalar agora": "Install now",
+  "Falta ffmpeg: instalalo agora": "ffmpeg missing: install it now",
+  "Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: o trasno pode descargalos por ti ou podes instalalos ti e a app detectaos soa.": "Arquivos do Trasno only works with images, PDFs and 3D on its own. For audio, video and MKV it relies on two free programs that are not included: the trasno can download them for you, or you can install them yourself and the app detects them."
 }

@@ -24,6 +24,7 @@
   import MkvTracksSection from "./tools/MkvTracksSection.svelte";
   import Icon from "./Icon.svelte";
   import { tools, openSettings, toolActions, jump } from "../settings";
+  import { requestTool } from "../toolinstall";
   import MergeSection from "./tools/MergeSection.svelte";
   import InfoSection from "./tools/InfoSection.svelte";
 
@@ -182,7 +183,7 @@
                 ? $t("Editar as pistas dun MKV precisa MKVToolNix, que non está instalado.")
                 : $t("O audio e o vídeo precisan FFmpeg, que non está instalado.")}
             </p>
-            <button class="btn primary" on:click={() => openSettings("tools")}>{$t("Ver como instalalo")}</button>
+            <button class="btn primary" on:click={() => requestTool(current === "mkv" ? "mkvmerge" : "ffmpeg")}>{$t("Instalar agora")}</button>
           </div>
         {:else if current === "mkv" && first}
           <MkvTracksSection {selection} />
