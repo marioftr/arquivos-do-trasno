@@ -17,6 +17,20 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.1.3",
+    date: "2026-11-02",
+    title: { gl: "Instalar FFmpeg e MKVToolNix desde a app", es: "Instalar FFmpeg y MKVToolNix desde la app", en: "Install FFmpeg and MKVToolNix from the app" },
+    changes: [
+      { kind: "new", gl: "Se unha acción precisa FFmpeg ou MKVToolNix e non están, a app avisa e permite descargalos e instalalos directamente, con barra de progreso, ou ir á páxina oficial.", es: "Si una acción necesita FFmpeg o MKVToolNix y no están, la app avisa y permite descargarlos e instalarlos directamente, con barra de progreso, o ir a la página oficial.", en: "If an action needs FFmpeg or MKVToolNix and they are missing, the app says so and lets you download and install them directly, with a progress bar, or go to the official page." },
+      { kind: "new", gl: "Cada descarga verifícase coa suma SHA-256 publicada pola fonte antes de instalarse; instálase sen permisos de administrador e pódese quitar desde Axustes → Extensións.", es: "Cada descarga se verifica con la suma SHA-256 publicada por la fuente antes de instalarse; se instala sin permisos de administrador y se puede quitar desde Ajustes → Extensiones.", en: "Each download is verified against the SHA-256 checksum published by the source before installing; it needs no administrator rights and can be removed from Settings → Extensions." },
+      { kind: "new", gl: "As xanelas do clic dereito tamén ofrecen a descarga e continúan o traballo cando remata.", es: "Las ventanas del clic derecho también ofrecen la descarga y continúan el trabajo al terminar.", en: "The right-click windows also offer the download and continue the job when it finishes." },
+      { kind: "better", gl: "O historial garda os ficheiros de saída dos traballos da aplicación, con botóns para abrilos na app ou amosalos no cartafol.", es: "El historial guarda los archivos de salida de los trabajos de la aplicación, con botones para abrirlos en la app o mostrarlos en la carpeta.", en: "History keeps the output files of the app's jobs, with buttons to open them in the app or show them in the folder." },
+      { kind: "better", gl: "O diálogo principal adáptase a xanelas pequenas.", es: "El diálogo principal se adapta a ventanas pequeñas.", en: "The main dialog adapts to small windows." },
+      { kind: "fixed", gl: "O historial amosaba «antes eran 0 B» como tamaño orixinal.", es: "El historial mostraba «antes eran 0 B» como tamaño original.", en: "History showed “was 0 B” as the original size." },
+      { kind: "fixed", gl: "O último botón das páxinas legais quedaba cortado por abaixo.", es: "El último botón de las páginas legales quedaba cortado por abajo.", en: "The last button on the legal pages was cut off at the bottom." },
+    ],
+  },
+  {
     version: "0.1.2",
     date: "2026-11-01",
     title: { gl: "Converter e comprimir xuntos", es: "Convertir y comprimir juntos", en: "Convert and compress together" },
