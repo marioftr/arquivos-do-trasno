@@ -3,7 +3,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
-  import { pdfOverlay, viewUrl, type FileEntry } from "../../files";
+  import { pdfOverlay, viewUrl, pdfFontName, type FileEntry, type PdfFontSpec } from "../../files";
   import { fallo, fileNameOf, listo, TRASNO } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
@@ -15,6 +15,7 @@
   import TextField from "../ui/TextField.svelte";
   import ColorField from "../ui/ColorField.svelte";
   import Segmented from "../ui/Segmented.svelte";
+  import Toggle from "../ui/Toggle.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
   import Icon from "../Icon.svelte";
 
@@ -29,6 +30,9 @@
     wmOpacity: 30,
     wmAngle: 45,
     wmColor: "#c0392b",
+    wmFam: "sans" as PdfFontSpec["family"],
+    wmBold: true,
+    wmItalic: false,
     // números
     numPosition: "bc",
     numFormat: "{n}",
@@ -36,12 +40,20 @@
     numSize: 11,
     numMargin: 28,
     numColor: "#000000",
-    // texto
+    numFam: "sans" as PdfFontSpec["family"],
+    numBold: false,
+    numItalic: false,
+    // texto: colócase cun clic sobre a páxina (txPage = 0 mentres non se colocou)
     txText: "",
+    txPage: 0,
+    txAll: false,
     txX: 10,
     txY: 90,
     txSize: 16,
     txColor: "#000000",
+    txFam: "sans" as PdfFontSpec["family"],
+    txBold: false,
+    txItalic: false,
     // imaxe / firma
     imX: 80,
     imY: 12,
@@ -50,6 +62,11 @@
   });
   onMount(() => useForm(form));
 
+  const FAMS = [
+    { value: "sans", label: tr("Sen serifa (Helvetica)") },
+    { value: "serif", label: tr("Con serifa (Times)") },
+    { value: "mono", label: tr("Monoespazada (Courier)") },
+  ];
   const job = createJob();
   const busy = job.busy;
   let imagePath: string | null = null;
@@ -58,14 +75,26 @@
   $: f = $form;
   $: pages = safePages(f.pageSpec, file.pages);
 
+  $: wmFont = { family: f.wmFam, bold: f.wmBold, italic: f.wmItalic } as PdfFontSpec;
+  $: numFont = { family: f.numFam, bold: f.numBold, italic: f.numItalic } as PdfFontSpec;
+  $: txFont = { family: f.txFam, bold: f.txBold, italic: f.txItalic } as PdfFontSpec;
+  let txBox: HTMLTextAreaElement | undefined;
+  function placeAt(page: number, x: number, y: number) {
+    form.update((v) => ({ ...v, txPage: page, txX: x, txY: y }));
+    setTimeout(() => txBox?.focus(), 0);
+  }
+  const moveTo = (x: number, y: number, page: number) => form.update((v) => ({ ...v, txX: x, txY: y, txPage: v.txAll ? v.txPage : page }));
+
   // Vista previa en directo sobre as páxinas.
   $: pdfOverlay.set(
     f.kind === "watermark"
-      ? { text: { text: f.wmText, xPct: 50, yPct: 50, size: f.wmSize, color: f.wmColor, opacity: f.wmOpacity / 100, angle: f.wmAngle, centered: true, pages } }
+      ? { text: { text: f.wmText, xPct: 50, yPct: 50, size: f.wmSize, color: f.wmColor, opacity: f.wmOpacity / 100, angle: f.wmAngle, centered: true, pages, font: wmFont } }
       : f.kind === "numbers"
-        ? { numbers: { position: f.numPosition, format: f.numFormat, start: f.numStart, size: f.numSize, margin: f.numMargin, color: f.numColor } }
+        ? { numbers: { position: f.numPosition, format: f.numFormat, start: f.numStart, size: f.numSize, margin: f.numMargin, color: f.numColor, pages, font: numFont } }
         : f.kind === "text"
-          ? { text: { text: f.txText, xPct: f.txX, yPct: f.txY, size: f.txSize, color: f.txColor, opacity: 1, angle: 0, centered: false, pages } }
+          ? f.txPage
+            ? { place: undefined, text: { text: f.txText || tr("Texto"), xPct: f.txX, yPct: f.txY, size: f.txSize, color: f.txColor, opacity: 1, angle: 0, centered: false, pages: f.txAll ? null : [f.txPage], font: txFont, move: moveTo } }
+            : { place: placeAt }
           : imageUrl
             ? { image: { url: imageUrl, xPct: f.imX, yPct: f.imY, widthPct: f.imWidth, opacity: f.imOpacity / 100, pages } }
             : null,
@@ -79,14 +108,21 @@
     imageUrl = await viewUrl(picked);
   }
 
-  const COLORS = (hex: string) => hex;
-
+  
   async function apply() {
     let sel: number[] | null;
     try {
       sel = parsePageSpec(f.pageSpec, file.pages);
     } catch (e) {
       job.say(false, errText(e));
+      return;
+    }
+    if (f.kind === "text" && !f.txPage) {
+      job.say(false, tr("Preme primeiro sobre a páxina onde queres o texto."));
+      return;
+    }
+    if (f.kind === "text" && !f.txText.trim()) {
+      job.say(false, tr("Escribe o texto que queres engadir."));
       return;
     }
     if (f.kind === "image" && !imagePath) {
@@ -100,11 +136,11 @@
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
         let done: string;
         if (f.kind === "watermark") {
-          done = await engine.pdfWatermarkText(file.path, out, { text: f.wmText, size: f.wmSize, opacity: f.wmOpacity / 100, angle: f.wmAngle, color: COLORS(f.wmColor) }, sel, true);
+          done = await engine.pdfWatermarkText(file.path, out, { text: f.wmText, size: f.wmSize, opacity: f.wmOpacity / 100, angle: f.wmAngle, color: f.wmColor, font: pdfFontName(wmFont) }, sel, true);
         } else if (f.kind === "numbers") {
-          done = await engine.pdfPageNumbers(file.path, out, { position: f.numPosition, format: f.numFormat, start: f.numStart, size: f.numSize, margin: f.numMargin, color: f.numColor }, sel, true);
+          done = await engine.pdfPageNumbers(file.path, out, { position: f.numPosition, format: f.numFormat, start: f.numStart, size: f.numSize, margin: f.numMargin, color: f.numColor, font: pdfFontName(numFont) }, sel, true);
         } else if (f.kind === "text") {
-          done = await engine.pdfAddText(file.path, out, { text: f.txText, xPct: f.txX, yPct: f.txY, size: f.txSize, color: f.txColor }, sel, true);
+          done = await engine.pdfAddText(file.path, out, { text: f.txText, xPct: f.txX, yPct: f.txY, size: f.txSize, color: f.txColor, font: pdfFontName(txFont) }, f.txAll ? null : [f.txPage], true);
         } else {
           done = await engine.pdfStampImage(file.path, out, { image: imagePath!, xPct: f.imX, yPct: f.imY, widthPct: f.imWidth, opacity: f.imOpacity / 100 }, sel, true);
         }
@@ -131,6 +167,11 @@
   <div class="group">
     {#if f.kind === "watermark"}
       <TextField label={$t("Texto da marca de auga")} bind:value={$form.wmText} />
+      <div class="pair fontrow">
+        <SelectField label={$t("Letra")} bind:value={$form.wmFam} def="sans" options={FAMS} />
+        <button class="btn tog" class:on={$form.wmBold} aria-pressed={$form.wmBold} on:click={() => ($form.wmBold = !$form.wmBold)} title={$t("Negriña")}><b>N</b></button>
+        <button class="btn tog" class:on={$form.wmItalic} aria-pressed={$form.wmItalic} on:click={() => ($form.wmItalic = !$form.wmItalic)} title={$t("Cursiva")}><i>C</i></button>
+      </div>
       <Slider label={$t("Tamaño")} unit="pt" min={20} max={200} bind:value={$form.wmSize} def={60} />
       <Slider label={$t("Opacidade")} unit="%" min={5} max={100} bind:value={$form.wmOpacity} def={30} />
       <Slider label={$t("Xiro")} unit="°" min={-90} max={90} bind:value={$form.wmAngle} def={45} />
@@ -165,14 +206,32 @@
         <NumberField label={$t("Comezar en")} min={0} bind:value={$form.numStart} def={1} />
         <NumberField label={$t("Tamaño")} unit="pt" min={6} max={48} bind:value={$form.numSize} def={11} />
       </div>
+      <div class="pair fontrow">
+        <SelectField label={$t("Letra")} bind:value={$form.numFam} def="sans" options={FAMS} />
+        <button class="btn tog" class:on={$form.numBold} aria-pressed={$form.numBold} on:click={() => ($form.numBold = !$form.numBold)} title={$t("Negriña")}><b>N</b></button>
+        <button class="btn tog" class:on={$form.numItalic} aria-pressed={$form.numItalic} on:click={() => ($form.numItalic = !$form.numItalic)} title={$t("Cursiva")}><i>C</i></button>
+      </div>
       <Slider label={$t("Distancia ao bordo")} unit="pt" min={8} max={120} bind:value={$form.numMargin} def={28} />
       <ColorField label={$t("Cor")} bind:value={$form.numColor} />
     {:else if f.kind === "text"}
-      <TextField label={$t("Texto")} bind:value={$form.txText} placeholder={$t("Escribe o que queres engadir")} />
-      <Slider label={$t("Posición horizontal")} unit="%" min={0} max={100} bind:value={$form.txX} def={10} />
-      <Slider label={$t("Posición vertical")} unit="%" min={0} max={100} bind:value={$form.txY} def={90} hint={$t("0 % = abaixo; 100 % = arriba")} />
-      <Slider label={$t("Tamaño")} unit="pt" min={6} max={96} bind:value={$form.txSize} def={16} />
-      <ColorField label={$t("Cor")} bind:value={$form.txColor} />
+      {#if !f.txPage}
+        <p class="place">{$t("Preme sobre a páxina, no visor, onde queres escribir. Despois podes arrastrar o texto para movelo.")}</p>
+      {:else}
+        <label class="ta">
+          <span class="lab">{$t("Texto")}</span>
+          <textarea bind:this={txBox} bind:value={$form.txText} rows="3" placeholder={$t("Escribe o que queres engadir")}></textarea>
+        </label>
+      <div class="pair fontrow">
+        <SelectField label={$t("Letra")} bind:value={$form.txFam} def="sans" options={FAMS} />
+        <button class="btn tog" class:on={$form.txBold} aria-pressed={$form.txBold} on:click={() => ($form.txBold = !$form.txBold)} title={$t("Negriña")}><b>N</b></button>
+        <button class="btn tog" class:on={$form.txItalic} aria-pressed={$form.txItalic} on:click={() => ($form.txItalic = !$form.txItalic)} title={$t("Cursiva")}><i>C</i></button>
+      </div>
+        <Slider label={$t("Tamaño")} unit="pt" min={6} max={96} bind:value={$form.txSize} def={16} />
+        <ColorField label={$t("Cor")} bind:value={$form.txColor} />
+        <Toggle label={$t("Poñelo en todas as páxinas")} bind:checked={$form.txAll} hint={$t("Repite o texto na mesma posición en cada páxina do PDF.")} />
+        <p class="group-note">{$t("Páxina")} {$form.txPage} · {$t("Arrastra o texto no visor para movelo.")}</p>
+        <button class="btn" on:click={() => ($form.txPage = 0)}>{$t("Escoller outro sitio")}</button>
+      {/if}
     {:else}
       <button class="btn" on:click={chooseImage}><Icon name="image" size={14} /> {imagePath ? fileNameOf(imagePath) : $t("Escoller imaxe…")}</button>
       <p class="group-note">{$t("Vale un PNG con fondo transparente, por exemplo a túa firma.")}</p>
@@ -181,9 +240,22 @@
       <Slider label={$t("Ancho")} unit="%" min={3} max={90} bind:value={$form.imWidth} def={25} />
       <Slider label={$t("Opacidade")} unit="%" min={5} max={100} bind:value={$form.imOpacity} def={100} />
     {/if}
-    <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} />
+    {#if f.kind !== "text"}
+      <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} />
+    {/if}
   </div>
 
-  <button class="btn primary block" on:click={apply} disabled={$busy}>{$t("Gardar unha copia co cambio")}</button>
+  <button class="btn primary block" on:click={apply} disabled={$busy || (f.kind === "text" && !f.txPage)}>{$t("Gardar unha copia co cambio")}</button>
   <JobStatus {job} />
 </div>
+
+<style>
+  .fontrow { grid-template-columns: 1fr auto auto; align-items: end; }
+  .fontrow .btn { width: var(--control-h); padding: 0; }
+  .tog.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
+  .place { margin: 0; padding: 0.7rem; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); font-size: 0.86rem; }
+  .ta { display: flex; flex-direction: column; gap: 0.2rem; }
+  .lab { font-size: 0.82rem; color: var(--text-muted); }
+  textarea { width: 100%; resize: vertical; min-height: 4.2rem; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0.4rem 0.6rem; font: inherit; font-size: 0.9rem; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+</style>

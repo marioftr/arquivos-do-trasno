@@ -969,5 +969,15 @@
   "Non chegaron datos para gardar.": "No han llegado datos para guardar.",
   "Falta a ruta de destino.": "Falta la ruta de destino.",
   "Non hai nada que gardar.": "No hay nada que guardar.",
-  "Refacer": "Rehacer"
+  "Refacer": "Rehacer",
+  "Sen serifa (Helvetica)": "Sin serifa (Helvetica)",
+  "Con serifa (Times)": "Con serifa (Times)",
+  "Monoespazada (Courier)": "Monoespaciada (Courier)",
+  "Preme sobre a páxina, no visor, onde queres escribir. Despois podes arrastrar o texto para movelo.": "Pulsa sobre la página, en el visor, donde quieres escribir. Después puedes arrastrar el texto para moverlo.",
+  "Preme primeiro sobre a páxina onde queres o texto.": "Pulsa primero sobre la página donde quieres el texto.",
+  "Poñelo en todas as páxinas": "Ponerlo en todas las páginas",
+  "Repite o texto na mesma posición en cada páxina do PDF.": "Repite el texto en la misma posición en cada página del PDF.",
+  "Arrastra o texto no visor para movelo.": "Arrastra el texto en el visor para moverlo.",
+  "Escoller outro sitio": "Elegir otro sitio",
+  "Escribe o texto que queres engadir.": "Escribe el texto que quieres añadir."
 }

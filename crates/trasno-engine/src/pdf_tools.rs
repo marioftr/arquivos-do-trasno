@@ -76,9 +76,20 @@ struct Ctx {
     qq: ObjectId,
 }
 
+/// As doce fontes estándar do PDF (non se incrustan: todos os lectores as traen).
+const BASE_FONTS: [&str; 12] = [
+    "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique",
+    "Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic",
+    "Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique",
+];
+
+fn base_font(name: &Option<String>) -> &'static str {
+    name.as_deref().and_then(|n| BASE_FONTS.iter().find(|f| **f == n)).copied().unwrap_or("Helvetica")
+}
+
 impl Ctx {
-    fn new(doc: &mut Document) -> Self {
-        let font = doc.add_object(dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica", "Encoding" => "WinAnsiEncoding" });
+    fn new(doc: &mut Document, font_name: &Option<String>) -> Self {
+        let font = doc.add_object(dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => base_font(font_name), "Encoding" => "WinAnsiEncoding" });
         let q = doc.add_object(Stream::new(dictionary! {}, b"q".to_vec()));
         let qq = doc.add_object(Stream::new(dictionary! {}, b"Q".to_vec()));
         Ctx { font, q, qq }
@@ -148,8 +159,12 @@ fn add_overlay(
     Ok(())
 }
 
-fn approx_width(text: &str, size: f32) -> f32 {
-    text.chars().count() as f32 * size * 0.52
+/// Ancho aproximado do texto: cada familia ten unha anchura media de letra distinta.
+fn approx_width(text: &str, size: f32, font: &Option<String>) -> f32 {
+    let f = base_font(font);
+    let k = if f.starts_with("Courier") { 0.6 } else if f.starts_with("Times") { 0.46 } else { 0.52 };
+    let k = if f.contains("Bold") && !f.starts_with("Courier") { k + 0.04 } else { k };
+    text.lines().map(|l| l.chars().count()).max().unwrap_or(0) as f32 * size * k
 }
 
 fn esc(text: &str) -> String {
@@ -205,6 +220,7 @@ pub struct WatermarkText {
     pub opacity: f32,
     pub angle: f32,
     pub color: String,
+    pub font: Option<String>,
 }
 
 pub fn watermark_text(input: &Path, output: &Path, overwrite: bool, w: &WatermarkText, pages: &Option<Vec<u32>>) -> Result<PathBuf> {
@@ -214,11 +230,11 @@ pub fn watermark_text(input: &Path, output: &Path, overwrite: bool, w: &Watermar
     }
     let mut doc = load(input)?;
     flatten_inherited_page_attributes(&mut doc);
-    let ctx = Ctx::new(&mut doc);
+    let ctx = Ctx::new(&mut doc, &w.font);
     for (_, id) in select_pages(&doc, pages)? {
         let (l, b, r, t) = page_box(&doc, id);
         let (cx, cy) = ((l + r) / 2.0, (b + t) / 2.0);
-        let width = approx_width(&w.text, w.size);
+        let width = approx_width(&w.text, w.size, &w.font);
         let (s, c) = w.angle.to_radians().sin_cos();
         let x = cx - (width / 2.0) * c + (w.size * 0.35) * s;
         let y = cy - (width / 2.0) * s - (w.size * 0.35) * c;
@@ -239,6 +255,7 @@ pub struct PageNumbers {
     pub size: f32,
     pub margin: f32,
     pub color: String,
+    pub font: Option<String>,
 }
 
 pub fn page_numbers(input: &Path, output: &Path, overwrite: bool, o: &PageNumbers, pages: &Option<Vec<u32>>) -> Result<PathBuf> {
@@ -246,11 +263,11 @@ pub fn page_numbers(input: &Path, output: &Path, overwrite: bool, o: &PageNumber
     let mut doc = load(input)?;
     flatten_inherited_page_attributes(&mut doc);
     let total = doc.get_pages().len() as i64;
-    let ctx = Ctx::new(&mut doc);
+    let ctx = Ctx::new(&mut doc, &o.font);
     for (n, id) in select_pages(&doc, pages)? {
         let (l, b, r, t) = page_box(&doc, id);
         let label = o.format.replace("{n}", &(o.start + n as i64 - 1).to_string()).replace("{total}", &(o.start + total - 1).to_string());
-        let width = approx_width(&label, o.size);
+        let width = approx_width(&label, o.size, &o.font);
         let x = match o.position.as_bytes().get(1) {
             Some(b'l') => l + o.margin,
             Some(b'r') => r - o.margin - width,
@@ -267,11 +284,12 @@ pub fn page_numbers(input: &Path, output: &Path, overwrite: bool, o: &PageNumber
 
 pub struct AddText {
     pub text: String,
-    /// Posición da esquina inferior esquerda do texto, en % da páxina (0-100).
+    /// Posición da esquina superior esquerda do bloque de texto, en % da páxina (0-100, desde abaixo).
     pub x_pct: f32,
     pub y_pct: f32,
     pub size: f32,
     pub color: String,
+    pub font: Option<String>,
 }
 
 pub fn add_text(input: &Path, output: &Path, overwrite: bool, o: &AddText, pages: &Option<Vec<u32>>) -> Result<PathBuf> {
@@ -281,12 +299,19 @@ pub fn add_text(input: &Path, output: &Path, overwrite: bool, o: &AddText, pages
     }
     let mut doc = load(input)?;
     flatten_inherited_page_attributes(&mut doc);
-    let ctx = Ctx::new(&mut doc);
+    let ctx = Ctx::new(&mut doc, &o.font);
     for (_, id) in select_pages(&doc, pages)? {
         let (l, b, r, t) = page_box(&doc, id);
         let x = l + (r - l) * o.x_pct / 100.0;
-        let y = b + (t - b) * o.y_pct / 100.0;
-        let content = text_stream(&o.text, o.size, parse_color(&o.color), None, 0.0, x, y);
+        let top = b + (t - b) * o.y_pct / 100.0;
+        // Primeira liña: a liña de base queda un 93 % do tamaño por debaixo do bordo de arriba; as outras, a 1,2 veces o tamaño.
+        let content = o
+            .text
+            .lines()
+            .enumerate()
+            .map(|(i, line)| text_stream(line, o.size, parse_color(&o.color), None, 0.0, x, top - o.size * 0.93 - i as f32 * o.size * 1.2))
+            .collect::<Vec<_>>()
+            .join(" ");
         overlay_latin1(&mut doc, &ctx, id, content, None, None)?;
     }
     save_atomically(&mut doc, output, overwrite)
@@ -338,7 +363,7 @@ pub fn stamp_image(input: &Path, output: &Path, overwrite: bool, o: &StampImage,
     let mut doc = load(input)?;
     flatten_inherited_page_attributes(&mut doc);
     let (img, ratio) = image_object(&mut doc, &o.image)?;
-    let ctx = Ctx::new(&mut doc);
+    let ctx = Ctx::new(&mut doc, &None);
     let alpha = Some(o.opacity.clamp(0.02, 1.0));
     for (_, id) in select_pages(&doc, pages)? {
         let (l, b, r, t) = page_box(&doc, id);
@@ -556,12 +581,12 @@ mod tests {
         let src = sample(dir.path(), "a.pdf", 3);
         assert!(pdf::page_count(&src).unwrap() >= 3);
         let out = dir.path().join("w.pdf");
-        watermark_text(&src, &out, false, &WatermarkText { text: "BORRADOR".into(), size: 60.0, opacity: 0.3, angle: 45.0, color: "#ff0000".into() }, &None).unwrap();
+        watermark_text(&src, &out, false, &WatermarkText { text: "BORRADOR".into(), size: 60.0, opacity: 0.3, angle: 45.0, color: "#ff0000".into(), font: Some("Times-Bold".into()) }, &None).unwrap();
         assert!(Document::load(&out).is_ok());
         let out2 = dir.path().join("n.pdf");
-        page_numbers(&out, &out2, false, &PageNumbers { position: "bc".into(), format: "{n} / {total}".into(), start: 1, size: 10.0, margin: 20.0, color: "#000000".into() }, &None).unwrap();
+        page_numbers(&out, &out2, false, &PageNumbers { position: "bc".into(), format: "{n} / {total}".into(), start: 1, size: 10.0, margin: 20.0, color: "#000000".into(), font: None }, &None).unwrap();
         let out3 = dir.path().join("t.pdf");
-        add_text(&out2, &out3, false, &AddText { text: "Revisado".into(), x_pct: 10.0, y_pct: 90.0, size: 14.0, color: "#0000ff".into() }, &Some(vec![1])).unwrap();
+        add_text(&out2, &out3, false, &AddText { text: "Revisado".into(), x_pct: 10.0, y_pct: 90.0, size: 14.0, color: "#0000ff".into(), font: Some("Courier".into()) }, &Some(vec![1])).unwrap();
         let out4 = dir.path().join("c.pdf");
         crop_pages(&out3, &out4, false, 10.0, 10.0, 10.0, 10.0, &None).unwrap();
         assert_eq!(pdf::page_count(&out4).unwrap(), pdf::page_count(&src).unwrap());

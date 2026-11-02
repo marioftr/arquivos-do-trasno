@@ -969,5 +969,15 @@
   "Non chegaron datos para gardar.": "No data arrived to save.",
   "Falta a ruta de destino.": "The destination path is missing.",
   "Non hai nada que gardar.": "There is nothing to save.",
-  "Refacer": "Redo"
+  "Refacer": "Redo",
+  "Sen serifa (Helvetica)": "Sans-serif (Helvetica)",
+  "Con serifa (Times)": "Serif (Times)",
+  "Monoespazada (Courier)": "Monospaced (Courier)",
+  "Preme sobre a páxina, no visor, onde queres escribir. Despois podes arrastrar o texto para movelo.": "Click on the page, in the viewer, where you want to write. Then you can drag the text to move it.",
+  "Preme primeiro sobre a páxina onde queres o texto.": "First click on the page where you want the text.",
+  "Poñelo en todas as páxinas": "Put it on every page",
+  "Repite o texto na mesma posición en cada páxina do PDF.": "Repeats the text at the same position on every page of the PDF.",
+  "Arrastra o texto no visor para movelo.": "Drag the text in the viewer to move it.",
+  "Escoller outro sitio": "Choose another spot",
+  "Escribe o texto que queres engadir.": "Type the text you want to add."
 }

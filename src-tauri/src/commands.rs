@@ -785,11 +785,11 @@ fn done(r: trasno_engine::Result<PathBuf>) -> Result<String, String> {
 #[tauri::command]
 pub async fn pdf_watermark_text(
     input: String, output: String, overwrite: bool,
-    text: String, size: f32, opacity: f32, angle: f32, color: String, pages: Option<Vec<u32>>,
+    text: String, size: f32, opacity: f32, angle: f32, color: String, font: Option<String>, pages: Option<Vec<u32>>,
 ) -> Result<String, String> {
     blocking(move || {
         let (i, o) = paths(input, output);
-        let w = trasno_engine::pdf_tools::WatermarkText { text, size, opacity, angle, color };
+        let w = trasno_engine::pdf_tools::WatermarkText { text, size, opacity, angle, color, font };
         done(trasno_engine::pdf_tools::watermark_text(&i, &o, overwrite, &w, &pages))
     })
     .await
@@ -798,11 +798,11 @@ pub async fn pdf_watermark_text(
 #[tauri::command]
 pub async fn pdf_page_numbers(
     input: String, output: String, overwrite: bool,
-    position: String, format: String, start: i64, size: f32, margin: f32, color: String, pages: Option<Vec<u32>>,
+    position: String, format: String, start: i64, size: f32, margin: f32, color: String, font: Option<String>, pages: Option<Vec<u32>>,
 ) -> Result<String, String> {
     blocking(move || {
         let (i, o) = paths(input, output);
-        let n = trasno_engine::pdf_tools::PageNumbers { position, format, start, size, margin, color };
+        let n = trasno_engine::pdf_tools::PageNumbers { position, format, start, size, margin, color, font };
         done(trasno_engine::pdf_tools::page_numbers(&i, &o, overwrite, &n, &pages))
     })
     .await
@@ -811,11 +811,11 @@ pub async fn pdf_page_numbers(
 #[tauri::command]
 pub async fn pdf_add_text(
     input: String, output: String, overwrite: bool,
-    text: String, x_pct: f32, y_pct: f32, size: f32, color: String, pages: Option<Vec<u32>>,
+    text: String, x_pct: f32, y_pct: f32, size: f32, color: String, font: Option<String>, pages: Option<Vec<u32>>,
 ) -> Result<String, String> {
     blocking(move || {
         let (i, o) = paths(input, output);
-        let t = trasno_engine::pdf_tools::AddText { text, x_pct, y_pct, size, color };
+        let t = trasno_engine::pdf_tools::AddText { text, x_pct, y_pct, size, color, font };
         done(trasno_engine::pdf_tools::add_text(&i, &o, overwrite, &t, &pages))
     })
     .await

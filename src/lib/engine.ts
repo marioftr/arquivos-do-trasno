@@ -268,15 +268,15 @@ export async function estimateVideo(
 
 type Pages = number[] | null;
 
-export async function pdfWatermarkText(input: string, output: string, o: { text: string; size: number; opacity: number; angle: number; color: string }, pages: Pages, overwrite = false): Promise<string> {
+export async function pdfWatermarkText(input: string, output: string, o: { text: string; size: number; opacity: number; angle: number; color: string; font?: string }, pages: Pages, overwrite = false): Promise<string> {
   return call("pdf_watermark_text", { input, output, overwrite, ...o, pages });
 }
 
-export async function pdfPageNumbers(input: string, output: string, o: { position: string; format: string; start: number; size: number; margin: number; color: string }, pages: Pages, overwrite = false): Promise<string> {
+export async function pdfPageNumbers(input: string, output: string, o: { position: string; format: string; start: number; size: number; margin: number; color: string; font?: string }, pages: Pages, overwrite = false): Promise<string> {
   return call("pdf_page_numbers", { input, output, overwrite, ...o, pages });
 }
 
-export async function pdfAddText(input: string, output: string, o: { text: string; xPct: number; yPct: number; size: number; color: string }, pages: Pages, overwrite = false): Promise<string> {
+export async function pdfAddText(input: string, output: string, o: { text: string; xPct: number; yPct: number; size: number; color: string; font?: string }, pages: Pages, overwrite = false): Promise<string> {
   return call("pdf_add_text", { input, output, overwrite, ...o, pages });
 }
 

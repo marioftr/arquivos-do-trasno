@@ -7,7 +7,8 @@
   import { tr } from "../../i18n";
   import Icon from "../Icon.svelte";
   import { actionFor } from "../../keymap";
-  import { pdfOverlay, type FileEntry, type PdfOverlay } from "../../files";
+  import { get } from "svelte/store";
+  import { pdfOverlay, pdfFontCss, type FileEntry, type PdfOverlay, type PdfFontSpec } from "../../files";
   import { t } from "../../i18n";
   import Slider from "../ui/Slider.svelte";
   import FindBar from "../ui/FindBar.svelte";
@@ -275,6 +276,7 @@
     } catch {
       // sen ligazóns: non pasa nada
     }
+    paint(get(pdfOverlay), [pg]);
   }
 
   /** Ligazóns do PDF: as internas levan á páxina; as web piden confirmación antes de abrirse. */
@@ -436,12 +438,24 @@
         el.classList.add("ov");
         p.wrap.appendChild(el);
       };
-      const txt = (text: string, size: number, color: string, left: number, top: number, extra = "") => {
+      const txt = (text: string, size: number, color: string, left: number, top: number, extra = "", font?: PdfFontSpec, lh = 1) => {
         const e = document.createElement("div");
         e.textContent = text;
-        e.style.cssText = `position:absolute;left:${left}px;top:${top}px;font:${size * p.s}px Helvetica,Arial,sans-serif;color:${color};white-space:pre;line-height:1;pointer-events:none;${extra}`;
+        e.style.cssText = `position:absolute;left:${left}px;top:${top}px;font-size:${size * p.s}px;${pdfFontCss(font)}color:${color};white-space:pre;line-height:${lh};pointer-events:none;${extra}`;
         add(e);
+        return e;
       };
+      // Clic sobre a páxina: coloca o texto alí.
+      p.wrap.style.cursor = ov.place ? "crosshair" : "";
+      p.wrap.onclick = ov.place
+        ? (ev: MouseEvent) => {
+            if ((ev.target as HTMLElement).closest(".ov")) return;
+            const r = p.wrap.getBoundingClientRect();
+            const x = ((ev.clientX - r.left) / r.width) * 100;
+            const y = 100 - ((ev.clientY - r.top) / r.height) * 100;
+            ov.place!(p.n, Math.round(x * 10) / 10, Math.round(y * 10) / 10);
+          }
+        : null;
       const inPages = (l: number[] | null) => !l || l.includes(p.n);
 
       if (ov.crop) {
@@ -460,16 +474,55 @@
         const o = ov.text;
         const cx = p.w * (o.xPct / 100);
         const cy = p.h * (1 - o.yPct / 100);
-        if (o.centered) txt(o.text, o.size, o.color, cx, cy, `opacity:${o.opacity};transform:translate(-50%,-50%) rotate(${-o.angle}deg);`);
-        else txt(o.text, o.size, o.color, cx, cy, `opacity:${o.opacity};transform:translateY(-100%);`);
+        if (o.centered) txt(o.text, o.size, o.color, cx, cy, `opacity:${o.opacity};transform:translate(-50%,-50%) rotate(${-o.angle}deg);`, o.font);
+        else {
+          // Texto colocado: a esquina de arriba á esquerda é o punto elixido; arrástrase co rato.
+          const el = txt(o.text || " ", o.size, o.color, cx, cy, `opacity:${o.opacity};`, o.font, 1.2);
+          if (o.move) {
+            el.style.pointerEvents = "auto";
+            el.style.cursor = "move";
+            el.style.outline = "1px dashed var(--accent, #4aa3ff)";
+            el.style.outlineOffset = "2px";
+            el.style.touchAction = "none";
+            el.addEventListener("pointerdown", (ev) => {
+              if (ev.button !== 0) return;
+              ev.stopPropagation();
+              el.setPointerCapture(ev.pointerId);
+              const r = p.wrap.getBoundingClientRect();
+              const sx = ev.clientX;
+              const sy = ev.clientY;
+              const l0 = parseFloat(el.style.left);
+              const t0 = parseFloat(el.style.top);
+              let nx = o.xPct;
+              let ny = o.yPct;
+              const mv = (e2: PointerEvent) => {
+                const dx = e2.clientX - sx;
+                const dy = e2.clientY - sy;
+                el.style.left = `${l0 + dx}px`;
+                el.style.top = `${t0 + dy}px`;
+                nx = Math.max(0, Math.min(100, o.xPct + (dx / r.width) * 100));
+                ny = Math.max(0, Math.min(100, o.yPct - (dy / r.height) * 100));
+              };
+              const end = () => {
+                el.removeEventListener("pointermove", mv);
+                el.removeEventListener("pointerup", end);
+                el.removeEventListener("pointercancel", end);
+                o.move!(Math.round(nx * 10) / 10, Math.round(ny * 10) / 10, p.n);
+              };
+              el.addEventListener("pointermove", mv);
+              el.addEventListener("pointerup", end);
+              el.addEventListener("pointercancel", end);
+            });
+          }
+        }
       }
-      if (ov.numbers) {
+      if (ov.numbers && inPages(ov.numbers.pages ?? null)) {
         const o = ov.numbers;
         const label = o.format.replace("{n}", String(o.start + p.n - 1)).replace("{total}", String(o.start + list.length - 1));
         const left = o.position[1] === "l" ? o.margin * p.s : o.position[1] === "r" ? p.w - o.margin * p.s : p.w / 2;
         const top = o.position[0] === "t" ? o.margin * p.s : p.h - o.margin * p.s;
         const tx = o.position[1] === "l" ? "0" : o.position[1] === "r" ? "-100%" : "-50%";
-        txt(label, o.size, o.color, left, top, `transform:translate(${tx},${o.position[0] === "t" ? "0" : "-100%"});`);
+        txt(label, o.size, o.color, left, top, `transform:translate(${tx},${o.position[0] === "t" ? "0" : "-100%"});`, o.font);
       }
       if (ov.image && inPages(ov.image.pages)) {
         const o = ov.image;
