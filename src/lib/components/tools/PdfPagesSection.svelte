@@ -20,7 +20,7 @@
   /** Extraer páxinas e xirar van en pestanas distintas; esta sección serve para as dúas. */
   export let part: "extract" | "rotate" = "rotate";
 
-  const form = createForm({ pageSpec: "", rotateAll: true, rotatePage: 1, degrees: 0 });
+  const form = createForm({ pageSpec: "", rotateAll: true, rotatePage: 1, degrees: 0 }, undefined, "pdfpages|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();

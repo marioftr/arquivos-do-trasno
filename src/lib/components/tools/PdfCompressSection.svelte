@@ -19,7 +19,7 @@
     { value: "high", label: "Extrema", quality: 45, scale: 50, hint: "O máis pequeno posible; as imaxes perden nitidez" },
   ];
 
-  const form = createForm({ level: "mid", quality: 70, scale: 75 }, "pdf-comprimir");
+  const form = createForm({ level: "mid", quality: 70, scale: 75 }, "pdf-comprimir", "pdfcompress|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();

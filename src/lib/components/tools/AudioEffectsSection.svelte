@@ -13,7 +13,7 @@
 
   export let file: FileEntry;
 
-  const form = createForm({ fade: 2, echo: 300, bass: 6, treble: 6 }, "audio-efectos");
+  const form = createForm({ fade: 2, echo: 300, bass: 6, treble: 6 }, "audio-efectos", "audiofx|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();

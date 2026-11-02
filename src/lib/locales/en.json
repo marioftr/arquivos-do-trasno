@@ -937,8 +937,6 @@
   "Tamaño do texto": "Text size",
   "Negriña": "Bold",
   "Cursiva": "Italic",
-  "Borrar todo o debuxado": "Clear everything drawn",
-  "Só se borra o que debuxaches; a imaxe orixinal non se toca.": "Only what you drew is cleared; the original image is untouched.",
   "Gardar copia anotada": "Save annotated copy",
   "anotada": "annotated",
   "Non chegaron datos para gardar.": "No data arrived to save.",
@@ -1165,5 +1163,7 @@
   "O portapapeis púxose teimudo coa ruta. Tenta de novo.": "The clipboard got stubborn about the path. Try again.",
   "Este PDF quere levarte a: {url}": "This PDF wants to take you to: {url}",
   "Traballo cancelado. O trasno deixou todo ordenado, sen ficheiros a medias.": "Job cancelled. The trasno left everything tidy, with no half-finished files.",
-  "Perfil «{name}» gardado: o trasno non o esquece.": "Profile “{name}” saved: the trasno won't forget it."
+  "Perfil «{name}» gardado: o trasno non o esquece.": "Profile “{name}” saved: the trasno won't forget it.",
+  "Borrar todas as anotacións": "Delete all annotations",
+  "Cor do recheo": "Fill colour"
 }

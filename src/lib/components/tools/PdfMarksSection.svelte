@@ -60,7 +60,7 @@
     imY: 12,
     imWidth: 25,
     imOpacity: 100,
-  });
+  }, undefined, "pdfmarks|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();

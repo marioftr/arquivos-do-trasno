@@ -44,9 +44,13 @@ function remember(key: string, value: Record<string, unknown>) {
   }, 400);
 }
 
-export function createForm<T extends Record<string, any>>(defaults: T, memoryKey?: string): Form<T> {
+// Axustes de cada ficheiro mentres a app está aberta: ao volver a un ficheiro, volven os que levaba.
+const fileMemory = new Map<string, Record<string, unknown>>();
+
+export function createForm<T extends Record<string, any>>(defaults: T, memoryKey?: string, fileKey?: string): Form<T> {
   // Con `memoryKey`, arranca cos últimos valores usados (só os campos que seguen existindo).
-  const saved = memoryKey ? loadMemory()[memoryKey] : undefined;
+  // Con `fileKey`, un ficheiro que xa se tocou arranca cos seus propios valores, non cos dos demais.
+  const saved = (fileKey ? fileMemory.get(fileKey) : undefined) ?? (memoryKey ? loadMemory()[memoryKey] : undefined);
   const start = { ...defaults } as T;
   if (saved) for (const k of Object.keys(defaults)) if (k in saved && typeof saved[k] === typeof defaults[k]) (start as any)[k] = saved[k];
   const store = writable<T>({ ...start });
@@ -79,6 +83,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
 
   store.subscribe((v) => {
     if (memoryKey) remember(memoryKey, v);
+    if (fileKey) fileMemory.set(fileKey, { ...v });
     if (applying || same(v, last)) return;
     if (!burstStart) burstStart = { ...last };
     last = { ...v };

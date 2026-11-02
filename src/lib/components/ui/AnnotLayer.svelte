@@ -87,7 +87,7 @@
     if (tool === "pen" || tool === "highlight") {
       draft = { id: newId(), type: tool, color: st.color, width: st.width, pts: [[x, y]] };
     } else {
-      draft = { id: newId(), type: tool, color: st.color, width: st.width, fill: st.fill && (tool === "rect" || tool === "ellipse"), x1: x, y1: y, x2: x, y2: y, angle: st.angle || undefined };
+      draft = { id: newId(), type: tool, color: st.color, width: st.width, fill: st.fill && (tool === "rect" || tool === "ellipse"), fillColor: st.fill && (tool === "rect" || tool === "ellipse") ? st.fillColor || st.color : undefined, x1: x, y1: y, x2: x, y2: y, angle: st.angle || undefined };
     }
   }
 
@@ -306,9 +306,9 @@
           <polyline points={`${hd[0][0]},${hd[0][1]} ${s.x2},${s.y2} ${hd[1][0]},${hd[1][1]}`} fill="none" stroke={s.color} stroke-width={s.width} stroke-linecap="round" stroke-linejoin="round" />
         {/if}
       {:else if s.type === "rect"}
-        <rect x={Math.min(s.x1 ?? 0, s.x2 ?? 0)} y={Math.min(s.y1 ?? 0, s.y2 ?? 0)} width={Math.abs((s.x2 ?? 0) - (s.x1 ?? 0))} height={Math.abs((s.y2 ?? 0) - (s.y1 ?? 0))} fill={s.fill ? s.color : "none"} stroke={s.fill ? "none" : s.color} stroke-width={s.width} stroke-linejoin="round" />
+        <rect x={Math.min(s.x1 ?? 0, s.x2 ?? 0)} y={Math.min(s.y1 ?? 0, s.y2 ?? 0)} width={Math.abs((s.x2 ?? 0) - (s.x1 ?? 0))} height={Math.abs((s.y2 ?? 0) - (s.y1 ?? 0))} fill={s.fill ? s.fillColor || s.color : "none"} stroke={s.color} stroke-width={s.width} stroke-linejoin="round" />
       {:else if s.type === "ellipse"}
-        <ellipse cx={((s.x1 ?? 0) + (s.x2 ?? 0)) / 2} cy={((s.y1 ?? 0) + (s.y2 ?? 0)) / 2} rx={Math.max(1, Math.abs((s.x2 ?? 0) - (s.x1 ?? 0)) / 2)} ry={Math.max(1, Math.abs((s.y2 ?? 0) - (s.y1 ?? 0)) / 2)} fill={s.fill ? s.color : "none"} stroke={s.fill ? "none" : s.color} stroke-width={s.width} />
+        <ellipse cx={((s.x1 ?? 0) + (s.x2 ?? 0)) / 2} cy={((s.y1 ?? 0) + (s.y2 ?? 0)) / 2} rx={Math.max(1, Math.abs((s.x2 ?? 0) - (s.x1 ?? 0)) / 2)} ry={Math.max(1, Math.abs((s.y2 ?? 0) - (s.y1 ?? 0)) / 2)} fill={s.fill ? s.fillColor || s.color : "none"} stroke={s.color} stroke-width={s.width} />
       {:else if s.type === "text"}
         <text x={s.x} y={s.y} fill={s.color} style={`font:${fontOf(s)}`} dominant-baseline="text-before-edge">
           {#each (s.text ?? "").split("\n") as line, i}<tspan x={s.x} dy={i ? lineH(s) : 0}>{line || " "}</tspan>{/each}

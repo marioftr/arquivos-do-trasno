@@ -16,7 +16,7 @@
 
   export let file: FileEntry;
 
-  const form = createForm({ frameMode: "viewer", frameAt: 0, audioExt: "mp3", audioKbps: 192 });
+  const form = createForm({ frameMode: "viewer", frameAt: 0, audioExt: "mp3", audioKbps: 192 }, undefined, "extract|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();

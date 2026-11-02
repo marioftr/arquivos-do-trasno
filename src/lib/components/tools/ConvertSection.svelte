@@ -43,7 +43,7 @@
     resizeH: null as number | null,
     keepRatio: true,
     maxSide: null as number | null,
-  });
+  }, undefined, "convert|" + selection.map((f) => f.path).join("|"));
   onMount(() => useForm(form));
 
   const job = createJob();

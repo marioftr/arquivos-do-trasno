@@ -19,7 +19,7 @@
   const form = createForm({
     speed: 1,
     volume: 1,
-  });
+  }, undefined, "mediaedit|" + file.path);
   onMount(() => useForm(form));
   // O visor reproduce xa coa velocidade e o volume elixidos.
   $: mediaPreview.set({ speed: $form.speed, volume: $form.volume });

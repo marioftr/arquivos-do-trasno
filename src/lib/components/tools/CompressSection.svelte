@@ -68,7 +68,7 @@
     videoKbps: 2000,
     sizeValue: 10,
     unit: "MB",
-  }, `comprimir2-${category}`);
+  }, `comprimir2-${category}`, "compress|" + selection.map((f) => f.path).join("|"));
   $: videoDar.set(isImage ? "" : v.dar ?? "");
   const own = claim("videoDar");
   onDestroy(() => own.release(() => videoDar.set("")));

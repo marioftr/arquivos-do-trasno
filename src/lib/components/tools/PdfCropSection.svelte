@@ -17,7 +17,7 @@
   export let file: FileEntry;
 
   const PT_PER_MM = 72 / 25.4;
-  const form = createForm({ left: 0, right: 0, top: 0, bottom: 0, same: false, pageSpec: "" });
+  const form = createForm({ left: 0, right: 0, top: 0, bottom: 0, same: false, pageSpec: "" }, undefined, "pdfcrop|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();

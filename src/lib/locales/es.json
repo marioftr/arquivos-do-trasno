@@ -937,8 +937,6 @@
   "Tamaño do texto": "Tamaño del texto",
   "Negriña": "Negrita",
   "Cursiva": "Cursiva",
-  "Borrar todo o debuxado": "Borrar todo lo dibujado",
-  "Só se borra o que debuxaches; a imaxe orixinal non se toca.": "Solo se borra lo que dibujaste; la imagen original no se toca.",
   "Gardar copia anotada": "Guardar copia anotada",
   "anotada": "anotada",
   "Non chegaron datos para gardar.": "No han llegado datos para guardar.",
@@ -1165,5 +1163,7 @@
   "O portapapeis púxose teimudo coa ruta. Tenta de novo.": "El portapapeles se puso terco con la ruta. Inténtalo de nuevo.",
   "Este PDF quere levarte a: {url}": "Este PDF quiere llevarte a: {url}",
   "Traballo cancelado. O trasno deixou todo ordenado, sen ficheiros a medias.": "Trabajo cancelado. El trasno lo ha dejado todo ordenado, sin archivos a medias.",
-  "Perfil «{name}» gardado: o trasno non o esquece.": "Perfil «{name}» guardado: el trasno no lo olvida."
+  "Perfil «{name}» gardado: o trasno non o esquece.": "Perfil «{name}» guardado: el trasno no lo olvida.",
+  "Borrar todas as anotacións": "Borrar todas las anotaciones",
+  "Cor do recheo": "Color del relleno"
 }

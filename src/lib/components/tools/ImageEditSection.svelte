@@ -36,7 +36,7 @@
     cw: file.width ?? 0,
     ch: file.height ?? 0,
     ext: file.ext === "jpg" || file.ext === "png" || file.ext === "webp" ? file.ext : "png",
-  });
+  }, undefined, "imgedit|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();

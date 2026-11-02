@@ -13,6 +13,8 @@ export interface Shape {
   color: string;
   width: number;
   fill?: boolean;
+  /** Cor do recheo (rect e ellipse); se falta, a mesma do trazo. */
+  fillColor?: string;
   /** Graos, en sentido horario, arredor do centro da figura. */
   angle?: number;
   /** pen e highlight */
@@ -36,6 +38,7 @@ export interface Style {
   color: string;
   width: number;
   fill: boolean;
+  fillColor: string;
   family: string;
   size: number;
   bold: boolean;
@@ -47,7 +50,16 @@ export interface Style {
 /** O separador de anotar está aberto: o visor deixa de mover a imaxe co rato esquerdo. */
 export const annoActive = writable(false);
 export const annoTool = writable<Tool>("pen");
-export const annoStyle = writable<Style>({ color: "#ff3b30", width: 5, fill: false, family: "Helvetica", size: 40, bold: false, italic: false, angle: 0 });
+export const annoStyle = writable<Style>({ color: "#ff3b30", width: 5, fill: false, fillColor: "", family: "Helvetica", size: 40, bold: false, italic: false, angle: 0 });
+/** Groso e recheo que lembra cada ferramenta por separado (o xiro e o resto non pasan dunha a outra). */
+export const toolPrefs: Record<string, { width: number; fill: boolean }> = {
+  pen: { width: 5, fill: false },
+  highlight: { width: 5, fill: false },
+  line: { width: 5, fill: false },
+  arrow: { width: 5, fill: false },
+  rect: { width: 5, fill: false },
+  ellipse: { width: 5, fill: false },
+};
 export const shapes = writable<Shape[]>([]);
 export const selected = writable<number | null>(null);
 /** Imaxe á que pertence o debuxado actual: ao cambiar de imaxe, empeza de cero. */
@@ -330,15 +342,21 @@ export function drawShape(ctx: CanvasRenderingContext2D, s: Shape) {
     const t = Math.min(s.y1 ?? 0, s.y2 ?? 0);
     const w = Math.abs((s.x2 ?? 0) - (s.x1 ?? 0));
     const h = Math.abs((s.y2 ?? 0) - (s.y1 ?? 0));
-    if (s.fill) ctx.fillRect(l, t, w, h);
-    else ctx.strokeRect(l, t, w, h);
+    if (s.fill) {
+      ctx.fillStyle = s.fillColor || s.color;
+      ctx.fillRect(l, t, w, h);
+    }
+    ctx.strokeRect(l, t, w, h);
   } else if (s.type === "ellipse") {
     const cx = ((s.x1 ?? 0) + (s.x2 ?? 0)) / 2;
     const cy = ((s.y1 ?? 0) + (s.y2 ?? 0)) / 2;
     ctx.beginPath();
     ctx.ellipse(cx, cy, Math.max(1, Math.abs((s.x2 ?? 0) - (s.x1 ?? 0)) / 2), Math.max(1, Math.abs((s.y2 ?? 0) - (s.y1 ?? 0)) / 2), 0, 0, Math.PI * 2);
-    if (s.fill) ctx.fill();
-    else ctx.stroke();
+    if (s.fill) {
+      ctx.fillStyle = s.fillColor || s.color;
+      ctx.fill();
+    }
+    ctx.stroke();
   } else if (s.type === "text") {
     ctx.font = fontOf(s);
     ctx.textBaseline = "top";
