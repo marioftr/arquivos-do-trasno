@@ -55,7 +55,7 @@
     }
     switch (cat) {
       case "imaxe":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("annotate", "Anotar"), tab("info", "Información")];
       case "video":
         return [tab("convert", "Converter"), tab("edit", "Editar"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
@@ -199,6 +199,8 @@
           <TrimSection file={first} />
         {:else if current === "edit" && mode === "effects" && first}
           <AudioEffectsSection file={first} />
+        {:else if current === "annotate" && first && category === "imaxe"}
+          <Lazy loader={() => import("./tools/AnnotateSection.svelte")} file={first} />
         {:else if current === "edit" && first && category === "imaxe"}
           <ImageEditSection file={first} />
         {:else if current === "edit" && first}

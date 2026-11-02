@@ -3,7 +3,7 @@
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
   import { get } from "svelte/store";
-  import { imageEdit, imageCrop, imageCropAspect, type FileEntry } from "../../files";
+  import { imageEdit, imageCrop, imageCropAspect, imageCropEnabled, type FileEntry } from "../../files";
   import { fileNameOf, TRASNO, fallo, listo, IMAGE_TARGETS } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
@@ -16,6 +16,7 @@
   import Segmented from "../ui/Segmented.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
   import Icon from "../Icon.svelte";
+  import { HINTS } from "../../hints";
 
   export let file: FileEntry;
 
@@ -56,36 +57,32 @@
     imageEdit.set(null);
     imageCrop.set(null);
     imageCropAspect.set(null);
+    imageCropEnabled.set(false);
   });
 
-  // ---- recorte visual: o visor e os campos están sempre sincronizados ----
+  // ---- recorte directo no visor: arrastrar sobre a imaxe debuxa o rectángulo; os campos seguen o que se ve
   const W = file.width ?? 0;
   const H = file.height ?? 0;
-  let wasOn = false;
-  $: {
-    const f = $form;
-    if (f.cropOn) {
-      if (!wasOn && f.cw === W && f.ch === H && W && H) {
-        // Ao acender o recorte, empeza cun rectángulo centrado ao 80 %.
-        const w = Math.round(W * 0.8);
-        const h = Math.round(H * 0.8);
-        form.update((v) => ({ ...v, cx: Math.round((W - w) / 2), cy: Math.round((H - h) / 2), cw: w, ch: h }));
-      } else {
-        const cur = get(imageCrop);
-        if (!cur || cur.x !== f.cx || cur.y !== f.cy || cur.w !== f.cw || cur.h !== f.ch) imageCrop.set({ x: f.cx, y: f.cy, w: f.cw, h: f.ch });
-      }
-    } else if (get(imageCrop)) {
-      imageCrop.set(null);
-    }
-    wasOn = f.cropOn;
-  }
-  onMount(() =>
-    imageCrop.subscribe((c) => {
-      if (!c) return;
+  onMount(() => {
+    imageCropEnabled.set(true);
+    return imageCrop.subscribe((c) => {
       const f = get(form);
-      if (f.cx !== c.x || f.cy !== c.y || f.cw !== c.w || f.ch !== c.h) form.update((v) => ({ ...v, cx: c.x, cy: c.y, cw: c.w, ch: c.h }));
-    }),
-  );
+      if (!c) {
+        if (f.cropOn) form.update((v) => ({ ...v, cropOn: false }));
+        return;
+      }
+      if (!f.cropOn || f.cx !== c.x || f.cy !== c.y || f.cw !== c.w || f.ch !== c.h) form.update((v) => ({ ...v, cropOn: true, cx: c.x, cy: c.y, cw: c.w, ch: c.h }));
+    });
+  });
+  /** Os campos numéricos moven o rectángulo do visor. */
+  function typedCrop() {
+    const f = get(form);
+    if (!f.cropOn) return;
+    const w = Math.max(1, Math.min(W, Math.round(f.cw)));
+    const h = Math.max(1, Math.min(H, Math.round(f.ch)));
+    imageCrop.set({ x: Math.max(0, Math.min(W - w, Math.round(f.cx))), y: Math.max(0, Math.min(H - h, Math.round(f.cy))), w, h });
+  }
+  $: ($form.cx, $form.cy, $form.cw, $form.ch, typedCrop());
 
   let aspect = "free";
   let lastAspect = "free";
@@ -101,8 +98,9 @@
     }
   }
   function fullCrop() {
-    form.update((v) => ({ ...v, cx: 0, cy: 0, cw: W, ch: H }));
+    imageCrop.set({ x: 0, y: 0, w: W, h: H });
   }
+  const clearCrop = () => imageCrop.set(null);
 
   const rot = (d: number) => form.update((f) => ({ ...f, rotate: (f.rotate + d + 360) % 360 }));
 
@@ -145,23 +143,32 @@
       <button class="btn" on:click={() => rot(270)} title={$t("Xirar 90° á esquerda")}>↺ {$t("Xirar 90° á esquerda")}</button>
       <button class="btn" on:click={() => rot(90)} title={$t("Xirar 90° á dereita")}>↻ {$t("Xirar 90° á dereita")}</button>
     </div>
-    <Toggle label={$t("Espello horizontal")} bind:checked={$form.flipH} />
-    <Toggle label={$t("Espello vertical")} bind:checked={$form.flipV} />
-    <Toggle label={$t("Recortar")} bind:checked={$form.cropOn} />
-    {#if $form.cropOn}
-      <p class="group-note">{$t("Arrastra o rectángulo sobre a imaxe, ou escribe as medidas.")}</p>
-      <Segmented
-        label={$t("Proporción")}
-        options={[
-          { value: "free", label: $t("Libre") },
-          { value: "1", label: "1:1" },
-          { value: "1.3333", label: "4:3" },
-          { value: "1.7778", label: "16:9" },
-          { value: "0.75", label: "3:4" },
-        ]}
-        bind:value={aspect}
-      />
+    <div class="pair">
+      <button class="btn tog" class:on={$form.flipH} aria-pressed={$form.flipH} on:click={() => ($form.flipH = !$form.flipH)} title={$t(HINTS["Espello horizontal"])}>⇋ {$t("Espello horizontal")}</button>
+      <button class="btn tog" class:on={$form.flipV} aria-pressed={$form.flipV} on:click={() => ($form.flipV = !$form.flipV)} title={$t(HINTS["Espello vertical"])}>⇅ {$t("Espello vertical")}</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <h4 class="group-title">{$t("Recortar")}</h4>
+    <p class="group-note">{$t("Arrastra sobre a imaxe para escoller o que queda. Despois podes mover o rectángulo ou tirar das esquinas.")}</p>
+    <Segmented
+      label={$t("Proporción")}
+      options={[
+        { value: "free", label: $t("Libre") },
+        { value: "1", label: "1:1" },
+        { value: "1.3333", label: "4:3" },
+        { value: "1.7778", label: "16:9" },
+        { value: "0.75", label: "3:4" },
+        { value: "0.5625", label: "9:16" },
+      ]}
+      bind:value={aspect}
+    />
+    <div class="pair">
       <button class="btn" on:click={fullCrop}>{$t("Toda a imaxe")}</button>
+      <button class="btn" on:click={clearCrop} disabled={!$form.cropOn}>{$t("Quitar o recorte")}</button>
+    </div>
+    {#if $form.cropOn}
       <div class="pair">
         <NumberField label="X" unit="px" min={0} bind:value={$form.cx} />
         <NumberField label="Y" unit="px" min={0} bind:value={$form.cy} />

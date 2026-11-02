@@ -44,6 +44,10 @@
     <path d="M3 15v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" />
     <path d="M12 3v12" />
     <polyline points="7.5 10.5 12 15 16.5 10.5" />
+  {:else if name === "pipette"}
+    <path d="m2 22 1-1h3l9-9" />
+    <path d="M3 21v-3l9-9" />
+    <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z" />
   {:else if name === "video"}
     <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" />
     <polygon points="10 9 15.5 12 10 15" />

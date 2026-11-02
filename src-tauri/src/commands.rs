@@ -589,6 +589,37 @@ pub async fn make_preview_chunk(path: String, start: f64, len: f64, video: Optio
     .await
 }
 
+/// Garda os bytes que chegan no corpo (a interface xa renderizou a imaxe) no ficheiro da cabeceira `x-path`.
+/// Escríbese nun temporal ao carón e renómease, así nunca queda un ficheiro a medias.
+#[tauri::command]
+pub async fn save_bytes(request: tauri::ipc::Request<'_>) -> Result<String, String> {
+    let tauri::ipc::InvokeBody::Raw(data) = request.body() else {
+        return Err(msg("Non chegaron datos para gardar.", serde_json::json!({})));
+    };
+    let data = data.clone();
+    let path = request
+        .headers()
+        .get("x-path")
+        .and_then(|v| v.to_str().ok())
+        .map(percent_decode)
+        .ok_or_else(|| msg("Falta a ruta de destino.", serde_json::json!({})))?;
+    blocking(move || {
+        let out = PathBuf::from(&path);
+        if data.is_empty() {
+            return Err(msg("Non hai nada que gardar.", serde_json::json!({})));
+        }
+        let dir = out.parent().ok_or_else(|| msg("A ruta non ten cartafol.", serde_json::json!({})))?;
+        let tmp = dir.join(format!(".{}.part", out.file_name().and_then(|n| n.to_str()).unwrap_or("saida")));
+        std::fs::write(&tmp, &data).map_err(|e| e.to_string())?;
+        std::fs::rename(&tmp, &out).map_err(|e| {
+            let _ = std::fs::remove_file(&tmp);
+            e.to_string()
+        })?;
+        Ok(path)
+    })
+    .await
+}
+
 /// Un fotograma dun vídeo (en calquera formato que lea ffmpeg) como JPG pequeno, para a vista previa de «Extraer fotogramas».
 #[tauri::command]
 pub async fn make_frame_preview(path: String, time: f64) -> Result<String, String> {

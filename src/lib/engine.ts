@@ -183,6 +183,8 @@ export async function makePreviewChunk(path: string, start: number, len: number,
 }
 
 /** Subtítulos de texto dun vídeo en WebVTT (índice entre os subtítulos). */
+/** Garda uns bytes (por exemplo, unha imaxe con debuxo) nun ficheiro novo: primeiro un temporal e despois o nome final. */
+export const saveBytes = (path: string, bytes: Uint8Array): Promise<string> => call("save_bytes", bytes, { headers: { "x-path": encodeURIComponent(path) } });
 export const makeFramePreview = (path: string, time: number): Promise<string> => call("make_frame_preview", { path, time });
 export async function makeSubtitles(path: string, index: number): Promise<string> {
   return call("make_subtitles", { path, index });
