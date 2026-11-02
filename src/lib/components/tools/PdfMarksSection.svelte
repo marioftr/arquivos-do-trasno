@@ -4,7 +4,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
-  import { pdfOverlay, viewUrl, type FileEntry, type PdfTextBox } from "../../files";
+  import { pdfOverlay, pdfTextStash, newPdfTextId, viewUrl, type FileEntry, type PdfTextBox } from "../../files";
   import { resolveFont } from "../../fonts";
   import { fallo, fileNameOf, listo, TRASNO } from "../../formats";
   import { t, tr } from "../../i18n";
@@ -71,7 +71,18 @@
   $: pages = safePages(f.pageSpec, file.pages);
 
   // ---- textos sobre a páxina: o visor mostra, move, escala e xira; aquí quedan a lista e os axustes do escollido
-  let nextId = 1;
+  // Cada PDF garda os seus textos: ao cambiar de ficheiro gárdanse os de agora e cárganse os do novo.
+  let curPath = file.path;
+  $: if (file.path !== curPath) {
+    pdfTextStash.set(curPath, get(form).txItems);
+    curPath = file.path;
+    form.update((v) => ({ ...v, txItems: pdfTextStash.get(file.path) ?? [], txSel: null, txEditing: null }));
+  }
+  onMount(() => {
+    const mine = pdfTextStash.get(file.path);
+    if (mine && !get(form).txItems.length) form.update((v) => ({ ...v, txItems: mine }));
+  });
+  onDestroy(() => pdfTextStash.set(curPath, get(form).txItems));
   $: sel = f.txItems.find((i) => i.id === f.txSel) ?? null;
   interface Ui {
     text: string;
@@ -109,7 +120,7 @@
   const items = {
     onSelect: (id: number | null) => form.update((v) => (v.txSel === id && v.txEditing === null ? v : { ...v, txSel: id, txEditing: null })),
     onPlace: (page: number, x: number, y: number) => {
-      const id = nextId++;
+      const id = newPdfTextId();
       form.update((v) => ({
         ...v,
         txItems: [...v.txItems, { id, page, xPct: x, yPct: y, text: tr("Texto"), size: v.txSize, color: v.txColor, family: v.txFamily, bold: v.txBold, italic: v.txItalic, angle: 0 }],
@@ -147,7 +158,7 @@
     const total = file.pages ?? 0;
     if (!it || !total) return;
     const copies: PdfTextBox[] = [];
-    for (let n = 1; n <= total; n++) if (n !== it.page && !f.txItems.some((x) => x.page === n && x.text === it.text && x.xPct === it.xPct && x.yPct === it.yPct)) copies.push({ ...it, id: nextId++, page: n });
+    for (let n = 1; n <= total; n++) if (n !== it.page && !f.txItems.some((x) => x.page === n && x.text === it.text && x.xPct === it.xPct && x.yPct === it.yPct)) copies.push({ ...it, id: newPdfTextId(), page: n });
     form.update((v) => ({ ...v, txItems: [...v.txItems, ...copies] }));
   }
   const snippet = (s: string) => (s.replace(/\s+/g, " ").trim().slice(0, 34) || "…") + (s.length > 34 ? "…" : "");

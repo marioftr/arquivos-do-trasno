@@ -147,14 +147,6 @@ pub fn edit_image(
     let dst_format = if to_pdf { ImageFormat::Png } else { format_from_ext(&dst_ext)? };
     let mut img = image::open(input)?;
 
-    if let Some((x, y, w, h)) = edits.crop {
-        if w == 0 || h == 0 || x >= img.width() || y >= img.height() {
-            return Err(EngineError::IntegrityCheck("O recorte queda fóra da imaxe.".into()));
-        }
-        let w = w.min(img.width() - x);
-        let h = h.min(img.height() - y);
-        img = img.crop_imm(x, y, w, h);
-    }
     img = match edits.rotate % 360 {
         90 => img.rotate90(),
         180 => img.rotate180(),
@@ -167,6 +159,15 @@ pub fn edit_image(
     }
     if edits.flip_v {
         img = img.flipv();
+    }
+    // O recorte aplícase despois do xiro e dos espellos: as medidas son as da imaxe tal como se ve.
+    if let Some((x, y, w, h)) = edits.crop {
+        if w == 0 || h == 0 || x >= img.width() || y >= img.height() {
+            return Err(EngineError::IntegrityCheck("O recorte queda fóra da imaxe.".into()));
+        }
+        let w = w.min(img.width() - x);
+        let h = h.min(img.height() - y);
+        img = img.crop_imm(x, y, w, h);
     }
     if edits.grayscale {
         img = image::DynamicImage::ImageLuma8(img.to_luma8()).to_rgba8().into();

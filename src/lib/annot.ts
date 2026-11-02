@@ -13,6 +13,8 @@ export interface Shape {
   color: string;
   width: number;
   fill?: boolean;
+  /** Graos, en sentido horario, arredor do centro da figura. */
+  angle?: number;
   /** pen e highlight */
   pts?: [number, number][];
   /** line, arrow, rect, ellipse */
@@ -49,6 +51,25 @@ export const selected = writable<number | null>(null);
 /** Imaxe á que pertence o debuxado actual: ao cambiar de imaxe, empeza de cero. */
 export const annoPath = writable("");
 export const setAnnoPath = (p: string) => annoPath.set(p);
+/** O debuxado de cada imaxe lémbrase ao cambiar de ficheiro (mentres a app siga aberta). */
+const stash = new Map<string, { shapes: Shape[]; past: Shape[][]; future: Shape[][] }>();
+/** Pasa ao debuxado da imaxe `path`: garda o da anterior e recupera o desta (ou empeza baleiro). */
+export function activateAnno(path: string) {
+  const cur = get(annoPath);
+  if (cur === path) return;
+  if (cur) stash.set(cur, { shapes: get(shapes), past: [...past], future: [...future] });
+  const mine = stash.get(path);
+  past.length = 0;
+  future.length = 0;
+  if (mine) {
+    past.push(...mine.past);
+    future.push(...mine.future);
+    shapes.set(mine.shapes);
+  } else shapes.set([]);
+  selected.set(null);
+  annoPath.set(path);
+  sync();
+}
 
 // ---- historial: desfacer e refacer só sobre o debuxado polo usuario
 const past: Shape[][] = [];
@@ -146,8 +167,25 @@ function distSeg(px: number, py: number, ax: number, ay: number, bx: number, by:
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
+export function centerOf(s: Shape): [number, number] {
+  const b = boundsOf(s);
+  return [(b.l + b.r) / 2, (b.t + b.b) / 2];
+}
+
 /** Se o punto (en píxeles da imaxe) toca a figura; `tol` é a tolerancia (máis ampla ao usar a goma). */
 export function hit(s: Shape, x: number, y: number, tol: number): boolean {
+  if (s.angle) {
+    // Desfaise o xiro no punto e compróbase coa figura sen xirar.
+    const [cx, cy] = centerOf(s);
+    const a = (-s.angle * Math.PI) / 180;
+    const dx = x - cx;
+    const dy = y - cy;
+    return hitRaw(s, cx + dx * Math.cos(a) - dy * Math.sin(a), cy + dx * Math.sin(a) + dy * Math.cos(a), tol);
+  }
+  return hitRaw(s, x, y, tol);
+}
+
+function hitRaw(s: Shape, x: number, y: number, tol: number): boolean {
   const reach = tol + s.width / 2;
   if (s.type === "pen" || s.type === "highlight") {
     const p = s.pts ?? [];
@@ -180,6 +218,24 @@ export function hit(s: Shape, x: number, y: number, tol: number): boolean {
   return Math.abs(k - 1) <= reach / Math.min(rx, ry);
 }
 
+/** Escala a figura por `k` tomando como ancoraxe a súa esquina de arriba á esquerda (o texto cambia de tamaño). */
+export function scaled(s: Shape, k: number): Shape {
+  const b = boundsOf(s);
+  const ox = b.l;
+  const oy = b.t;
+  const f = (v: number, o: number) => o + (v - o) * k;
+  const c: Shape = { ...s };
+  if (s.type === "text") {
+    c.size = Math.max(4, (s.size ?? 32) * k);
+    return c;
+  }
+  c.width = Math.max(1, s.width * k);
+  if (s.pts) c.pts = s.pts.map(([x, y]) => [f(x, ox), f(y, oy)]);
+  for (const key of ["x1", "x2"] as const) if (s[key] !== undefined) c[key] = f(s[key] as number, ox);
+  for (const key of ["y1", "y2"] as const) if (s[key] !== undefined) c[key] = f(s[key] as number, oy);
+  return c;
+}
+
 export function moved(s: Shape, dx: number, dy: number): Shape {
   const c: Shape = { ...s };
   if (s.pts) c.pts = s.pts.map(([x, y]) => [x + dx, y + dy]);
@@ -200,6 +256,12 @@ export function arrowHead(s: Shape): [number, number][] {
 // ---- debuxo en canvas (o mesmo aspecto que o SVG do visor)
 export function drawShape(ctx: CanvasRenderingContext2D, s: Shape) {
   ctx.save();
+  if (s.angle) {
+    const [cx, cy] = centerOf(s);
+    ctx.translate(cx, cy);
+    ctx.rotate((s.angle * Math.PI) / 180);
+    ctx.translate(-cx, -cy);
+  }
   ctx.strokeStyle = s.color;
   ctx.fillStyle = s.color;
   ctx.lineWidth = s.width;

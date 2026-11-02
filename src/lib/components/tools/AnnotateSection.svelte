@@ -9,7 +9,7 @@
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
   import { annoActive, annoTool, annoStyle, shapes, selected, canUndo, canRedo, undo, redo, clearAll, resetAnnotations, renderAnnotated, type Tool } from "../../annot";
-  import { setAnnoPath, annoPath } from "../../annot";
+  import { activateAnno } from "../../annot";
   import Slider from "../ui/Slider.svelte";
   import SelectField from "../ui/SelectField.svelte";
   import FontPicker from "../ui/FontPicker.svelte";
@@ -25,21 +25,15 @@
   let ext = file.ext === "jpg" || file.ext === "webp" ? file.ext : "png";
 
   onMount(() => {
-    if (get(annoPath) !== file.path) {
-      resetAnnotations();
-      setAnnoPath(file.path);
-    }
+    activateAnno(file.path);
     annoActive.set(true);
   });
   onDestroy(() => {
     annoActive.set(false);
     selected.set(null);
   });
-  // Outra imaxe: o debuxado empeza de cero.
-  $: if (get(annoPath) !== file.path) {
-    resetAnnotations();
-    setAnnoPath(file.path);
-  }
+  // Outra imaxe: gárdase o debuxado desta e recupérase o da nova.
+  $: activateAnno(file.path);
 
   const TOOLS: { id: Tool; label: string; icon: string; hint: string }[] = [
     { id: "select", label: "Seleccionar", icon: "cursor", hint: "Move as figuras. Dobre clic nun texto para editalo; Supr borra a seleccionada." },
@@ -54,29 +48,38 @@
   ];
 
   $: tool = $annoTool;
-  $: textTool = tool === "text" || ($selected !== null && $shapes.find((s) => s.id === $selected)?.type === "text");
-  $: shapeTool = tool === "rect" || tool === "ellipse" || ($selected !== null && ["rect", "ellipse"].includes($shapes.find((s) => s.id === $selected)?.type ?? ""));
-  $: noStroke = textTool && tool !== "select" ? true : false;
+  $: selShape = $shapes.find((x) => x.id === $selected) ?? null;
+  // Que axustes se ven: os da figura escollida ou, se non hai ningunha, os da ferramenta activa.
+  $: kind = selShape?.type ?? (tool === "select" || tool === "eraser" ? null : tool);
+  $: showWidth = !!kind && kind !== "text";
+  $: showFill = kind === "rect" || kind === "ellipse";
+  $: showText = kind === "text";
 
-  // Cambiar a cor, o groso ou a letra cambia tamén a figura seleccionada.
+  type St = typeof $annoStyle;
+  const sameStyle = (sh: (typeof $shapes)[number], st: St) =>
+    sh.type === "text"
+      ? sh.color === st.color && sh.size === st.size && sh.family === st.family && !!sh.bold === st.bold && !!sh.italic === st.italic
+      : sh.color === st.color && sh.width === st.width && (sh.type === "rect" || sh.type === "ellipse" ? !!sh.fill === st.fill : true);
+  // Cambiar a cor, o groso ou a letra cambia tamén a figura escollida...
   $: restyle($annoStyle);
-  function restyle(st: typeof $annoStyle) {
+  function restyle(st: St) {
     const id = get(selected);
-    if (id === null) return;
+    const cur = get(shapes).find((x) => x.id === id);
+    if (!cur || sameStyle(cur, st)) return;
     shapes.update((l) =>
-      l.map((s) =>
-        s.id !== id
-          ? s
-          : s.type === "text"
-            ? { ...s, color: st.color, size: st.size, family: st.family, bold: st.bold, italic: st.italic }
-            : { ...s, color: st.color, width: st.width, fill: s.type === "rect" || s.type === "ellipse" ? st.fill : s.fill },
+      l.map((x) =>
+        x.id !== id
+          ? x
+          : x.type === "text"
+            ? { ...x, color: st.color, size: st.size, family: st.family, bold: st.bold, italic: st.italic }
+            : { ...x, color: st.color, width: st.width, fill: x.type === "rect" || x.type === "ellipse" ? st.fill : x.fill },
       ),
     );
   }
-  // Ao seleccionar unha figura, o panel amosa os seus axustes.
-  $: if ($selected !== null) {
-    const s = get(shapes).find((x) => x.id === $selected);
-    if (s) annoStyle.update((st) => (s.type === "text" ? { ...st, color: s.color, size: s.size ?? st.size, family: s.family ?? st.family, bold: !!s.bold, italic: !!s.italic } : { ...st, color: s.color, width: s.width, fill: !!s.fill }));
+  // ...e ao revés: o panel amosa os axustes da figura escollida (tamén despois de escalala ou cambiala).
+  $: if (selShape && !sameStyle(selShape, get(annoStyle))) {
+    const sh = selShape;
+    annoStyle.update((st) => (sh.type === "text" ? { ...st, color: sh.color, size: Math.round(sh.size ?? st.size), family: sh.family ?? st.family, bold: !!sh.bold, italic: !!sh.italic } : { ...st, color: sh.color, width: sh.width, fill: !!sh.fill }));
   }
 
   async function save() {
@@ -115,16 +118,20 @@
 
   <div class="group">
     <h4 class="group-title">{$t("Aspecto")}</h4>
-    <ColorField label={$t("Cor")} bind:value={$annoStyle.color} />
-    {#if !textTool || tool === "select"}
-      <Slider label={$t("Groso")} unit="px" min={1} max={60} bind:value={$annoStyle.width} def={5} />
-    {/if}
-    {#if shapeTool}
-      <Toggle label={$t("Encher a figura")} bind:checked={$annoStyle.fill} />
-    {/if}
-    {#if textTool}
-      <FontPicker label={$t("Letra")} bind:family={$annoStyle.family} bind:bold={$annoStyle.bold} bind:italic={$annoStyle.italic} defFamily="Helvetica" />
-      <Slider label={$t("Tamaño do texto")} unit="px" min={8} max={300} bind:value={$annoStyle.size} def={40} />
+    {#if kind}
+      <ColorField label={$t("Cor")} bind:value={$annoStyle.color} />
+      {#if showWidth}
+        <Slider label={$t("Groso")} unit="px" min={1} max={60} bind:value={$annoStyle.width} def={5} />
+      {/if}
+      {#if showFill}
+        <Toggle label={$t("Encher a figura")} bind:checked={$annoStyle.fill} />
+      {/if}
+      {#if showText}
+        <FontPicker label={$t("Letra")} bind:family={$annoStyle.family} bind:bold={$annoStyle.bold} bind:italic={$annoStyle.italic} defFamily="Helvetica" />
+        <Slider label={$t("Tamaño do texto")} unit="px" min={8} max={300} bind:value={$annoStyle.size} def={40} />
+      {/if}
+    {:else if tool === "select"}
+      <p class="group-note">{$t("Preme unha figura para movela, cambiar o seu aspecto, escalala coa esquina ou xirala co círculo.")}</p>
     {/if}
   </div>
 

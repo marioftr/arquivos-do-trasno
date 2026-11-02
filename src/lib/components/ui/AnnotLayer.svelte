@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick, onDestroy } from "svelte";
   import { get } from "svelte/store";
-  import { annoTool, annoStyle, shapes, selected, commit, newId, boundsOf, hit, moved, arrowHead, fontOf, lineH, undo, redo, type Shape } from "../../annot";
+  import { annoTool, annoStyle, shapes, selected, commit, newId, boundsOf, centerOf, hit, moved, scaled, arrowHead, fontOf, lineH, undo, redo, type Shape } from "../../annot";
 
   /** Caixa da imaxe dentro do visor (px da pantalla), escala (pantalla / píxeles da imaxe) e tamaño da imaxe. */
   export let box: { l: number; t: number; w: number; h: number };
@@ -17,6 +17,31 @@
   let eraseBefore: Shape[] = [];
   let editBefore: Shape[] | null = null;
   let editing: Shape | null = null;
+  // Escalar (esquina) e xirar (círculo de arriba) a figura escollida, como nos textos do PDF.
+  let scaling: { id: number; orig: Shape; before: Shape[]; w0: number; ux: number; uy: number; sx: number; sy: number } | null = null;
+  let rotating: { id: number; orig: Shape; before: Shape[]; cx: number; cy: number; a0: number } | null = null;
+  const imgPt = (e: PointerEvent): [number, number] => {
+    const r = svg.getBoundingClientRect();
+    return [(e.clientX - r.left) / sc, (e.clientY - r.top) / sc];
+  };
+  function startScale(e: PointerEvent, s: Shape) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    const b = boundsOf(s);
+    const a = ((s.angle ?? 0) * Math.PI) / 180;
+    scaling = { id: s.id, orig: s, before: get(shapes), w0: Math.max(4, b.r - b.l), ux: Math.cos(a), uy: Math.sin(a), sx: e.clientX, sy: e.clientY };
+  }
+  function startRotate(e: PointerEvent, s: Shape) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    const [cx, cy] = centerOf(s);
+    const [px, py] = imgPt(e);
+    rotating = { id: s.id, orig: s, before: get(shapes), cx, cy, a0: Math.atan2(py - cy, px - cx) };
+  }
   let editor: HTMLTextAreaElement | undefined;
 
   const pt = (e: PointerEvent): [number, number] => {
@@ -75,6 +100,21 @@
   }
 
   function move(e: PointerEvent) {
+    if (scaling) {
+      const d = ((e.clientX - scaling.sx) * scaling.ux + (e.clientY - scaling.sy) * scaling.uy) / sc;
+      const k = Math.max(0.1, (scaling.w0 + d) / scaling.w0);
+      const next = scaled(scaling.orig, k);
+      shapes.update((l) => l.map((x) => (x.id === scaling!.id ? next : x)));
+      return;
+    }
+    if (rotating) {
+      const [px, py] = imgPt(e);
+      let a = (rotating.orig.angle ?? 0) + ((Math.atan2(py - rotating.cy, px - rotating.cx) - rotating.a0) * 180) / Math.PI;
+      if (e.shiftKey) a = Math.round(a / 15) * 15;
+      a = Math.round((((a + 180) % 360) + 360) % 360 - 180);
+      shapes.update((l) => l.map((x) => (x.id === rotating!.id ? { ...x, angle: a } : x)));
+      return;
+    }
     const [x, y] = pt(e);
     if (erasing) return eraseAt(x, y);
     if (drag) {
@@ -109,6 +149,17 @@
   }
 
   function up() {
+    if (scaling || rotating) {
+      const before = (scaling ?? rotating)!.before;
+      const final = get(shapes);
+      scaling = null;
+      rotating = null;
+      if (JSON.stringify(final) !== JSON.stringify(before)) {
+        shapes.set(before);
+        commit(final);
+      }
+      return;
+    }
     if (erasing) {
       erasing = false;
       // o borrado fíxose sobre a marcha: queda no historial como un só paso
@@ -219,6 +270,7 @@
     on:dblclick={dbl}
   >
     {#each items as s (s.id)}
+      <g transform={s.angle ? `rotate(${s.angle} ${centerOf(s)[0]} ${centerOf(s)[1]})` : undefined}>
       {#if s.type === "pen" || s.type === "highlight"}
         {#if (s.pts ?? []).length === 1}
           <circle cx={s.pts?.[0][0]} cy={s.pts?.[0][1]} r={(s.type === "highlight" ? s.width * 3 : s.width) / 2} fill={s.color} opacity={s.type === "highlight" ? 0.38 : 1} />
@@ -240,9 +292,19 @@
           {#each (s.text ?? "").split("\n") as line, i}<tspan x={s.x} dy={i ? lineH(s) : 0}>{line || " "}</tspan>{/each}
         </text>
       {/if}
+      </g>
     {/each}
-    {#if selBox}
-      <rect class="sel" x={selBox.l} y={selBox.t} width={selBox.r - selBox.l} height={selBox.b - selBox.t} vector-effect="non-scaling-stroke" />
+    {#if sel && selBox && $annoTool === "select"}
+      <g transform={sel.angle ? `rotate(${sel.angle} ${(selBox.l + selBox.r) / 2} ${(selBox.t + selBox.b) / 2})` : undefined}>
+        <rect class="sel" x={selBox.l} y={selBox.t} width={selBox.r - selBox.l} height={selBox.b - selBox.t} vector-effect="non-scaling-stroke" />
+        <line class="stem" x1={(selBox.l + selBox.r) / 2} y1={selBox.t} x2={(selBox.l + selBox.r) / 2} y2={selBox.t - 26 / sc} vector-effect="non-scaling-stroke" />
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <circle class="rot" cx={(selBox.l + selBox.r) / 2} cy={selBox.t - 30 / sc} r={7 / sc} on:pointerdown={(e) => startRotate(e, sel)} />
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <rect class="grip" x={selBox.r - 7 / sc} y={selBox.b - 7 / sc} width={14 / sc} height={14 / sc} on:pointerdown={(e) => startScale(e, sel)} />
+      </g>
+    {:else if selBox && sel}
+      <rect class="sel" x={selBox.l} y={selBox.t} width={selBox.r - selBox.l} height={selBox.b - selBox.t} vector-effect="non-scaling-stroke" transform={sel.angle ? `rotate(${sel.angle} ${(selBox.l + selBox.r) / 2} ${(selBox.t + selBox.b) / 2})` : undefined} />
     {/if}
   </svg>
   {#if editing}
@@ -263,6 +325,9 @@
 <style>
   .wrap { position: absolute; pointer-events: none; overflow: visible; }
   svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: auto; touch-action: none; overflow: hidden; }
+  .stem { stroke: #4aa3ff; stroke-width: 1.5px; pointer-events: none; }
+  .rot { fill: #4aa3ff; stroke: #fff; stroke-width: 2px; vector-effect: non-scaling-stroke; cursor: grab; }
+  .grip { fill: #fff; stroke: #4aa3ff; stroke-width: 2px; vector-effect: non-scaling-stroke; cursor: nwse-resize; }
   .sel { fill: none; stroke: #4aa3ff; stroke-width: 1.5px; stroke-dasharray: 5 3; pointer-events: none; }
   .ed { position: absolute; min-width: 4ch; max-width: 100%; padding: 0; margin: 0; background: rgba(255, 255, 255, 0.08); border: 1px dashed #4aa3ff; outline: none; resize: none; overflow: hidden; white-space: pre; pointer-events: auto; }
 </style>

@@ -25,6 +25,7 @@
   import Icon from "./Icon.svelte";
   import { tools, openSettings, toolActions, jump } from "../settings";
   import { requestTool } from "../toolinstall";
+  import { ocrActive } from "../ocr";
   import MergeSection from "./tools/MergeSection.svelte";
   import InfoSection from "./tools/InfoSection.svelte";
 
@@ -169,7 +170,10 @@
       <div class="formbar"><FormBar form={$activeForm} /></div>
     {/if}
 
-    <div class="body scrollbar-thin" bind:this={body}>
+    {#if $ocrActive && category === "imaxe" && (current === "edit" || current === "annotate")}
+      <p class="ocrnote">{$t("Desactiva «Texto da imaxe» para usar estas ferramentas.")}</p>
+    {/if}
+    <div class="body scrollbar-thin" class:off={$ocrActive && category === "imaxe" && (current === "edit" || current === "annotate")} inert={$ocrActive && category === "imaxe" && (current === "edit" || current === "annotate")} bind:this={body}>
       {#if modes.length}
         <div class="modes"><Segmented options={modes} bind:value={sub[current]} /></div>
       {/if}
@@ -241,6 +245,8 @@
   header h2 { margin: 0; font-size: 1.02rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sub { margin: 0.15rem 0 0; font-size: 0.8rem; }
   .formbar { padding: 0.45rem 1.1rem 0; flex-shrink: 0; }
+  .ocrnote { margin: 0; padding: 0.5rem 1.1rem; font-size: 0.8rem; color: var(--accent-pdf); border-bottom: 1px solid var(--border); }
+  .body.off { opacity: 0.45; }
   .body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.9rem 1.1rem 1.5rem; }
   .locked { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; text-align: center; padding: 2rem 1rem; color: var(--accent-pdf); }
   .locked p { margin: 0; color: var(--text); }

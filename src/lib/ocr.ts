@@ -40,6 +40,8 @@ export function rememberLang(l: string) {
 export const ocrInstalled = writable<string[]>([]);
 export const ocrDownload = writable<{ lang: string; progress: number } | null>(null);
 export const ocrProgress = writable(0);
+/** Mentres se le ou se selecciona o texto da imaxe, as ferramentas do panel de ao lado quedan desactivadas. */
+export const ocrActive = writable(false);
 let dir = "";
 
 export async function refreshOcr() {

@@ -606,6 +606,7 @@
   .vrow:fullscreen, .vrow::backdrop { background: #000; }
   .vrow.fs { background: #000; position: relative; }
   .vrow.fs .vid, .vrow.fs .screen { background: #000; }
+  .vrow.fs .note { display: none; }
   .vrow.fs .screen { position: absolute; inset: 0; }
   .vrow.fs video { width: 100%; height: 100%; }
   .vrow.fs .under { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; transition: opacity 0.2s ease; }

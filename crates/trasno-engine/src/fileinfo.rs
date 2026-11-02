@@ -21,6 +21,20 @@ pub struct Info {
 fn row(l: &str, v: impl Into<String>) -> [String; 2] {
     [l.to_string(), v.into()]
 }
+/// Fila que só se amosa na vista avanzada (o resumo leva só as demais).
+fn x(l: &str, v: impl Into<String>) -> [String; 2] {
+    [format!("+{l}"), v.into()]
+}
+
+/// O resumo leva as filas sen «+»; a avanzada, todas (co «+» quitado) e mais os grupos extra.
+fn finish(groups: Vec<Group>, extra: Vec<Group>) -> Info {
+    let strip = |g: &Group| Group { title: g.title.clone(), rows: g.rows.iter().map(|r| [r[0].trim_start_matches('+').to_string(), r[1].clone()]).collect() };
+    let summary: Vec<Group> = groups.iter().map(|g| Group { title: g.title.clone(), rows: g.rows.iter().filter(|r| !r[0].starts_with('+')).cloned().collect() }).filter(|g| !g.rows.is_empty()).collect();
+    let mut advanced: Vec<Group> = groups.iter().map(strip).filter(|g| !g.rows.is_empty()).collect();
+    advanced.extend(extra);
+    Info { summary, advanced }
+}
+
 fn group(title: &str, rows: Vec<[String; 2]>) -> Group {
     Group { title: title.to_string(), rows }
 }
@@ -80,13 +94,13 @@ fn file_group(path: &Path) -> Group {
         for (label, t) in [("Creado", m.created()), ("Modificado", m.modified())] {
             if let Ok(t) = t {
                 if let Ok(d) = t.duration_since(std::time::UNIX_EPOCH) {
-                    rows.push(row(label, format!("@date:{}", d.as_secs())));
+                    rows.push(x(label, format!("@date:{}", d.as_secs())));
                 }
             }
         }
     }
     if let Some(e) = path.extension().and_then(|e| e.to_str()) {
-        rows.insert(0, row("Tipo", e.to_uppercase()));
+        rows.insert(0, x("Tipo", e.to_uppercase()));
     }
     group("Ficheiro", rows)
 }
@@ -122,11 +136,12 @@ pub fn describe_image(path: &Path) -> Result<Info> {
     let mut summary = Vec::new();
     let mut size_rows = vec![
         row("Dimensións", format!("{w} × {h} px")),
-        row("Megapíxeles", format!("{:.1} MP", (w as f64 * h as f64) / 1_000_000.0)),
-        row("Forma", format!("{} · {}", orientation_text(w as u64, h as u64), ratio_text(w as u64, h as u64))),
+        x("Megapíxeles", format!("{:.1} MP", (w as f64 * h as f64) / 1_000_000.0)),
+        x("Forma", format!("{} · {}", orientation_text(w as u64, h as u64), ratio_text(w as u64, h as u64))),
     ];
-    size_rows.push(row("Cor", if depth.is_empty() { mode.to_string() } else { format!("{mode} · {depth}") }));
-    size_rows.push(row("Transparencia", if has_alpha { "Si" } else { "Non" }));
+    size_rows.push(x("Cor", if depth.is_empty() { mode.to_string() } else { format!("{mode} · {depth}") }));
+    size_rows.push(x("Transparencia", if has_alpha { "Si" } else { "Non" }));
+    size_rows.push(x("Píxeles en total", group_digits(w as u64 * h as u64)));
     if let Some(f) = format {
         size_rows.insert(0, row("Formato", format!("{f:?}").to_uppercase()));
     }
@@ -148,21 +163,21 @@ pub fn describe_image(path: &Path) -> Result<Info> {
             (None, Some(b)) | (Some(b), None) => cam.push(row("Cámara", b)),
             _ => {}
         }
-        for (label, tag) in [
-            ("Data da toma", exif::Tag::DateTimeOriginal),
-            ("Exposición", exif::Tag::ExposureTime),
-            ("Apertura", exif::Tag::FNumber),
-            ("ISO", exif::Tag::PhotographicSensitivity),
-            ("Distancia focal", exif::Tag::FocalLength),
-            ("Obxectivo", exif::Tag::LensModel),
-            ("Programa", exif::Tag::Software),
+        for (label, tag, core) in [
+            ("Data da toma", exif::Tag::DateTimeOriginal, true),
+            ("Exposición", exif::Tag::ExposureTime, false),
+            ("Apertura", exif::Tag::FNumber, false),
+            ("ISO", exif::Tag::PhotographicSensitivity, false),
+            ("Distancia focal", exif::Tag::FocalLength, false),
+            ("Obxectivo", exif::Tag::LensModel, false),
+            ("Programa", exif::Tag::Software, false),
         ] {
             if let Some(v) = get(tag) {
-                cam.push(row(label, v));
+                cam.push(if core { row(label, v) } else { x(label, v) });
             }
         }
         if ex.get_field(exif::Tag::GPSLatitude, exif::In::PRIMARY).is_some() {
-            cam.push(row("Localización GPS", "Si (a foto garda onde se tomou)"));
+            cam.push(x("Localización GPS", "Si (a foto garda onde se tomou)"));
         }
         if !cam.is_empty() {
             summary.push(group("Cámara", cam));
@@ -173,8 +188,7 @@ pub fn describe_image(path: &Path) -> Result<Info> {
         }
     }
     summary.push(file_group(path));
-    advanced.insert(0, group("Imaxe", vec![row("Ancho", format!("{w} px")), row("Alto", format!("{h} px")), row("Píxeles en total", group_digits(w as u64 * h as u64))]));
-    Ok(Info { summary, advanced })
+    Ok(finish(summary, advanced))
 }
 
 // --------------------------------------------------------------------- PDF
@@ -226,7 +240,7 @@ pub fn describe_pdf(path: &Path) -> Result<Info> {
     match lopdf::Document::load(path) {
         Ok(doc) => {
             let pages = doc.get_pages();
-            let mut page_rows = vec![row("Páxinas", pages.len().to_string()), row("Versión do PDF", doc.version.clone())];
+            let mut page_rows = vec![row("Páxinas", pages.len().to_string()), x("Versión do PDF", doc.version.clone())];
             // tamaño da primeira páxina
             if let Some((_, id)) = pages.iter().next() {
                 if let Ok(d) = doc.get_dictionary(*id) {
@@ -250,7 +264,7 @@ pub fn describe_pdf(path: &Path) -> Result<Info> {
                     if let Some(v) = info.get(k.as_bytes()).ok().and_then(|o| doc.dereference(o).ok().map(|x| x.1)).and_then(pdf_text) {
                         let v = if k.ends_with("Date") { pdf_date(&v).unwrap_or(v) } else { v };
                         if !v.trim().is_empty() {
-                            meta.push(row(label, v));
+                            meta.push(if matches!(k, "Title" | "Author") { row(label, v) } else { x(label, v) });
                         }
                     }
                 }
@@ -284,7 +298,7 @@ pub fn describe_pdf(path: &Path) -> Result<Info> {
         }
     }
     summary.push(file_group(path));
-    Ok(Info { summary, advanced })
+    Ok(finish(summary, advanced))
 }
 
 // ---------------------------------------------------------------------- 3D
@@ -324,7 +338,7 @@ pub fn describe_model(path: &Path) -> Result<Info> {
             row("Centro", format!("{}, {}, {}", fmt((lo[0] + hi[0]) / 2.0), fmt((lo[1] + hi[1]) / 2.0), fmt((lo[2] + hi[2]) / 2.0))),
         ],
     )];
-    Ok(Info { summary, advanced })
+    Ok(finish(summary, advanced))
 }
 
 /// Información segundo o tipo de ficheiro; para audio e vídeo ocúpase a interface (ffprobe).
@@ -338,7 +352,7 @@ pub fn describe(path: &Path) -> Result<Info> {
         "obj" | "stl" | "ply" => describe_model(path),
         _ => match describe_image(path) {
             Ok(i) => Ok(i),
-            Err(_) => Ok(Info { summary: vec![file_group(path)], advanced: vec![] }),
+            Err(_) => Ok(finish(vec![file_group(path)], vec![])),
         },
     }
 }
@@ -358,7 +372,10 @@ mod tests {
         image::RgbaImage::from_pixel(160, 90, image::Rgba([10, 20, 30, 255])).save(&png).unwrap();
         let i = describe(&png).unwrap();
         assert!(has(&i, "Dimensións", "160 × 90"));
-        assert!(has(&i, "Forma", "16:9"));
+        // «Forma» só sae na vista avanzada, que leva todo o do resumo e máis.
+        assert!(!has(&i, "Forma", "16:9"));
+        assert!(i.advanced.iter().flat_map(|g| &g.rows).any(|r| r[0] == "Forma" && r[1].contains("16:9")));
+        assert!(i.advanced.iter().flat_map(|g| &g.rows).any(|r| r[0] == "Dimensións"));
 
         let txt = dir.path().join("a.txt");
         std::fs::write(&txt, "ola").unwrap();

@@ -686,6 +686,7 @@
 <style>
   .wrap { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .pages {
+    scrollbar-gutter: stable;
     flex: 1; min-height: 0; overflow: auto;
     display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
     padding: 16px; background: var(--viewer-bg);

@@ -258,6 +258,10 @@ export interface PdfTextBox {
   angle: number;
 }
 export const pdfOverlay = writable<PdfOverlay | null>(null);
+/** Textos engadidos a cada PDF, lembrados ao cambiar de ficheiro (mentres a app siga aberta). */
+export const pdfTextStash = new Map<string, PdfTextBox[]>();
+let pdfTextId = 0;
+export const newPdfTextId = () => ++pdfTextId;
 
 
 /** Recorte de imaxe sobre o visor, en píxeles da imaxe orixinal. */

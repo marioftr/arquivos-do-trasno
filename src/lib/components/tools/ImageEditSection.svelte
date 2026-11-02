@@ -61,8 +61,12 @@
   });
 
   // ---- recorte directo no visor: arrastrar sobre a imaxe debuxa o rectángulo; os campos seguen o que se ve
-  const W = file.width ?? 0;
-  const H = file.height ?? 0;
+  // O recorte vai sobre a imaxe tal como se ve: despois de xirala ou voltala (ancho e alto trócanse cos xiros de 90°).
+  const W0 = file.width ?? 0;
+  const H0 = file.height ?? 0;
+  $: swapped = $form.rotate % 180 !== 0;
+  $: W = swapped ? H0 : W0;
+  $: H = swapped ? W0 : H0;
   onMount(() => {
     imageCropEnabled.set(true);
     // Ao abrir a edición xa se ve o rectángulo sobre toda a imaxe, listo para axustar.
@@ -113,7 +117,23 @@
   }
   const clearCrop = () => imageCrop.set(null);
 
-  const rot = (d: number) => form.update((f) => ({ ...f, rotate: (f.rotate + d + 360) % 360 }));
+  /** Xira a imaxe e leva o recorte co xiro (se hai un), para que siga sobre o mesmo anaco. */
+  function rot(d: number) {
+    const before = get(form);
+    const c = get(imageCrop);
+    const bw = before.rotate % 180 !== 0 ? H0 : W0;
+    const bh = before.rotate % 180 !== 0 ? W0 : H0;
+    form.update((f) => ({ ...f, rotate: (f.rotate + d + 360) % 360 }));
+    if (!c) return;
+    if (d === 90) imageCrop.set({ x: bh - c.y - c.h, y: c.x, w: c.h, h: c.w });
+    else if (d === 270) imageCrop.set({ x: c.y, y: bw - c.x - c.w, w: c.h, h: c.w });
+    else if (d === 180) imageCrop.set({ x: bw - c.x - c.w, y: bh - c.y - c.h, w: c.w, h: c.h });
+  }
+  function flip(axis: "H" | "V") {
+    const c = get(imageCrop);
+    form.update((f) => (axis === "H" ? { ...f, flipH: !f.flipH } : { ...f, flipV: !f.flipV }));
+    if (c) imageCrop.set(axis === "H" ? { ...c, x: W - c.x - c.w } : { ...c, y: H - c.y - c.h });
+  }
 
   async function apply() {
     const f = $form;
@@ -155,8 +175,8 @@
       <button class="btn" on:click={() => rot(90)} title={$t("Xirar 90° á dereita")}><Icon name="rotate-cw" size={15} /> {$t("Xirar 90° á dereita")}</button>
     </div>
     <div class="pair">
-      <button class="btn tog" class:on={$form.flipH} aria-pressed={$form.flipH} on:click={() => ($form.flipH = !$form.flipH)} title={$t(HINTS["Espello horizontal"])}><Icon name="flip-h" size={15} /> {$t("Espello horizontal")}</button>
-      <button class="btn tog" class:on={$form.flipV} aria-pressed={$form.flipV} on:click={() => ($form.flipV = !$form.flipV)} title={$t(HINTS["Espello vertical"])}><Icon name="flip-v" size={15} /> {$t("Espello vertical")}</button>
+      <button class="btn tog" class:on={$form.flipH} aria-pressed={$form.flipH} on:click={() => flip("H")} title={$t(HINTS["Espello horizontal"])}><Icon name="flip-h" size={15} /> {$t("Espello horizontal")}</button>
+      <button class="btn tog" class:on={$form.flipV} aria-pressed={$form.flipV} on:click={() => flip("V")} title={$t(HINTS["Espello vertical"])}><Icon name="flip-v" size={15} /> {$t("Espello vertical")}</button>
     </div>
   </div>
 

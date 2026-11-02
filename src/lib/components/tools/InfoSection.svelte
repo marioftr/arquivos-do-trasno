@@ -309,7 +309,7 @@
     <details class="raw">
       <summary>{$t("Datos técnicos en bruto")}</summary>
       {#each raw as g (g.title)}
-        <details class="sub">
+        <details class="sub" open>
           <summary>{g.title} <span class="muted">· {g.rows.length}</span></summary>
           <dl class="selectable mono">
             {#each g.rows as [k, v]}
