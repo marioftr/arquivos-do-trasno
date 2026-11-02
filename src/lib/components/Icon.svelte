@@ -185,6 +185,33 @@
     <rect x="2.5" y="6" width="19" height="12" rx="2.2" />
     <line x1="6" y1="10" x2="6" y2="10.1" /><line x1="9.5" y1="10" x2="9.5" y2="10.1" /><line x1="13" y1="10" x2="13" y2="10.1" /><line x1="16.5" y1="10" x2="16.5" y2="10.1" />
     <line x1="7.5" y1="14.2" x2="16.5" y2="14.2" />
+  {:else if name === "compress"}
+    <polyline points="4 14 10 14 10 20" />
+    <polyline points="20 10 14 10 14 4" />
+    <line x1="14" y1="10" x2="21" y2="3" />
+    <line x1="3" y1="21" x2="10" y2="14" />
+  {:else if name === "lock"}
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  {:else if name === "merge"}
+    <path d="M6 3v6a6 6 0 0 0 6 6" />
+    <path d="M18 3v6a6 6 0 0 1-6 6" />
+    <line x1="12" y1="15" x2="12" y2="21" />
+  {:else if name === "pages"}
+    <rect x="5" y="3" width="11" height="15" rx="1.5" />
+    <path d="M9 21h8a2 2 0 0 0 2-2V7" />
+  {:else if name === "crop"}
+    <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+    <path d="M2 6h14a2 2 0 0 1 2 2v14" />
+  {:else if name === "wrench"}
+    <path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L3.5 17.2a1.8 1.8 0 0 0 2.6 2.6l5.8-5.8a4 4 0 0 0 5.1-5.4l-2.4 2.4-2.1-.5-.5-2.1z" />
+  {:else if name === "tracks"}
+    <line x1="4" y1="7" x2="20" y2="7" />
+    <line x1="4" y1="12" x2="20" y2="12" />
+    <line x1="4" y1="17" x2="20" y2="17" />
+    <circle cx="9" cy="7" r="1.6" />
+    <circle cx="15" cy="12" r="1.6" />
+    <circle cx="8" cy="17" r="1.6" />
   {:else if name === "copy"}
     <rect x="9" y="9" width="12" height="12" rx="2" />
     <path d="M5 15V5a2 2 0 0 1 2-2h10" />

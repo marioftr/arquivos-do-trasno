@@ -56,7 +56,7 @@
   // Ancho e estado (pregado ou non) dos dous paneis laterais; lémbranse entre sesións.
   const PANES_KEY = "arquivos-do-trasno.paneis";
   const L = { init: 250, min: 200, max: 420 };
-  const R = { init: 360, min: 320, max: 640 };
+  const R = { init: 450, min: 410, max: 760 };
   const saved = (() => {
     try {
       return JSON.parse(localStorage.getItem(PANES_KEY) ?? "{}");
@@ -165,20 +165,20 @@
   <QuickJob job={quickJob} />
 {:else}
 <div class="app" class:dragging>
-  <header class="top">
-    <span class="brand"><BrandMark size={20} /> Arquivos do Trasno</span>
-    <span class="grow"></span>
-    {#if ffmpegOk === false && needsFfmpeg}
-      <button class="aviso" on:click={() => requestTool("ffmpeg")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: instalalo agora")}</button>
-    {/if}
-    <button class="btn ghost" on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")}><Icon name="search" size={15} /> Ctrl+K</button>
-    <button class="btn ghost" on:click={() => openHub("procs.running")} title={$t("Procesos")}>
-      <Icon name="layers" size={15} /> {$t("Procesos")}{#if runningProcs} <span class="badge">{runningProcs}</span>{/if}
-    </button>
-    <button class="btn ghost" on:click={() => openHub("news.changelog")} title={$t("Novidades")}><Icon name="info" size={15} /> {$t("Novidades")}{#if $updateAvailable} <span class="newdot" aria-hidden="true"></span>{/if}</button>
-    <button class="btn ghost" on:click={() => openHub("settings.general")} title={$t("Axustes")}><Icon name="gear" size={15} /> {$t("Axustes")}</button>
-  </header>
 
+  <div class="frame">
+  <nav class="rail" aria-label="Arquivos do Trasno">
+    <span class="logo"><BrandMark size={26} /></span>
+    <button class="rb add" on:click={escoller} title={$t("Escoller ficheiros")} aria-label={$t("Escoller ficheiros")}><Icon name="plus" size={20} /></button>
+    <button class="rb" on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")} aria-label={$t("Buscar unha acción (Ctrl+K)")}><Icon name="search" size={20} /></button>
+    <button class="rb" on:click={() => openHub("procs.running")} title={$t("Procesos")} aria-label={$t("Procesos")}>
+      <Icon name="layers" size={20} />{#if runningProcs}<span class="badge">{runningProcs}</span>{/if}
+    </button>
+    <button class="rb" on:click={() => openHub("news.changelog")} title={$t("Novidades")} aria-label={$t("Novidades")}><Icon name="info" size={20} />{#if $updateAvailable}<span class="newdot" aria-hidden="true"></span>{/if}</button>
+    <span class="grow"></span>
+    <button class="rb" on:click={() => openHub("settings.general")} title={$t("Axustes")} aria-label={$t("Axustes")}><Icon name="gear" size={20} /></button>
+  </nav>
+  <div class="stage">
   {#if $files.length === 0}
     <main class="home">
       <div class="drop">
@@ -202,6 +202,22 @@
     </main>
   {/if}
 
+  </div>
+  </div>
+
+  <footer class="status">
+    <TrasnoSprite state={runningProcs ? "working" : "idle"} size={32} />
+    <span class="smsg">{runningProcs ? `${$t("En marcha")}: ${runningProcs}` : $files.length ? $t("{n} ficheiros", { n: $files.length }) : $t("Listo")}</span>
+    <span class="grow"></span>
+    {#if active}<span class="muted sfile" title={active.path}>{active.name}</span>{/if}
+    {#if ffmpegOk === false && needsFfmpeg}
+      <button class="aviso" on:click={() => requestTool("ffmpeg")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: instalalo agora")}</button>
+    {/if}
+    {#if $updateAvailable}
+      <button class="aviso up" on:click={() => openHub("news.updates")}><Icon name="download" size={14} /> {$t("Hai unha versión nova")}</button>
+    {/if}
+  </footer>
+
   <Toasts />
 
   {#if $dialog === "hub"}<HubDialog />{:else if $dialog === "palette"}<CommandPalette onAdd={escoller} />{/if}
@@ -215,13 +231,23 @@
 
 <style>
   .app { position: relative; display: flex; flex-direction: column; width: 100%; height: 100vh; }
-  .top { display: flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.8rem; border-bottom: 1px solid var(--border); background: var(--bg-rail); min-height: 42px; }
-  .top :global(.btn) { height: 28px; padding: 0 0.65em; font-size: 0.84rem; }
-  .brand { display: inline-flex; align-items: center; gap: 0.55rem; font-weight: 650; font-size: 0.9rem; letter-spacing: 0.005em; margin-right: 0.6rem; }
+  .frame { flex: 1; min-height: 0; display: flex; }
+  .stage { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .rail { flex: 0 0 3.5rem; width: 3.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.7rem 0 0.6rem; background: var(--bg-rail); border-right: 1px solid var(--border); }
+  .logo { display: grid; place-items: center; margin-bottom: 0.6rem; }
+  .rb { position: relative; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; background: none; border: none; border-radius: 0.7rem; color: var(--text-muted); transition: background 0.12s ease, color 0.12s ease; }
+  .rb:hover { background: var(--bg-hover); color: var(--text); }
+  .rb.add { background: var(--accent); color: var(--on-accent); margin-bottom: 0.5rem; }
+  .rb.add:hover { filter: brightness(1.1); background: var(--accent); color: var(--on-accent); }
   .grow { flex: 1; }
-  .badge { background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.7rem; font-weight: 700; padding: 0 0.45em; min-width: 1.3em; text-align: center; }
-  .newdot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
-  .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.82rem; }
+  .badge { position: absolute; top: 2px; right: 1px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.64rem; font-weight: 700; padding: 0 0.35em; min-width: 1.2em; line-height: 1.35; text-align: center; }
+  .newdot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg-rail); }
+  .status { flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; min-height: 2.5rem; padding: 0 0.9rem 0 0.7rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.78rem; }
+  .smsg { color: var(--text); font-weight: 550; }
+  .sfile { max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.78rem; font-weight: 550; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); }
+  .aviso:hover { background: var(--bg-hover); }
+  .aviso.up { color: var(--accent); }
 
   .home { flex: 1; min-height: 0; display: flex; padding: 1.2rem; }
   .drop {

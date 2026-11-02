@@ -3,7 +3,7 @@
   import type { FileEntry } from "../files";
   import { t } from "../i18n";
   import { formatBytes, CATEGORY_LABELS, PLAIN_TEXT } from "../formats";
-  import Tabs from "./ui/Tabs.svelte";
+  import ToolStrip from "./ui/ToolStrip.svelte";
   import FormBar from "./ui/FormBar.svelte";
   import { activeForm } from "../forms";
   import ConvertSection from "./tools/ConvertSection.svelte";
@@ -157,14 +157,13 @@
       {$t("Hai ficheiros de tipos distintos marcados. Marca só do mesmo tipo (por exemplo, varios PDF ou varias imaxes) para traballar con eles xuntos.")}
     </p>
   {:else}
+    <div class="shell">
+    <ToolStrip {tabs} bind:value={current} on:again={() => body?.scrollTo({ top: 0, behavior: "smooth" })} />
+    <div class="main">
     <header>
-      <h2 title={multi ? "" : first?.name}>{multi ? $t("{n} ficheiros", { n: selection.length }) : first?.name}</h2>
-      <p class="muted sub">
-        {$t(CATEGORY_LABELS[category])}{#if !multi && first?.size !== undefined}&nbsp;·&nbsp;{formatBytes(first.size)}{/if}{#if !multi && first?.pages}&nbsp;·&nbsp;{$t("{n} páx.", { n: first.pages })}{/if}
-      </p>
+      <h2>{tabs.find((x) => x.id === current)?.label ?? ""}</h2>
+      {#if multi}<p class="muted sub">{$t("{n} ficheiros", { n: selection.length })}&nbsp;·&nbsp;{$t(CATEGORY_LABELS[category])}</p>{/if}
     </header>
-
-    <Tabs {tabs} bind:value={current} on:again={() => body?.scrollTo({ top: 0, behavior: "smooth" })} />
 
     {#if $activeForm}
       <div class="formbar"><FormBar form={$activeForm} /></div>
@@ -236,11 +235,16 @@
         {/if}
       {/key}
     </div>
+    </div>
+    </div>
   {/if}
 </div>
 
 <style>
   .tools { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  .shell { flex: 1; min-height: 0; display: flex; }
+  .main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  @media (max-width: 1050px) { .shell { flex-direction: column; } }
   header { padding: 0.85rem 1.1rem 0.6rem; }
   header h2 { margin: 0; font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sub { margin: 0.1rem 0 0; font-size: 0.76rem; }
