@@ -205,6 +205,66 @@ pub fn install(tool: Tool, progress: &dyn Fn(Phase, f64), cancelled: &dyn Fn() -
     result
 }
 
+/// Idiomas de Tesseract que a app ofrece (código de tessdata).
+pub const OCR_LANGS: [&str; 8] = ["glg", "spa", "eng", "por", "cat", "fra", "deu", "ita"];
+
+/// Carpeta dos paquetes de idioma do OCR.
+pub fn tessdata_dir() -> Option<PathBuf> {
+    tools_dir().map(|d| d.join("tessdata"))
+}
+
+/// Idiomas xa descargados.
+pub fn ocr_installed() -> Vec<String> {
+    let Some(dir) = tessdata_dir() else { return vec![] };
+    OCR_LANGS.iter().filter(|l| dir.join(format!("{l}.traineddata")).is_file()).map(|l| l.to_string()).collect()
+}
+
+/// Descarga o paquete de idioma `lang` (modelos «fast» do proxecto Tesseract, en GitHub).
+/// Non hai suma de comprobación publicada: valese do HTTPS de GitHub e Tesseract rexeita un ficheiro que non sexa un modelo.
+pub fn install_ocr_language(lang: &str, progress: &dyn Fn(f64), cancelled: &dyn Fn() -> bool) -> Result<PathBuf> {
+    if !OCR_LANGS.contains(&lang) {
+        return fail("Idioma descoñecido.");
+    }
+    let dir = tessdata_dir().ok_or_else(|| EngineError::IntegrityCheck("Non atopo onde gardar os programas.".into()))?;
+    fs::create_dir_all(&dir)?;
+    let dest = dir.join(format!("{lang}.traineddata"));
+    let part = dir.join(format!("{lang}.traineddata.part"));
+    let url = format!("https://github.com/tesseract-ocr/tessdata_fast/raw/main/{lang}.traineddata");
+    let a = agent();
+    let result = (|| -> Result<()> {
+        let resp = a.get(&url).call().map_err(|e| net_err("descargar o paquete de idioma", e))?;
+        let total: u64 = resp.header("Content-Length").and_then(|v| v.parse().ok()).unwrap_or(0);
+        let mut reader = resp.into_reader();
+        let mut out = File::create(&part)?;
+        let mut buf = vec![0u8; 64 * 1024];
+        let mut done: u64 = 0;
+        loop {
+            if cancelled() {
+                return Err(EngineError::Cancelled);
+            }
+            let n = reader.read(&mut buf)?;
+            if n == 0 {
+                break;
+            }
+            out.write_all(&buf[..n])?;
+            done += n as u64;
+            if total > 0 {
+                progress((done as f64 / total as f64).min(1.0));
+            }
+        }
+        out.flush()?;
+        drop(out);
+        if done < 200_000 {
+            return fail("O paquete de idioma descargado non é válido.");
+        }
+        fs::rename(&part, &dest)?;
+        progress(1.0);
+        Ok(())
+    })();
+    let _ = fs::remove_file(&part);
+    result.map(|_| dest)
+}
+
 fn extract_zip(zip_path: &Path, dest: &Path, progress: &dyn Fn(Phase, f64), cancelled: &dyn Fn() -> bool) -> Result<()> {
     let mut zip = zip::ZipArchive::new(File::open(zip_path)?).map_err(|e| EngineError::IntegrityCheck(format!("O paquete descargado está danado: {e}")))?;
     let total: u64 = (0..zip.len()).filter_map(|i| zip.by_index(i).ok().map(|f| f.size())).sum::<u64>().max(1);

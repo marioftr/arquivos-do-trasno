@@ -5,6 +5,14 @@
   import { t } from "../../i18n";
   import Slider from "../ui/Slider.svelte";
   import AnnotLayer from "../ui/AnnotLayer.svelte";
+  import OcrLayer from "../ui/OcrLayer.svelte";
+  import SelectField from "../ui/SelectField.svelte";
+  import Icon from "../Icon.svelte";
+  import { lang as appLang } from "../../i18n";
+  import { toast } from "../../toasts";
+  import { tr } from "../../i18n";
+  import { errText } from "../../errors";
+  import { OCR_LANGS, OCR_SIZE, ocrInstalled, ocrDownload, ocrProgress, savedLang, rememberLang, refreshOcr, downloadLang, recognize, type OcrResult } from "../../ocr";
   import { annoActive } from "../../annot";
   import { actionFor } from "../../keymap";
 
@@ -31,6 +39,78 @@
     : "";
 
   let triedPreview = false;
+
+  // ---- recoñecemento de texto (OCR): ler o texto da imaxe para seleccionalo e copialo
+  let ocrOn = false;
+  let ocrBusy = false;
+  let ocrRes: OcrResult | null = null;
+  let ocrErr = "";
+  let ocrLang = savedLang($appLang);
+  let askDownload = false;
+  const ocrCache = new Map<string, OcrResult>();
+  onMount(() => void refreshOcr().catch(() => {}));
+  // Outra imaxe: o texto lido deixa de valer.
+  $: if (file.path) {
+    ocrOn = false;
+    ocrRes = null;
+    ocrErr = "";
+    askDownload = false;
+  }
+  async function toggleOcr() {
+    if (ocrOn) {
+      ocrOn = false;
+      return;
+    }
+    ocrOn = true;
+    await runOcr();
+  }
+  async function runOcr() {
+    ocrErr = "";
+    if (!$ocrInstalled.includes(ocrLang)) {
+      askDownload = true;
+      return;
+    }
+    askDownload = false;
+    const key = `${file.path}|${ocrLang}`;
+    const cached = ocrCache.get(key);
+    if (cached) {
+      ocrRes = cached;
+      return;
+    }
+    ocrBusy = true;
+    try {
+      const res = await recognize(url, ocrLang);
+      ocrCache.set(key, res);
+      if (ocrOn) ocrRes = res;
+      if (!res.lines.length) toast(tr("O trasno non atopou texto nesta imaxe."));
+    } catch (e) {
+      ocrErr = errText(e);
+    } finally {
+      ocrBusy = false;
+    }
+  }
+  async function acceptDownload() {
+    try {
+      await downloadLang(ocrLang);
+      await runOcr();
+    } catch (e) {
+      ocrErr = errText(e);
+    }
+  }
+  function changeLang() {
+    rememberLang(ocrLang);
+    ocrRes = null;
+    if (ocrOn) runOcr();
+  }
+  async function copyAll() {
+    if (!ocrRes) return;
+    try {
+      await navigator.clipboard.writeText(ocrRes.text);
+      toast(tr("O trasno copiou o texto."));
+    } catch {
+      toast(tr("O trasno non puido copiar o texto."), { kind: "warn" });
+    }
+  }
 
   async function load(path: string) {
     failed = false;
@@ -116,6 +196,7 @@
 
   function stageDown(ev: PointerEvent) {
     if (failed || !imgEl) return;
+    if ((ev.target as HTMLElement).closest(".ocr span")) return; // sobre o texto lido, arrastrar selecciona
     const middle = ev.button === 1;
     if (!middle && ev.button !== 0) return;
     if (ev.button === 0 && $annoActive) return; // o debuxo ten a súa propia capa
@@ -237,7 +318,8 @@
     else return;
     e.preventDefault();
   }
-  const toggleFit = () => {
+  const toggleFit = (ev?: MouseEvent) => {
+    if ((ev?.target as HTMLElement | undefined)?.closest?.(".ocr span")) return;
     if (!imgEl || $imageCropEnabled || $annoActive) return;
     if (fit) {
       const r = stage.getBoundingClientRect();
@@ -285,6 +367,9 @@
           draggable="false"
         />
       </div>
+      {#if ocrOn && ocrRes && box.w && !$annoActive}
+        <OcrLayer {box} {sc} result={ocrRes} />
+      {/if}
       {#if $annoActive && box.w}
         <AnnotLayer {box} {sc} W={W()} H={H()} />
       {/if}
@@ -319,9 +404,31 @@
     <button class="btn" class:on={fit} on:click={() => (fit = true)}>{$t("Axustar")}</button>
     <button class="btn" class:on={!fit && zoom === 100} on:click={() => zoomAt(100, stage.clientWidth / 2, stage.clientHeight / 2)}>100%</button>
     <Slider compact label={$t("Zoom")} unit="%" min={ZMIN} max={ZMAX} value={shown} on:input={(ev) => zoomAt(Number((ev.target as HTMLInputElement).value) || shown, stage.clientWidth / 2, stage.clientHeight / 2)} />
+    <button class="btn" class:on={ocrOn} on:click={toggleOcr} disabled={ocrBusy || !!$ocrDownload} title={$t("Le o texto da imaxe para poder seleccionalo e copialo")}><Icon name="type" size={15} /> {ocrBusy ? `${$t("Lendo o texto…")} ${Math.round($ocrProgress * 100)} %` : $t("Texto da imaxe")}</button>
+    {#if ocrOn || askDownload}
+      <select class="lg" bind:value={ocrLang} on:change={changeLang} aria-label={$t("Idioma do texto")} disabled={ocrBusy}>
+        {#each OCR_LANGS as l}<option value={l.id}>{l.label}{$ocrInstalled.includes(l.id) ? "" : " ⇩"}</option>{/each}
+      </select>
+    {/if}
+    {#if ocrRes?.lines.length}<button class="btn" on:click={copyAll}><Icon name="copy" size={14} /> {$t("Copiar todo o texto")}</button>{/if}
     <span class="muted hint">{$t("Roda: zoom · Botón central: mover")}</span>
     {#if file.width}<span class="muted dims">{file.width} × {file.height} px</span>{/if}
   </div>
+  {#if askDownload || $ocrDownload || ocrErr}
+    <div class="ocrbar" role="status">
+      {#if $ocrDownload}
+        <span>{$t("Descargando o idioma…")} {Math.round($ocrDownload.progress * 100)} %</span>
+        <div class="pbar"><div class="pfill" style={`width:${Math.round($ocrDownload.progress * 100)}%`}></div></div>
+      {:else if askDownload}
+        <span>{$t("Para ler texto en {lang} o trasno ten que descargar o seu paquete de idioma (uns {size}, do proxecto Tesseract en GitHub).", { lang: OCR_LANGS.find((l) => l.id === ocrLang)?.label ?? ocrLang, size: OCR_SIZE })}</span>
+        <button class="btn primary" on:click={acceptDownload}>{$t("Aceptar e descargar")}</button>
+        <button class="btn ghost" on:click={() => ((askDownload = false), (ocrOn = false))}>{$t("Agora non")}</button>
+      {:else}
+        <span class="err">{ocrErr}</span>
+        <button class="btn" on:click={runOcr}>{$t("Tentar de novo")}</button>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -352,6 +459,11 @@
   .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .hint { font-size: 0.76rem; }
+  .lg { height: var(--control-h); }
+  .ocrbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); background: var(--bg-elevated); font-size: 0.82rem; }
+  .ocrbar .err { color: var(--accent-video); }
+  .pbar { flex: 1 1 8rem; height: 6px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
+  .pfill { height: 100%; background: var(--accent); transition: width 0.2s ease; }
   .dims { margin-left: auto; }
   .msg { margin: auto; text-align: center; padding: 2rem; }
 </style>

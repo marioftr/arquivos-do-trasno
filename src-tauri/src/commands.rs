@@ -1039,6 +1039,34 @@ pub async fn tools_status() -> serde_json::Value {
     .unwrap_or_default()
 }
 
+/// Idiomas do OCR xa descargados.
+#[tauri::command]
+pub async fn ocr_languages() -> Result<serde_json::Value, String> {
+    blocking(|| {
+        Ok(serde_json::json!({
+            "installed": trasno_engine::tools_install::ocr_installed(),
+            "dir": trasno_engine::tools_install::tessdata_dir().map(|d| d.to_string_lossy().to_string()),
+        }))
+    })
+    .await
+}
+
+/// Descarga un paquete de idioma do OCR. A interface recibe `trasno://ocr-download` con `{ lang, progress }`.
+#[tauri::command]
+pub async fn install_ocr_language(app: tauri::AppHandle, lang: String) -> Result<serde_json::Value, String> {
+    use tauri::Emitter;
+    TOOL_CANCEL.store(false, std::sync::atomic::Ordering::SeqCst);
+    blocking(move || {
+        let l = lang.clone();
+        let sink = |f: f64| {
+            let _ = app.emit("trasno://ocr-download", serde_json::json!({ "lang": l, "progress": f }));
+        };
+        trasno_engine::tools_install::install_ocr_language(&lang, &sink, &|| TOOL_CANCEL.load(std::sync::atomic::Ordering::SeqCst)).map_err(to_err)?;
+        Ok(serde_json::json!({ "installed": trasno_engine::tools_install::ocr_installed() }))
+    })
+    .await
+}
+
 /// Pide cancelar a descarga de programas que está en marcha.
 static TOOL_CANCEL: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 

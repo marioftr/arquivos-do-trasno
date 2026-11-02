@@ -1146,5 +1146,18 @@
   "Non puiden capturar a pantalla.": "I could not capture the screen.",
   "O coagotas só está dispoñible en Windows.": "The colour picker is only available on Windows.",
   "Non puiden ler esa letra.": "I could not read that font.",
-  "Esa letra non se pode incrustar nun PDF.": "That font cannot be embedded in a PDF."
+  "Esa letra non se pode incrustar nun PDF.": "That font cannot be embedded in a PDF.",
+  "Texto da imaxe": "Text in image",
+  "Le o texto da imaxe para poder seleccionalo e copialo": "Reads the text in the image so you can select and copy it",
+  "Lendo o texto…": "Reading the text…",
+  "Copiar todo o texto": "Copy all the text",
+  "Idioma do texto": "Text language",
+  "Descargando o idioma…": "Downloading the language…",
+  "Para ler texto en {lang} o trasno ten que descargar o seu paquete de idioma (uns {size}, do proxecto Tesseract en GitHub).": "To read text in {lang} the trasno needs to download its language pack (about {size}, from the Tesseract project on GitHub).",
+  "O trasno non atopou texto nesta imaxe.": "The trasno found no text in this image.",
+  "O trasno copiou o texto.": "The trasno copied the text.",
+  "O trasno non puido copiar o texto.": "The trasno could not copy the text.",
+  "Falta o paquete de idioma.": "The language pack is missing.",
+  "Idioma descoñecido.": "Unknown language.",
+  "O paquete de idioma descargado non é válido.": "The downloaded language pack is not valid."
 }

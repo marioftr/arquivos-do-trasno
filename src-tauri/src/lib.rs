@@ -81,6 +81,8 @@ pub fn run() {
             commands::pdf_add_texts,
             commands::list_fonts,
             commands::capture_window,
+            commands::ocr_languages,
+            commands::install_ocr_language,
             commands::make_subtitles,
             commands::write_bytes,
             commands::compress_image,

@@ -1146,5 +1146,18 @@
   "Non puiden capturar a pantalla.": "No pude capturar la pantalla.",
   "O coagotas só está dispoñible en Windows.": "El cuentagotas solo está disponible en Windows.",
   "Non puiden ler esa letra.": "No pude leer esa letra.",
-  "Esa letra non se pode incrustar nun PDF.": "Esa letra no se puede incrustar en un PDF."
+  "Esa letra non se pode incrustar nun PDF.": "Esa letra no se puede incrustar en un PDF.",
+  "Texto da imaxe": "Texto de la imagen",
+  "Le o texto da imaxe para poder seleccionalo e copialo": "Lee el texto de la imagen para poder seleccionarlo y copiarlo",
+  "Lendo o texto…": "Leyendo el texto…",
+  "Copiar todo o texto": "Copiar todo el texto",
+  "Idioma do texto": "Idioma del texto",
+  "Descargando o idioma…": "Descargando el idioma…",
+  "Para ler texto en {lang} o trasno ten que descargar o seu paquete de idioma (uns {size}, do proxecto Tesseract en GitHub).": "Para leer texto en {lang} el trasno tiene que descargar su paquete de idioma (unos {size}, del proyecto Tesseract en GitHub).",
+  "O trasno non atopou texto nesta imaxe.": "El trasno no encontró texto en esta imagen.",
+  "O trasno copiou o texto.": "El trasno copió el texto.",
+  "O trasno non puido copiar o texto.": "El trasno no pudo copiar el texto.",
+  "Falta o paquete de idioma.": "Falta el paquete de idioma.",
+  "Idioma descoñecido.": "Idioma desconocido.",
+  "O paquete de idioma descargado non é válido.": "El paquete de idioma descargado no es válido."
 }
