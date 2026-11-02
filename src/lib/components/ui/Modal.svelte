@@ -48,10 +48,10 @@
 </div>
 
 <style>
-  .veil { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.55); display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; padding: clamp(0.5rem, 2.5vw, 1.5rem); }
-  .box { width: min(860px, 100%); max-height: 100%; min-height: 0; display: flex; flex-direction: column; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5); }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1.1rem 0.7rem; border-bottom: 1px solid var(--border); }
-  h2 { margin: 0; font-size: 1.02rem; font-weight: 600; }
+  .veil { position: fixed; inset: 0; z-index: 50; background: rgba(8, 9, 12, 0.6); backdrop-filter: blur(3px); display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; padding: clamp(0.5rem, 2.5vw, 1.5rem); }
+  .box { width: min(860px, 100%); max-height: 100%; min-height: 0; display: flex; flex-direction: column; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
+  h2 { margin: 0; font-size: 0.98rem; font-weight: 600; }
   .content { padding: 1rem 1.1rem 1.2rem; overflow-y: auto; min-height: 0; flex: 1; display: flex; flex-direction: column; gap: 1rem; }
   .box.tall { height: min(660px, 100%); }
   .content.tall { overflow: hidden; }

@@ -28,9 +28,8 @@
 <style>
   .wrap { display: flex; flex-direction: column; gap: 0.2rem; }
   .lab { display: inline-flex; align-items: center; font-size: 0.82rem; color: var(--text-muted); }
-  .seg { display: flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; height: var(--control-h); background: var(--bg-input); }
-  button { flex: 1; background: transparent; border: none; border-right: 1px solid var(--border-strong); color: var(--text-muted); font-size: 0.85rem; padding: 0 0.5em; white-space: nowrap; }
-  button:last-child { border-right: none; }
+  .seg { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-md); height: var(--control-h); background: var(--bg-input); }
+  button { flex: 1; background: transparent; border: none; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.84rem; padding: 0 0.5em; white-space: nowrap; }
   button:hover { color: var(--text); background: var(--bg-hover); }
-  button.on { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--text); font-weight: 600; }
+  button.on { background: var(--bg-hover); color: var(--text); font-weight: 600; box-shadow: 0 0 0 1px var(--border-strong); }
 </style>

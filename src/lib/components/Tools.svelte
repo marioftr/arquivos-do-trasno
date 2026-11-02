@@ -241,9 +241,9 @@
 
 <style>
   .tools { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-  header { padding: 1rem 1.1rem 0.7rem; }
-  header h2 { margin: 0; font-size: 1.02rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sub { margin: 0.15rem 0 0; font-size: 0.8rem; }
+  header { padding: 0.85rem 1.1rem 0.6rem; }
+  header h2 { margin: 0; font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sub { margin: 0.1rem 0 0; font-size: 0.76rem; }
   .formbar { padding: 0.45rem 1.1rem 0; flex-shrink: 0; }
   .ocrnote { margin: 0; padding: 0.5rem 1.1rem; font-size: 0.8rem; color: var(--accent-pdf); border-bottom: 1px solid var(--border); }
   .body.off { opacity: 0.45; }

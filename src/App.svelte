@@ -215,25 +215,28 @@
 
 <style>
   .app { position: relative; display: flex; flex-direction: column; width: 100%; height: 100vh; }
-  .top { display: flex; align-items: center; gap: 0.8rem; padding: 0.55rem 1rem; border-bottom: 1px solid var(--border); background: var(--bg-rail); min-height: 46px; }
-  .brand { display: inline-flex; align-items: center; gap: 0.55rem; font-weight: 650; font-size: 0.92rem; }
+  .top { display: flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.8rem; border-bottom: 1px solid var(--border); background: var(--bg-rail); min-height: 42px; }
+  .top :global(.btn) { height: 28px; padding: 0 0.65em; font-size: 0.84rem; }
+  .brand { display: inline-flex; align-items: center; gap: 0.55rem; font-weight: 650; font-size: 0.9rem; letter-spacing: 0.005em; margin-right: 0.6rem; }
   .grow { flex: 1; }
   .badge { background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.7rem; font-weight: 700; padding: 0 0.45em; min-width: 1.3em; text-align: center; }
   .newdot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
   .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.82rem; }
 
-  .home { flex: 1; min-height: 0; display: flex; padding: 1.5rem; }
+  .home { flex: 1; min-height: 0; display: flex; padding: 1.2rem; }
   .drop {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
-    text-align: center; padding: 2rem; border: 1px dashed var(--border-strong); border-radius: var(--radius-md);
+    text-align: center; padding: 2rem; border: 1px dashed var(--border-strong); border-radius: var(--radius-lg);
+    background: radial-gradient(ellipse at 50% 38%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 62%);
   }
-  .drop h1 { margin: 0.4rem 0 0; font-size: 1.35rem; font-weight: 600; }
+  .drop h1 { margin: 0.4rem 0 0; font-size: 1.2rem; font-weight: 600; letter-spacing: -0.01em; }
   .drop p { margin: 0; max-width: 54ch; }
   .formatos { font-size: 0.75rem; letter-spacing: 0.04em; margin-top: 0.8rem !important; }
 
   .work { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: var(--lw) 1px minmax(0, 1fr) 1px var(--rw); }
   .off { overflow: hidden; visibility: hidden; }
   .left, .right { min-height: 0; min-width: 0; background: var(--bg-rail); }
+  .center { background: var(--bg); }
 
   .center { min-width: 0; min-height: 0; overflow: hidden; }
 

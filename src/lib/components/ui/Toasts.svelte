@@ -28,8 +28,8 @@
     position: relative; overflow: hidden; pointer-events: auto;
     display: flex; align-items: flex-start; gap: 0.7rem;
     width: min(380px, 92vw); padding: 0.65rem 0.7rem 0.75rem 0.7rem;
-    background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
+    background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-pop);
     animation: entra 0.18s ease-out;
   }
   .face { flex-shrink: 0; margin-top: 1px; }
