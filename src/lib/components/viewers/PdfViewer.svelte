@@ -9,7 +9,7 @@
   import { actionFor } from "../../keymap";
   import { get } from "svelte/store";
   import { pdfOverlay, type FileEntry, type PdfOverlay } from "../../files";
-  import { fontCss } from "../../fonts";
+  import { fontCss, type FontSpec } from "../../fonts";
   import { t } from "../../i18n";
   import Slider from "../ui/Slider.svelte";
   import FindBar from "../ui/FindBar.svelte";
@@ -42,17 +42,22 @@
   // ---- axustar ao espazo dispoñible (ancho ou páxina enteira); segue o tamaño da xanela
   let fitMode: "none" | "width" | "page" = "width";
   let ro: ResizeObserver;
-  async function applyFit() {
-    if (!doc || !container || fitMode === "none") return;
-    const pg = await doc.getPage(Math.max(1, Math.min(doc.numPages, current)));
+  /** Zoom (%) que encaixa a páxina co modo de axuste actual. */
+  async function fitPercent(d: pdfjs.PDFDocumentProxy, pageNo: number): Promise<number | null> {
+    if (!container || fitMode === "none") return null;
+    const pg = await d.getPage(Math.max(1, Math.min(d.numPages, pageNo)));
     const [x0, y0, x1, y1] = pg.view;
     const w = (x1 - x0) * 1.333;
     const h = (y1 - y0) * 1.333;
     const availW = container.clientWidth - 32;
     const availH = container.clientHeight - 32;
     const pct = fitMode === "width" ? (availW / w) * 100 : Math.min(availW / w, availH / h) * 100;
-    const next = Math.max(20, Math.min(250, Math.round(pct)));
-    if (next !== scale) scale = next;
+    return Math.max(20, Math.min(250, Math.round(pct)));
+  }
+  async function applyFit() {
+    if (!doc) return;
+    const next = await fitPercent(doc, current);
+    if (next !== null && next !== scale) scale = next;
   }
   function setFit(m: "width" | "page") {
     fitMode = m;
@@ -212,6 +217,10 @@
       doc = null;
       const loaded = await getPdf(path);
       if (mine !== token) return;
+      // O zoom xa vai axustado ao abrir: se non, o PDF debuxábase dúas veces (ao tamaño vello e ao axustado) e parpadeaba.
+      const fitted = await fitPercent(loaded, current);
+      if (mine !== token) return;
+      if (fitted !== null) scale = fitted;
       doc = loaded;
     } catch (e: any) {
       if (e?.name === "PasswordException") encrypted = true;
@@ -407,11 +416,12 @@
   }
 
   /** Textos editables: clic para escoller, arrastrar para mover, esquina para escalar e dobre clic para escribir. */
-  function paintItems(it: NonNullable<PdfOverlay["items"]>, p: PageInfo, txt: (text: string, size: number, color: string, left: number, top: number, extra?: string, font?: string, lh?: number) => HTMLElement) {
+  function paintItems(it: NonNullable<PdfOverlay["items"]>, p: PageInfo, txt: (text: string, size: number, color: string, left: number, top: number, extra?: string, font?: FontSpec, lh?: number) => HTMLElement) {
     for (const b of it.list.filter((x) => x.page === p.n)) {
       const sel = it.selected === b.id;
       const editing = it.editing === b.id;
-      const el = txt(b.text || " ", b.size, b.color, p.w * (b.xPct / 100), p.h * (1 - b.yPct / 100), "z-index:3;", b.font, 1.2);
+      const spec: FontSpec = { family: b.family, bold: b.bold, italic: b.italic };
+      const el = txt(b.text || " ", b.size, b.color, p.w * (b.xPct / 100), p.h * (1 - b.yPct / 100), `z-index:3;transform-origin:0 0;transform:rotate(${-b.angle}deg);`, spec, 1.2);
       el.dataset.tid = String(b.id);
       el.style.pointerEvents = "auto";
       el.style.cursor = editing ? "text" : "move";
@@ -430,12 +440,21 @@
           g?.removeAllRanges();
           g?.addRange(r);
         });
-        el.addEventListener("blur", () => it.onEdit(b.id, el.innerText.replace(/\n$/, "")));
+        let bold = b.bold;
+        let italic = b.italic;
+        el.addEventListener("blur", () => it.onEdit(b.id, el.innerText.replace(/\n$/, ""), { bold, italic }));
         el.addEventListener("keydown", (e) => {
           e.stopPropagation();
           if (e.key === "Escape" || (e.key === "Enter" && (e.ctrlKey || e.metaKey))) {
             e.preventDefault();
             el.blur();
+          } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "b" || e.key.toLowerCase() === "i")) {
+            // Negriña e cursiva do texto enteiro, na hora (gárdase ao saír da edición).
+            e.preventDefault();
+            if (e.key.toLowerCase() === "b") bold = !bold;
+            else italic = !italic;
+            el.style.fontWeight = bold ? "700" : "400";
+            el.style.fontStyle = italic ? "italic" : "normal";
           }
         });
         el.addEventListener("pointerdown", (e) => e.stopPropagation());
@@ -467,6 +486,36 @@
           window.addEventListener("pointercancel", end);
         });
         el.appendChild(h);
+        // Tirador de xiro: arriba do texto; Maiús axusta de 15° en 15°.
+        const rot = document.createElement("div");
+        rot.title = tr("Arrastra para xirar o texto");
+        rot.style.cssText = "position:absolute;left:50%;top:-30px;width:14px;height:14px;margin-left:-7px;background:#4aa3ff;border:2px solid #fff;border-radius:50%;cursor:grab;z-index:4;touch-action:none;box-shadow:0 0 0 1px rgba(0,0,0,.4);";
+        rot.addEventListener("pointerdown", (ev) => {
+          if (ev.button !== 0) return;
+          ev.stopPropagation();
+          ev.preventDefault();
+          const wr0 = p.wrap.getBoundingClientRect();
+          const ox = wr0.left + p.w * (b.xPct / 100);
+          const oy = wr0.top + p.h * (1 - b.yPct / 100);
+          const a0 = Math.atan2(ev.clientY - oy, ev.clientX - ox);
+          let angle = b.angle;
+          const mv = (e2: PointerEvent) => {
+            let a = b.angle - ((Math.atan2(e2.clientY - oy, e2.clientX - ox) - a0) * 180) / Math.PI;
+            if (e2.shiftKey) a = Math.round(a / 15) * 15;
+            angle = Math.round((((a + 180) % 360) + 360) % 360 - 180);
+            el.style.transform = `rotate(${-angle}deg)`;
+          };
+          const end = () => {
+            window.removeEventListener("pointermove", mv);
+            window.removeEventListener("pointerup", end);
+            window.removeEventListener("pointercancel", end);
+            it.onRotate(b.id, angle);
+          };
+          window.addEventListener("pointermove", mv);
+          window.addEventListener("pointerup", end);
+          window.addEventListener("pointercancel", end);
+        });
+        el.appendChild(rot);
       }
       el.addEventListener("dblclick", (ev) => {
         ev.stopPropagation();
@@ -540,7 +589,7 @@
         el.classList.add("ov");
         p.wrap.appendChild(el);
       };
-      const txt = (text: string, size: number, color: string, left: number, top: number, extra = "", font?: string, lh = 1) => {
+      const txt = (text: string, size: number, color: string, left: number, top: number, extra = "", font?: FontSpec, lh = 1) => {
         const e = document.createElement("div");
         e.textContent = text;
         e.style.cssText = `position:absolute;left:${left}px;top:${top}px;font-size:${size * p.s}px;${fontCss(font)}color:${color};white-space:pre;line-height:${lh};pointer-events:none;${extra}`;

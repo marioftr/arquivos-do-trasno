@@ -1,6 +1,7 @@
 // Estado do espazo de traballo: os ficheiros cargados, cal se está vendo e
 // cales están marcados para operacións en lote (unir, comprimir varios...).
 
+import type { FontSpec } from "./fonts";
 import { writable, get } from "svelte/store";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { call } from "./errors";
@@ -224,8 +225,8 @@ export interface PdfOverlay {
   /** Márxenes a quitar, en puntos do PDF. */
   crop?: { l: number; b: number; r: number; t: number };
   /** Texto de marca de auga (centrado, co seu xiro). */
-  text?: { text: string; xPct: number; yPct: number; size: number; color: string; opacity: number; angle: number; centered: boolean; pages: number[] | null; font?: string };
-  numbers?: { position: string; format: string; start: number; size: number; margin: number; color: string; pages?: number[] | null; font?: string };
+  text?: { text: string; xPct: number; yPct: number; size: number; color: string; opacity: number; angle: number; centered: boolean; pages: number[] | null; font?: FontSpec };
+  numbers?: { position: string; format: string; start: number; size: number; margin: number; color: string; pages?: number[] | null; font?: FontSpec };
   image?: { url: string; xPct: number; yPct: number; widthPct: number; opacity: number; pages: number[] | null };
   /** Textos colocados sobre as páxinas: seleccionables, arrastrables e redimensionables directamente no visor. */
   items?: {
@@ -236,7 +237,8 @@ export interface PdfOverlay {
     onPlace: (page: number, xPct: number, yPct: number) => void;
     onMove: (id: number, xPct: number, yPct: number) => void;
     onResize: (id: number, size: number) => void;
-    onEdit: (id: number, text: string) => void;
+    onRotate: (id: number, angle: number) => void;
+    onEdit: (id: number, text: string, style?: { bold: boolean; italic: boolean }) => void;
     onEditing: (id: number | null) => void;
   };
 }
@@ -249,7 +251,11 @@ export interface PdfTextBox {
   text: string;
   size: number;
   color: string;
-  font: string;
+  family: string;
+  bold: boolean;
+  italic: boolean;
+  /** Graos, en sentido contrario ao reloxo. */
+  angle: number;
 }
 export const pdfOverlay = writable<PdfOverlay | null>(null);
 

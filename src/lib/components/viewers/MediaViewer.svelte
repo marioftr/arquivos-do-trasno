@@ -56,18 +56,19 @@
   }
   // Pantalla completa: o vídeo ocupa toda a pantalla e os controis agóchanse se non se move o rato.
   let fs = false;
+  let barH = 0;
   let idle = false;
   let idleTimer: ReturnType<typeof setTimeout>;
   function wake() {
     idle = false;
     clearTimeout(idleTimer);
-    if (fs && playing) idleTimer = setTimeout(() => (idle = true), 2000);
+    if (fs && playing && !panelOpen) idleTimer = setTimeout(() => (idle = true), 2000);
   }
   function fsChange() {
     fs = !!stage && document.fullscreenElement === stage;
     wake();
   }
-  $: if (fs && !playing) wake();
+  $: if (fs) (playing, panelOpen, wake());
   onDestroy(() => clearTimeout(idleTimer));
   // Posición lembrada: ao volver a un ficheiro retómase onde se deixou.
   let ready = false;
@@ -500,7 +501,7 @@
     </div>
   {:else if url && file.category === "video"}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="vrow" class:fs class:idle={fs && idle} bind:this={stage} on:mousemove={wake} on:pointerdown={wake}>
+    <div class="vrow" class:fs class:idle={fs && idle} style={fs ? `--bar-h:${barH}px` : ""} bind:this={stage} on:mousemove={wake} on:pointerdown={wake}>
       <div class="vid">
         <div class="screen" use:size>
           <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
@@ -508,7 +509,7 @@
           {#if subText}<div class="subs" aria-live="off">{subText}</div>{/if}
           {#if loadingSeg}<div class="segload" role="status"><span class="indet" aria-hidden="true"><span></span></span>{$t("Preparando este tramo…")}</div>{/if}
         </div>
-        <div class="under">
+        <div class="under" bind:clientHeight={barH}>
           {#if converted}
             <p class="note" role="note">{$t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
           {/if}
@@ -519,7 +520,7 @@
             <button class="btn icon ghost" on:click={() => (muted = !muted)} aria-label={$t("Silenciar")} title={`${$t("Silenciar")} (M)`}><Icon name={muted || vol === 0 ? "mute" : "volume"} size={15} /></button>
             <input class="vol" type="range" min="0" max="1" step="0.01" bind:value={vol} on:input={() => (muted = false)} aria-label={$t("Volume")} title={`${$t("Volume")}: ${Math.round(vol * 100)} %`} />
             {#if hasTracks}
-              <button class="btn ghost" class:on={panelOpen} on:click={() => (panelOpen = !panelOpen)} aria-pressed={panelOpen} title={$t("Escoller pista de vídeo, audio ou subtítulos")}><Icon name="layers" size={15} /> {$t("Pistas")}</button>
+              <button class="btn ghost" class:on={panelOpen} on:click={() => (panelOpen = !panelOpen)} aria-pressed={panelOpen} title={$t("Escoller pista de vídeo, audio ou subtítulos")}><Icon name="sliders" size={15} /> {$t("Pistas")}</button>
             {/if}
             <button class="btn icon ghost" on:click={fullscreen} aria-label={$t("Pantalla completa")} title={`${$t("Pantalla completa")} (F)`}><Icon name="expand" size={15} /></button>
           </div>
@@ -601,19 +602,15 @@
   .tlw { flex: 1 1 9rem; min-width: 0; }
   .vol { width: 88px; accent-color: var(--accent); }
   .vid { background: var(--viewer-bg); }
-  /* Pantalla completa: fondo negro e controis escuros en calquera tema; os controis flotan sobre o vídeo e agóchanse. */
+  /* Pantalla completa: o fondo do vídeo é negro en calquera tema; a barra e o panel seguen o tema da app. */
   .vrow:fullscreen, .vrow::backdrop { background: #000; }
-  .vrow.fs {
-    --text: #e9edf4; --text-muted: #b3bbc8; --text-faint: #8791a0;
-    --bg-elevated: #151922; --bg-hover: #262c38; --bg-input: #151922; --bg-rail: #000;
-    --border: #2c3340; --border-strong: #404959; --viewer-bg: #000;
-    background: #000; color: var(--text); position: relative;
-  }
+  .vrow.fs { background: #000; position: relative; }
   .vrow.fs .vid, .vrow.fs .screen { background: #000; }
   .vrow.fs .screen { position: absolute; inset: 0; }
   .vrow.fs video { width: 100%; height: 100%; }
-  .vrow.fs .under { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; border-top: 1px solid var(--border); background: rgba(0, 0, 0, 0.9); transition: opacity 0.2s ease; }
-  .vrow.fs :global(aside.sp) { position: absolute; right: 0; top: 0; bottom: 0; z-index: 4; height: auto; background: rgba(8, 10, 14, 0.94); transition: opacity 0.2s ease; }
+  .vrow.fs .under { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; transition: opacity 0.2s ease; }
+  /* O panel de pistas queda enriba da barra, nunca a tapa: o botón «Pistas» segue á vista para pechalo. */
+  .vrow.fs :global(aside.sp) { position: absolute; right: 0; top: 0; bottom: var(--bar-h, 0px); z-index: 4; height: auto; transition: opacity 0.2s ease; }
   .vrow.fs.idle .under, .vrow.fs.idle :global(aside.sp) { opacity: 0; pointer-events: none; }
   .vrow.fs.idle video { cursor: none; }
   .time { font-variant-numeric: tabular-nums; font-size: 0.85rem; }

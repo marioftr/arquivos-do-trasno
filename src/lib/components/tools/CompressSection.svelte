@@ -269,7 +269,7 @@
           options={DARS.map((d) => ({ value: d, label: d ? d.replace("/", ":") : $t("orixinal") }))}
           bind:value={$form.dar}
         />
-        <p class="group-note">{$t("Só se o vídeo se ve esticado ou aplastado; no resto déixao en orixinal.")} {$t("O visor amosa o cambio.")}</p>
+        <p class="group-note">{$t("Só se o vídeo se ve esticado ou aplastado; no resto déixao en orixinal.")}</p>
       {/if}
     </div>
   {/if}

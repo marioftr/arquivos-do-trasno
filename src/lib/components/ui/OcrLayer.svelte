@@ -6,6 +6,22 @@
   export let sc: number;
   export let result: OcrResult;
 
+  let root: HTMLDivElement;
+  /** Ao copiar, as palabras seleccionadas van separadas por espazos e cada liña do orixinal nunha liña. */
+  function copy(e: ClipboardEvent) {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !root?.contains(sel.anchorNode)) return;
+    const lines: string[] = [];
+    root.querySelectorAll<HTMLElement>(".ln").forEach((ln) => {
+      const words = [...ln.querySelectorAll("span")].filter((sp) => sel.containsNode(sp, true)).map((sp) => sp.textContent?.trim() ?? "").filter(Boolean);
+      if (words.length) lines.push(words.join(" "));
+    });
+    if (lines.length) {
+      e.clipboardData?.setData("text/plain", lines.join("\n"));
+      e.preventDefault();
+    }
+  }
+
   let ctx: CanvasRenderingContext2D | null = null;
   const natural = (text: string, fs: number) => {
     ctx ??= document.createElement("canvas").getContext("2d");
@@ -22,7 +38,9 @@
   }
 </script>
 
-<div class="ocr" style={`left:${box.l}px;top:${box.t}px;width:${box.w}px;height:${box.h}px`}>
+<svelte:window on:copy={copy} />
+
+<div class="ocr" bind:this={root} style={`left:${box.l}px;top:${box.t}px;width:${box.w}px;height:${box.h}px`}>
   {#each result.lines as line}
     <div class="ln">{#each line as w}<span style={style(w, sc)}>{w.text}</span>{" "}{/each}</div>
   {/each}

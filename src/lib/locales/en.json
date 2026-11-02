@@ -980,7 +980,6 @@
   "Arrastra o texto no visor para movelo.": "Drag the text in the viewer to move it.",
   "Escoller outro sitio": "Choose another spot",
   "Escribe o texto que queres engadir.": "Type the text you want to add.",
-  "O visor amosa o cambio.": "The viewer shows the change.",
   "Ubicación": "Location",
   "Lendo o ficheiro…": "Reading the file…",
   "Datos técnicos en bruto": "Raw technical data",
@@ -1159,5 +1158,9 @@
   "O trasno non puido copiar o texto.": "The trasno could not copy the text.",
   "Falta o paquete de idioma.": "The language pack is missing.",
   "Idioma descoñecido.": "Unknown language.",
-  "O paquete de idioma descargado non é válido.": "The downloaded language pack is not valid."
+  "O paquete de idioma descargado non é válido.": "The downloaded language pack is not valid.",
+  "Textos engadidos": "Added texts",
+  "Páx.": "Pg.",
+  "Arrastra para xirar o texto": "Drag to rotate the text",
+  "Pechar (quitar da lista) o ficheiro que se está vendo": "Close (remove from the list) the file being viewed"
 }

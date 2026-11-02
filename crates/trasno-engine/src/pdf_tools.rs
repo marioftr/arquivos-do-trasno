@@ -373,6 +373,9 @@ pub struct TextItem {
     pub size: f32,
     pub color: String,
     pub font: Option<String>,
+    /// Graos, en sentido contrario ao reloxo, arredor da esquina de arriba á esquerda.
+    #[serde(default)]
+    pub angle: f32,
 }
 
 pub fn add_texts(input: &Path, output: &Path, overwrite: bool, items: &[TextItem]) -> Result<PathBuf> {
@@ -399,7 +402,12 @@ pub fn add_texts(input: &Path, output: &Path, overwrite: bool, items: &[TextItem
             .text
             .lines()
             .enumerate()
-            .map(|(i, line)| text_stream(&ctx.name, line, it.size, parse_color(&it.color), None, 0.0, x, top - it.size * 0.93 - i as f32 * it.size * 1.2))
+            .map(|(i, line)| {
+                // Cada liña baixa `d` desde a esquina; co xiro, ese baixar xira tamén.
+                let d = it.size * 0.93 + i as f32 * it.size * 1.2;
+                let (s, c) = it.angle.to_radians().sin_cos();
+                text_stream(&ctx.name, line, it.size, parse_color(&it.color), None, it.angle, x + d * s, top - d * c)
+            })
             .collect::<Vec<_>>()
             .join(" ");
         overlay_latin1(&mut doc, ctx, id, content, None, None)?;
@@ -672,8 +680,8 @@ mod tests {
         let sys = crate::fonts::list().iter().find(|f| f.family == "Arial").or(crate::fonts::list().first()).map(|f| format!("file:{}", f.path));
         let items = vec![
             TextItem { page: 1, text: "Ola
-mundo".into(), x_pct: 10.0, y_pct: 90.0, size: 20.0, color: "#ff0000".into(), font: sys.clone() },
-            TextItem { page: 2, text: "Adeus".into(), x_pct: 50.0, y_pct: 50.0, size: 14.0, color: "#0000ff".into(), font: Some("Times-Italic".into()) },
+mundo".into(), x_pct: 10.0, y_pct: 90.0, size: 20.0, color: "#ff0000".into(), font: sys.clone(), angle: 30.0 },
+            TextItem { page: 2, text: "Adeus".into(), x_pct: 50.0, y_pct: 50.0, size: 14.0, color: "#0000ff".into(), font: Some("Times-Italic".into()), angle: 0.0 },
         ];
         let out = dir.path().join("t.pdf");
         add_texts(&src, &out, false, &items).unwrap();

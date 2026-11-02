@@ -980,7 +980,6 @@
   "Arrastra o texto no visor para movelo.": "Arrastra el texto en el visor para moverlo.",
   "Escoller outro sitio": "Elegir otro sitio",
   "Escribe o texto que queres engadir.": "Escribe el texto que quieres añadir.",
-  "O visor amosa o cambio.": "El visor muestra el cambio.",
   "Ubicación": "Ubicación",
   "Lendo o ficheiro…": "Leyendo el archivo…",
   "Datos técnicos en bruto": "Datos técnicos en bruto",
@@ -1159,5 +1158,9 @@
   "O trasno non puido copiar o texto.": "El trasno no pudo copiar el texto.",
   "Falta o paquete de idioma.": "Falta el paquete de idioma.",
   "Idioma descoñecido.": "Idioma desconocido.",
-  "O paquete de idioma descargado non é válido.": "El paquete de idioma descargado no es válido."
+  "O paquete de idioma descargado non é válido.": "El paquete de idioma descargado no es válido.",
+  "Textos engadidos": "Textos añadidos",
+  "Páx.": "Pág.",
+  "Arrastra para xirar o texto": "Arrastra para girar el texto",
+  "Pechar (quitar da lista) o ficheiro que se está vendo": "Cerrar (quitar de la lista) el archivo que se está viendo"
 }

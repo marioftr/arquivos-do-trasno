@@ -198,6 +198,7 @@ export interface PdfTextItem {
   size: number;
   color: string;
   font?: string;
+  angle?: number;
 }
 export const pdfAddTexts = (input: string, output: string, items: PdfTextItem[], overwrite = false): Promise<string> => call("pdf_add_texts", { input, output, overwrite, items });
 export interface SysFont {

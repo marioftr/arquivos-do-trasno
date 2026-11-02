@@ -39,6 +39,7 @@
     const st = get(annoStyle);
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     e.stopPropagation();
+    e.preventDefault(); // sen isto o clic quitaba o foco ao cadro de texto recén aberto e o texto desaparecía
     if (tool === "select") {
       const s = topHit(x, y);
       selected.set(s?.id ?? null);
@@ -54,7 +55,7 @@
     }
     selected.set(null);
     if (tool === "text") {
-      const s: Shape = { id: newId(), type: "text", color: st.color, width: 1, x, y, text: "", size: st.size, font: st.font, bold: st.bold, italic: st.italic };
+      const s: Shape = { id: newId(), type: "text", color: st.color, width: 1, x, y, text: "", size: st.size, family: st.family, bold: st.bold, italic: st.italic };
       startEdit(s);
       return;
     }
@@ -142,7 +143,7 @@
     editing = { ...s };
     selected.set(null);
     await tick();
-    editor?.focus();
+    setTimeout(() => editor?.focus(), 0);
   }
   function finishText() {
     if (!editing) return;

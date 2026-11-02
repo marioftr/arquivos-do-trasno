@@ -181,22 +181,38 @@
   }
   function mediaAdvanced(info: any): { adv: Group[]; raw: Group[] } {
     const adv: Group[] = [];
-    const rawg: Group[] = [];
     const f = info.format ?? {};
     const g = flatten(f, true);
     adv.push({ title: tr("Ficheiro"), rows: [["Tamaño", size(f.size)], ...g.rows].filter((x) => x[1]) as Row[] });
     const tags = Object.entries(f.tags ?? {}).map(([k, v]) => [k, String(v)] as Row);
     if (tags.length) adv.push({ title: tr("Etiquetas do ficheiro"), rows: tags });
-    if (g.rest.length) rawg.push({ title: tr("Ficheiro"), rows: g.rest });
     (info.streams ?? []).forEach((s: any, i: number) => {
       const x = flatten(s, true);
       const label = s.codec_type === "video" ? tr("Vídeo") : s.codec_type === "audio" ? tr("Audio") : s.codec_type === "subtitle" ? tr("Subtítulos") : tr("Pista");
       const d = Object.entries(s.disposition ?? {}).filter(([, v]) => v === 1).map(([k]) => k.replace(/_/g, " "));
       adv.push({ title: `${label} · ${tr("pista")} ${i + 1}`, rows: [...x.rows, ...(d.length ? ([["Marcas", d.join(", ")]] as Row[]) : []), ...Object.entries(s.tags ?? {}).map(([k, v]) => [k, String(v)] as Row)] });
-      if (x.rest.length) rawg.push({ title: `${label} ${i + 1}`, rows: x.rest });
     });
     (info.chapters ?? []).forEach((c: any, i: number) => adv.push({ title: `${tr("Capítulo")} ${i + 1}`, rows: [["Comeza", dur(Number(c.start_time))], ["Remata", dur(Number(c.end_time))], ...Object.entries(c.tags ?? {}).map(([k, v]) => [k, String(v)] as Row)] }));
-    return { adv, raw: rawg };
+    return { adv, raw: rawAll(info) };
+  }
+
+  /** Todo o que dá ffprobe, tal cal (nome técnico e valor), un grupo por ficheiro, pista e capítulo. */
+  function rawAll(info: any): Group[] {
+    const flat = (o: Record<string, unknown>, prefix = ""): Row[] => {
+      const r: Row[] = [];
+      for (const [k, v] of Object.entries(o ?? {})) {
+        if (v && typeof v === "object" && !Array.isArray(v)) r.push(...flat(v as Record<string, unknown>, `${prefix}${k}.`));
+        else r.push([`${prefix}${k}`, Array.isArray(v) ? JSON.stringify(v) : String(v)]);
+      }
+      return r;
+    };
+    const out: Group[] = [{ title: tr("Ficheiro"), rows: flat(info.format ?? {}) }];
+    (info.streams ?? []).forEach((s: any, i: number) => {
+      const label = s.codec_type === "video" ? tr("Vídeo") : s.codec_type === "audio" ? tr("Audio") : s.codec_type === "subtitle" ? tr("Subtítulos") : tr("Pista");
+      out.push({ title: `${label} · ${tr("pista")} ${i + 1}`, rows: flat(s) });
+    });
+    (info.chapters ?? []).forEach((c: any, i: number) => out.push({ title: `${tr("Capítulo")} ${i + 1}`, rows: flat(c) }));
+    return out;
   }
 
   async function load(f: FileEntry) {
@@ -292,14 +308,16 @@
   {#if level === "advanced" && raw.length}
     <details class="raw">
       <summary>{$t("Datos técnicos en bruto")}</summary>
-      {#each raw as g}
-        <h5>{g.title}</h5>
-        <dl class="selectable mono">
-          {#each g.rows as [k, v]}
-            <dt>{k}</dt>
-            <dd class="wrap">{v}</dd>
-          {/each}
-        </dl>
+      {#each raw as g (g.title)}
+        <details class="sub">
+          <summary>{g.title} <span class="muted">· {g.rows.length}</span></summary>
+          <dl class="selectable mono">
+            {#each g.rows as [k, v]}
+              <dt>{k}</dt>
+              <dd class="wrap">{v}</dd>
+            {/each}
+          </dl>
+        </details>
       {/each}
     </details>
   {/if}
@@ -320,7 +338,9 @@
   .small { font-size: 0.82rem; margin: 0; }
   .raw { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; }
   .raw summary { cursor: pointer; font-size: 0.84rem; color: var(--text-muted); }
-  .raw h5 { margin: 0.7rem 0 0.3rem; font-size: 0.78rem; }
+  .sub { margin-top: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.4rem; }
+  .sub summary { cursor: pointer; font-size: 0.82rem; font-weight: 600; }
+  .sub dl { margin-top: 0.5rem; }
   dl.mono { font-size: 0.74rem; }
   dl.mono dt { font-family: Consolas, monospace; }
 </style>

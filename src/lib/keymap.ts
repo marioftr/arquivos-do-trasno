@@ -23,7 +23,7 @@ export const GROUPS: { id: Group; title: string }[] = [
 export const ACTIONS: ActionDef[] = [
   { id: "g.open", group: "general", label: "Abrir ficheiros", keys: ["Ctrl+O", null] },
   { id: "g.palette", group: "general", label: "Buscar unha acción ou ferramenta", keys: ["Ctrl+K", null] },
-  { id: "g.remove", group: "general", label: "Quitar da lista o ficheiro que se está vendo", keys: ["Delete", null] },
+  { id: "g.remove", group: "general", label: "Pechar (quitar da lista) o ficheiro que se está vendo", keys: ["Ctrl+W", null] },
   { id: "g.undo", group: "general", label: "Desfacer os axustes da ferramenta", keys: ["Ctrl+Z", null] },
   { id: "g.redo", group: "general", label: "Refacer os axustes da ferramenta", keys: ["Ctrl+Y", "Ctrl+Shift+Z"] },
 

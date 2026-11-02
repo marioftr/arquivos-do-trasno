@@ -10,7 +10,7 @@
 
 <section class:open>
   <button class="head" on:click={() => (open = !open)} aria-expanded={open}>
-    <span class="chev"><Icon name={open ? "down" : "arrow-right"} size={12} /></span>
+    <span class="chev"><Icon name={open ? "tri-down" : "tri-right"} size={14} /></span>
     <span class="tt">{title}</span>
     {#if meta}<span class="meta">{meta}</span>{/if}
   </button>

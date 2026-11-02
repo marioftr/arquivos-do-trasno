@@ -2,6 +2,7 @@
 // As figuras gárdanse como vectores en píxeles da imaxe orixinal; só se «queiman» na imaxe ao gardar a copia.
 
 import { writable, get } from "svelte/store";
+import { cssFamily } from "./fonts";
 
 export type Tool = "select" | "pen" | "highlight" | "line" | "arrow" | "rect" | "ellipse" | "text" | "eraser";
 export type ShapeType = "pen" | "highlight" | "line" | "arrow" | "rect" | "ellipse" | "text";
@@ -24,7 +25,7 @@ export interface Shape {
   y?: number;
   text?: string;
   size?: number;
-  font?: string;
+  family?: string;
   bold?: boolean;
   italic?: boolean;
 }
@@ -33,18 +34,16 @@ export interface Style {
   color: string;
   width: number;
   fill: boolean;
-  font: string;
+  family: string;
   size: number;
   bold: boolean;
   italic: boolean;
 }
 
-export const FONTS = ["Segoe UI", "Arial", "Times New Roman", "Courier New", "Georgia", "Verdana", "Trebuchet MS", "Comic Sans MS", "Impact"];
-
 /** O separador de anotar está aberto: o visor deixa de mover a imaxe co rato esquerdo. */
 export const annoActive = writable(false);
 export const annoTool = writable<Tool>("pen");
-export const annoStyle = writable<Style>({ color: "#ff3b30", width: 5, fill: false, font: "Segoe UI", size: 40, bold: false, italic: false });
+export const annoStyle = writable<Style>({ color: "#ff3b30", width: 5, fill: false, family: "Helvetica", size: 40, bold: false, italic: false });
 export const shapes = writable<Shape[]>([]);
 export const selected = writable<number | null>(null);
 /** Imaxe á que pertence o debuxado actual: ao cambiar de imaxe, empeza de cero. */
@@ -104,7 +103,7 @@ export function resetAnnotations() {
 
 // ---- xeometría
 const lineH = (s: Shape) => (s.size ?? 32) * 1.2;
-export const fontOf = (s: Shape) => `${s.italic ? "italic " : ""}${s.bold ? "bold " : ""}${s.size ?? 32}px "${s.font ?? "Segoe UI"}", sans-serif`;
+export const fontOf = (s: Shape) => `${s.italic ? "italic " : ""}${s.bold ? "bold " : ""}${s.size ?? 32}px ${cssFamily(s.family ?? "Helvetica")}`;
 
 let measureCtx: CanvasRenderingContext2D | null = null;
 function textSize(s: Shape): { w: number; h: number } {

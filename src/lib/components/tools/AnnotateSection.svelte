@@ -8,10 +8,11 @@
   import { t, tr } from "../../i18n";
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
-  import { annoActive, annoTool, annoStyle, shapes, selected, canUndo, canRedo, undo, redo, clearAll, resetAnnotations, renderAnnotated, FONTS, type Tool } from "../../annot";
+  import { annoActive, annoTool, annoStyle, shapes, selected, canUndo, canRedo, undo, redo, clearAll, resetAnnotations, renderAnnotated, type Tool } from "../../annot";
   import { setAnnoPath, annoPath } from "../../annot";
   import Slider from "../ui/Slider.svelte";
   import SelectField from "../ui/SelectField.svelte";
+  import FontPicker from "../ui/FontPicker.svelte";
   import ColorField from "../ui/ColorField.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
@@ -67,7 +68,7 @@
         s.id !== id
           ? s
           : s.type === "text"
-            ? { ...s, color: st.color, size: st.size, font: st.font, bold: st.bold, italic: st.italic }
+            ? { ...s, color: st.color, size: st.size, family: st.family, bold: st.bold, italic: st.italic }
             : { ...s, color: st.color, width: st.width, fill: s.type === "rect" || s.type === "ellipse" ? st.fill : s.fill },
       ),
     );
@@ -75,7 +76,7 @@
   // Ao seleccionar unha figura, o panel amosa os seus axustes.
   $: if ($selected !== null) {
     const s = get(shapes).find((x) => x.id === $selected);
-    if (s) annoStyle.update((st) => (s.type === "text" ? { ...st, color: s.color, size: s.size ?? st.size, font: s.font ?? st.font, bold: !!s.bold, italic: !!s.italic } : { ...st, color: s.color, width: s.width, fill: !!s.fill }));
+    if (s) annoStyle.update((st) => (s.type === "text" ? { ...st, color: s.color, size: s.size ?? st.size, family: s.family ?? st.family, bold: !!s.bold, italic: !!s.italic } : { ...st, color: s.color, width: s.width, fill: !!s.fill }));
   }
 
   async function save() {
@@ -122,12 +123,8 @@
       <Toggle label={$t("Encher a figura")} bind:checked={$annoStyle.fill} />
     {/if}
     {#if textTool}
-      <SelectField label={$t("Letra")} bind:value={$annoStyle.font} options={FONTS.map((f) => ({ value: f, label: f }))} def="Segoe UI" />
+      <FontPicker label={$t("Letra")} bind:family={$annoStyle.family} bind:bold={$annoStyle.bold} bind:italic={$annoStyle.italic} defFamily="Helvetica" />
       <Slider label={$t("Tamaño do texto")} unit="px" min={8} max={300} bind:value={$annoStyle.size} def={40} />
-      <div class="pair">
-        <button class="btn tog" class:on={$annoStyle.bold} aria-pressed={$annoStyle.bold} on:click={() => ($annoStyle.bold = !$annoStyle.bold)}><b>N</b> {$t("Negriña")}</button>
-        <button class="btn tog" class:on={$annoStyle.italic} aria-pressed={$annoStyle.italic} on:click={() => ($annoStyle.italic = !$annoStyle.italic)}><i>C</i> {$t("Cursiva")}</button>
-      </div>
     {/if}
   </div>
 
@@ -153,5 +150,4 @@
   .tl.on { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
   .ic { font-size: 1.15rem; line-height: 1; }
   .nm { white-space: nowrap; }
-  .tog.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
 </style>

@@ -2,17 +2,18 @@
   import { onMount } from "svelte";
   import SelectField from "./SelectField.svelte";
   import { t } from "../../i18n";
-  import { STANDARD_FONTS, sysFonts, loadFonts } from "../../fonts";
+  import { STANDARD_FAMILIES, sysFonts, systemFamilies, loadFonts } from "../../fonts";
 
-  /** Escolle a letra: as 12 estándar do PDF e as instaladas no sistema (que se incrustan no PDF). */
+  /** Escolle a familia da letra: tres estándar e as instaladas no sistema. A negriña e a cursiva van á parte. */
   export let label = "";
   export let value: string;
   export let def: string | undefined = undefined;
 
   onMount(loadFonts);
+  $: fams = systemFamilies($sysFonts);
   $: groups = [
-    { label: $t("Letras estándar do PDF"), options: STANDARD_FONTS.map((f) => ({ value: f.id, label: $t(f.label) })) },
-    ...($sysFonts.length ? [{ label: $t("Letras do teu sistema"), options: $sysFonts.map((f) => ({ value: `file:${f.path}`, label: f.name })) }] : []),
+    { label: $t("Letras estándar do PDF"), options: STANDARD_FAMILIES.map((f) => ({ value: f.id, label: $t(f.label) })) },
+    ...(fams.length ? [{ label: $t("Letras do teu sistema"), options: fams.map((f) => ({ value: `sys:${f}`, label: f })) }] : []),
   ];
 </script>
 

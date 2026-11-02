@@ -105,15 +105,22 @@
     <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
     <path d="M21 3v5h-5" />
   {:else if name === "flip-h"}
-    <line x1="4" y1="9" x2="20" y2="9" />
-    <polyline points="16 5 20 9" />
-    <line x1="20" y1="15" x2="4" y2="15" />
-    <polyline points="8 19 4 15" />
+    <line x1="3.5" y1="12" x2="20.5" y2="12" />
+    <polyline points="7.5 8 3.5 12 7.5 16" />
+    <polyline points="16.5 8 20.5 12 16.5 16" />
   {:else if name === "flip-v"}
-    <line x1="9" y1="20" x2="9" y2="4" />
-    <polyline points="5 8 9 4" />
-    <line x1="15" y1="4" x2="15" y2="20" />
-    <polyline points="19 16 15 20" />
+    <line x1="12" y1="3.5" x2="12" y2="20.5" />
+    <polyline points="8 7.5 12 3.5 16 7.5" />
+    <polyline points="8 16.5 12 20.5 16 16.5" />
+  {:else if name === "tri-down"}
+    <polygon points="6 9.5 18 9.5 12 16.5" fill="currentColor" stroke="none" />
+  {:else if name === "tri-right"}
+    <polygon points="9.5 6 16.5 12 9.5 18" fill="currentColor" stroke="none" />
+  {:else if name === "sliders"}
+    <line x1="4" y1="7" x2="20" y2="7" />
+    <line x1="4" y1="17" x2="20" y2="17" />
+    <circle cx="9" cy="7" r="2.3" fill="var(--bg-elevated, transparent)" />
+    <circle cx="15" cy="17" r="2.3" fill="var(--bg-elevated, transparent)" />
   {:else if name === "cursor"}
     <path d="M4.04 4.69a.5.5 0 0 1 .65-.65l16 6.5a.5.5 0 0 1-.06.95l-6.12 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.12a.5.5 0 0 1-.95.06z" />
   {:else if name === "pencil"}
