@@ -2,8 +2,7 @@
   import { errText } from "../../errors";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
-  import { formatBytes } from "../../formats";
-  import { t, tr } from "../../i18n";
+  import { t, tr, lang } from "../../i18n";
   import Segmented from "../ui/Segmented.svelte";
 
   export let file: FileEntry;
@@ -13,117 +12,227 @@
     title: string;
     rows: Row[];
   }
-  let rows: Row[] = [];
-  let groups: Group[] = []; // resumo por pista (vídeo, audio, subtítulos)
-  let advanced: Group[] = []; // todos os datos que dá ffprobe
+  let summary: Group[] = [];
+  let advanced: Group[] = [];
+  let raw: Group[] = []; // datos sen traballar, só na vista avanzada
   let hash = "";
   let hashing = false;
   let note = "";
+  let loading = false;
   let level: "summary" | "advanced" = "summary";
 
   $: isMedia = file.category === "audio" || file.category === "video";
   $: load(file);
 
-  const clock = (s: number) => {
+  // ---------- formato dos valores
+  const locale = () => ($lang === "gl" ? "gl-ES" : $lang);
+  const num = (n: number, d = 1) => n.toLocaleString(locale(), { maximumFractionDigits: d });
+  /** Valores especiais: `@date:segundos` escríbese como data e hora locais. */
+  function show(v: string): string {
+    if (v.startsWith("@date:")) return new Date(Number(v.slice(6)) * 1000).toLocaleString(locale(), { dateStyle: "long", timeStyle: "short" });
+    return $t(v);
+  }
+  function dur(s: number): string {
+    if (!Number.isFinite(s)) return "";
+    if (s < 60) return `${num(s)} s`;
     const h = Math.floor(s / 3600);
     const m = Math.floor((s % 3600) / 60);
-    const sec = (s - h * 3600 - m * 60).toFixed(1).padStart(4, "0");
-    return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+    const sec = Math.round(s % 60);
+    return h ? `${h} h ${m} min ${sec} s` : `${m} min ${sec} s`;
+  }
+  const rate = (v: unknown) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    return n >= 1_000_000 ? `${num(n / 1_000_000)} Mbps` : `${Math.round(n / 1000)} kbps`;
   };
-  const kbps = (v: unknown) => (v !== undefined && v !== "" && Number.isFinite(Number(v)) && Number(v) > 0 ? `${Math.round(Number(v) / 1000)} kbps` : "");
-  const fps = (r?: string) => {
-    if (!r || r === "0/0") return "";
+  const size = (b: unknown) => {
+    const n = Number(b);
+    if (!Number.isFinite(n)) return "";
+    const u = ["B", "KB", "MB", "GB", "TB"];
+    let i = 0;
+    let x = n;
+    while (x >= 1024 && i < 4) (x /= 1024), i++;
+    return i ? `${num(x)} ${u[i]} (${n.toLocaleString(locale())} bytes)` : `${n} B`;
+  };
+  const fpsOf = (r?: string) => {
+    if (!r || r === "0/0") return 0;
     const [a, b] = r.split("/").map(Number);
-    return b ? `${(a / b).toFixed(a / b % 1 ? 3 : 0).replace(/\.?0+$/, "")} fps` : "";
+    return b ? a / b : 0;
   };
-  const join = (...x: (string | undefined | false)[]) => x.filter(Boolean).join(" · ");
-  const channels = (s: any) => s.channel_layout || (s.channels ? `${s.channels} ${tr("canles")}` : "");
+  const ratio = (w: number, h: number) => {
+    const r = w / h;
+    for (const [a, b] of [[1, 1], [4, 3], [3, 2], [16, 9], [21, 9], [5, 4], [16, 10], [3, 4], [2, 3], [9, 16], [4, 5]]) if (Math.abs(a / b - r) < 0.015) return `${a}:${b}`;
+    return `${num(r, 2)}:1`;
+  };
+  const CODECS: Record<string, string> = {
+    h264: "H.264 (AVC, o máis habitual)", hevc: "H.265 (HEVC, moi comprimido)", av1: "AV1 (moderno, moi comprimido)", vp9: "VP9 (web)", vp8: "VP8 (web)", mpeg4: "MPEG-4 (antigo)", mpeg2video: "MPEG-2 (DVD, televisión)", mpeg1video: "MPEG-1",
+    dvvideo: "DV (cinta Mini DV)", mjpeg: "Motion JPEG (cada imaxe é un JPEG)", prores: "Apple ProRes (edición profesional)", wmv3: "Windows Media Video", wmv2: "Windows Media Video", theora: "Theora", gif: "GIF animado", png: "PNG", rawvideo: "Sen comprimir",
+    aac: "AAC (o máis habitual)", mp3: "MP3", ac3: "Dolby Digital (AC-3)", eac3: "Dolby Digital Plus", dts: "DTS", opus: "Opus", vorbis: "Vorbis (OGG)", flac: "FLAC (sen perdas)", alac: "Apple Lossless (sen perdas)",
+    pcm_s16le: "PCM sen comprimir (16 bits)", pcm_s24le: "PCM sen comprimir (24 bits)", pcm_s32le: "PCM sen comprimir (32 bits)", pcm_u8: "PCM sen comprimir (8 bits)", wmav2: "Windows Media Audio", mp2: "MP2",
+    subrip: "SubRip (texto, .srt)", ass: "ASS/SSA (texto con estilos)", webvtt: "WebVTT (texto)", mov_text: "Texto de MP4", hdmv_pgs_subtitle: "PGS (imaxe de Blu-ray)", dvd_subtitle: "DVD (imaxe)", dvb_subtitle: "DVB (imaxe)",
+  };
+  const codec = (s: any) => CODECS[s.codec_name] ?? s.codec_long_name ?? s.codec_name ?? "";
+  const CONT: [RegExp, string][] = [
+    [/matroska/i, "Matroska (MKV / WebM)"], [/mov|mp4/i, "MP4 / MOV"], [/avi/i, "AVI"], [/mpegts/i, "MPEG-TS (transmisión)"], [/flv/i, "Flash Video (FLV)"], [/asf/i, "Windows Media (WMV / WMA)"],
+    [/ogg/i, "OGG"], [/wav/i, "WAV"], [/flac/i, "FLAC"], [/mp3/i, "MP3"], [/aiff/i, "AIFF"], [/mpeg/i, "MPEG"],
+  ];
+  const container = (f: any) => CONT.find(([re]) => re.test(f.format_name ?? ""))?.[1] ?? f.format_long_name ?? f.format_name ?? "";
+  const quality = (w: number, h: number) => {
+    const m = Math.max(w, h) >= Math.max(Math.min(w, h), 1) ? Math.min(w, h) : Math.max(w, h);
+    return m >= 2000 ? "4K ou máis" : m >= 1400 ? "2K" : m >= 1000 ? "Full HD" : m >= 700 ? "HD" : "Definición estándar";
+  };
+  const PIX: Record<string, string> = { yuv420p: "Estándar (YUV 4:2:0, 8 bits)", yuvj420p: "Estándar (YUV 4:2:0, rango completo)", yuv422p: "Alta calidade (YUV 4:2:2)", yuv444p: "Máxima (YUV 4:4:4)", yuv420p10le: "10 bits (HDR ou cor ampla)", rgb24: "RGB 8 bits", gray: "Escala de grises" };
+  const chan = (s: any) => (s.channels === 1 ? "Mono" : s.channels === 2 ? "Estéreo" : s.channels === 6 ? "5.1 (son envolvente)" : s.channels === 8 ? "7.1 (son envolvente)" : s.channels ? `${s.channels} canles` : s.channel_layout ?? "");
+  const dateOf = (iso: string) => {
+    const d = Date.parse(iso);
+    return Number.isNaN(d) ? "" : `@date:${Math.floor(d / 1000)}`;
+  };
+  const rows = (...r: (Row | null | false | "" | 0 | undefined)[]): Row[] => r.filter((x): x is Row => !!x && !!x[1]);
 
-  function summarise(info: any): Group[] {
-    const out: Group[] = [];
+  function mediaSummary(info: any): Group[] {
     const f = info.format ?? {};
-    const general: Row[] = [];
-    if (f.format_long_name) general.push(["Contedor", f.format_long_name]);
-    if (f.duration) general.push(["Duración", clock(Number(f.duration))]);
-    const br = kbps(f.bit_rate);
-    if (br) general.push(["Bitrate total", br]);
-    if (f.tags?.creation_time) general.push(["Data de creación", String(f.tags.creation_time).replace("T", " ").replace(/\.\d+Z?$/, "")]);
-    const enc = f.tags?.encoder ?? f.tags?.ENCODER ?? f.tags?.writing_application;
-    if (enc) general.push(["Creado con", String(enc)]);
-    if (f.tags?.title) general.push(["Título", String(f.tags.title)]);
-    if (general.length) out.push({ title: tr("Xeral"), rows: general });
-    const streams: any[] = info.streams ?? [];
-    const count: Record<string, number> = {};
-    for (const s of streams) {
-      const kind = s.codec_type as string;
-      count[kind] = (count[kind] ?? 0) + 1;
-      const n = count[kind];
+    const out: Group[] = [];
+    const tg = f.tags ?? {};
+    out.push({
+      title: tr("Xeral"),
+      rows: rows(
+        ["Tipo de ficheiro", container(f)],
+        f.duration && ["Duración", dur(Number(f.duration))],
+        ["Tamaño", size(f.size)],
+        f.bit_rate && ["Datos por segundo (total)", rate(f.bit_rate)],
+        tg.creation_time && ["Data de creación", dateOf(String(tg.creation_time))],
+        (tg.encoder ?? tg.ENCODER ?? tg.writing_application) && ["Creado con", String(tg.encoder ?? tg.ENCODER ?? tg.writing_application)],
+        tg.title && ["Título", String(tg.title)],
+      ),
+    });
+    const per: Record<string, number> = {};
+    const all: any[] = info.streams ?? [];
+    for (const s of all) {
+      const k = s.codec_type as string;
+      per[k] = (per[k] ?? 0) + 1;
+      const many = all.filter((x) => x.codec_type === k).length > 1;
       const lang = s.tags?.language && s.tags.language !== "und" ? s.tags.language : "";
-      const title = s.tags?.title ?? s.tags?.handler_name ?? "";
-      const r: Row[] = [];
-      if (kind === "video") {
-        r.push(["Códec", join(s.codec_long_name ?? s.codec_name, s.profile && `(${s.profile})`)]);
-        r.push(["Resolución", `${s.width} × ${s.height}`]);
-        if (s.display_aspect_ratio && s.display_aspect_ratio !== "0:1") r.push(["Relación de aspecto", s.display_aspect_ratio]);
-        const rate = fps(s.avg_frame_rate) || fps(s.r_frame_rate);
-        if (rate) r.push(["Fotogramas", rate]);
-        if (s.field_order && s.field_order !== "progressive" && s.field_order !== "unknown") r.push(["Escaneado", tr("Entrelazado ({o})", { o: s.field_order })]);
-        r.push(["Formato de cor", join(s.pix_fmt, s.color_range, s.color_space)]);
-        if (kbps(s.bit_rate)) r.push(["Bitrate", kbps(s.bit_rate)]);
-        if (s.bits_per_raw_sample) r.push(["Profundidade", `${s.bits_per_raw_sample} bits`]);
-      } else if (kind === "audio") {
-        r.push(["Códec", join(s.codec_long_name ?? s.codec_name, s.profile && `(${s.profile})`)]);
-        r.push(["Canles", channels(s)]);
-        if (s.sample_rate) r.push(["Mostraxe", `${s.sample_rate} Hz${s.sample_fmt ? ` · ${s.sample_fmt}` : ""}`]);
-        if (kbps(s.bit_rate)) r.push(["Bitrate", kbps(s.bit_rate)]);
-      } else if (kind === "subtitle") {
-        r.push(["Códec", s.codec_long_name ?? s.codec_name]);
-      } else {
-        r.push(["Códec", s.codec_long_name ?? s.codec_name ?? kind]);
+      const name = s.tags?.title ?? "";
+      if (k === "video") {
+        if (s.disposition?.attached_pic) continue;
+        const w = Number(s.width);
+        const h = Number(s.height);
+        const fr = fpsOf(s.avg_frame_rate) || fpsOf(s.r_frame_rate);
+        const inter = s.field_order && !["progressive", "unknown"].includes(s.field_order);
+        out.push({
+          title: many ? `${tr("Vídeo")} ${per[k]}` : tr("Vídeo"),
+          rows: rows(
+            ["Compresión", codec(s)],
+            w && h && ["Tamaño da imaxe", `${w} × ${h} px · ${tr(quality(w, h))}`],
+            w && h && ["Forma", `${ratio(w, h)} · ${tr(w === h ? "Cadrada" : w > h ? "Horizontal" : "Vertical")}`],
+            fr && ["Fluidez", `${num(fr, 2)} ${tr("imaxes por segundo")}`],
+            ["Barrido", inter ? tr("Entrelazado (as liñas van en dous pasos; convén desentrelazar)") : tr("Progresivo (normal)")],
+            s.pix_fmt && ["Cor", PIX[s.pix_fmt] ?? s.pix_fmt],
+            s.bit_rate && ["Datos por segundo", rate(s.bit_rate)],
+            lang && ["Idioma", lang],
+            name && ["Nome da pista", String(name)],
+          ),
+        });
+      } else if (k === "audio") {
+        out.push({
+          title: many ? `${tr("Audio")} ${per[k]}` : tr("Audio"),
+          rows: rows(
+            ["Compresión", codec(s)],
+            ["Canles", chan(s)],
+            s.sample_rate && ["Calidade do son", `${num(Number(s.sample_rate) / 1000, 1)} kHz`],
+            s.bit_rate && ["Datos por segundo", rate(s.bit_rate)],
+            lang && ["Idioma", lang],
+            name && ["Nome da pista", String(name)],
+          ),
+        });
+      } else if (k === "subtitle") {
+        const text = !/pgs|dvd|dvb|xsub/.test(s.codec_name ?? "");
+        out.push({
+          title: many ? `${tr("Subtítulos")} ${per[k]}` : tr("Subtítulos"),
+          rows: rows(["Formato", codec(s)], ["Tipo", text ? tr("Texto (pódese ler e editar)") : tr("Imaxe (non se pode editar)")], lang && ["Idioma", lang], name && ["Nome da pista", String(name)]),
+        });
       }
-      if (lang) r.push(["Idioma", lang]);
-      if (title) r.push(["Nome da pista", String(title)]);
-      const label = kind === "video" ? tr("Vídeo") : kind === "audio" ? tr("Audio") : kind === "subtitle" ? tr("Subtítulos") : kind;
-      out.push({ title: count[kind] > 1 || streams.filter((x) => x.codec_type === kind).length > 1 ? `${label} ${n}` : label, rows: r.filter(([, v]) => v) });
     }
     return out;
   }
 
-  /** Todo o que dá ffprobe, sen filtrar: cada campo e cada etiqueta do ficheiro e das pistas. */
-  function everything(info: any): Group[] {
-    const flat = (o: Record<string, unknown>, prefix = ""): Row[] => {
-      const r: Row[] = [];
-      for (const [k, v] of Object.entries(o ?? {})) {
-        if (v && typeof v === "object" && !Array.isArray(v)) r.push(...flat(v as Record<string, unknown>, `${prefix}${k}.`));
-        else if (Array.isArray(v)) r.push([`${prefix}${k}`, JSON.stringify(v)]);
-        else r.push([`${prefix}${k}`, String(v)]);
-      }
-      return r;
-    };
-    const out: Group[] = [{ title: tr("Ficheiro"), rows: flat(info.format ?? {}) }];
-    (info.streams ?? []).forEach((s: any, i: number) => out.push({ title: `${tr("Pista")} ${i} · ${s.codec_type}`, rows: flat(s) }));
-    (info.chapters ?? []).forEach((c: any, i: number) => out.push({ title: `${tr("Capítulo")} ${i + 1}`, rows: flat(c) }));
-    return out;
+  // Datos técnicos coñecidos, con nome en palabras; o que non está nesta lista vai a «datos en bruto».
+  const KNOWN: Record<string, [string, ((v: any) => string)?]> = {
+    profile: ["Perfil"], level: ["Nivel"], pix_fmt: ["Formato de píxel"], color_space: ["Espazo de cor"], color_range: ["Rango de cor"], color_transfer: ["Curva de cor"], color_primaries: ["Cores primarias"],
+    field_order: ["Orde das liñas"], sample_aspect_ratio: ["Forma do píxel"], display_aspect_ratio: ["Forma da imaxe"], has_b_frames: ["Fotogramas B"], refs: ["Fotogramas de referencia"],
+    r_frame_rate: ["Velocidade nominal", (v) => `${num(fpsOf(v), 3)} ${tr("imaxes por segundo")}`], avg_frame_rate: ["Velocidade media", (v) => `${num(fpsOf(v), 3)} ${tr("imaxes por segundo")}`],
+    time_base: ["Unidade de tempo"], nb_frames: ["Número de imaxes"], start_time: ["Comeza en", (v) => `${num(Number(v), 3)} s`], duration: ["Duración da pista", (v) => dur(Number(v))],
+    bit_rate: ["Datos por segundo", rate], bits_per_raw_sample: ["Bits por mostra"], bits_per_sample: ["Bits por mostra"], coded_width: ["Ancho codificado"], coded_height: ["Alto codificado"],
+    sample_fmt: ["Formato de mostra"], sample_rate: ["Mostras por segundo", (v) => `${num(Number(v), 0)} Hz`], channels: ["Canles"], channel_layout: ["Disposición das canles"],
+    codec_name: ["Nome técnico do códec"], codec_long_name: ["Nome completo do códec"], format_name: ["Nome técnico do contedor"], nb_streams: ["Pistas no ficheiro"], probe_score: ["Seguranza ao detectar o formato (0–100)"],
+  };
+  const SKIP = new Set(["index", "codec_type", "codec_tag", "codec_tag_string", "width", "height", "filename", "size", "tags", "disposition", "id", "extradata_size", "format_long_name", "nb_programs", "nb_stream_groups"]);
+
+  function flatten(o: Record<string, unknown>, known: boolean): { rows: Row[]; rest: Row[] } {
+    const r: Row[] = [];
+    const rest: Row[] = [];
+    for (const [k, v] of Object.entries(o ?? {})) {
+      if (SKIP.has(k) || v === undefined || v === null || v === "" || v === "N/A") continue;
+      const hit = known ? KNOWN[k] : undefined;
+      if (hit) r.push([hit[0], hit[1] ? hit[1](v) : String(v)]);
+      else if (typeof v !== "object") rest.push([k, String(v)]);
+    }
+    return { rows: r.filter((x) => x[1]), rest };
+  }
+  function mediaAdvanced(info: any): { adv: Group[]; raw: Group[] } {
+    const adv: Group[] = [];
+    const rawg: Group[] = [];
+    const f = info.format ?? {};
+    const g = flatten(f, true);
+    adv.push({ title: tr("Ficheiro"), rows: [["Tamaño", size(f.size)], ...g.rows].filter((x) => x[1]) as Row[] });
+    const tags = Object.entries(f.tags ?? {}).map(([k, v]) => [k, String(v)] as Row);
+    if (tags.length) adv.push({ title: tr("Etiquetas do ficheiro"), rows: tags });
+    if (g.rest.length) rawg.push({ title: tr("Ficheiro"), rows: g.rest });
+    (info.streams ?? []).forEach((s: any, i: number) => {
+      const x = flatten(s, true);
+      const label = s.codec_type === "video" ? tr("Vídeo") : s.codec_type === "audio" ? tr("Audio") : s.codec_type === "subtitle" ? tr("Subtítulos") : tr("Pista");
+      const d = Object.entries(s.disposition ?? {}).filter(([, v]) => v === 1).map(([k]) => k.replace(/_/g, " "));
+      adv.push({ title: `${label} · ${tr("pista")} ${i + 1}`, rows: [...x.rows, ...(d.length ? ([["Marcas", d.join(", ")]] as Row[]) : []), ...Object.entries(s.tags ?? {}).map(([k, v]) => [k, String(v)] as Row)] });
+      if (x.rest.length) rawg.push({ title: `${label} ${i + 1}`, rows: x.rest });
+    });
+    (info.chapters ?? []).forEach((c: any, i: number) => adv.push({ title: `${tr("Capítulo")} ${i + 1}`, rows: [["Comeza", dur(Number(c.start_time))], ["Remata", dur(Number(c.end_time))], ...Object.entries(c.tags ?? {}).map(([k, v]) => [k, String(v)] as Row)] }));
+    return { adv, raw: rawg };
   }
 
   async function load(f: FileEntry) {
     hash = "";
     note = "";
-    groups = [];
+    summary = [];
     advanced = [];
-    rows = [["Ruta", f.path]];
-    if (f.size !== undefined) rows.push(["Tamaño", formatBytes(f.size)]);
-    if (f.width) rows.push(["Dimensións", `${f.width} × ${f.height} px`]);
-    if (f.pages) rows.push(["Páxinas", String(f.pages)]);
-    if (f.category === "audio" || f.category === "video") {
-      try {
-        const info = await engine.probeMedia(f.path);
-        if (f.path !== file.path) return;
-        groups = summarise(info);
-        advanced = everything(info);
-      } catch {
-        note = tr("Sen ffmpeg non se pode ler a información de audio e vídeo.");
+    raw = [];
+    loading = true;
+    const path = f.path;
+    try {
+      if (f.category === "audio" || f.category === "video") {
+        let info: any;
+        try {
+          info = await engine.probeMedia(path);
+        } catch {
+          note = tr("Sen ffmpeg non se pode ler a información de audio e vídeo.");
+          const b = await engine.fileInfo(path);
+          if (path === file.path) summary = b.summary.map((g) => ({ title: g.title, rows: g.rows }));
+          return;
+        }
+        if (path !== file.path) return;
+        summary = mediaSummary(info);
+        const a = mediaAdvanced(info);
+        advanced = a.adv;
+        raw = a.raw;
+      } else {
+        const r = await engine.fileInfo(path);
+        if (path !== file.path) return;
+        summary = r.summary;
+        advanced = r.advanced;
       }
+    } catch (e) {
+      note = errText(e);
+    } finally {
+      if (path === file.path) loading = false;
     }
   }
 
@@ -137,10 +246,11 @@
       hashing = false;
     }
   }
+  $: shown = level === "summary" || !advanced.length ? summary : advanced;
 </script>
 
 <div class="stack">
-  {#if isMedia && (groups.length || advanced.length)}
+  {#if advanced.length}
     <Segmented
       label={$t("Nivel de detalle")}
       options={[
@@ -152,32 +262,46 @@
   {/if}
 
   <div class="group">
-    <h4 class="group-title">{$t("Información")}</h4>
+    <h4 class="group-title">{$t("Ubicación")}</h4>
     <dl class="selectable">
-      {#each rows as [k, v]}
-        <dt>{$t(k)}</dt>
-        <dd title={v}>{v}</dd>
-      {/each}
+      <dt>{$t("Ruta")}</dt>
+      <dd class="wrap">{file.path}</dd>
       {#if hash}
         <dt>SHA-256</dt>
-        <dd class="hash" title={hash}>{hash}</dd>
+        <dd class="wrap hash">{hash}</dd>
       {/if}
     </dl>
     {#if note}<p class="group-note">{note}</p>{/if}
   </div>
 
-  {#if isMedia}
-    {#each level === "summary" ? groups : advanced as g (g.title + level)}
+  {#if loading && !shown.length}<p class="muted small">{$t("Lendo o ficheiro…")}</p>{/if}
+  {#each shown as g (g.title + level)}
+    {#if g.rows.length}
       <div class="group">
-        <h4 class="group-title">{g.title}</h4>
-        <dl class="selectable" class:raw={level === "advanced"}>
+        <h4 class="group-title">{$t(g.title)}</h4>
+        <dl class="selectable">
           {#each g.rows as [k, v]}
-            <dt>{level === "advanced" ? k : $t(k)}</dt>
-            <dd title={v}>{v}</dd>
+            <dt>{$t(k)}</dt>
+            <dd class="wrap">{show(v)}</dd>
           {/each}
         </dl>
       </div>
-    {/each}
+    {/if}
+  {/each}
+
+  {#if level === "advanced" && raw.length}
+    <details class="raw">
+      <summary>{$t("Datos técnicos en bruto")}</summary>
+      {#each raw as g}
+        <h5>{g.title}</h5>
+        <dl class="selectable mono">
+          {#each g.rows as [k, v]}
+            <dt>{k}</dt>
+            <dd class="wrap">{v}</dd>
+          {/each}
+        </dl>
+      {/each}
+    </details>
   {/if}
 
   <div class="group">
@@ -188,10 +312,15 @@
 </div>
 
 <style>
-  dl { display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 0.9rem; margin: 0; font-size: 0.84rem; }
+  dl { display: grid; grid-template-columns: minmax(6.5rem, 38%) 1fr; gap: 0.45rem 0.9rem; margin: 0; font-size: 0.84rem; }
   dt { color: var(--text-muted); }
-  dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  dl.raw { font-size: 0.78rem; }
-  dl.raw dt { font-family: Consolas, monospace; font-size: 0.74rem; }
+  dd { margin: 0; min-width: 0; }
+  dd.wrap { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
   .hash { font-family: Consolas, monospace; font-size: 0.72rem; }
+  .small { font-size: 0.82rem; margin: 0; }
+  .raw { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; }
+  .raw summary { cursor: pointer; font-size: 0.84rem; color: var(--text-muted); }
+  .raw h5 { margin: 0.7rem 0 0.3rem; font-size: 0.78rem; }
+  dl.mono { font-size: 0.74rem; }
+  dl.mono dt { font-family: Consolas, monospace; }
 </style>

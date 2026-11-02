@@ -310,6 +310,12 @@ fn write_ply(mesh: &Mesh, out: &mut impl Write) -> Result<()> {
 
 // ------------------------------------------------------------ público ----
 
+/// Le a malla pola extensión do ficheiro (para a información do modelo).
+pub fn read_mesh_public(path: &Path) -> Result<Mesh> {
+    let ext = ext_of(path)?;
+    read_mesh(path, &ext)
+}
+
 fn read_mesh(path: &Path, ext: &str) -> Result<Mesh> {
     match ext {
         "obj" => read_obj(path),

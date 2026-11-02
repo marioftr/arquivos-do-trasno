@@ -77,6 +77,7 @@ pub fn run() {
             commands::make_preview_chunk,
             commands::make_frame_preview,
             commands::save_bytes,
+            commands::file_info,
             commands::make_subtitles,
             commands::write_bytes,
             commands::compress_image,

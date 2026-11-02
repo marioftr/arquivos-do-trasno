@@ -365,6 +365,16 @@ pub async fn probe_media(path: String) -> Result<serde_json::Value, String> {
     blocking(move || trasno_engine::ffmpeg::probe(&PathBuf::from(path)).map_err(to_err)).await
 }
 
+/// Información lexible do ficheiro (imaxe, PDF, 3D...): resumo e vista avanzada.
+#[tauri::command]
+pub async fn file_info(path: String) -> Result<serde_json::Value, String> {
+    blocking(move || {
+        let info = trasno_engine::fileinfo::describe(&PathBuf::from(path)).map_err(to_err)?;
+        serde_json::to_value(info).map_err(|e| e.to_string())
+    })
+    .await
+}
+
 #[tauri::command]
 pub async fn sha256(path: String) -> Result<String, String> {
     blocking(move || trasno_engine::integrity::sha256_file(&PathBuf::from(path)).map_err(to_err)).await

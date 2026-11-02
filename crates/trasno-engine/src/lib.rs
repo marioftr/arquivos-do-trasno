@@ -18,6 +18,7 @@
 pub mod compress;
 pub mod error;
 pub mod ffmpeg;
+pub mod fileinfo;
 pub mod formats;
 pub mod image_convert;
 pub mod integrity;
