@@ -65,6 +65,8 @@
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     e.stopPropagation();
     e.preventDefault(); // sen isto o clic quitaba o foco ao cadro de texto recén aberto e o texto desaparecía
+    const ae = document.activeElement as HTMLElement | null;
+    if (ae && ae !== editor && typing(ae)) ae.blur(); // un clic na imaxe saca o foco dos campos do panel
     if (tool === "select") {
       const s = topHit(x, y);
       selected.set(s?.id ?? null);
@@ -252,8 +254,10 @@
   }
 
   // ---- teclado: Supr borra o seleccionado; Ctrl+Z / Ctrl+Y desfán e refán
+  // Sliders, casillas e botóns non captan o teclado: Supr e Ctrl+Z seguen valendo aínda que foran o último que se tocou.
+  const typing = (el: HTMLElement | null) => !!el?.closest("textarea, select, [contenteditable]") || (el instanceof HTMLInputElement && !["range", "checkbox", "radio", "button"].includes(el.type));
   function key(e: KeyboardEvent) {
-    if ((e.target as HTMLElement).closest("input, textarea, select, [contenteditable]")) return;
+    if (typing(e.target as HTMLElement)) return;
     const sel = get(selected);
     if ((e.key === "Delete" || e.key === "Backspace") && sel !== null) {
       commit(get(shapes).filter((s) => s.id !== sel));
