@@ -49,8 +49,9 @@ const fileMemory = new Map<string, Record<string, unknown>>();
 
 export function createForm<T extends Record<string, any>>(defaults: T, memoryKey?: string, fileKey?: string): Form<T> {
   // Con `memoryKey`, arranca cos últimos valores usados (só os campos que seguen existindo).
-  // Con `fileKey`, un ficheiro que xa se tocou arranca cos seus propios valores, non cos dos demais.
-  const saved = (fileKey ? fileMemory.get(fileKey) : undefined) ?? (memoryKey ? loadMemory()[memoryKey] : undefined);
+  // Con `fileKey`, cada ficheiro arranca cos seus propios valores (ou os por defecto se aínda non se tocou).
+  // Un ficheiro novo (con `fileKey`) arranca cos valores por defecto, non cos que se usaron noutro.
+  const saved = fileKey ? fileMemory.get(fileKey) : memoryKey ? loadMemory()[memoryKey] : undefined;
   const start = { ...defaults } as T;
   if (saved) for (const k of Object.keys(defaults)) if (k in saved && typeof saved[k] === typeof defaults[k]) (start as any)[k] = saved[k];
   const store = writable<T>({ ...start });

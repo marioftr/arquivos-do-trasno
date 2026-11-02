@@ -54,7 +54,7 @@ export const annoStyle = writable<Style>({ color: "#ff3b30", width: 5, fill: fal
 /** Groso e recheo que lembra cada ferramenta por separado (o xiro e o resto non pasan dunha a outra). */
 export const toolPrefs: Record<string, { width: number; fill: boolean }> = {
   pen: { width: 5, fill: false },
-  highlight: { width: 5, fill: false },
+  highlight: { width: 15, fill: false },
   line: { width: 5, fill: false },
   arrow: { width: 5, fill: false },
   rect: { width: 5, fill: false },
@@ -313,7 +313,7 @@ export function drawShape(ctx: CanvasRenderingContext2D, s: Shape) {
     const p = s.pts ?? [];
     if (s.type === "highlight") {
       ctx.globalAlpha = 0.38;
-      ctx.lineWidth = s.width * 3;
+      ctx.lineWidth = s.width;
       ctx.lineCap = "butt";
     }
     ctx.beginPath();

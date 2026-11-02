@@ -295,9 +295,9 @@
       <g transform={s.angle ? `rotate(${s.angle} ${centerOf(s)[0]} ${centerOf(s)[1]})` : undefined}>
       {#if s.type === "pen" || s.type === "highlight"}
         {#if (s.pts ?? []).length === 1}
-          <circle cx={s.pts?.[0][0]} cy={s.pts?.[0][1]} r={(s.type === "highlight" ? s.width * 3 : s.width) / 2} fill={s.color} opacity={s.type === "highlight" ? 0.38 : 1} />
+          <circle cx={s.pts?.[0][0]} cy={s.pts?.[0][1]} r={(s.width) / 2} fill={s.color} opacity={s.type === "highlight" ? 0.38 : 1} />
         {:else}
-          <path d={pathOf(s.pts ?? [])} fill="none" stroke={s.color} stroke-width={s.type === "highlight" ? s.width * 3 : s.width} stroke-linecap={s.type === "highlight" ? "butt" : "round"} stroke-linejoin="round" opacity={s.type === "highlight" ? 0.38 : 1} />
+          <path d={pathOf(s.pts ?? [])} fill="none" stroke={s.color} stroke-width={s.width} stroke-linecap={s.type === "highlight" ? "butt" : "round"} stroke-linejoin="round" opacity={s.type === "highlight" ? 0.38 : 1} />
         {/if}
       {:else if s.type === "line" || s.type === "arrow"}
         <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={s.color} stroke-width={s.width} stroke-linecap="round" />
