@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from "svelte";
-  import { viewUrl, imageEdit, imageCrop, imageCropAspect, imageCropEnabled, imageUrl, type FileEntry } from "../../files";
+  import { viewUrl, imageEdit, imageCrop, imageCropAspect, imageCropEnabled, imageUrl, imageNatural, type FileEntry } from "../../files";
   import * as engine from "../../engine";
   import { t } from "../../i18n";
   import AnnotLayer from "../ui/AnnotLayer.svelte";
@@ -162,7 +162,10 @@
     box = { l: r.left - s.left + stage.scrollLeft, t: r.top - s.top + stage.scrollTop, w: r.width, h: r.height };
   }
   function loaded() {
-    if (imgEl) natural = { w: imgEl.naturalWidth, h: imgEl.naturalHeight };
+    if (imgEl) {
+      natural = { w: imgEl.naturalWidth, h: imgEl.naturalHeight };
+      imageNatural.set(natural);
+    }
     tick().then(measure);
   }
   $: if (viewEl && (vw || vh || url || sw || sh)) tick().then(measure);

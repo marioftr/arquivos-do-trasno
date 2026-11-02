@@ -50,6 +50,10 @@ pub fn list() -> &'static Vec<SysFont> {
                 if !p.extension().and_then(|x| x.to_str()).is_some_and(|x| x.eq_ignore_ascii_case("ttf")) {
                     continue;
                 }
+                // Os ficheiros enormes (letras de chinés ou xaponés) saltanse: tardan moito en ler e non valen para texto latino.
+                if std::fs::metadata(&p).map(|m| m.len() > 16 * 1024 * 1024).unwrap_or(true) {
+                    continue;
+                }
                 let Ok(data) = std::fs::read(&p) else { continue };
                 let Ok(face) = Face::parse(&data, 0) else { continue };
                 if !usable(&face) {

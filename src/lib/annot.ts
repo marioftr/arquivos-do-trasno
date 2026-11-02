@@ -141,6 +141,8 @@ export function clearAll() {
 }
 /** Empeza de cero ao cambiar de imaxe. */
 export function resetAnnotations() {
+  clearTimeout(liveTimer);
+  liveBefore = null;
   past.length = 0;
   future.length = 0;
   shapes.set([]);

@@ -276,6 +276,8 @@ export const imageCrop = writable<ImageCrop | null>(null);
 export const imageCropEnabled = writable(false);
 /** URL que está a amosar o visor de imaxe (a orixinal ou unha vista previa PNG), para poder debuxar sobre ela. */
 export const imageUrl = writable("");
+/** Tamaño (px) da imaxe tal como a amosa o visor, xa coa orientación EXIF. */
+export const imageNatural = writable({ w: 0, h: 0 });
 /** Relación de aspecto elixida para un vídeo («16/9»), que o visor amosa antes de converter; baleiro = a orixinal. */
 export const videoDar = writable("");
 

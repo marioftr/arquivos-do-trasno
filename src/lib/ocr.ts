@@ -89,7 +89,15 @@ async function langPathUrl(lang: string): Promise<string> {
   return origin + dir.split(/[\\/]/).map(encodeURIComponent).join("/");
 }
 
-export async function recognize(imageUrl: string, lang: string): Promise<OcrResult> {
+let queue: Promise<unknown> = Promise.resolve();
+/** As lecturas fanse unha a unha: o motor é un só e cambiar de idioma non pode cortar a lectura en curso. */
+export function recognize(imageUrl: string, lang: string): Promise<OcrResult> {
+  const run = queue.then(() => recognizeNow(imageUrl, lang));
+  queue = run.catch(() => {});
+  return run;
+}
+
+async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> {
   if (!dir) await refreshOcr();
   if (!get(ocrInstalled).includes(lang)) throw new Error("Falta o paquete de idioma.");
   const { createWorker } = await import("tesseract.js");

@@ -620,7 +620,10 @@ pub async fn save_bytes(request: tauri::ipc::Request<'_>) -> Result<String, Stri
         }
         let dir = out.parent().ok_or_else(|| msg("A ruta non ten cartafol.", serde_json::json!({})))?;
         let tmp = dir.join(format!(".{}.part", out.file_name().and_then(|n| n.to_str()).unwrap_or("saida")));
-        std::fs::write(&tmp, &data).map_err(|e| e.to_string())?;
+        if let Err(e) = std::fs::write(&tmp, &data) {
+            let _ = std::fs::remove_file(&tmp);
+            return Err(e.to_string());
+        }
         std::fs::rename(&tmp, &out).map_err(|e| {
             let _ = std::fs::remove_file(&tmp);
             e.to_string()

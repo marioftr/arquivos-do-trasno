@@ -194,10 +194,21 @@ pub fn install(tool: Tool, progress: &dyn Fn(Phase, f64), cancelled: &dyn Fn() -
             return Err(e);
         }
         let target = root.join(tool.dir_name());
-        if target.exists() {
-            fs::remove_dir_all(&target)?;
+        // Primeiro aparta a instalación vella; se algo falla, devólvese ao seu sitio e non se perde o que funcionaba.
+        let old = root.join(format!("{}.old", tool.dir_name()));
+        let _ = fs::remove_dir_all(&old);
+        let had_old = target.exists();
+        if had_old {
+            fs::rename(&target, &old).map_err(|e| EngineError::IntegrityCheck(format!("Non puiden substituír a versión instalada (está en uso?): {e}")))?;
         }
-        fs::rename(&stage, &target)?;
+        if let Err(e) = fs::rename(&stage, &target) {
+            if had_old {
+                let _ = fs::rename(&old, &target);
+            }
+            let _ = fs::remove_dir_all(&stage);
+            return Err(e.into());
+        }
+        let _ = fs::remove_dir_all(&old);
         let main = if tool == Tool::Ffmpeg { "ffmpeg.exe" } else { "mkvmerge.exe" };
         installed(tool, main).ok_or_else(|| EngineError::IntegrityCheck(format!("Instaleino, pero non atopo {main} dentro do paquete.")))
     })();

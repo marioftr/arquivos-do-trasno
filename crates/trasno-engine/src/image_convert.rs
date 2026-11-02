@@ -65,7 +65,15 @@ pub fn convert_image(
 
     // Decodificar por completo antes de tocar o destino: se a imaxe de
     // orixe está corrompida, fallamos aquí e nunca chegamos a crear nada.
-    let mut img = image::open(input)?;
+    // A orientación EXIF aplícase ao abrir: as medidas do recorte son as da imaxe tal como se ve.
+    let mut img = {
+        use image::ImageDecoder;
+        let mut dec = image::ImageReader::open(input)?.with_guessed_format()?.into_decoder()?;
+        let orientation = dec.orientation().unwrap_or(image::metadata::Orientation::NoTransforms);
+        let mut i = image::DynamicImage::from_decoder(dec)?;
+        i.apply_orientation(orientation);
+        i
+    };
 
     if let Some((w, h)) = options.resize {
         if w == 0 || h == 0 {

@@ -3,7 +3,7 @@
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
   import { get } from "svelte/store";
-  import { imageEdit, imageCrop, imageCropAspect, imageCropEnabled, type FileEntry } from "../../files";
+  import { imageEdit, imageCrop, imageCropAspect, imageCropEnabled, imageNatural, type FileEntry } from "../../files";
   import { fileNameOf, TRASNO, fallo, listo, IMAGE_TARGETS } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
@@ -62,8 +62,8 @@
 
   // ---- recorte directo no visor: arrastrar sobre a imaxe debuxa o rectángulo; os campos seguen o que se ve
   // O recorte vai sobre a imaxe tal como se ve: despois de xirala ou voltala (ancho e alto trócanse cos xiros de 90°).
-  const W0 = file.width ?? 0;
-  const H0 = file.height ?? 0;
+  $: W0 = $imageNatural.w || file.width || 0;
+  $: H0 = $imageNatural.h || file.height || 0;
   $: swapped = $form.rotate % 180 !== 0;
   $: W = swapped ? H0 : W0;
   $: H = swapped ? W0 : H0;
