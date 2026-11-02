@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { viewUrl, mediaPreview, mediaSeek, mediaTime, trimRange, type FileEntry } from "../../files";
+  import { viewUrl, mediaPreview, mediaSeek, mediaTime, trimRange, type FileEntry, videoDar } from "../../files";
   import * as engine from "../../engine";
   import { get } from "svelte/store";
   import { player } from "../../player";
@@ -37,6 +37,19 @@
     el.muted = muted;
   }
   let stage: HTMLDivElement | undefined;
+  // Relación de aspecto elixida na conversión: o visor amósaa antes de converter (só se mostra, o ficheiro non cambia).
+  let sw = 0;
+  let sh = 0;
+  function size(node: HTMLElement) {
+    const ro = new ResizeObserver(() => ((sw = node.clientWidth), (sh = node.clientHeight)));
+    ro.observe(node);
+    return { destroy: () => ro.disconnect() };
+  }
+  $: darNum = (() => {
+    const [a, b] = ($videoDar || "").split("/").map(Number);
+    return a && b ? a / b : 0;
+  })();
+  $: vstyle = darNum && sw && sh ? `flex:none;margin:auto;object-fit:fill;width:${Math.min(sw, sh * darNum)}px;height:${Math.min(sw, sh * darNum) / darNum}px;` : "";
   function fullscreen() {
     if (document.fullscreenElement) document.exitFullscreen();
     else stage?.requestFullscreen?.();
@@ -48,7 +61,7 @@
   function wake() {
     idle = false;
     clearTimeout(idleTimer);
-    if (fs && playing) idleTimer = setTimeout(() => (idle = true), 2500);
+    if (fs && playing) idleTimer = setTimeout(() => (idle = true), 2000);
   }
   function fsChange() {
     fs = !!stage && document.fullscreenElement === stage;
@@ -445,7 +458,9 @@
         chunked = true;
         totalDur = file.duration ?? Number((await engine.probeMedia(file.path)).format?.duration) ?? 0;
         if (!Number.isFinite(totalDur)) totalDur = 0;
-        const t = resume?.t ?? 0;
+        const saved = playPos.get(file.path);
+        const t = resume?.t ?? (!resume && saved && saved > 2 && (!totalDur || saved < totalDur - 2) ? saved : 0);
+        if (!resume && t) restoredFor = file.path;
         const idx = Math.floor(t / SEG);
         await loadSeg(idx, t - idx * SEG, resume?.play ?? false);
       } else {
@@ -484,12 +499,12 @@
       {:else}<button class="btn" on:click={retry}><Icon name="reset" size={14} /> {$t("Tentar de novo")}</button>{/if}
     </div>
   {:else if url && file.category === "video"}
-    <div class="vrow">
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="vid" class:fs class:idle={fs && idle} bind:this={stage} on:mousemove={wake} on:pointerdown={wake}>
-        <div class="screen">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="vrow" class:fs class:idle={fs && idle} bind:this={stage} on:mousemove={wake} on:pointerdown={wake}>
+      <div class="vid">
+        <div class="screen" use:size>
           <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-          <video bind:this={el} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={() => prepare()} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
+          <video bind:this={el} style={vstyle} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={() => prepare()} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
           {#if subText}<div class="subs" aria-live="off">{subText}</div>{/if}
           {#if loadingSeg}<div class="segload" role="status"><span class="indet" aria-hidden="true"><span></span></span>{$t("Preparando este tramo…")}</div>{/if}
         </div>
@@ -586,12 +601,21 @@
   .tlw { flex: 1 1 9rem; min-width: 0; }
   .vol { width: 88px; accent-color: var(--accent); }
   .vid { background: var(--viewer-bg); }
-  .vid:fullscreen, .vid::backdrop { background: var(--viewer-bg); }
-  .vid.fs .screen { position: absolute; inset: 0; }
-  .vid.fs video { width: 100%; height: 100%; }
-  .vid.fs .under { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; border-top: none; background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0)); padding-top: 2.2rem; transition: opacity 0.25s ease; }
-  .vid.fs.idle .under { opacity: 0; pointer-events: none; }
-  .vid.fs.idle video { cursor: none; }
+  /* Pantalla completa: fondo negro e controis escuros en calquera tema; os controis flotan sobre o vídeo e agóchanse. */
+  .vrow:fullscreen, .vrow::backdrop { background: #000; }
+  .vrow.fs {
+    --text: #e9edf4; --text-muted: #b3bbc8; --text-faint: #8791a0;
+    --bg-elevated: #151922; --bg-hover: #262c38; --bg-input: #151922; --bg-rail: #000;
+    --border: #2c3340; --border-strong: #404959; --viewer-bg: #000;
+    background: #000; color: var(--text); position: relative;
+  }
+  .vrow.fs .vid, .vrow.fs .screen { background: #000; }
+  .vrow.fs .screen { position: absolute; inset: 0; }
+  .vrow.fs video { width: 100%; height: 100%; }
+  .vrow.fs .under { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; border-top: 1px solid var(--border); background: rgba(0, 0, 0, 0.9); transition: opacity 0.2s ease; }
+  .vrow.fs :global(aside.sp) { position: absolute; right: 0; top: 0; bottom: 0; z-index: 4; height: auto; background: rgba(8, 10, 14, 0.94); transition: opacity 0.2s ease; }
+  .vrow.fs.idle .under, .vrow.fs.idle :global(aside.sp) { opacity: 0; pointer-events: none; }
+  .vrow.fs.idle video { cursor: none; }
   .time { font-variant-numeric: tabular-nums; font-size: 0.85rem; }
   .ph { text-align: center; font-size: 0.82rem; }
   .msg { padding: 2rem; text-align: center; }

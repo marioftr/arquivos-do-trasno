@@ -41,15 +41,15 @@
   }
 
   const TOOLS: { id: Tool; label: string; icon: string; hint: string }[] = [
-    { id: "select", label: "Seleccionar", icon: "↖", hint: "Move as figuras. Dobre clic nun texto para editalo; Supr borra a seleccionada." },
-    { id: "pen", label: "Lapis", icon: "✎", hint: "Debuxo a man alzada." },
-    { id: "highlight", label: "Marcador", icon: "▮", hint: "Trazo grosa e translúcida, como un rotulador fluorescente." },
-    { id: "line", label: "Liña", icon: "╱", hint: "Liña recta. Con Maiús, a 0°, 45° ou 90°." },
-    { id: "arrow", label: "Frecha", icon: "→", hint: "Liña con punta de frecha." },
-    { id: "rect", label: "Rectángulo", icon: "▭", hint: "Con Maiús, un cadrado." },
-    { id: "ellipse", label: "Elipse", icon: "◯", hint: "Con Maiús, un círculo." },
-    { id: "text", label: "Texto", icon: "T", hint: "Preme na imaxe e escribe. Ctrl+Intro ou Esc remata." },
-    { id: "eraser", label: "Goma", icon: "⌫", hint: "Borra as figuras polas que pases. Só toca o que debuxaches, nunca a imaxe." },
+    { id: "select", label: "Seleccionar", icon: "cursor", hint: "Move as figuras. Dobre clic nun texto para editalo; Supr borra a seleccionada." },
+    { id: "pen", label: "Lapis", icon: "pencil", hint: "Debuxo a man alzada." },
+    { id: "highlight", label: "Marcador", icon: "highlighter", hint: "Trazo grosa e translúcida, como un rotulador fluorescente." },
+    { id: "line", label: "Liña", icon: "line", hint: "Liña recta. Con Maiús, a 0°, 45° ou 90°." },
+    { id: "arrow", label: "Frecha", icon: "arrow-diag", hint: "Liña con punta de frecha." },
+    { id: "rect", label: "Rectángulo", icon: "square", hint: "Con Maiús, un cadrado." },
+    { id: "ellipse", label: "Elipse", icon: "circle", hint: "Con Maiús, un círculo." },
+    { id: "text", label: "Texto", icon: "type", hint: "Preme na imaxe e escribe. Ctrl+Intro ou Esc remata." },
+    { id: "eraser", label: "Goma", icon: "eraser", hint: "Borra as figuras polas que pases. Só toca o que debuxaches, nunca a imaxe." },
   ];
 
   $: tool = $annoTool;
@@ -101,7 +101,7 @@
     <div class="tools" role="radiogroup" aria-label={$t("Ferramentas")}>
       {#each TOOLS as x}
         <button class="tl" class:on={tool === x.id} role="radio" aria-checked={tool === x.id} title={`${$t(x.label)} — ${$t(x.hint)}`} on:click={() => annoTool.set(x.id)}>
-          <span class="ic" aria-hidden="true">{x.icon}</span>
+          <span class="ic" aria-hidden="true"><Icon name={x.icon} size={18} /></span>
           <span class="nm">{$t(x.label)}</span>
         </button>
       {/each}
@@ -139,7 +139,7 @@
   <div class="group">
     <SelectField label={$t("Gardar como")} bind:value={ext} options={["png", "jpg", "webp"].map((x) => ({ value: x, label: x.toUpperCase() }))} def="png" />
     <button class="btn primary block" on:click={save} disabled={!$shapes.length || $busy}>
-      <Icon name="check" size={14} /> {$t("Gardar copia anotada")}
+      {$t("Gardar copia anotada")}
     </button>
   </div>
 

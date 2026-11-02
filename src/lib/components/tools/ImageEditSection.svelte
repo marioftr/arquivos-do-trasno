@@ -65,6 +65,8 @@
   const H = file.height ?? 0;
   onMount(() => {
     imageCropEnabled.set(true);
+    // Ao abrir a edición xa se ve o rectángulo sobre toda a imaxe, listo para axustar.
+    if (W && H && !get(imageCrop)) imageCrop.set({ x: 0, y: 0, w: W, h: H });
     return imageCrop.subscribe((c) => {
       const f = get(form);
       if (!c) {
@@ -92,10 +94,19 @@
     const ar = a === "free" ? null : Number(a);
     imageCropAspect.set(ar);
     const c = get(imageCrop);
-    if (ar && c) {
-      const h = Math.max(8, Math.min(H - c.y, Math.round(c.w / ar)));
-      imageCrop.set({ ...c, h });
+    if (!ar || !c) return;
+    // O recorte actual encolle, centrado, ata ter a proporción pedida: nunca se estira nin se deforma.
+    let w = c.w;
+    let h = w / ar;
+    if (h > c.h) {
+      h = c.h;
+      w = h * ar;
     }
+    w = Math.max(1, Math.min(W, Math.round(w)));
+    h = Math.max(1, Math.min(H, Math.round(w / ar)));
+    const x = Math.max(0, Math.min(W - w, Math.round(c.x + (c.w - w) / 2)));
+    const y = Math.max(0, Math.min(H - h, Math.round(c.y + (c.h - h) / 2)));
+    imageCrop.set({ x, y, w, h });
   }
   function fullCrop() {
     imageCrop.set({ x: 0, y: 0, w: W, h: H });
@@ -140,12 +151,12 @@
   <div class="group">
     <h4 class="group-title">{$t("Transformar")}</h4>
     <div class="pair">
-      <button class="btn" on:click={() => rot(270)} title={$t("Xirar 90° á esquerda")}>↺ {$t("Xirar 90° á esquerda")}</button>
-      <button class="btn" on:click={() => rot(90)} title={$t("Xirar 90° á dereita")}>↻ {$t("Xirar 90° á dereita")}</button>
+      <button class="btn" on:click={() => rot(270)} title={$t("Xirar 90° á esquerda")}><Icon name="rotate-ccw" size={15} /> {$t("Xirar 90° á esquerda")}</button>
+      <button class="btn" on:click={() => rot(90)} title={$t("Xirar 90° á dereita")}><Icon name="rotate-cw" size={15} /> {$t("Xirar 90° á dereita")}</button>
     </div>
     <div class="pair">
-      <button class="btn tog" class:on={$form.flipH} aria-pressed={$form.flipH} on:click={() => ($form.flipH = !$form.flipH)} title={$t(HINTS["Espello horizontal"])}>⇋ {$t("Espello horizontal")}</button>
-      <button class="btn tog" class:on={$form.flipV} aria-pressed={$form.flipV} on:click={() => ($form.flipV = !$form.flipV)} title={$t(HINTS["Espello vertical"])}>⇅ {$t("Espello vertical")}</button>
+      <button class="btn tog" class:on={$form.flipH} aria-pressed={$form.flipH} on:click={() => ($form.flipH = !$form.flipH)} title={$t(HINTS["Espello horizontal"])}><Icon name="flip-h" size={15} /> {$t("Espello horizontal")}</button>
+      <button class="btn tog" class:on={$form.flipV} aria-pressed={$form.flipV} on:click={() => ($form.flipV = !$form.flipV)} title={$t(HINTS["Espello vertical"])}><Icon name="flip-v" size={15} /> {$t("Espello vertical")}</button>
     </div>
   </div>
 
@@ -190,7 +201,7 @@
   <div class="group">
     <SelectField label={$t("Gardar como")} bind:value={$form.ext} options={[...IMAGE_TARGETS, "pdf"].map((x) => ({ value: x, label: x.toUpperCase() }))} def={form.defaults.ext} />
     <button class="btn primary block" on:click={apply} disabled={!$dirty || $busy}>
-      <Icon name="check" size={14} /> {$t("Gardar copia editada")}
+      {$t("Gardar copia editada")}
     </button>
   </div>
 

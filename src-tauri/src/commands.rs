@@ -639,7 +639,7 @@ pub async fn make_frame_preview(path: String, time: f64) -> Result<String, Strin
         let out = dir.join(format!("{stem}.f{}.jpg", (time * 1000.0) as u64));
         if !out.exists() {
             let pre = vec!["-ss".to_string(), format!("{time:.3}")];
-            let args: Vec<String> = ["-an", "-frames:v", "1", "-vf", "yadif=0:-1:0,scale=640:-2", "-q:v", "3"].iter().map(|s| s.to_string()).collect();
+            let args: Vec<String> = ["-an", "-frames:v", "1", "-vf", "yadif=0:-1:0,scale=trunc(iw*sar/2)*2:ih,setsar=1,scale=640:-2", "-q:v", "3"].iter().map(|s| s.to_string()).collect();
             trasno_engine::ffmpeg::convert_media_seek(&input, &out, true, &pre, &args).map_err(to_err)?;
         }
         Ok(out.to_string_lossy().to_string())

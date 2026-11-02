@@ -98,9 +98,47 @@
   {:else if name === "redo"}
     <path d="M15 14l5-5-5-5" />
     <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
-  {:else if name === "reset"}
-    <path d="M3 12a9 9 0 1 0 3-6.7" />
-    <polyline points="3 4 3 9 8 9" />
+  {:else if name === "reset" || name === "rotate-ccw"}
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+  {:else if name === "rotate-cw"}
+    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+  {:else if name === "flip-h"}
+    <line x1="4" y1="9" x2="20" y2="9" />
+    <polyline points="16 5 20 9" />
+    <line x1="20" y1="15" x2="4" y2="15" />
+    <polyline points="8 19 4 15" />
+  {:else if name === "flip-v"}
+    <line x1="9" y1="20" x2="9" y2="4" />
+    <polyline points="5 8 9 4" />
+    <line x1="15" y1="4" x2="15" y2="20" />
+    <polyline points="19 16 15 20" />
+  {:else if name === "cursor"}
+    <path d="M4.04 4.69a.5.5 0 0 1 .65-.65l16 6.5a.5.5 0 0 1-.06.95l-6.12 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.12a.5.5 0 0 1-.95.06z" />
+  {:else if name === "pencil"}
+    <path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z" />
+    <path d="m15 5 4 4" />
+  {:else if name === "highlighter"}
+    <path d="m9 11-6 6v3h9l3-3" />
+    <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
+  {:else if name === "line"}
+    <line x1="5" y1="19" x2="19" y2="5" />
+  {:else if name === "arrow-diag"}
+    <line x1="5" y1="19" x2="19" y2="5" />
+    <polyline points="9 5 19 5 19 15" />
+  {:else if name === "square"}
+    <rect x="3.5" y="3.5" width="17" height="17" rx="2" />
+  {:else if name === "circle"}
+    <circle cx="12" cy="12" r="9" />
+  {:else if name === "type"}
+    <polyline points="4 7 4 4 20 4 20 7" />
+    <line x1="9" y1="20" x2="15" y2="20" />
+    <line x1="12" y1="4" x2="12" y2="20" />
+  {:else if name === "eraser"}
+    <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+    <path d="M22 21H7" />
+    <path d="m5 11 9 9" />
   {:else if name === "sun"}
     <circle cx="12" cy="12" r="4" />
     <line x1="12" y1="2.5" x2="12" y2="5" /><line x1="12" y1="19" x2="12" y2="21.5" />

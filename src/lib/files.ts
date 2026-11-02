@@ -277,6 +277,8 @@ export const imageCrop = writable<ImageCrop | null>(null);
 export const imageCropEnabled = writable(false);
 /** URL que está a amosar o visor de imaxe (a orixinal ou unha vista previa PNG), para poder debuxar sobre ela. */
 export const imageUrl = writable("");
+/** Relación de aspecto elixida para un vídeo («16/9»), que o visor amosa antes de converter; baleiro = a orixinal. */
+export const videoDar = writable("");
 
 /** Vista previa de audio e vídeo: velocidade, volume e salto a un instante. */
 export interface MediaPreview {

@@ -1,11 +1,11 @@
 <script lang="ts">
   import { errText } from "../../errors";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import { open, save } from "@tauri-apps/plugin-dialog";
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
-  import type { FileEntry } from "../../files";
+  import { videoDar, type FileEntry } from "../../files";
   import { fileNameOf, formatBytes, withExtension, TRASNO, fallo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
@@ -44,7 +44,9 @@
     custom: { label: "Personalizado", hint: "Axustas ti a calidade, a altura e o audio.", v: { crf: 28, maxHeight: 0, audioKbps: 128, deinterlace: 0, compat: false } },
   };
   const initialProfile = isImage ? "custom" : "universal";
-  const DARS = ["", "4/3", "16/9"];
+  // Opcións segundo a orientación do vídeo: en vertical, as proporcións «de pé».
+  $: portrait = !!first && (first as any).width && (first as any).height ? (first as any).height > (first as any).width : false;
+  $: DARS = portrait ? ["", "3/4", "9/16", "1/1"] : ["", "4/3", "16/9", "21/9"];
   const UNITS = [
     { id: "KB", mult: 1024 },
     { id: "MB", mult: 1024 ** 2 },
@@ -66,6 +68,8 @@
     sizeValue: 10,
     unit: "MB",
   }, `comprimir2-${category}`);
+  $: videoDar.set(isImage ? "" : v.dar ?? "");
+  onDestroy(() => videoDar.set(""));
   onMount(() => {
     return useForm(form);
   });
@@ -260,13 +264,12 @@
       />
       <p class="group-note">{profileHint}</p>
       {#if !isImage}
-        <SelectField
+        <Segmented
           label={$t("Relación de aspecto")}
-          bind:value={$form.dar}
           options={DARS.map((d) => ({ value: d, label: d ? d.replace("/", ":") : $t("orixinal") }))}
-          def=""
-          hint={$t("Só se o vídeo se ve esticado ou aplastado; no resto déixao en orixinal.")}
+          bind:value={$form.dar}
         />
+        <p class="group-note">{$t("Só se o vídeo se ve esticado ou aplastado; no resto déixao en orixinal.")} {$t("O visor amosa o cambio.")}</p>
       {/if}
     </div>
   {/if}
