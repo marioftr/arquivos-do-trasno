@@ -433,11 +433,13 @@
     <button class="btn" class:on={!fit && zoom === 100} on:click={() => zoomAt(100, stage.clientWidth / 2, stage.clientHeight / 2)}>100%</button>
     <span class="muted pct">{shown} %</span>
     <span class="grow"></span>
+    {#if ocrOn}
+      <select class="lg" bind:value={ocrLang} on:change={changeLang} aria-label={$t("Idioma do texto")} disabled={ocrBusy}>
+        {#each OCR_LANGS as l}<option value={l.id}>{l.label}{$ocrInstalled.includes(l.id) ? "" : " ⇩"}</option>{/each}
+      </select>
+      <button class="btn" on:click={copyAll} disabled={!ocrRes?.lines.length}><Icon name="copy" size={14} /> {$t("Copiar todo o texto")}</button>
+    {/if}
     <button class="btn ocrbtn" class:on={ocrOn} on:click={toggleOcr} disabled={ocrBusy || !!$ocrDownload} title={$t("Le o texto da imaxe para poder seleccionalo e copialo")}><Icon name="type" size={15} /> {ocrBusy ? `${$t("Lendo o texto…")} ${Math.round($ocrProgress * 100)} %` : $t("Texto da imaxe")}</button>
-    <select class="lg" bind:value={ocrLang} on:change={changeLang} aria-label={$t("Idioma do texto")} disabled={ocrBusy}>
-      {#each OCR_LANGS as l}<option value={l.id}>{l.label}{$ocrInstalled.includes(l.id) ? "" : " ⇩"}</option>{/each}
-    </select>
-    <button class="btn" on:click={copyAll} disabled={!ocrRes?.lines.length}><Icon name="copy" size={14} /> {$t("Copiar todo o texto")}</button>
     {#if file.width}<span class="muted dims">{file.width} × {file.height} px</span>{/if}
   </div>
 </div>

@@ -55,6 +55,17 @@
   $: showFill = kind === "rect" || kind === "ellipse";
   $: showText = kind === "text";
 
+  // Xiro da figura escollida (o mesmo que o círculo do visor, con número editable).
+  let uiAngle = 0;
+  $: uiAngle = selShape?.angle ?? 0;
+  function setAngle(v: number) {
+    const id = get(selected);
+    const cur = get(shapes).find((x) => x.id === id);
+    if (!cur || (cur.angle ?? 0) === v) return;
+    shapes.update((l) => l.map((x) => (x.id === id ? { ...x, angle: v } : x)));
+  }
+  $: setAngle(uiAngle);
+
   type St = typeof $annoStyle;
   const sameStyle = (sh: (typeof $shapes)[number], st: St) =>
     sh.type === "text"
@@ -125,6 +136,9 @@
       {/if}
       {#if showFill}
         <Toggle label={$t("Encher a figura")} bind:checked={$annoStyle.fill} />
+      {/if}
+      {#if selShape}
+        <Slider label={$t("Xiro")} unit="°" min={-180} max={180} bind:value={uiAngle} def={0} />
       {/if}
       {#if showText}
         <FontPicker label={$t("Letra")} bind:family={$annoStyle.family} bind:bold={$annoStyle.bold} bind:italic={$annoStyle.italic} defFamily="Helvetica" />

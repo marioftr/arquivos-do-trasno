@@ -2,6 +2,7 @@
   import { errText } from "../../errors";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
+  import { formatBytes } from "../../formats";
   import { t, tr, lang } from "../../i18n";
   import Segmented from "../ui/Segmented.svelte";
 
@@ -89,7 +90,28 @@
   };
   const rows = (...r: (Row | null | false | "" | 0 | undefined)[]): Row[] => r.filter((x): x is Row => !!x && !!x[1]);
 
-  function mediaSummary(info: any): Group[] {
+  /** Resumo curto, como sempre: tamaño, dimensións, duración, códecs e bitrate. */
+  function mediaShort(info: any): Group[] {
+    const f = info.format ?? {};
+    const v = (info.streams ?? []).find((x: any) => x.codec_type === "video" && !x.disposition?.attached_pic);
+    const a = (info.streams ?? []).find((x: any) => x.codec_type === "audio");
+    return [
+      {
+        title: tr("Información"),
+        rows: rows(
+          f.size && ["Tamaño", formatBytes(Number(f.size))],
+          v?.width && ["Dimensións", `${v.width} × ${v.height} px`],
+          f.duration && ["Duración", `${Math.floor(Number(f.duration) / 60)}:${(Number(f.duration) % 60).toFixed(1).padStart(4, "0")}`],
+          v && ["Vídeo", `${v.codec_name} · ${v.width}×${v.height}`],
+          a && ["Audio", `${a.codec_name}${a.sample_rate ? ` · ${a.sample_rate} Hz` : ""}`],
+          f.bit_rate && ["Bitrate", `${Math.round(Number(f.bit_rate) / 1000)} kbps`],
+        ),
+      },
+    ];
+  }
+
+  /** Versión detallada, en palabras, que vai na vista avanzada. */
+  function mediaDetailed(info: any): Group[] {
     const f = info.format ?? {};
     const out: Group[] = [];
     const tg = f.tags ?? {};
@@ -235,9 +257,9 @@
           return;
         }
         if (path !== file.path) return;
-        summary = mediaSummary(info);
+        summary = mediaShort(info);
         const a = mediaAdvanced(info);
-        advanced = a.adv;
+        advanced = [...mediaDetailed(info), ...a.adv];
         raw = a.raw;
       } else {
         const r = await engine.fileInfo(path);

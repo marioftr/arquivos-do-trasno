@@ -26,10 +26,14 @@ fn x(l: &str, v: impl Into<String>) -> [String; 2] {
     [format!("+{l}"), v.into()]
 }
 
-/// O resumo leva as filas sen «+»; a avanzada, todas (co «+» quitado) e mais os grupos extra.
+/// O resumo é un só grupo «Información» coas poucas filas de sempre (tamaño, dimensións, páxinas); a avanzada leva
+/// todas as filas, agrupadas (co «+» quitado), e mais os grupos extra.
 fn finish(groups: Vec<Group>, extra: Vec<Group>) -> Info {
     let strip = |g: &Group| Group { title: g.title.clone(), rows: g.rows.iter().map(|r| [r[0].trim_start_matches('+').to_string(), r[1].clone()]).collect() };
-    let summary: Vec<Group> = groups.iter().map(|g| Group { title: g.title.clone(), rows: g.rows.iter().filter(|r| !r[0].starts_with('+')).cloned().collect() }).filter(|g| !g.rows.is_empty()).collect();
+    let order = ["Tamaño", "Dimensións", "Páxinas"];
+    let mut core: Vec<[String; 2]> = groups.iter().flat_map(|g| g.rows.iter()).filter(|r| !r[0].starts_with('+')).cloned().collect();
+    core.sort_by_key(|r| order.iter().position(|o| *o == r[0]).unwrap_or(order.len()));
+    let summary = if core.is_empty() { vec![] } else { vec![Group { title: "Información".to_string(), rows: core }] };
     let mut advanced: Vec<Group> = groups.iter().map(strip).filter(|g| !g.rows.is_empty()).collect();
     advanced.extend(extra);
     Info { summary, advanced }
@@ -143,7 +147,7 @@ pub fn describe_image(path: &Path) -> Result<Info> {
     size_rows.push(x("Transparencia", if has_alpha { "Si" } else { "Non" }));
     size_rows.push(x("Píxeles en total", group_digits(w as u64 * h as u64)));
     if let Some(f) = format {
-        size_rows.insert(0, row("Formato", format!("{f:?}").to_uppercase()));
+        size_rows.insert(0, x("Formato", format!("{f:?}").to_uppercase()));
     }
     summary.push(group("Imaxe", size_rows));
 
@@ -159,12 +163,12 @@ pub fn describe_image(path: &Path) -> Result<Info> {
         let make = get(exif::Tag::Make);
         let model = get(exif::Tag::Model);
         match (make, model) {
-            (Some(a), Some(b)) => cam.push(row("Cámara", if b.starts_with(&a) { b } else { format!("{a} {b}") })),
-            (None, Some(b)) | (Some(b), None) => cam.push(row("Cámara", b)),
+            (Some(a), Some(b)) => cam.push(x("Cámara", if b.starts_with(&a) { b } else { format!("{a} {b}") })),
+            (None, Some(b)) | (Some(b), None) => cam.push(x("Cámara", b)),
             _ => {}
         }
         for (label, tag, core) in [
-            ("Data da toma", exif::Tag::DateTimeOriginal, true),
+            ("Data da toma", exif::Tag::DateTimeOriginal, false),
             ("Exposición", exif::Tag::ExposureTime, false),
             ("Apertura", exif::Tag::FNumber, false),
             ("ISO", exif::Tag::PhotographicSensitivity, false),
@@ -249,12 +253,12 @@ pub fn describe_pdf(path: &Path) -> Result<Info> {
                         if v.len() == 4 {
                             let (w, h) = ((v[2] - v[0]).abs() * 25.4 / 72.0, (v[3] - v[1]).abs() * 25.4 / 72.0);
                             let name = paper_name(w, h).map(|n| format!(" · {n}")).unwrap_or_default();
-                            page_rows.push(row("Tamaño da páxina", format!("{w:.0} × {h:.0} mm{name}")));
+                            page_rows.push(x("Tamaño da páxina", format!("{w:.0} × {h:.0} mm{name}")));
                         }
                     }
                 }
             }
-            page_rows.push(row("Protexido con contrasinal", if doc.is_encrypted() { "Si" } else { "Non" }));
+            page_rows.push(x("Protexido con contrasinal", if doc.is_encrypted() { "Si" } else { "Non" }));
             summary.push(group("Documento", page_rows));
 
             let mut meta = Vec::new();
@@ -264,7 +268,7 @@ pub fn describe_pdf(path: &Path) -> Result<Info> {
                     if let Some(v) = info.get(k.as_bytes()).ok().and_then(|o| doc.dereference(o).ok().map(|x| x.1)).and_then(pdf_text) {
                         let v = if k.ends_with("Date") { pdf_date(&v).unwrap_or(v) } else { v };
                         if !v.trim().is_empty() {
-                            meta.push(if matches!(k, "Title" | "Author") { row(label, v) } else { x(label, v) });
+                            meta.push(x(label, v));
                         }
                     }
                 }
@@ -323,9 +327,9 @@ pub fn describe_model(path: &Path) -> Result<Info> {
         group(
             "Modelo",
             vec![
-                row("Vértices", group_digits(mesh.vertices.len() as u64)),
-                row("Triángulos", group_digits(mesh.faces.len() as u64)),
-                row("Tamaño (ancho × alto × fondo)", format!("{} × {} × {}", fmt(d[0]), fmt(d[1]), fmt(d[2]))),
+                x("Vértices", group_digits(mesh.vertices.len() as u64)),
+                x("Triángulos", group_digits(mesh.faces.len() as u64)),
+                x("Tamaño (ancho × alto × fondo)", format!("{} × {} × {}", fmt(d[0]), fmt(d[1]), fmt(d[2]))),
             ],
         ),
         file_group(path),
@@ -372,6 +376,7 @@ mod tests {
         image::RgbaImage::from_pixel(160, 90, image::Rgba([10, 20, 30, 255])).save(&png).unwrap();
         let i = describe(&png).unwrap();
         assert!(has(&i, "Dimensións", "160 × 90"));
+        assert!(!has(&i, "Formato", "PNG"), "o resumo leva só o de sempre");
         // «Forma» só sae na vista avanzada, que leva todo o do resumo e máis.
         assert!(!has(&i, "Forma", "16:9"));
         assert!(i.advanced.iter().flat_map(|g| &g.rows).any(|r| r[0] == "Forma" && r[1].contains("16:9")));
@@ -383,7 +388,7 @@ mod tests {
         crate::pdf::text_to_pdf(&txt, &pdf, false).unwrap();
         let p = describe(&pdf).unwrap();
         assert!(has(&p, "Páxinas", "1"));
-        assert!(has(&p, "Tamaño da páxina", "A4"));
+        assert!(p.advanced.iter().flat_map(|g| &g.rows).any(|r| r[0] == "Tamaño da páxina" && r[1].contains("A4")));
     }
 
     #[test]
