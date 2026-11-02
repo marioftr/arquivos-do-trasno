@@ -832,6 +832,78 @@ pub async fn pdf_add_text(
 }
 
 #[tauri::command]
+pub async fn pdf_add_texts(input: String, output: String, overwrite: bool, items: Vec<trasno_engine::pdf_tools::TextItem>) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        done(trasno_engine::pdf_tools::add_texts(&i, &o, overwrite, &items))
+    })
+    .await
+}
+
+/// Captura da zona útil da xanela principal (o que se ve agora, menús incluídos) para o coagotas de cor.
+/// Devolve 8 bytes (ancho e alto, u32 little-endian) seguidos dos píxeles RGBA.
+#[tauri::command]
+pub fn capture_window(app: tauri::AppHandle) -> Result<tauri::ipc::Response, String> {
+    use tauri::Manager;
+    let w = app.get_webview_window("main").ok_or_else(|| msg("Non atopo a xanela.", serde_json::json!({})))?;
+    let pos = w.inner_position().map_err(|e| e.to_string())?;
+    let size = w.inner_size().map_err(|e| e.to_string())?;
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Graphics::Gdi::*;
+        let (width, height) = (size.width as i32, size.height as i32);
+        if width <= 0 || height <= 0 {
+            return Err(msg("A xanela non ten tamaño.", serde_json::json!({})));
+        }
+        let mut pixels = vec![0u8; (width * height * 4) as usize];
+        let ok = unsafe {
+            let screen = GetDC(std::ptr::null_mut());
+            let mem = CreateCompatibleDC(screen);
+            let bmp = CreateCompatibleBitmap(screen, width, height);
+            let old = SelectObject(mem, bmp as _);
+            let copied = BitBlt(mem, 0, 0, width, height, screen, pos.x, pos.y, SRCCOPY | CAPTUREBLT);
+            let mut bi: BITMAPINFO = std::mem::zeroed();
+            bi.bmiHeader.biSize = std::mem::size_of::<BITMAPINFOHEADER>() as u32;
+            bi.bmiHeader.biWidth = width;
+            bi.bmiHeader.biHeight = -height; // de arriba abaixo
+            bi.bmiHeader.biPlanes = 1;
+            bi.bmiHeader.biBitCount = 32;
+            bi.bmiHeader.biCompression = BI_RGB;
+            let lines = GetDIBits(mem, bmp, 0, height as u32, pixels.as_mut_ptr() as *mut _, &mut bi, DIB_RGB_COLORS);
+            SelectObject(mem, old);
+            DeleteObject(bmp as _);
+            DeleteDC(mem);
+            ReleaseDC(std::ptr::null_mut(), screen);
+            copied != 0 && lines != 0
+        };
+        if !ok {
+            return Err(msg("Non puiden capturar a pantalla.", serde_json::json!({})));
+        }
+        // BGRA -> RGBA e opaco
+        for px in pixels.chunks_exact_mut(4) {
+            px.swap(0, 2);
+            px[3] = 255;
+        }
+        let mut out = Vec::with_capacity(8 + pixels.len());
+        out.extend_from_slice(&(width as u32).to_le_bytes());
+        out.extend_from_slice(&(height as u32).to_le_bytes());
+        out.extend_from_slice(&pixels);
+        Ok(tauri::ipc::Response::new(out))
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (pos, size);
+        Err(msg("O coagotas só está dispoñible en Windows.", serde_json::json!({})))
+    }
+}
+
+/// Letras instaladas no sistema que se poden incrustar nun PDF.
+#[tauri::command]
+pub async fn list_fonts() -> Result<serde_json::Value, String> {
+    blocking(|| serde_json::to_value(trasno_engine::fonts::list()).map_err(|e| e.to_string())).await
+}
+
+#[tauri::command]
 pub async fn pdf_stamp_image(
     input: String, output: String, overwrite: bool,
     image: String, x_pct: f32, y_pct: f32, width_pct: f32, opacity: f32, pages: Option<Vec<u32>>,

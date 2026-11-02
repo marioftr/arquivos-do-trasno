@@ -8,7 +8,8 @@
   import Icon from "../Icon.svelte";
   import { actionFor } from "../../keymap";
   import { get } from "svelte/store";
-  import { pdfOverlay, pdfFontCss, type FileEntry, type PdfOverlay, type PdfFontSpec } from "../../files";
+  import { pdfOverlay, type FileEntry, type PdfOverlay } from "../../files";
+  import { fontCss } from "../../fonts";
   import { t } from "../../i18n";
   import Slider from "../ui/Slider.svelte";
   import FindBar from "../ui/FindBar.svelte";
@@ -405,6 +406,107 @@
     }
   }
 
+  /** Textos editables: clic para escoller, arrastrar para mover, esquina para escalar e dobre clic para escribir. */
+  function paintItems(it: NonNullable<PdfOverlay["items"]>, p: PageInfo, txt: (text: string, size: number, color: string, left: number, top: number, extra?: string, font?: string, lh?: number) => HTMLElement) {
+    for (const b of it.list.filter((x) => x.page === p.n)) {
+      const sel = it.selected === b.id;
+      const editing = it.editing === b.id;
+      const el = txt(b.text || " ", b.size, b.color, p.w * (b.xPct / 100), p.h * (1 - b.yPct / 100), "z-index:3;", b.font, 1.2);
+      el.dataset.tid = String(b.id);
+      el.style.pointerEvents = "auto";
+      el.style.cursor = editing ? "text" : "move";
+      el.style.touchAction = "none";
+      el.style.padding = "2px 3px";
+      el.style.margin = "-2px 0 0 -3px";
+      el.style.outline = sel ? "1.5px solid #4aa3ff" : "1px dashed rgba(74,163,255,.55)";
+      if (editing) {
+        el.contentEditable = "plaintext-only";
+        el.spellcheck = false;
+        queueMicrotask(() => {
+          el.focus();
+          const r = document.createRange();
+          r.selectNodeContents(el);
+          const g = window.getSelection();
+          g?.removeAllRanges();
+          g?.addRange(r);
+        });
+        el.addEventListener("blur", () => it.onEdit(b.id, el.innerText.replace(/\n$/, "")));
+        el.addEventListener("keydown", (e) => {
+          e.stopPropagation();
+          if (e.key === "Escape" || (e.key === "Enter" && (e.ctrlKey || e.metaKey))) {
+            e.preventDefault();
+            el.blur();
+          }
+        });
+        el.addEventListener("pointerdown", (e) => e.stopPropagation());
+        continue;
+      }
+      if (sel) {
+        const h = document.createElement("div");
+        h.title = tr("Arrastra para cambiar o tamaño");
+        h.style.cssText = "position:absolute;right:-9px;bottom:-9px;width:14px;height:14px;background:#fff;border:2px solid #4aa3ff;border-radius:3px;cursor:nwse-resize;z-index:4;touch-action:none;";
+        h.addEventListener("pointerdown", (ev) => {
+          if (ev.button !== 0) return;
+          ev.stopPropagation();
+          ev.preventDefault();
+          const w0 = Math.max(10, el.offsetWidth);
+          const sx = ev.clientX;
+          let size = b.size;
+          const mv = (e2: PointerEvent) => {
+            size = Math.max(4, Math.min(500, Math.round(b.size * ((w0 + (e2.clientX - sx)) / w0) * 10) / 10));
+            el.style.fontSize = `${size * p.s}px`;
+          };
+          const end = () => {
+            window.removeEventListener("pointermove", mv);
+            window.removeEventListener("pointerup", end);
+            window.removeEventListener("pointercancel", end);
+            it.onResize(b.id, size);
+          };
+          window.addEventListener("pointermove", mv);
+          window.addEventListener("pointerup", end);
+          window.addEventListener("pointercancel", end);
+        });
+        el.appendChild(h);
+      }
+      el.addEventListener("dblclick", (ev) => {
+        ev.stopPropagation();
+        it.onEditing(b.id);
+      });
+      el.addEventListener("pointerdown", (ev) => {
+        if (ev.button !== 0 || ev.target !== el) return;
+        ev.stopPropagation();
+        const r = p.wrap.getBoundingClientRect();
+        const sx = ev.clientX;
+        const sy = ev.clientY;
+        const l0 = parseFloat(el.style.left);
+        const t0 = parseFloat(el.style.top);
+        let nx = b.xPct;
+        let ny = b.yPct;
+        let moved = false;
+        const mv = (e2: PointerEvent) => {
+          const dx = e2.clientX - sx;
+          const dy = e2.clientY - sy;
+          if (!moved && Math.hypot(dx, dy) < 3) return;
+          moved = true;
+          el.style.left = `${l0 + dx}px`;
+          el.style.top = `${t0 + dy}px`;
+          nx = Math.max(0, Math.min(100, b.xPct + (dx / r.width) * 100));
+          ny = Math.max(0, Math.min(100, b.yPct - (dy / r.height) * 100));
+        };
+        const end = () => {
+          window.removeEventListener("pointermove", mv);
+          window.removeEventListener("pointerup", end);
+          window.removeEventListener("pointercancel", end);
+          if (moved) it.onMove(b.id, Math.round(nx * 10) / 10, Math.round(ny * 10) / 10);
+          if (it.selected !== b.id) it.onSelect(b.id);
+        };
+        window.addEventListener("pointermove", mv);
+        window.addEventListener("pointerup", end);
+        window.addEventListener("pointercancel", end);
+      });
+    }
+  }
+
   /** Debuxa os cambios pendentes por riba das páxinas (non toca o PDF). */
   function paint(ov: PdfOverlay | null, list: PageInfo[]) {
     for (const p of list) {
@@ -438,22 +540,23 @@
         el.classList.add("ov");
         p.wrap.appendChild(el);
       };
-      const txt = (text: string, size: number, color: string, left: number, top: number, extra = "", font?: PdfFontSpec, lh = 1) => {
+      const txt = (text: string, size: number, color: string, left: number, top: number, extra = "", font?: string, lh = 1) => {
         const e = document.createElement("div");
         e.textContent = text;
-        e.style.cssText = `position:absolute;left:${left}px;top:${top}px;font-size:${size * p.s}px;${pdfFontCss(font)}color:${color};white-space:pre;line-height:${lh};pointer-events:none;${extra}`;
+        e.style.cssText = `position:absolute;left:${left}px;top:${top}px;font-size:${size * p.s}px;${fontCss(font)}color:${color};white-space:pre;line-height:${lh};pointer-events:none;${extra}`;
         add(e);
         return e;
       };
-      // Clic sobre a páxina: coloca o texto alí.
-      p.wrap.style.cursor = ov.place ? "crosshair" : "";
-      p.wrap.onclick = ov.place
+      p.wrap.style.cursor = ov.items ? "crosshair" : "";
+      p.wrap.onclick = ov.items
         ? (ev: MouseEvent) => {
+            // Un clic sobre unha zona baleira coloca un texto novo; sobre un texto xa o trata el.
             if ((ev.target as HTMLElement).closest(".ov")) return;
+            if (ov.items!.editing !== null) return ov.items!.onEditing(null);
             const r = p.wrap.getBoundingClientRect();
             const x = ((ev.clientX - r.left) / r.width) * 100;
             const y = 100 - ((ev.clientY - r.top) / r.height) * 100;
-            ov.place!(p.n, Math.round(x * 10) / 10, Math.round(y * 10) / 10);
+            ov.items!.onPlace(p.n, Math.round(x * 10) / 10, Math.round(y * 10) / 10);
           }
         : null;
       const inPages = (l: number[] | null) => !l || l.includes(p.n);
@@ -472,50 +575,9 @@
       }
       if (ov.text && inPages(ov.text.pages)) {
         const o = ov.text;
-        const cx = p.w * (o.xPct / 100);
-        const cy = p.h * (1 - o.yPct / 100);
-        if (o.centered) txt(o.text, o.size, o.color, cx, cy, `opacity:${o.opacity};transform:translate(-50%,-50%) rotate(${-o.angle}deg);`, o.font);
-        else {
-          // Texto colocado: a esquina de arriba á esquerda é o punto elixido; arrástrase co rato.
-          const el = txt(o.text || " ", o.size, o.color, cx, cy, `opacity:${o.opacity};`, o.font, 1.2);
-          if (o.move) {
-            el.style.pointerEvents = "auto";
-            el.style.cursor = "move";
-            el.style.outline = "1px dashed var(--accent, #4aa3ff)";
-            el.style.outlineOffset = "2px";
-            el.style.touchAction = "none";
-            el.addEventListener("pointerdown", (ev) => {
-              if (ev.button !== 0) return;
-              ev.stopPropagation();
-              el.setPointerCapture(ev.pointerId);
-              const r = p.wrap.getBoundingClientRect();
-              const sx = ev.clientX;
-              const sy = ev.clientY;
-              const l0 = parseFloat(el.style.left);
-              const t0 = parseFloat(el.style.top);
-              let nx = o.xPct;
-              let ny = o.yPct;
-              const mv = (e2: PointerEvent) => {
-                const dx = e2.clientX - sx;
-                const dy = e2.clientY - sy;
-                el.style.left = `${l0 + dx}px`;
-                el.style.top = `${t0 + dy}px`;
-                nx = Math.max(0, Math.min(100, o.xPct + (dx / r.width) * 100));
-                ny = Math.max(0, Math.min(100, o.yPct - (dy / r.height) * 100));
-              };
-              const end = () => {
-                el.removeEventListener("pointermove", mv);
-                el.removeEventListener("pointerup", end);
-                el.removeEventListener("pointercancel", end);
-                o.move!(Math.round(nx * 10) / 10, Math.round(ny * 10) / 10, p.n);
-              };
-              el.addEventListener("pointermove", mv);
-              el.addEventListener("pointerup", end);
-              el.addEventListener("pointercancel", end);
-            });
-          }
-        }
+        txt(o.text, o.size, o.color, p.w * (o.xPct / 100), p.h * (1 - o.yPct / 100), `opacity:${o.opacity};transform:translate(-50%,-50%) rotate(${-o.angle}deg);`, o.font);
       }
+      if (ov.items) paintItems(ov.items, p, txt);
       if (ov.numbers && inPages(ov.numbers.pages ?? null)) {
         const o = ov.numbers;
         const label = o.format.replace("{n}", String(o.start + p.n - 1)).replace("{total}", String(o.start + list.length - 1));

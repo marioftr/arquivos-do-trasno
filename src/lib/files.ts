@@ -223,47 +223,36 @@ export interface PdfOverlay {
   select?: number[];
   /** Márxenes a quitar, en puntos do PDF. */
   crop?: { l: number; b: number; r: number; t: number };
-  /** Texto de marca de auga ou texto engadido (posición en % da páxina, desde abaixo á esquerda). */
-  text?: {
-    text: string;
-    xPct: number;
-    yPct: number;
-    size: number;
-    color: string;
-    opacity: number;
-    angle: number;
-    centered: boolean;
-    pages: number[] | null;
-    /** Letra: familia estándar do PDF (sans, serif ou mono) con negriña e cursiva. */
-    font?: PdfFontSpec;
-    /** Se existe, o texto pódese arrastrar sobre a páxina; avisa da posición nova ao soltar. */
-    move?: (xPct: number, yPct: number, page: number) => void;
-  };
-  numbers?: { position: string; format: string; start: number; size: number; margin: number; color: string; pages?: number[] | null; font?: PdfFontSpec };
-  /** Se existe, un clic sobre unha páxina avisa do punto (en % desde abaixo á esquerda). */
-  place?: (page: number, xPct: number, yPct: number) => void;
+  /** Texto de marca de auga (centrado, co seu xiro). */
+  text?: { text: string; xPct: number; yPct: number; size: number; color: string; opacity: number; angle: number; centered: boolean; pages: number[] | null; font?: string };
+  numbers?: { position: string; format: string; start: number; size: number; margin: number; color: string; pages?: number[] | null; font?: string };
   image?: { url: string; xPct: number; yPct: number; widthPct: number; opacity: number; pages: number[] | null };
+  /** Textos colocados sobre as páxinas: seleccionables, arrastrables e redimensionables directamente no visor. */
+  items?: {
+    list: PdfTextBox[];
+    selected: number | null;
+    editing: number | null;
+    onSelect: (id: number | null) => void;
+    onPlace: (page: number, xPct: number, yPct: number) => void;
+    onMove: (id: number, xPct: number, yPct: number) => void;
+    onResize: (id: number, size: number) => void;
+    onEdit: (id: number, text: string) => void;
+    onEditing: (id: number | null) => void;
+  };
+}
+/** Un texto sobre unha páxina. A posición é a esquina de arriba á esquerda, en % da páxina desde abaixo á esquerda. */
+export interface PdfTextBox {
+  id: number;
+  page: number;
+  xPct: number;
+  yPct: number;
+  text: string;
+  size: number;
+  color: string;
+  font: string;
 }
 export const pdfOverlay = writable<PdfOverlay | null>(null);
 
-export interface PdfFontSpec {
-  family: "sans" | "serif" | "mono";
-  bold: boolean;
-  italic: boolean;
-}
-/** Nome da fonte estándar do PDF (Helvetica, Times ou Courier) para a familia, a negriña e a cursiva. */
-export function pdfFontName(f: PdfFontSpec): string {
-  const b = f.bold;
-  const i = f.italic;
-  if (f.family === "serif") return b && i ? "Times-BoldItalic" : b ? "Times-Bold" : i ? "Times-Italic" : "Times-Roman";
-  if (f.family === "mono") return b && i ? "Courier-BoldOblique" : b ? "Courier-Bold" : i ? "Courier-Oblique" : "Courier";
-  return b && i ? "Helvetica-BoldOblique" : b ? "Helvetica-Bold" : i ? "Helvetica-Oblique" : "Helvetica";
-}
-/** Equivalente en CSS, para a vista previa. */
-export function pdfFontCss(f?: PdfFontSpec): string {
-  const fam = f?.family === "serif" ? '"Times New Roman",Times,serif' : f?.family === "mono" ? '"Courier New",Courier,monospace' : "Helvetica,Arial,sans-serif";
-  return `font-family:${fam};font-weight:${f?.bold ? 700 : 400};font-style:${f?.italic ? "italic" : "normal"};`;
-}
 
 /** Recorte de imaxe sobre o visor, en píxeles da imaxe orixinal. */
 export interface ImageCrop {

@@ -17,6 +17,7 @@ thiserror = "2"
 sha2 = "0.10"
 tempfile = "3"
 which = "7"
+ttf-parser = "0.25"
 kamadak-exif = "0.6"
 ureq = { version = "2", features = ["json"] }
 sevenz-rust = { version = "0.6", default-features = false }

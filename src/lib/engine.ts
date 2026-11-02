@@ -190,6 +190,24 @@ export interface InfoGroup {
   rows: [string, string][];
 }
 export const fileInfo = (path: string): Promise<{ summary: InfoGroup[]; advanced: InfoGroup[] }> => call("file_info", { path });
+export interface PdfTextItem {
+  page: number;
+  text: string;
+  xPct: number;
+  yPct: number;
+  size: number;
+  color: string;
+  font?: string;
+}
+export const pdfAddTexts = (input: string, output: string, items: PdfTextItem[], overwrite = false): Promise<string> => call("pdf_add_texts", { input, output, overwrite, items });
+export interface SysFont {
+  name: string;
+  family: string;
+  weight: number;
+  italic: boolean;
+  path: string;
+}
+export const listFonts = (): Promise<SysFont[]> => call("list_fonts");
 export const makeFramePreview = (path: string, time: number): Promise<string> => call("make_frame_preview", { path, time });
 export async function makeSubtitles(path: string, index: number): Promise<string> {
   return call("make_subtitles", { path, index });

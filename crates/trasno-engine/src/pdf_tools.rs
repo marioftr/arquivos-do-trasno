@@ -74,6 +74,10 @@ struct Ctx {
     font: ObjectId,
     q: ObjectId,
     qq: ObjectId,
+    /// Nome do recurso da letra dentro da páxina («FTrasno», «FTrasno1»...).
+    name: String,
+    /// Se a letra se incrustou, as súas medidas para centrar e colocar o texto con precisión.
+    embedded: Option<crate::fonts::Embedded>,
 }
 
 /// As doce fontes estándar do PDF (non se incrustan: todos os lectores as traen).
@@ -88,11 +92,52 @@ fn base_font(name: &Option<String>) -> &'static str {
 }
 
 impl Ctx {
-    fn new(doc: &mut Document, font_name: &Option<String>) -> Self {
-        let font = doc.add_object(dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => base_font(font_name), "Encoding" => "WinAnsiEncoding" });
+    fn new(doc: &mut Document, font_name: &Option<String>) -> Result<Self> {
+        Self::named(doc, font_name, "FTrasno".to_string())
+    }
+
+    /// Letra estándar do PDF («Helvetica»...) ou unha do sistema (`file:C:\...\arial.ttf`), que se incrusta.
+    fn named(doc: &mut Document, font_name: &Option<String>, name: String) -> Result<Self> {
         let q = doc.add_object(Stream::new(dictionary! {}, b"q".to_vec()));
         let qq = doc.add_object(Stream::new(dictionary! {}, b"Q".to_vec()));
-        Ctx { font, q, qq }
+        if let Some(path) = font_name.as_deref().and_then(|f| f.strip_prefix("file:")) {
+            let e = crate::fonts::load(std::path::Path::new(path))?;
+            let mut file = Stream::new(dictionary! { "Length1" => e.data.len() as i64 }, e.data.clone());
+            let _ = file.compress();
+            let file_id = doc.add_object(file);
+            let desc = doc.add_object(dictionary! {
+                "Type" => "FontDescriptor",
+                "FontName" => Object::Name(e.ps_name.clone().into_bytes()),
+                "Flags" => e.flags,
+                "FontBBox" => vec![e.bbox[0].into(), e.bbox[1].into(), e.bbox[2].into(), e.bbox[3].into()],
+                "ItalicAngle" => e.italic_angle,
+                "Ascent" => e.ascent,
+                "Descent" => e.descent,
+                "CapHeight" => e.cap_height,
+                "StemV" => 80,
+                "FontFile2" => Object::Reference(file_id),
+            });
+            let font = doc.add_object(dictionary! {
+                "Type" => "Font",
+                "Subtype" => "TrueType",
+                "BaseFont" => Object::Name(e.ps_name.clone().into_bytes()),
+                "FirstChar" => 32,
+                "LastChar" => 255,
+                "Widths" => e.widths.iter().map(|w| Object::Real(*w)).collect::<Vec<_>>(),
+                "Encoding" => "WinAnsiEncoding",
+                "FontDescriptor" => Object::Reference(desc),
+            });
+            return Ok(Ctx { font, q, qq, name, embedded: Some(e) });
+        }
+        let font = doc.add_object(dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => base_font(font_name), "Encoding" => "WinAnsiEncoding" });
+        Ok(Ctx { font, q, qq, name, embedded: None })
+    }
+
+    fn width(&self, text: &str, size: f32, font_name: &Option<String>) -> f32 {
+        match &self.embedded {
+            Some(e) => e.width(text, size),
+            None => approx_width(text, size, font_name),
+        }
     }
 }
 
@@ -126,7 +171,7 @@ fn add_overlay(
         Err(_) => Dictionary::new(),
     };
     let mut fonts = sub_dict(doc, &res, b"Font");
-    fonts.set("FTrasno", Object::Reference(ctx.font));
+    fonts.set(ctx.name.as_bytes().to_vec(), Object::Reference(ctx.font));
     res.set("Font", Object::Dictionary(fonts));
     if let Some(a) = alpha {
         let gs = doc.add_object(dictionary! { "Type" => "ExtGState", "ca" => a, "CA" => a });
@@ -172,7 +217,7 @@ fn esc(text: &str) -> String {
     String::from_utf8_lossy(&crate::pdf::escape_pdf_line(text).iter().map(|b| *b).collect::<Vec<u8>>()).to_string()
 }
 
-fn text_stream(text: &str, size: f32, color: (f32, f32, f32), alpha: Option<f32>, angle_deg: f32, x: f32, y: f32) -> String {
+fn text_stream(font: &str, text: &str, size: f32, color: (f32, f32, f32), alpha: Option<f32>, angle_deg: f32, x: f32, y: f32) -> String {
     let (s, c) = angle_deg.to_radians().sin_cos();
     let gs = if alpha.is_some() { "/GSTrasno gs " } else { "" };
     // O texto vai en bytes Latin-1: gárdase como «latin-1 → char» para que o String conserve os bytes.
@@ -180,7 +225,7 @@ fn text_stream(text: &str, size: f32, color: (f32, f32, f32), alpha: Option<f32>
     let latin: String = bytes.iter().map(|b| *b as char).collect();
     let _ = esc;
     format!(
-        "{gs}BT /FTrasno {size} Tf {r} {g} {b} rg {c} {s} {ns} {c} {x} {y} Tm ({latin}) Tj ET",
+        "{gs}BT /{font} {size} Tf {r} {g} {b} rg {c} {s} {ns} {c} {x} {y} Tm ({latin}) Tj ET",
         r = color.0,
         g = color.1,
         b = color.2,
@@ -230,15 +275,15 @@ pub fn watermark_text(input: &Path, output: &Path, overwrite: bool, w: &Watermar
     }
     let mut doc = load(input)?;
     flatten_inherited_page_attributes(&mut doc);
-    let ctx = Ctx::new(&mut doc, &w.font);
+    let ctx = Ctx::new(&mut doc, &w.font)?;
     for (_, id) in select_pages(&doc, pages)? {
         let (l, b, r, t) = page_box(&doc, id);
         let (cx, cy) = ((l + r) / 2.0, (b + t) / 2.0);
-        let width = approx_width(&w.text, w.size, &w.font);
+        let width = ctx.width(&w.text, w.size, &w.font);
         let (s, c) = w.angle.to_radians().sin_cos();
         let x = cx - (width / 2.0) * c + (w.size * 0.35) * s;
         let y = cy - (width / 2.0) * s - (w.size * 0.35) * c;
-        let content = text_stream(&w.text, w.size, parse_color(&w.color), Some(w.opacity.clamp(0.02, 1.0)), w.angle, x, y);
+        let content = text_stream(&ctx.name, &w.text, w.size, parse_color(&w.color), Some(w.opacity.clamp(0.02, 1.0)), w.angle, x, y);
         overlay_latin1(&mut doc, &ctx, id, content, Some(w.opacity.clamp(0.02, 1.0)), None)?;
     }
     save_atomically(&mut doc, output, overwrite)
@@ -263,18 +308,18 @@ pub fn page_numbers(input: &Path, output: &Path, overwrite: bool, o: &PageNumber
     let mut doc = load(input)?;
     flatten_inherited_page_attributes(&mut doc);
     let total = doc.get_pages().len() as i64;
-    let ctx = Ctx::new(&mut doc, &o.font);
+    let ctx = Ctx::new(&mut doc, &o.font)?;
     for (n, id) in select_pages(&doc, pages)? {
         let (l, b, r, t) = page_box(&doc, id);
         let label = o.format.replace("{n}", &(o.start + n as i64 - 1).to_string()).replace("{total}", &(o.start + total - 1).to_string());
-        let width = approx_width(&label, o.size, &o.font);
+        let width = ctx.width(&label, o.size, &o.font);
         let x = match o.position.as_bytes().get(1) {
             Some(b'l') => l + o.margin,
             Some(b'r') => r - o.margin - width,
             _ => (l + r) / 2.0 - width / 2.0,
         };
         let y = if o.position.starts_with('t') { t - o.margin - o.size } else { b + o.margin };
-        let content = text_stream(&label, o.size, parse_color(&o.color), None, 0.0, x, y);
+        let content = text_stream(&ctx.name, &label, o.size, parse_color(&o.color), None, 0.0, x, y);
         overlay_latin1(&mut doc, &ctx, id, content, None, None)?;
     }
     save_atomically(&mut doc, output, overwrite)
@@ -299,7 +344,7 @@ pub fn add_text(input: &Path, output: &Path, overwrite: bool, o: &AddText, pages
     }
     let mut doc = load(input)?;
     flatten_inherited_page_attributes(&mut doc);
-    let ctx = Ctx::new(&mut doc, &o.font);
+    let ctx = Ctx::new(&mut doc, &o.font)?;
     for (_, id) in select_pages(&doc, pages)? {
         let (l, b, r, t) = page_box(&doc, id);
         let x = l + (r - l) * o.x_pct / 100.0;
@@ -309,10 +354,55 @@ pub fn add_text(input: &Path, output: &Path, overwrite: bool, o: &AddText, pages
             .text
             .lines()
             .enumerate()
-            .map(|(i, line)| text_stream(line, o.size, parse_color(&o.color), None, 0.0, x, top - o.size * 0.93 - i as f32 * o.size * 1.2))
+            .map(|(i, line)| text_stream(&ctx.name, line, o.size, parse_color(&o.color), None, 0.0, x, top - o.size * 0.93 - i as f32 * o.size * 1.2))
             .collect::<Vec<_>>()
             .join(" ");
         overlay_latin1(&mut doc, &ctx, id, content, None, None)?;
+    }
+    save_atomically(&mut doc, output, overwrite)
+}
+
+/// Un texto colocado nunha páxina concreta (varios por documento, cada un coa súa letra, tamaño e cor).
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextItem {
+    pub page: u32,
+    pub text: String,
+    pub x_pct: f32,
+    pub y_pct: f32,
+    pub size: f32,
+    pub color: String,
+    pub font: Option<String>,
+}
+
+pub fn add_texts(input: &Path, output: &Path, overwrite: bool, items: &[TextItem]) -> Result<PathBuf> {
+    ensure_distinct(&[input], output)?;
+    if items.iter().all(|i| i.text.trim().is_empty()) {
+        return Err(pdf_err("Escribe o texto que queres engadir."));
+    }
+    let mut doc = load(input)?;
+    flatten_inherited_page_attributes(&mut doc);
+    let pages = doc.get_pages();
+    let mut ctxs: std::collections::HashMap<String, Ctx> = std::collections::HashMap::new();
+    for it in items.iter().filter(|i| !i.text.trim().is_empty()) {
+        let id = *pages.get(&it.page).ok_or(EngineError::PageMissing { page: it.page, total: pages.len() as u32 })?;
+        let key = it.font.clone().unwrap_or_else(|| "Helvetica".to_string());
+        if !ctxs.contains_key(&key) {
+            let c = Ctx::named(&mut doc, &it.font, format!("FTrasno{}", ctxs.len()))?;
+            ctxs.insert(key.clone(), c);
+        }
+        let ctx = &ctxs[&key];
+        let (l, b, r, t) = page_box(&doc, id);
+        let x = l + (r - l) * it.x_pct / 100.0;
+        let top = b + (t - b) * it.y_pct / 100.0;
+        let content = it
+            .text
+            .lines()
+            .enumerate()
+            .map(|(i, line)| text_stream(&ctx.name, line, it.size, parse_color(&it.color), None, 0.0, x, top - it.size * 0.93 - i as f32 * it.size * 1.2))
+            .collect::<Vec<_>>()
+            .join(" ");
+        overlay_latin1(&mut doc, ctx, id, content, None, None)?;
     }
     save_atomically(&mut doc, output, overwrite)
 }
@@ -363,7 +453,7 @@ pub fn stamp_image(input: &Path, output: &Path, overwrite: bool, o: &StampImage,
     let mut doc = load(input)?;
     flatten_inherited_page_attributes(&mut doc);
     let (img, ratio) = image_object(&mut doc, &o.image)?;
-    let ctx = Ctx::new(&mut doc, &None);
+    let ctx = Ctx::new(&mut doc, &None)?;
     let alpha = Some(o.opacity.clamp(0.02, 1.0));
     for (_, id) in select_pages(&doc, pages)? {
         let (l, b, r, t) = page_box(&doc, id);
@@ -573,6 +663,26 @@ mod tests {
         std::fs::write(&t, long).unwrap();
         pdf::text_to_pdf(&t, &p, true).unwrap();
         p
+    }
+
+    #[test]
+    fn varios_textos_con_letra_do_sistema_incrustada() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = sample(dir.path(), "a.pdf", 2);
+        let sys = crate::fonts::list().iter().find(|f| f.family == "Arial").or(crate::fonts::list().first()).map(|f| format!("file:{}", f.path));
+        let items = vec![
+            TextItem { page: 1, text: "Ola
+mundo".into(), x_pct: 10.0, y_pct: 90.0, size: 20.0, color: "#ff0000".into(), font: sys.clone() },
+            TextItem { page: 2, text: "Adeus".into(), x_pct: 50.0, y_pct: 50.0, size: 14.0, color: "#0000ff".into(), font: Some("Times-Italic".into()) },
+        ];
+        let out = dir.path().join("t.pdf");
+        add_texts(&src, &out, false, &items).unwrap();
+        let doc = Document::load(&out).unwrap();
+        assert!(doc.get_pages().len() >= 2);
+        if sys.is_some() {
+            let embedded = doc.objects.values().any(|o| matches!(o, Object::Stream(s) if s.dict.has(b"Length1")));
+            assert!(embedded, "a letra do sistema debe ir incrustada");
+        }
     }
 
     #[test]

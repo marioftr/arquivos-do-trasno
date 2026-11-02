@@ -7,6 +7,8 @@
   export let label = "";
   export let value: string | number;
   export let options: { value: string | number; label: string }[];
+  /** Opcións agrupadas (en vez de `options`). */
+  export let groups: { label: string; options: { value: string | number; label: string }[] }[] | null = null;
   export let def: string | number | undefined = undefined;
   export let hint = "";
   export let disabled = false;
@@ -29,7 +31,13 @@
     </div>
   {/if}
   <select bind:value {disabled} aria-label={label} on:change={() => dispatch("change", value)}>
-    {#each options as o}<option value={o.value}>{o.label}</option>{/each}
+    {#if groups}
+      {#each groups as g}
+        <optgroup label={g.label}>{#each g.options as o}<option value={o.value}>{o.label}</option>{/each}</optgroup>
+      {/each}
+    {:else}
+      {#each options as o}<option value={o.value}>{o.label}</option>{/each}
+    {/if}
   </select>
 </div>
 
