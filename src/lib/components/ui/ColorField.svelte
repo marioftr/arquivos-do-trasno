@@ -117,7 +117,7 @@
       const c = await pickScreenColor();
       if (c) value = c;
     } catch (e) {
-      toast(tr("O trasno non puido coller a cor da pantalla: {e}", { e: errText(e) }), { kind: "warn" });
+      toast(tr("O cuentagotas escapouse: non se puido coller a cor da pantalla ({e}).", { e: errText(e) }), { kind: "warn" });
     } finally {
       picking = false;
       open = keep;

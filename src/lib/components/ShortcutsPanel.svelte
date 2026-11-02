@@ -39,7 +39,7 @@
     const stolen = setSlot(id, slot, combo);
     if (stolen) {
       const other = ACTIONS.find((a) => a.id === stolen)!;
-      toast(tr("«{key}» xa o usaba «{action}»; o trasno quitoullo.", { key: pretty(combo), action: tr(other.label) }));
+      toast(tr("«{key}» era de «{action}», pero o trasno cambiouno de dono.", { key: pretty(combo), action: tr(other.label) }));
     }
   }
   if (typeof window !== "undefined") window.addEventListener("keydown", onKey, true);

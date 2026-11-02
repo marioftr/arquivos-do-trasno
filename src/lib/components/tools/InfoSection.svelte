@@ -14,6 +14,8 @@
     rows: Row[];
     /** Grupo pregable (os capítulos, por exemplo) e se empeza pechado. */
     fold?: boolean;
+    /** Capítulos: número, nome e tempos, para amosalos nunha lista propia. */
+    chap?: { n: number; name: string; time: string }[];
     closed?: boolean;
   }
   let summary: Group[] = [];
@@ -224,7 +226,8 @@
         title: `${tr("Capítulos")} · ${chapters.length}`,
         fold: true,
         closed: true,
-        rows: chapters.map((c, i) => [`${i + 1}`, `${c.tags?.title ? `${c.tags.title} · ` : ""}${dur(Number(c.start_time))} – ${dur(Number(c.end_time))}`] as Row),
+        rows: [],
+        chap: chapters.map((c, i) => ({ n: i + 1, name: String(c.tags?.title ?? "").trim(), time: `${dur(Number(c.start_time))} – ${dur(Number(c.end_time))}` })),
       });
     }
     return { adv, raw: rawAll(info) };
@@ -328,16 +331,24 @@
 
   {#if loading && !shown.length}<p class="muted small">{$t("Lendo o ficheiro…")}</p>{/if}
   {#each shown as g (g.title + level)}
-    {#if g.rows.length}
+    {#if g.rows.length || g.chap?.length}
       {#if g.fold && level === "advanced"}
         <details class="group fold" open={!g.closed}>
           <summary class="group-title">{g.title}</summary>
-          <dl class="selectable">
-            {#each g.rows as [k, v]}
-              <dt>{k}</dt>
-              <dd class="wrap">{show(v)}</dd>
-            {/each}
-          </dl>
+          {#if g.chap}
+            <ol class="chaps selectable">
+              {#each g.chap as c}
+                <li><span class="cn">{c.n}</span><span class="cb"><span class="cname">{c.name || `${$t("Capítulo")} ${c.n}`}</span><span class="ctime">{c.time}</span></span></li>
+              {/each}
+            </ol>
+          {:else}
+            <dl class="selectable">
+              {#each g.rows as [k, v]}
+                <dt>{k}</dt>
+                <dd class="wrap">{show(v)}</dd>
+              {/each}
+            </dl>
+          {/if}
         </details>
       {:else}
         <div class="group">
@@ -385,6 +396,12 @@
   .hash { font-family: Consolas, monospace; font-size: 0.72rem; }
   .small { font-size: 0.82rem; margin: 0; }
   .fold summary { cursor: pointer; }
+  .chaps { list-style: none; margin: 0.5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.55rem; font-size: 0.84rem; }
+  .chaps li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: 0.4rem; align-items: baseline; }
+  .cn { color: var(--text-muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .cb { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+  .cname { overflow-wrap: anywhere; font-weight: 600; }
+  .ctime { color: var(--text-muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
   .fold dl { margin-top: 0.5rem; }
   .raw { margin-top: 1.1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; }
   .raw summary { cursor: pointer; font-size: 0.84rem; color: var(--text-muted); }

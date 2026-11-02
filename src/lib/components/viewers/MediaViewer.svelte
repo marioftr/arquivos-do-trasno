@@ -202,11 +202,11 @@
     try {
       const path = await engine.makeSubtitles(file.path, i);
       cues = parseVtt(await (await fetch(await viewUrl(path))).text());
-      if (!cues.length) toast(tr("Estes subtítulos non teñen liñas que amosar."), { kind: "warn" });
+      if (!cues.length) toast(tr("Estes subtítulos están en branco: non hai nada que amosar."), { kind: "warn" });
       tick();
     } catch {
       selS = -1;
-      toast(tr("O trasno non puido ler estes subtítulos."), { kind: "warn" });
+      toast(tr("Estes subtítulos están nun formato que o trasno non entende. Non os puido ler."), { kind: "warn" });
     }
   }
   $: pickV = { video: selV, audio: selA };

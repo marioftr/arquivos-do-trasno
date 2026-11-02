@@ -38,7 +38,7 @@
         </div>
         <div class="acts"><button class="btn" on:click={() => cancelToolInstall()}>{$t("Cancelar descarga")}</button></div>
       {:else if ready}
-        <p class="done"><Icon name="check" size={15} /> {$t("{name} instalado. Xa se pode usar.", { name: info.name })}</p>
+        <p class="done"><Icon name="check" size={15} /> {$t("{name} xa está na casa. A traballar!", { name: info.name })}</p>
         <div class="acts">
           {#if n.retry}<button class="btn primary" on:click={again}>{$t("Repetir agora")}</button>{/if}
           <button class="btn" on:click={close}>{$t("Pechar")}</button>

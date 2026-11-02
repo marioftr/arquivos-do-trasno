@@ -10,7 +10,7 @@
 
   $: d = DOCS[doc];
   $: k = ($lang === "es" ? "es" : $lang === "en" ? "en" : "gl") as "gl" | "es" | "en";
-  const go = (url: string) => openUrl(url).catch(() => toast(tr("O trasno non puido abrir a ligazón."), { kind: "warn" }));
+  const go = (url: string) => openUrl(url).catch(() => toast(tr("A ligazón non se deixou abrir. O trasno ensaiou, pero nada."), { kind: "warn" }));
   const dateOf = (s: string) => new Date(s + "T12:00:00").toLocaleDateString($lang === "gl" ? "gl-ES" : $lang);
 </script>
 

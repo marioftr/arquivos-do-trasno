@@ -50,6 +50,6 @@
   .ocr { position: absolute; pointer-events: none; overflow: hidden; }
   .ln { display: block; height: 0; }
   span { position: absolute; transform-origin: left top; white-space: pre; color: transparent; pointer-events: auto; cursor: text; user-select: text; border-radius: 2px; }
-  .ocr:hover span { background: rgba(74, 163, 255, 0.14); }
-  span::selection { background: rgba(74, 163, 255, 0.45); color: transparent; }
+  .ocr:hover span { background: rgba(255, 196, 0, 0.28); box-shadow: 0 0 0 1px rgba(255, 196, 0, 0.55); }
+  span::selection { background: rgba(255, 190, 0, 0.7); color: transparent; }
 </style>

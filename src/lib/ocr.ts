@@ -118,6 +118,24 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
     workerLang = lang;
   }
   const { data } = await worker.recognize(imageUrl);
-  const lines: OcrWord[][] = (data.lines ?? []).map((l: any) => (l.words ?? []).filter((w: any) => w.text?.trim()).map((w: any) => ({ text: w.text, x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 }))).filter((l: OcrWord[]) => l.length);
-  return { text: (data.text ?? "").trim(), lines };
+  // Descártanse as palabras que o motor le con pouca confianza (ruído de fotos, texturas...) e os símbolos soltos.
+  const keep = (w: any) => {
+    const t = String(w.text ?? "").trim();
+    if (!t) return false;
+    const c = Number(w.confidence ?? 100);
+    if (c < 45) return false;
+    if (t.length === 1 && !/[\p{L}\p{N}]/u.test(t) && c < 85) return false;
+    return true;
+  };
+  const lines: OcrWord[][] = (data.lines ?? [])
+    .map((l: any) => {
+      const ws = (l.words ?? []).filter(keep);
+      if (!ws.length) return [];
+      // Todas as palabras dunha liña comparten altura (as letras sen ascendentes non encollen a caixa).
+      const y0 = Math.min(...ws.map((w: any) => w.bbox.y0));
+      const y1 = Math.max(...ws.map((w: any) => w.bbox.y1));
+      return ws.map((w: any) => ({ text: String(w.text).trim(), x0: w.bbox.x0, y0, x1: w.bbox.x1, y1 }));
+    })
+    .filter((l: OcrWord[]) => l.length);
+  return { text: lines.map((l) => l.map((w) => w.text).join(" ")).join("\n"), lines };
 }

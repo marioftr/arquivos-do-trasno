@@ -80,14 +80,14 @@
     }
     selected.set(null);
     if (tool === "text") {
-      const s: Shape = { id: newId(), type: "text", color: st.color, width: 1, x, y, text: "", size: st.size, family: st.family, bold: st.bold, italic: st.italic };
+      const s: Shape = { id: newId(), type: "text", color: st.color, width: 1, x, y, text: "", size: st.size, family: st.family, bold: st.bold, italic: st.italic, angle: st.angle || undefined };
       startEdit(s);
       return;
     }
     if (tool === "pen" || tool === "highlight") {
       draft = { id: newId(), type: tool, color: st.color, width: st.width, pts: [[x, y]] };
     } else {
-      draft = { id: newId(), type: tool, color: st.color, width: st.width, fill: st.fill && (tool === "rect" || tool === "ellipse"), x1: x, y1: y, x2: x, y2: y };
+      draft = { id: newId(), type: tool, color: st.color, width: st.width, fill: st.fill && (tool === "rect" || tool === "ellipse"), x1: x, y1: y, x2: x, y2: y, angle: st.angle || undefined };
     }
   }
 
@@ -190,6 +190,11 @@
   }
 
   // ---- texto
+  // Mentres se escribe, os axustes do panel (cor, letra, tamaño, xiro) aplícanse ao texto ao momento.
+  const unsub = annoStyle.subscribe((st) => {
+    if (editing) editing = { ...editing, color: st.color, size: st.size, family: st.family, bold: st.bold, italic: st.italic, angle: st.angle || undefined };
+  });
+  onDestroy(unsub);
   async function startEdit(s: Shape) {
     editing = { ...s };
     selected.set(null);
@@ -211,6 +216,7 @@
     commit(exists ? list.map((x) => (x.id === s.id ? s : x)) : [...list, s]);
     // Queda escollido: se agora se toca un axuste do panel (letra, tamaño, xiro...), aplícase a este texto.
     selected.set(s.id);
+    annoStyle.update((st) => (st.angle ? { ...st, angle: 0 } : st));
   }
   function dbl(e: MouseEvent) {
     if (get(annoTool) !== "select") return;
@@ -314,7 +320,7 @@
       bind:this={editor}
       bind:value={editing.text}
       class="ed"
-      style={`left:${(editing.x ?? 0) * sc}px;top:${(editing.y ?? 0) * sc}px;font:${fontOf({ ...editing, size: (editing.size ?? 32) * sc })};color:${editing.color};line-height:1.2`}
+      style={`left:${(editing.x ?? 0) * sc}px;top:${(editing.y ?? 0) * sc}px;font:${fontOf({ ...editing, size: (editing.size ?? 32) * sc })};color:${editing.color};line-height:1.2;transform:rotate(${editing.angle ?? 0}deg);transform-origin:0 0`}
       rows="1"
       spellcheck="false"
       on:keydown={editKey}

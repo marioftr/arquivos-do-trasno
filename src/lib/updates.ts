@@ -66,7 +66,7 @@ export async function checkForUpdate(silent = false): Promise<void> {
       updState.set("found");
       updateAvailable.set(true);
       if (silent) {
-        toast(tr("Hai unha versión nova do trasno: {v}.", { v: u.version }), { action: { label: tr("Ver novidades"), run: () => openHub("news.updates") }, ms: 12000 });
+        toast(tr("O trasno estreou roupa nova: a versión {v}.", { v: u.version }), { action: { label: tr("Ver novidades"), run: () => openHub("news.updates") }, ms: 12000 });
       }
     } else {
       updFound.set(null);
@@ -119,9 +119,9 @@ export async function applyPendingMenuRefresh(install: () => Promise<void>): Pro
   if (!want) return;
   try {
     await install();
-    toast(tr("O trasno actualizou tamén as entradas do menú do clic dereito."));
+    toast(tr("O menú do clic dereito tamén se puxo ao día."));
   } catch {
-    toast(tr("O trasno non puido actualizar o menú do clic dereito; faino en Axustes → Xeral."), { kind: "warn" });
+    toast(tr("O menú do clic dereito resistiuse. Podes reintentalo en Axustes → Xeral."), { kind: "warn" });
   }
 }
 

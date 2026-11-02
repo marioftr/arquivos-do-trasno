@@ -100,7 +100,7 @@
       const res = await recognize(url, ocrLang);
       ocrCache.set(key, res);
       if (ocrOn) ocrRes = res;
-      if (!res.lines.length) toast(tr("O trasno non atopou texto nesta imaxe."));
+      if (!res.lines.length) toast(tr("O trasno mirou ben a imaxe e non viu letras. Proba con outro idioma ou cunha imaxe máis nítida."));
     } catch (e) {
       ocrErr = errText(e);
     } finally {
@@ -124,9 +124,9 @@
     if (!ocrRes) return;
     try {
       await navigator.clipboard.writeText(ocrRes.text);
-      toast(tr("O trasno copiou o texto."));
+      toast(tr("Texto copiado ao portapapeis."));
     } catch {
-      toast(tr("O trasno non puido copiar o texto."), { kind: "warn" });
+      toast(tr("O portapapeis non quixo o texto. Tenta de novo."), { kind: "warn" });
     }
   }
 
@@ -435,7 +435,7 @@
       </div>
     {/if}
   </div>
-  <div class="bar" bind:clientWidth={barW}>
+  <div class="bar" class:tinybar={tiny} bind:clientWidth={barW}>
     <button class="btn" class:on={fit} on:click={() => (fit = true)}>{$t("Axustar")}</button>
     <button class="btn" class:on={!fit && zoom === 100} on:click={() => zoomAt(100, stage.clientWidth / 2, stage.clientHeight / 2)}>100%</button>
     {#if !tiny}<span class="muted pct">{shown} %</span>{/if}
@@ -477,14 +477,14 @@
   /* Barra de abaixo: unha soa fila fixa; nada cambia de sitio nin de tamaño ao usar o OCR. */
   .bar { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; overflow: hidden; }
   .bar > * { flex: none; white-space: nowrap; }
-  @media (max-width: 520px) { .bar { flex-wrap: wrap; } }
+  .bar.tinybar { flex-wrap: wrap; row-gap: 0.4rem; }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .grow { flex: 1 1 auto; min-width: 0; }
   .pct { min-width: 3.2rem; font-variant-numeric: tabular-nums; }
   .ocrbtn { min-width: 11.5rem; justify-content: center; }
   .ocrbtn.ocrc { min-width: 0; }
   .lg { height: var(--control-h); width: 7.4rem; min-width: 0; }
-  .bar:has(.ocrc) .lg { width: 5.6rem; }
+  .bar:has(.ocrc) .lg { width: 7rem; }
   .dims { min-width: 6.5rem; text-align: right; }
   .ocrbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.55rem 0.9rem; border-top: 1px solid var(--border-strong); background: var(--bg-elevated); font-size: 0.82rem; }
   .ocrbar .err { color: var(--accent-video); }

@@ -57,11 +57,15 @@
 
   // Xiro da figura escollida (o mesmo que o círculo do visor, con número editable).
   let uiAngle = 0;
-  $: uiAngle = selShape?.angle ?? 0;
+  $: uiAngle = selShape ? (selShape.angle ?? 0) : $annoStyle.angle;
   function setAngle(v: number) {
     const id = get(selected);
     const cur = get(shapes).find((x) => x.id === id);
-    if (!cur || (cur.angle ?? 0) === v) return;
+    if (!cur) {
+      if (get(annoStyle).angle !== v) annoStyle.update((st) => ({ ...st, angle: v }));
+      return;
+    }
+    if ( (cur.angle ?? 0) === v) return;
     liveEdit((l) => l.map((x) => (x.id === id ? { ...x, angle: v } : x)));
   }
   $: setAngle(uiAngle);
@@ -137,7 +141,7 @@
       {#if showFill}
         <Toggle label={$t("Encher a figura")} bind:checked={$annoStyle.fill} />
       {/if}
-      {#if selShape}
+      {#if kind !== "pen" && kind !== "highlight"}
         <Slider label={$t("Xiro")} unit="°" min={-180} max={180} bind:value={uiAngle} def={0} />
       {/if}
       {#if showText}

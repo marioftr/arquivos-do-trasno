@@ -71,14 +71,14 @@ export async function addPaths(input: string[]) {
   for (const [idx, path] of paths.entries()) {
     if (get(files).some((f) => f.path === path)) {
       // Xa estaba: avísase e queda á vista.
-      toast(tr("«{name}» xa estaba na lista; o trasno non o garda dúas veces.", { name: fileNameOf(path) }));
+      toast(tr("«{name}» xa estaba na lista. O trasno ten boa memoria: non o garda dúas veces.", { name: fileNameOf(path) }));
       if (!selectedNew) activePath.set(path);
       selectedNew = true;
       continue;
     }
     const category = kinds[idx].c;
     if (!category) {
-      toast(tr("O trasno non puido ler «{name}».", { name: fileNameOf(path) }), { kind: "warn" });
+      toast(tr("O trasno rebuscou en «{name}» e non foi quen de lelo. Estará danado ou protexido?", { name: fileNameOf(path) }), { kind: "warn" });
       continue;
     }
     if (category === "descoñecido") {
@@ -86,7 +86,7 @@ export async function addPaths(input: string[]) {
         skipped++;
         continue;
       }
-      toast(tr("O trasno non sabe que facer cun ficheiro «.{ext}» («{name}»).", { ext: extensionOf(path) || "?", name: fileNameOf(path) }), { kind: "warn" });
+      toast(tr("Un «.{ext}»? O trasno rabuña a cabeza: «{name}» non é cousa que saiba traballar.", { ext: extensionOf(path) || "?", name: fileNameOf(path) }), { kind: "warn" });
       continue;
     }
     const entry: FileEntry = { path, name: fileNameOf(path), ext: extensionOf(path), category };
@@ -120,7 +120,7 @@ export async function addPaths(input: string[]) {
       engine.imageDimensions(path).then(([width, height]) => patch(path, { width, height })).catch(() => {});
     }
   }
-  if (skipped) toast(tr("O trasno deixou {n} ficheiros sen abrir porque non sabe que facer con eles.", { n: skipped }), { kind: "warn" });
+  if (skipped) toast(tr("O trasno deixou {n} ficheiros fóra da lista: non coñece ese tipo de cousas.", { n: skipped }), { kind: "warn" });
 }
 
 // O último ficheiro quitado, para poder desfacelo.
@@ -143,7 +143,7 @@ export function removeFile(path: string) {
   const index = get(files).findIndex((f) => f.path === path);
   if (index >= 0) {
     lastRemoved = { entry: get(files)[index], index, wasChecked: get(checked).has(path) };
-    toast(tr("O trasno quitou «{name}» da lista.", { name: lastRemoved.entry.name }), { action: { label: tr("Desfacer"), run: undoRemove } });
+    toast(tr("«{name}» desapareceu da lista (o ficheiro segue onde estaba). Foi sen querer?", { name: lastRemoved.entry.name }), { action: { label: tr("Desfacer"), run: undoRemove } });
   }
   const list = get(files).filter((f) => f.path !== path);
   files.set(list);
@@ -334,7 +334,7 @@ export async function restoreSession() {
       await addPaths(alive);
       if (s.active && alive.includes(s.active)) activePath.set(s.active);
       checked.set(new Set((s.checked ?? []).filter((p) => alive.includes(p))));
-      if (missing > 0) toast(tr("{n} ficheiros da última vez xa non están no seu sitio: o trasno non os atopa.", { n: missing }), { kind: "warn" });
+      if (missing > 0) toast(tr("Da última vez había {n} ficheiros que xa non están onde os deixaches. O trasno buscounos por todas partes e nada.", { n: missing }), { kind: "warn" });
     }
   } catch {
     // sesión rota: empézase en branco

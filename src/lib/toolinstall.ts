@@ -72,10 +72,10 @@ export async function installToolNow(tool: ToolId): Promise<boolean> {
   installing.set({ tool, phase: "download", progress: 0 });
   try {
     tools.set(await engine.installTool(tool));
-    toast(tr("{name} instalado. Xa se pode usar.", { name: TOOL_INFO[tool].name }));
+    toast(tr("{name} xa está na casa. A traballar!", { name: TOOL_INFO[tool].name }));
     return true;
   } catch (e) {
-    if (isCancelled(e)) toast(tr("Cancelaches a descarga."));
+    if (isCancelled(e)) toast(tr("Descarga cancelada. O trasno garda as ferramentas e non pasa nada."));
     else installError.set({ tool, text: errText(e) });
     return false;
   } finally {

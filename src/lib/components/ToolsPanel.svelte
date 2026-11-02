@@ -15,11 +15,11 @@
     try {
       const s = await refreshTools();
       const found = [!before?.ffmpeg && s.ffmpeg ? "FFmpeg" : "", !before?.mkvmerge && s.mkvmerge ? "MKVToolNix" : ""].filter(Boolean);
-      if (found.length) toast(tr("O trasno atopou {list}.", { list: found.join(" e ") }));
-      else if (s.ffmpeg && s.mkvmerge) toast(tr("O trasno comprobouno: está todo instalado."));
-      else toast(tr("O trasno non atopa o que falta. Se o acabas de instalar, pecha e abre a aplicación unha vez."), { kind: "warn", ms: 8000 });
+      if (found.length) toast(tr("O trasno atopou {list}. Xa non fai falta descargalo.", { list: found.join(" e ") }));
+      else if (s.ffmpeg && s.mkvmerge) toast(tr("O trasno revisou o almacén: ten todas as ferramentas."));
+      else toast(tr("O que falta non aparece por ningunha parte. Se o acabas de instalar, pecha e abre a aplicación unha vez."), { kind: "warn", ms: 8000 });
     } catch {
-      toast(tr("O trasno non puido comprobalo."), { kind: "warn" });
+      toast(tr("O trasno non puido revisar o almacén. Tenta de novo."), { kind: "warn" });
     } finally {
       checking = false;
     }

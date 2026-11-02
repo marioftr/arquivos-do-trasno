@@ -40,12 +40,14 @@ export interface Style {
   size: number;
   bold: boolean;
   italic: boolean;
+  /** Xiro co que nace a seguinte figura (ou o texto que se está a escribir). */
+  angle: number;
 }
 
 /** O separador de anotar está aberto: o visor deixa de mover a imaxe co rato esquerdo. */
 export const annoActive = writable(false);
 export const annoTool = writable<Tool>("pen");
-export const annoStyle = writable<Style>({ color: "#ff3b30", width: 5, fill: false, family: "Helvetica", size: 40, bold: false, italic: false });
+export const annoStyle = writable<Style>({ color: "#ff3b30", width: 5, fill: false, family: "Helvetica", size: 40, bold: false, italic: false, angle: 0 });
 export const shapes = writable<Shape[]>([]);
 export const selected = writable<number | null>(null);
 /** Imaxe á que pertence o debuxado actual: ao cambiar de imaxe, empeza de cero. */
