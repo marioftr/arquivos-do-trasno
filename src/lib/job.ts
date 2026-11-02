@@ -68,7 +68,7 @@ export function createJob(): Job {
       } catch (e) {
         // Cancelar non é un fallo: sen frase de «tropezou».
         if (isCancelled(e)) {
-          message.set({ ok: true, neutral: true, text: tr("Cancelaches o traballo. Non quedou ningún ficheiro a medias.") });
+          message.set({ ok: true, neutral: true, text: tr("Traballo cancelado. O trasno deixou todo ordenado, sen ficheiros a medias.") });
           tracker.finish("cancelled");
         } else {
           const missing = missingToolOf(e);

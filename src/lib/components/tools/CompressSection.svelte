@@ -119,7 +119,7 @@
       { id, name, v: { mode: f.mode === "bitrate" ? "bitrate" : "quality", crf: f.crf, videoKbps: f.videoKbps, maxHeight: f.maxHeight, audioKbps: f.audioKbps, deinterlace: f.deinterlace, compat: f.compat, dar: f.dar } },
     ]);
     form.update((x) => ({ ...x, profile: `user:${id}` }));
-    toast(tr("Perfil «{name}» gardado. O trasno lembrarao.", { name }));
+    toast(tr("Perfil «{name}» gardado: o trasno non o esquece.", { name }));
     naming = false;
     newName = "";
   }

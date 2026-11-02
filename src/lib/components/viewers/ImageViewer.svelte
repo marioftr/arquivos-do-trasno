@@ -124,9 +124,9 @@
     if (!ocrRes) return;
     try {
       await navigator.clipboard.writeText(ocrRes.text);
-      toast(tr("Texto copiado ao portapapeis."));
+      toast(tr("O trasno meteu o texto no portapapeis."));
     } catch {
-      toast(tr("O portapapeis non quixo o texto. Tenta de novo."), { kind: "warn" });
+      toast(tr("O portapapeis púxose teimudo co texto. Tenta de novo."), { kind: "warn" });
     }
   }
 
@@ -386,7 +386,7 @@
             <img bind:this={imgEl} src={url} alt={file.name} style={nw ? imgStyle : "opacity:0"} on:error={onError} on:load={loaded} draggable="false" />
           </div>
         </div>
-        {#if ocrOn && ocrRes && box.w && !$annoActive}
+        {#if ocrOn && ocrRes && box.w}
           <OcrLayer {box} {sc} result={ocrRes} />
         {/if}
         {#if $annoActive && box.w && !ocrOn}

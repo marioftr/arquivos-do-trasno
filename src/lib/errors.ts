@@ -28,7 +28,11 @@ export async function call<T>(cmd: string, args?: InvokeArgs, options?: InvokeOp
   try {
     const r = await invoke<T>(cmd, args, options);
     const out = (args as { output?: unknown } | undefined)?.output;
-    if (typeof out === "string" && out) outputHook.fn?.(out);
+    if (typeof out === "string" && out) {
+      // O motor pode ter cambiado o nome (para non pisar nada): vale o camiño que devolve.
+      const ext = out.slice(out.lastIndexOf(".")).toLowerCase();
+      outputHook.fn?.(typeof r === "string" && /[\\/]/.test(r) && r.toLowerCase().endsWith(ext) ? r : out);
+    } else if (cmd === "save_bytes" && typeof r === "string" && r) outputHook.fn?.(r);
     return r;
   } catch (e) {
     const err = new Error(localizeError(e)) as MissingToolError;
