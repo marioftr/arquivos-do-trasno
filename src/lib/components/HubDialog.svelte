@@ -46,7 +46,7 @@
         { id: "privacy", label: $t("Privacidade") },
         { id: "terms", label: $t("Termos de uso") },
         { id: "license", label: $t("Licenza do programa") },
-        { id: "signing", label: $t("Asinado de código") },
+        { id: "signing", label: $t("Asinado e verificación") },
       ],
     },
   ] as { id: string; label: string; icon: string; items: Item[] }[]);

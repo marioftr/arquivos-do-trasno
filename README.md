@@ -21,20 +21,16 @@ Para audio e vídeo úsase [FFmpeg](https://ffmpeg.org/), que non se inclúe na 
 Os instaladores para Windows están en [Releases](https://github.com/marioftr/arquivos-do-trasno/releases/latest).
 A aplicación busca versións novas ao abrirse; pódese desactivar en *Novidades → Actualizacións*.
 
-Mentres os instaladores non estean asinados cun certificado de Windows, SmartScreen pode amosar un aviso ao instalar.
-Cada versión inclúe unha sinatura propia (`.sig`) coa que a aplicación verifica as actualizacións.
+Os instaladores non están asinados cun certificado de Windows, polo que SmartScreen pode amosar un aviso ao instalar
+(ver [Asinado e verificación](#asinado-e-verificación)).
 
-## Code signing policy
+## Asinado e verificación
 
-Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org/).
-*Status: application pending; releases are unsigned until it is approved.*
-
-Roles of the team members:
-
-- **Authors, reviewers and approvers:** [marioftr](https://github.com/marioftr)
-
-Binaries are built automatically by GitHub Actions from the source code in this repository (see
-[`.github/workflows/release.yml`](.github/workflows/release.yml)); every release needs manual approval before it is signed.
+Os instaladores non levan unha sinatura de código de Windows, así que SmartScreen pode amosar un aviso ao instalar.
+Os binarios constrúense con GitHub Actions a partir do código deste repositorio (ver
+[`.github/workflows/release.yml`](.github/workflows/release.yml)) e cada versión inclúe un ficheiro `.sig` coa
+sinatura que a aplicación comproba antes de instalar unha actualización. Os programas que a aplicación descarga
+por petición do usuario (FFmpeg e MKVToolNix) compróbanse coa suma SHA-256 publicada pola súa fonte.
 
 ## Privacy policy
 

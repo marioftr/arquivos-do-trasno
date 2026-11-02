@@ -27,7 +27,7 @@
 
 <style>
   .wrap { display: flex; flex-direction: column; gap: 0.2rem; }
-  .lab { font-size: 0.82rem; color: var(--text-muted); }
+  .lab { display: inline-flex; align-items: center; font-size: 0.82rem; color: var(--text-muted); }
   .seg { display: flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; height: var(--control-h); background: var(--bg-input); }
   button { flex: 1; background: transparent; border: none; border-right: 1px solid var(--border-strong); color: var(--text-muted); font-size: 0.85rem; padding: 0 0.5em; white-space: nowrap; }
   button:last-child { border-right: none; }

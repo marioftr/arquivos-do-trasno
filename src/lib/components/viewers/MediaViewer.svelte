@@ -5,7 +5,7 @@
   import { get } from "svelte/store";
   import { player } from "../../player";
   import { actionFor } from "../../keymap";
-  import { peaksCache, previewCache } from "../../viewCache";
+  import { peaksCache, previewCache, playPos } from "../../viewCache";
   import InfoTip from "../ui/InfoTip.svelte";
   import { errText } from "../../errors";
   import { tools, openSettings } from "../../settings";
@@ -41,6 +41,24 @@
     if (document.fullscreenElement) document.exitFullscreen();
     else stage?.requestFullscreen?.();
   }
+  // Pantalla completa: o vídeo ocupa toda a pantalla e os controis agóchanse se non se move o rato.
+  let fs = false;
+  let idle = false;
+  let idleTimer: ReturnType<typeof setTimeout>;
+  function wake() {
+    idle = false;
+    clearTimeout(idleTimer);
+    if (fs && playing) idleTimer = setTimeout(() => (idle = true), 2500);
+  }
+  function fsChange() {
+    fs = !!stage && document.fullscreenElement === stage;
+    wake();
+  }
+  $: if (fs && !playing) wake();
+  onDestroy(() => clearTimeout(idleTimer));
+  // Posición lembrada: ao volver a un ficheiro retómase onde se deixou.
+  let ready = false;
+  let restoredFor = "";
   $: if (el && $mediaSeek) seek($mediaSeek.t);
 
   // Instante actual, para que as ferramentas (fotograma, corte) o poidan usar.
@@ -199,6 +217,7 @@
   function tick() {
     if (!el) return;
     now = (chunked ? segStart : 0) + el.currentTime;
+    if (ready && now > 0) playPos.set(file.path, now);
     duration = chunked ? totalDur : Number.isFinite(el.duration) && el.duration ? el.duration : (file.duration ?? 0);
     mediaTime.set(Math.round(now * 100) / 100);
     if (cues.length) subText = cueAt(now);
@@ -238,6 +257,13 @@
   }
   /** Cando o tramo novo está listo: vai ao punto pedido e segue reproducindo se se estaba. */
   function onMeta() {
+    ready = true;
+    if (restoredFor !== file.path && !afterLoad) {
+      restoredFor = file.path;
+      const p = playPos.get(file.path);
+      const d = chunked ? totalDur : el && Number.isFinite(el.duration) ? el.duration : (file.duration ?? 0);
+      if (p && p > 2 && (!d || p < d - 2)) afterLoad = { offset: p, play: false };
+    }
     if (afterLoad && el) {
       el.currentTime = afterLoad.offset;
       if (afterLoad.play) el.play().catch(() => {});
@@ -356,6 +382,7 @@
   let triedPreview = false;
 
   async function load(path: string) {
+    ready = false;
     failed = false;
     failMsg = "";
     converted = false;
@@ -439,6 +466,7 @@
 </script>
 
 <svelte:window on:keydown={key} on:keyup={keyup} />
+<svelte:document on:fullscreenchange={fsChange} />
 
 <div class="wrap">
   {#if preparing}
@@ -457,7 +485,8 @@
     </div>
   {:else if url && file.category === "video"}
     <div class="vrow">
-      <div class="vid" bind:this={stage}>
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="vid" class:fs class:idle={fs && idle} bind:this={stage} on:mousemove={wake} on:pointerdown={wake}>
         <div class="screen">
           <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
           <video bind:this={el} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={() => prepare()} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
@@ -558,7 +587,11 @@
   .vol { width: 88px; accent-color: var(--accent); }
   .vid { background: var(--viewer-bg); }
   .vid:fullscreen, .vid::backdrop { background: var(--viewer-bg); }
-  .vid:fullscreen .under { background: var(--bg-rail); }
+  .vid.fs .screen { position: absolute; inset: 0; }
+  .vid.fs video { width: 100%; height: 100%; }
+  .vid.fs .under { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; border-top: none; background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0)); padding-top: 2.2rem; transition: opacity 0.25s ease; }
+  .vid.fs.idle .under { opacity: 0; pointer-events: none; }
+  .vid.fs.idle video { cursor: none; }
   .time { font-variant-numeric: tabular-nums; font-size: 0.85rem; }
   .ph { text-align: center; font-size: 0.82rem; }
   .msg { padding: 2rem; text-align: center; }

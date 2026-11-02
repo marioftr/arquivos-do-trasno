@@ -524,7 +524,7 @@ pub fn probe(path: &Path) -> Result<serde_json::Value> {
     let mut cmd = Command::new(ffprobe_path()?);
     hide_console(&mut cmd);
     let out = cmd
-        .args(["-v", "error", "-print_format", "json", "-show_format", "-show_streams"])
+        .args(["-v", "error", "-print_format", "json", "-show_format", "-show_streams", "-show_chapters"])
         .arg(path)
         .output()
         .map_err(EngineError::Io)?;

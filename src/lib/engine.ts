@@ -183,6 +183,7 @@ export async function makePreviewChunk(path: string, start: number, len: number,
 }
 
 /** Subtítulos de texto dun vídeo en WebVTT (índice entre os subtítulos). */
+export const makeFramePreview = (path: string, time: number): Promise<string> => call("make_frame_preview", { path, time });
 export async function makeSubtitles(path: string, index: number): Promise<string> {
   return call("make_subtitles", { path, index });
 }

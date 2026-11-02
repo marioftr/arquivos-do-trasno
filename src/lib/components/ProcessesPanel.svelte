@@ -39,7 +39,7 @@
 
 {#if part === "running"}
   <section>
-    <h3>{$t("En marcha")} <span class="muted">{running.length}</span></h3>
+    <h3>{$t("En marcha")}<span class="muted cnt">{running.length}</span></h3>
     {#if !running.length}
       <p class="muted note">{$t("Non hai ningún proceso en marcha. O trasno descansa.")}</p>
     {/if}
@@ -67,7 +67,7 @@
 {:else}
   <section>
     <div class="hh">
-      <h3>{$t("Historial")} <span class="muted">{history.length}</span></h3>
+      <h3>{$t("Historial")}<span class="muted cnt">{history.length}</span></h3>
       {#if history.length}<button class="btn ghost" on:click={clearFinished}>{$t("Borrar historial")}</button>{/if}
     </div>
     {#if !history.length}<p class="muted note">{$t("Aínda non hai nada no historial.")}</p>{/if}
@@ -93,6 +93,7 @@
 <style>
   section { display: flex; flex-direction: column; gap: 0.5rem; }
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
+  .cnt { margin-left: 0.55em; font-weight: 500; }
   .hh { display: flex; align-items: center; justify-content: space-between; }
   .note { margin: 0; font-size: 0.82rem; }
   .row { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.6rem 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); }

@@ -23,6 +23,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
       - run: cargo test -p trasno-engine
+      - name: Notas da versión
+        id: notes
+        shell: bash
+        run: |
+          {
+            echo 'body<<NOTES_EOF'
+            node scripts/notes.mjs "${{ github.ref_name }}"
+            echo 'NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -30,7 +39,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Arquivos do Trasno ${{ github.ref_name }}'
-          releaseBody: 'Novidades: abre a app e mira Novidades → Rexistro de cambios.'
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true

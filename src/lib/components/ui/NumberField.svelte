@@ -47,7 +47,7 @@
 <style>
   .field { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
   .head { display: flex; align-items: center; justify-content: space-between; min-height: 18px; }
-  .lab { font-size: 0.82rem; color: var(--text-muted); }
+  .lab { display: inline-flex; align-items: center; font-size: 0.82rem; color: var(--text-muted); }
   .reset { display: inline-flex; background: none; border: none; color: var(--text-faint); padding: 2px; border-radius: 4px; }
   .reset:hover { color: var(--accent); background: var(--bg-hover); }
   .num { display: flex; align-items: center; height: var(--control-h); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding-right: 0.6em; }

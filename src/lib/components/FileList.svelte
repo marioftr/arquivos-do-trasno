@@ -99,8 +99,9 @@
     if (!dragging && Math.abs(e.clientY - sy) > 5) dragging = true;
     if (!dragging) return;
     oy = e.clientY - sy;
-    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-i]") as HTMLElement | null;
-    if (el) dragOver = Number(el.dataset.i);
+    // Fila baixo o punteiro por xeometría (cada fila mide o mesmo): por riba da primeira ou por baixo da última vale o extremo.
+    const r = box.getBoundingClientRect();
+    dragOver = Math.max(0, Math.min($files.length - 1, Math.floor((e.clientY - r.top + box.scrollTop) / ROW)));
   }
   function pup() {
     if (dragging && dragOver >= 0) moveFileTo(dragFrom, dragOver);
@@ -129,7 +130,7 @@
 
 <div class="list" data-filelist>
   <div class="head">
-    <span class="titulo">{$t("Ficheiros")} <span class="muted">{$files.length}</span></span>
+    <span class="titulo">{$t("Ficheiros")}<span class="muted cnt">{$files.length}</span></span>
     <button class="btn" on:click={onAdd}><Icon name="plus" size={14} /> {$t("Engadir")}</button>
   </div>
 
@@ -198,6 +199,7 @@
   .list { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .head { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--border); }
   .titulo { font-weight: 600; font-size: 0.88rem; }
+  .cnt { margin-left: 0.55em; font-weight: 500; }
   ul { list-style: none; margin: 0; padding: 0.3rem 0; flex: 1; min-height: 0; overflow-y: auto; outline: none; }
   ul:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
   li.spacer { padding: 0; border: none; background: none; pointer-events: none; }

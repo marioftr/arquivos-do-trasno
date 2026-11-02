@@ -4,7 +4,7 @@ Liñas de traballo previstas. Non son compromisos nin teñen datas.
 
 ## En marcha
 
-- Asinado de código dos instaladores de Windows (SignPath Foundation).
+- Asinado de código dos instaladores de Windows (a solicitude gratuíta foi rexeitada; avaliar outras opcións).
 - Probas con máis formatos e dispositivos de orixe (por exemplo, capturas de cámaras Mini DV).
 
 ## Previsto

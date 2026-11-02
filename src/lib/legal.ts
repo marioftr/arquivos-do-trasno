@@ -196,31 +196,31 @@ export const DOCS: Record<DocId, LegalDoc> = {
   },
 
   signing: {
-    title: { gl: "Política de asinado de código", es: "Política de firma de código", en: "Code signing policy" },
-    updated: "2026-11-01",
+    title: { gl: "Asinado e verificación das descargas", es: "Firma y verificación de las descargas", en: "Signing and download verification" },
+    updated: "2026-11-02",
     sections: [
       {
-        h: { gl: "Quen asina e como", es: "Quién firma y cómo", en: "Who signs and how" },
+        h: { gl: "Aviso de Windows ao instalar", es: "Aviso de Windows al instalar", en: "Windows warning when installing" },
         p: [
           {
-            gl: "Free code signing provided by SignPath.io, certificate by SignPath Foundation. (Cando o certificado estea activo, os instaladores publicados levarán esta sinatura de Windows.)",
-            es: "Free code signing provided by SignPath.io, certificate by SignPath Foundation. (Cuando el certificado esté activo, los instaladores publicados llevarán esta firma de Windows.)",
-            en: "Free code signing provided by SignPath.io, certificate by SignPath Foundation. (Once the certificate is active, published installers will carry this Windows signature.)",
-          },
-          {
-            gl: "Roles: autoría, revisión e aprobación — marioftr (GitHub). Os binarios constrúense automaticamente con GitHub Actions a partir do código deste repositorio, e cada versión require aprobación manual antes de asinarse.",
-            es: "Roles: autoría, revisión y aprobación — marioftr (GitHub). Los binarios se construyen automáticamente con GitHub Actions a partir del código de este repositorio, y cada versión requiere aprobación manual antes de firmarse.",
-            en: "Roles: authors, reviewers and approvers — marioftr (GitHub). Binaries are built automatically by GitHub Actions from this repository's source code, and every release needs manual approval before it is signed.",
+            gl: "Os instaladores de Arquivos do Trasno non levan unha sinatura de código de Windows (Authenticode), porque os certificados recoñecidos teñen un custo e a solicitude dun certificado gratuíto para proxectos de código aberto foi rexeitada por agora. Por iso Windows SmartScreen pode amosar un aviso («Windows protexeu o seu PC») ao executalo. Se descargaches o instalador da páxina oficial de versións do proxecto, podes continuar con «Máis información → Executar igualmente».",
+            es: "Los instaladores de Arquivos do Trasno no llevan una firma de código de Windows (Authenticode), porque los certificados reconocidos tienen un coste y la solicitud de un certificado gratuito para proyectos de código abierto ha sido rechazada por ahora. Por eso Windows SmartScreen puede mostrar un aviso («Windows protegió su PC») al ejecutarlo. Si has descargado el instalador de la página oficial de versiones del proyecto, puedes continuar con «Más información → Ejecutar de todas formas».",
+            en: "Arquivos do Trasno installers do not carry a Windows code signature (Authenticode): recognised certificates have a cost, and the application for a free certificate for open-source projects has been declined for now. Because of that, Windows SmartScreen may show a warning (“Windows protected your PC”) when you run it. If you downloaded the installer from the project's official releases page, you can continue with “More info → Run anyway”.",
           },
         ],
       },
       {
-        h: { gl: "Dúas sinaturas distintas", es: "Dos firmas distintas", en: "Two different signatures" },
+        h: { gl: "Como se comproba que o ficheiro é do proxecto", es: "Cómo se comprueba que el archivo es del proyecto", en: "How the file is verified as the project's" },
         p: [
           {
-            gl: "Cada instalador leva ademais un ficheiro «.sig»: é a sinatura propia das actualizacións automáticas, coa que a app comproba que o ficheiro descargado é de quen publica o proxecto. É independente da sinatura de Windows.",
-            es: "Cada instalador lleva además un archivo «.sig»: es la firma propia de las actualizaciones automáticas, con la que la app comprueba que el archivo descargado es de quien publica el proyecto. Es independiente de la firma de Windows.",
-            en: "Each installer also has a “.sig” file: that is the auto-update signature, which the app uses to check that the downloaded file comes from the project's publisher. It is independent of the Windows signature.",
+            gl: "Os binarios constrúense automaticamente con GitHub Actions a partir do código deste repositorio e publícanse en GitHub Releases. Cada instalador leva ademais un ficheiro «.sig»: é a sinatura propia das actualizacións automáticas, coa que a app comproba que o ficheiro descargado procede de quen publica o proxecto antes de instalalo.",
+            es: "Los binarios se construyen automáticamente con GitHub Actions a partir del código de este repositorio y se publican en GitHub Releases. Cada instalador lleva además un archivo «.sig»: es la firma propia de las actualizaciones automáticas, con la que la app comprueba que el archivo descargado procede de quien publica el proyecto antes de instalarlo.",
+            en: "Binaries are built automatically by GitHub Actions from this repository's source code and published on GitHub Releases. Each installer also has a “.sig” file: the auto-update signature, which the app uses to check that the downloaded file comes from the project's publisher before installing it.",
+          },
+          {
+            gl: "Os programas que a app descarga por petición túa (FFmpeg e MKVToolNix) compróbanse coa suma SHA-256 que publica a propia fonte antes de instalarse.",
+            es: "Los programas que la app descarga a petición tuya (FFmpeg y MKVToolNix) se comprueban con la suma SHA-256 que publica la propia fuente antes de instalarse.",
+            en: "Programs the app downloads at your request (FFmpeg and MKVToolNix) are checked against the SHA-256 checksum published by their source before being installed.",
           },
         ],
       },

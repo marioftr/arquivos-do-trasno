@@ -13,6 +13,15 @@ import * as engine from "./engine";
 export const appVersion = writable("");
 getVersion().then((v) => appVersion.set(v)).catch(() => {});
 
+/** Das notas da release (con marcadores <!-- gl -->, <!-- es -->, <!-- en -->), as viñetas do idioma pedido. */
+export function notesFor(body: string, lang: string): string[] {
+  const parts = body.split(/<!--\s*(gl|es|en)\s*-->/);
+  const found: Record<string, string> = {};
+  for (let i = 1; i < parts.length; i += 2) found[parts[i]] = parts[i + 1];
+  const text = found[lang] ?? found.gl ?? body;
+  return text.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("- ")).map((l) => l.slice(2));
+}
+
 export interface Found {
   version: string;
   notes: string;

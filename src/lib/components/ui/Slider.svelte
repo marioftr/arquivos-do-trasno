@@ -55,7 +55,7 @@
 <style>
   .field { display: flex; flex-direction: column; gap: 0.2rem; }
   .head { display: flex; align-items: center; justify-content: space-between; min-height: 18px; }
-  .lab { font-size: 0.82rem; color: var(--text-muted); }
+  .lab { display: inline-flex; align-items: center; font-size: 0.82rem; color: var(--text-muted); }
   .reset { display: inline-flex; background: none; border: none; color: var(--text-faint); padding: 2px; border-radius: 4px; }
   .reset:hover { color: var(--accent); background: var(--bg-hover); }
   .hidden { display: none; }

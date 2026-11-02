@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { t, lang } from "../i18n";
   import { CHANGELOG, type Kind } from "../changelog";
-  import { appVersion, autoCheck, updState, updFound, updError, updProgress, checkForUpdate, installUpdate, explorerInstalled } from "../updates";
+  import { appVersion, autoCheck, updState, updFound, updError, updProgress, checkForUpdate, installUpdate, explorerInstalled, notesFor } from "../updates";
   import Toggle from "./ui/Toggle.svelte";
   import Icon from "./Icon.svelte";
 
@@ -10,6 +10,7 @@
 
   const KIND: Record<Kind, string> = { new: "Novo", better: "Mellorado", fixed: "Arranxado" };
   $: noRelease = /valid release JSON|404|not found/i.test($updError);
+  $: notes = $updFound?.notes ? notesFor($updFound.notes, $lang) : [];
   let refreshMenu = true;
   let hasMenu = false;
   onMount(async () => {
@@ -45,11 +46,14 @@
     {#if $updState === "found" && $updFound}
       <div class="box">
         <h3>{$t("Hai unha versión nova")}: {$updFound.version}</h3>
-        {#if $updFound.notes}<p class="notes selectable">{$updFound.notes}</p>{/if}
+        {#if notes.length}
+          <p class="muted what">{$t("Esta actualización inclúe:")}</p>
+          <ul class="notes selectable">{#each notes as n}<li>{n}</li>{/each}</ul>
+        {/if}
         {#if hasMenu}
           <Toggle label={$t("Actualizar tamén as entradas do menú do clic dereito")} bind:checked={refreshMenu} hint={$t("As entradas do Explorador apuntan ao programa instalado. Se está marcado, o trasno volve crealas coa versión nova ao reiniciar, para que sigan funcionando e leven as novidades do menú.")} />
         {/if}
-        <button class="btn primary" on:click={() => installUpdate(hasMenu && refreshMenu)}><Icon name="open" size={14} /> {$t("Instalar e reiniciar")}</button>
+        <button class="btn primary" on:click={() => installUpdate(hasMenu && refreshMenu)}><Icon name="download" size={14} /> {$t("Instalar e reiniciar")}</button>
       </div>
     {:else if $updState === "downloading"}
       <div class="box" role="status">
@@ -86,7 +90,9 @@
   .cur { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.9rem; }
   .box { display: flex; flex-direction: column; gap: 0.7rem; padding: 0.8rem 0.9rem; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-card); }
   .box p { margin: 0; }
-  .notes { white-space: pre-wrap; font-size: 0.85rem; max-height: 10rem; overflow: auto; }
+  .what { font-size: 0.8rem; }
+  .notes { list-style: disc; padding-left: 1.2rem; display: block; font-size: 0.85rem; max-height: 12rem; overflow: auto; }
+  .notes li { display: list-item; margin-bottom: 0.3rem; }
   .row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
   .bar { height: 7px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
   .fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }

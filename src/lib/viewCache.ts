@@ -23,6 +23,9 @@ function lru<V>(max: number) {
   };
 }
 
+/** Último instante visto de cada vídeo ou audio, para retomalo ao volver a el. */
+export const playPos = new Map<string, number>();
+
 /** Ondas de son (picos) por ficheiro. */
 export const peaksCache = lru<number[]>(40);
 /** Texto dos ficheiros de texto. */

@@ -379,8 +379,12 @@ pub fn reveal_in_folder(path: String) -> Result<(), String> {
     }
     #[cfg(windows)]
     {
+        // Explorador non entende o argumento ao que Rust pon comiñas por fóra (rutas con espazos abrían «Documentos»):
+        // pásase en bruto, co formato exacto «/select,"ruta"» e con barras de Windows.
+        use std::os::windows::process::CommandExt;
+        let win = p.display().to_string().replace('/', "\\");
         std::process::Command::new("explorer")
-            .arg(format!("/select,{}", p.display()))
+            .raw_arg(format!("/select,\"{win}\""))
             .spawn()
             .map_err(|e| e.to_string())?;
     }
@@ -578,6 +582,33 @@ pub async fn make_preview_chunk(path: String, start: f64, len: f64, video: Optio
                     .iter()
                     .map(|s| s.to_string()),
             );
+            trasno_engine::ffmpeg::convert_media_seek(&input, &out, true, &pre, &args).map_err(to_err)?;
+        }
+        Ok(out.to_string_lossy().to_string())
+    })
+    .await
+}
+
+/// Un fotograma dun vídeo (en calquera formato que lea ffmpeg) como JPG pequeno, para a vista previa de «Extraer fotogramas».
+#[tauri::command]
+pub async fn make_frame_preview(path: String, time: f64) -> Result<String, String> {
+    blocking(move || {
+        if !(time >= 0.0 && time.is_finite()) {
+            return Err(msg("Instante non válido.", serde_json::json!({})));
+        }
+        let input = PathBuf::from(&path);
+        let dir = preview_dir();
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let stem = format!("{:x}", {
+            use std::hash::{Hash, Hasher};
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            path.hash(&mut h);
+            h.finish()
+        });
+        let out = dir.join(format!("{stem}.f{}.jpg", (time * 1000.0) as u64));
+        if !out.exists() {
+            let pre = vec!["-ss".to_string(), format!("{time:.3}")];
+            let args: Vec<String> = ["-an", "-frames:v", "1", "-vf", "yadif=0:-1:0,scale=640:-2", "-q:v", "3"].iter().map(|s| s.to_string()).collect();
             trasno_engine::ffmpeg::convert_media_seek(&input, &out, true, &pre, &args).map_err(to_err)?;
         }
         Ok(out.to_string_lossy().to_string())

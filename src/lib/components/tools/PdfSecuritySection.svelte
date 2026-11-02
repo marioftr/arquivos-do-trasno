@@ -89,7 +89,7 @@
 
 <style>
   .pw { display: flex; flex-direction: column; gap: 0.2rem; }
-  .lab { font-size: 0.82rem; color: var(--text-muted); }
+  .lab { display: inline-flex; align-items: center; font-size: 0.82rem; color: var(--text-muted); }
   input[type="password"] { height: var(--control-h); background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.65em; font-family: inherit; font-size: 0.9rem; }
   input[type="password"]:focus { outline: none; border-color: var(--accent); }
 </style>
