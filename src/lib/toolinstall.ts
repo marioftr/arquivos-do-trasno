@@ -35,7 +35,7 @@ export const TOOL_INFO: Record<ToolId, ToolInfo> = {
     unlocks: "Quitar ou reordenar pistas de audio e subtítulos nun MKV, cambiarlles o nome e o idioma e marcar cal vai por defecto.",
     link: "mkvtoolnix",
     winget: "winget install MoritzBunkus.MKVToolNix",
-    size: "104 MB",
+    size: "31 MB",
     source: "mkvtoolnix.download",
   },
 };

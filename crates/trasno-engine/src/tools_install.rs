@@ -121,7 +121,7 @@ fn sources(a: &ureq::Agent, tool: Tool) -> Result<(String, String)> {
             if !version.chars().all(|c| c.is_ascii_digit() || c == '.') {
                 return fail("A versión de MKVToolNix que anuncia a web non é válida.");
             }
-            let zip = format!("https://mkvtoolnix.download/windows/releases/{version}/mkvtoolnix-64-bit-{version}.zip");
+            let zip = format!("https://mkvtoolnix.download/windows/releases/{version}/mkvtoolnix-64-bit-{version}.7z");
             Ok((zip.clone(), format!("{zip}.sha256")))
         }
     }
@@ -188,7 +188,8 @@ pub fn install(tool: Tool, progress: &dyn Fn(Phase, f64), cancelled: &dyn Fn() -
         if stage.exists() {
             fs::remove_dir_all(&stage)?;
         }
-        if let Err(e) = extract_zip(&tmp, &stage, progress, cancelled) {
+        let extracted = if zip_url.ends_with(".7z") { extract_7z(&tmp, &stage, progress, cancelled) } else { extract_zip(&tmp, &stage, progress, cancelled) };
+        if let Err(e) = extracted {
             let _ = fs::remove_dir_all(&stage);
             return Err(e);
         }
@@ -239,6 +240,53 @@ fn extract_zip(zip_path: &Path, dest: &Path, progress: &dyn Fn(Phase, f64), canc
     Ok(())
 }
 
+/// Extrae un `.7z` (LZMA/LZMA2) co mesmo criterio de seguridade que o zip: nada pode saír da carpeta de destino.
+fn extract_7z(path: &Path, dest: &Path, progress: &dyn Fn(Phase, f64), cancelled: &dyn Fn() -> bool) -> Result<()> {
+    use std::path::Component;
+    let bad = |e: sevenz_rust::Error| EngineError::IntegrityCheck(format!("O paquete descargado está danado: {e}"));
+    let mut reader = sevenz_rust::SevenZReader::open(path, sevenz_rust::Password::empty()).map_err(bad)?;
+    let total: u64 = reader.archive().files.iter().map(|f| f.size()).sum::<u64>().max(1);
+    fs::create_dir_all(dest)?;
+    let mut done: u64 = 0;
+    let mut last = -1.0f64;
+    let mut stopped = false;
+    let res = reader.for_each_entries(|entry, data| {
+        if cancelled() {
+            stopped = true;
+            return Ok(false);
+        }
+        let rel = Path::new(entry.name());
+        if !rel.components().all(|c| matches!(c, Component::Normal(_))) {
+            // Ruta absoluta ou con «..»: sáltase, pero hai que consumir os datos.
+            std::io::copy(data, &mut std::io::sink())?;
+            return Ok(true);
+        }
+        let out_path = dest.join(rel);
+        if entry.is_directory() {
+            fs::create_dir_all(&out_path)?;
+            return Ok(true);
+        }
+        if let Some(p) = out_path.parent() {
+            fs::create_dir_all(p)?;
+        }
+        let mut out = File::create(&out_path)?;
+        std::io::copy(data, &mut out)?;
+        done += entry.size();
+        let p = done as f64 / total as f64;
+        if p - last >= 0.01 {
+            last = p;
+            progress(Phase::Extract, p.min(1.0));
+        }
+        Ok(true)
+    });
+    if stopped {
+        return Err(EngineError::Cancelled);
+    }
+    res.map_err(bad)?;
+    progress(Phase::Extract, 1.0);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,7 +332,9 @@ mod red {
         let seen = std::sync::Mutex::new(Vec::new());
         let exe = install(Tool::MkvToolNix, &|p, f| { if f >= 1.0 { seen.lock().unwrap().push(p); } }, &|| false).unwrap();
         assert!(exe.is_file());
-        assert_eq!(seen.lock().unwrap().len(), 3);
+        let mut phases = seen.lock().unwrap().clone();
+        phases.dedup();
+        assert_eq!(phases, vec![Phase::Download, Phase::Verify, Phase::Extract]);
         let out = std::process::Command::new(&exe).arg("--version").output().unwrap();
         assert!(String::from_utf8_lossy(&out.stdout).contains("mkvmerge"));
         assert!(installed(Tool::MkvToolNix, "mkvmerge.exe").is_some());

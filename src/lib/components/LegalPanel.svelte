@@ -32,7 +32,8 @@
 </article>
 
 <style>
-  .doc { display: flex; flex-direction: column; gap: 1rem; }
+  /* O contedor é unha columna con scroll: sen «flex: none» o texto encollería e o último botón quedaría cortado. */
+  .doc { display: flex; flex-direction: column; gap: 1rem; flex: none; padding-bottom: 0.6rem; }
   header { display: flex; flex-direction: column; gap: 0.15rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem; }
   h3 { margin: 0; font-size: 1rem; font-weight: 600; }
   .when { font-size: 0.78rem; }

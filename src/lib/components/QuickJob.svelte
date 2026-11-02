@@ -3,7 +3,9 @@
   import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
   import { listen } from "@tauri-apps/api/event";
   import * as engine from "../engine";
-  import { errText, isCancelled } from "../errors";
+  import { errText, isCancelled, missingToolOf } from "../errors";
+  import { TOOL_INFO, installing, installError, installToolNow, overall, phaseText } from "../toolinstall";
+  import type { ToolId } from "../engine";
   import { fallo, fileNameOf, listo, TRASNO } from "../formats";
   import { t, tr } from "../i18n";
   import { runOne } from "../quickjob";
@@ -32,6 +34,27 @@
   let cancelPct = 0; // onde estaba a barra ao cancelar
   let running = true;
   const win = getCurrentWindow();
+
+  // Se un ficheiro precisa FFmpeg e non está, o traballo agarda e pregúntase se se descarga.
+  let missing: ToolId | null = null;
+  let answer: ((install: boolean) => void) | null = null;
+  const askInstall = (tool: ToolId) =>
+    new Promise<boolean>((resolve) => {
+      missing = tool;
+      installError.set(null);
+      win.setSize(new LogicalSize(520, Math.min(640, 400 + items.length * 34))).catch(() => {});
+      answer = (v) => {
+        missing = null;
+        answer = null;
+        win.setSize(new LogicalSize(520, Math.min(580, 230 + items.length * 34))).catch(() => {});
+        resolve(v);
+      };
+    });
+  async function acceptInstall() {
+    if (!missing) return;
+    const ok = await installToolNow(missing);
+    if (ok) answer?.(true);
+  }
   let tracker: Tracker | null = null;
   let poll: ReturnType<typeof setInterval> | null = null;
 
@@ -128,7 +151,16 @@
       it.state = "traballa";
       items = items;
       try {
-        const r = await runOne(job, it.path);
+        let r;
+        for (;;) {
+          try {
+            r = await runOne(job, it.path);
+            break;
+          } catch (e) {
+            const tool = missingToolOf(e);
+            if (!tool || cancelMode || !(await askInstall(tool))) throw e;
+          }
+        }
         it.out = r.out;
         it.note = r.note;
         it.state = "feito";
@@ -242,6 +274,28 @@
     {/each}
   </ul>
 
+  {#if missing}
+    {@const info = TOOL_INFO[missing]}
+    {@const busy = $installing?.tool === missing ? $installing : null}
+    <section class="need">
+      <p><strong>{$t("Falta un complemento")}</strong></p>
+      <p class="muted">{$t("Para facer isto o trasno precisa {name}, que non está instalado.", { name: info.name })}</p>
+      {#if busy}
+        {@const p = Math.round(overall(busy) * 100)}
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={p}><div class="fill" style={`width:${p}%`}></div></div>
+        <p class="muted count2">{phaseText(busy.phase)} · {p} %</p>
+        <div class="acts"><button class="btn" on:click={() => engine.cancelToolInstall()}>{$t("Cancelar descarga")}</button></div>
+      {:else}
+        {#if $installError?.tool === missing}<p class="err">{$installError.text}</p>{/if}
+        <div class="acts">
+          <button class="btn primary" on:click={acceptInstall}>{$t("Descargar e instalar")} <span class="muted">· {info.size}</span></button>
+          <button class="btn" on:click={() => engine.openLink(info.link)}><Icon name="open" size={14} /> {$t("Ir á páxina oficial")}</button>
+          <button class="btn ghost" on:click={() => answer?.(false)}>{$t("Agora non")}</button>
+        </div>
+      {/if}
+    </section>
+  {/if}
+
   <footer>
     {#if finished && !failedAny && !keepOpen}<span class="muted">{$t("Péchase en {s} s…", { s: countdown })}</span>{/if}
     <span class="grow"></span>
@@ -302,6 +356,9 @@
   .grow { flex: 1; }
   .ask { font-size: 0.8rem; color: var(--text); }
   /* Todos os botóns do pé miden o mesmo. */
-  .acts { display: flex; gap: 0.4rem; align-items: center; }
+  .need { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.7rem 0.8rem; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-card); }
+  .need p { margin: 0; font-size: 0.84rem; }
+  .need .count2 { font-size: 0.78rem; }
+  .acts { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
   .acts :global(.btn) { height: var(--control-h); min-height: var(--control-h); padding-block: 0; box-sizing: border-box; }
 </style>

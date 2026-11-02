@@ -99,7 +99,8 @@
   .side button.on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); font-weight: 600; }
   .badge { background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.68rem; font-weight: 700; padding: 0 0.45em; min-width: 1.3em; text-align: center; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-  .pane { flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.3rem; }
+  .pane { flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.3rem; padding-bottom: 0.4rem; }
+  .pane > :global(*) { flex-shrink: 0; }
   h2 { margin: 0; font-size: 1rem; font-weight: 600; }
   .sep::before { content: "·"; margin: 0 0.55em; }
   @media (max-width: 640px) { .split { flex-direction: column; } .side { flex-basis: auto; flex-direction: row; flex-wrap: wrap; } }

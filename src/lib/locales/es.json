@@ -905,5 +905,6 @@
   "Repetir agora": "Repetir ahora",
   "Instalar agora": "Instalar ahora",
   "Falta ffmpeg: instalalo agora": "Falta ffmpeg: instalarlo ahora",
-  "Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: o trasno pode descargalos por ti ou podes instalalos ti e a app detectaos soa.": "Arquivos do Trasno trabaja solo con las imágenes, los PDF y el 3D. Para audio, vídeo y MKV se ayuda de dos programas gratuitos que no van incluidos: el trasno puede descargarlos por ti o puedes instalarlos tú y la app los detecta sola."
+  "Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: o trasno pode descargalos por ti ou podes instalalos ti e a app detectaos soa.": "Arquivos do Trasno trabaja solo con las imágenes, los PDF y el 3D. Para audio, vídeo y MKV se ayuda de dos programas gratuitos que no van incluidos: el trasno puede descargarlos por ti o puedes instalarlos tú y la app los detecta sola.",
+  "Para facer isto o trasno precisa {name}, que non está instalado.": "Para hacer esto el trasno necesita {name}, que no está instalado."
 }
