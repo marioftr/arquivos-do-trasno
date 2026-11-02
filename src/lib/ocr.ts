@@ -123,7 +123,7 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
     const t = String(w.text ?? "").trim();
     if (!t) return false;
     const c = Number(w.confidence ?? 100);
-    if (c < 45) return false;
+    if (c < 35) return false;
     if (t.length === 1 && !/[\p{L}\p{N}]/u.test(t) && c < 85) return false;
     return true;
   };

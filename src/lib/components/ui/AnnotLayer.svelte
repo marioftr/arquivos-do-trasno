@@ -87,7 +87,7 @@
     if (tool === "pen" || tool === "highlight") {
       draft = { id: newId(), type: tool, color: st.color, width: st.width, pts: [[x, y]] };
     } else {
-      draft = { id: newId(), type: tool, color: st.color, width: st.width, fill: st.fill && (tool === "rect" || tool === "ellipse"), x1: x, y1: y, x2: x, y2: y, angle: st.angle || undefined };
+      draft = { id: newId(), type: tool, color: st.color, width: st.width, fill: st.fill && (tool === "rect" || tool === "ellipse"), x1: x, y1: y, x2: x, y2: y, angle: (tool === "rect" || tool === "ellipse") && st.angle ? st.angle : undefined };
     }
   }
 
@@ -187,12 +187,25 @@
     if (tiny) return;
     commit([...get(shapes), d]);
     selected.set(null);
+    annoStyle.update((st) => (st.angle ? { ...st, angle: 0 } : st));
   }
 
   // ---- texto
   // Mentres se escribe, os axustes do panel (cor, letra, tamaño, xiro) aplícanse ao texto ao momento.
+  // Só se aplica o que cambiou, para non pisar o resto dun texto que xa tiña os seus propios axustes.
+  let prevSt = get(annoStyle);
   const unsub = annoStyle.subscribe((st) => {
-    if (editing) editing = { ...editing, color: st.color, size: st.size, family: st.family, bold: st.bold, italic: st.italic, angle: st.angle || undefined };
+    if (editing) {
+      const ch: Partial<Shape> = {};
+      if (st.color !== prevSt.color) ch.color = st.color;
+      if (st.size !== prevSt.size) ch.size = st.size;
+      if (st.family !== prevSt.family) ch.family = st.family;
+      if (st.bold !== prevSt.bold) ch.bold = st.bold;
+      if (st.italic !== prevSt.italic) ch.italic = st.italic;
+      if (st.angle !== prevSt.angle) ch.angle = st.angle || undefined;
+      if (Object.keys(ch).length) editing = { ...editing, ...ch };
+    }
+    prevSt = st;
   });
   onDestroy(unsub);
   async function startEdit(s: Shape) {
@@ -305,9 +318,11 @@
     {#if sel && selBox && $annoTool === "select"}
       <g transform={sel.angle ? `rotate(${sel.angle} ${(selBox.l + selBox.r) / 2} ${(selBox.t + selBox.b) / 2})` : undefined}>
         <rect class="sel" x={selBox.l} y={selBox.t} width={selBox.r - selBox.l} height={selBox.b - selBox.t} vector-effect="non-scaling-stroke" />
+        {#if sel.type === "text" || sel.type === "rect" || sel.type === "ellipse"}
         <line class="stem" x1={(selBox.l + selBox.r) / 2} y1={selBox.t} x2={(selBox.l + selBox.r) / 2} y2={selBox.t - 26 / sc} vector-effect="non-scaling-stroke" />
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <circle class="rot" cx={(selBox.l + selBox.r) / 2} cy={selBox.t - 30 / sc} r={7 / sc} on:pointerdown={(e) => startRotate(e, sel)} />
+        {/if}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <rect class="grip" x={selBox.r - 7 / sc} y={selBox.b - 7 / sc} width={14 / sc} height={14 / sc} on:pointerdown={(e) => startScale(e, sel)} />
       </g>
@@ -320,7 +335,7 @@
       bind:this={editor}
       bind:value={editing.text}
       class="ed"
-      style={`left:${(editing.x ?? 0) * sc}px;top:${(editing.y ?? 0) * sc}px;font:${fontOf({ ...editing, size: (editing.size ?? 32) * sc })};color:${editing.color};line-height:1.2;transform:rotate(${editing.angle ?? 0}deg);transform-origin:0 0`}
+      style={`left:${(editing.x ?? 0) * sc}px;top:${(editing.y ?? 0) * sc}px;font:${fontOf({ ...editing, size: (editing.size ?? 32) * sc })};color:${editing.color};line-height:1.2;transform:rotate(${editing.angle ?? 0}deg);transform-origin:50% 50%`}
       rows="1"
       spellcheck="false"
       on:keydown={editKey}
