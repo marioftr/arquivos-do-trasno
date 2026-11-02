@@ -12,6 +12,9 @@
   interface Group {
     title: string;
     rows: Row[];
+    /** Grupo pregable (os capítulos, por exemplo) e se empeza pechado. */
+    fold?: boolean;
+    closed?: boolean;
   }
   let summary: Group[] = [];
   let advanced: Group[] = [];
@@ -99,6 +102,7 @@
       {
         title: tr("Información"),
         rows: rows(
+          ["Tipo", file.ext.toUpperCase()],
           f.size && ["Tamaño", formatBytes(Number(f.size))],
           v?.width && ["Dimensións", `${v.width} × ${v.height} px`],
           f.duration && ["Duración", `${Math.floor(Number(f.duration) / 60)}:${(Number(f.duration) % 60).toFixed(1).padStart(4, "0")}`],
@@ -214,7 +218,15 @@
       const d = Object.entries(s.disposition ?? {}).filter(([, v]) => v === 1).map(([k]) => k.replace(/_/g, " "));
       adv.push({ title: `${label} · ${tr("pista")} ${i + 1}`, rows: [...x.rows, ...(d.length ? ([["Marcas", d.join(", ")]] as Row[]) : []), ...Object.entries(s.tags ?? {}).map(([k, v]) => [k, String(v)] as Row)] });
     });
-    (info.chapters ?? []).forEach((c: any, i: number) => adv.push({ title: `${tr("Capítulo")} ${i + 1}`, rows: [["Comeza", dur(Number(c.start_time))], ["Remata", dur(Number(c.end_time))], ...Object.entries(c.tags ?? {}).map(([k, v]) => [k, String(v)] as Row)] }));
+    const chapters: any[] = info.chapters ?? [];
+    if (chapters.length) {
+      adv.push({
+        title: `${tr("Capítulos")} · ${chapters.length}`,
+        fold: true,
+        closed: true,
+        rows: chapters.map((c, i) => [`${i + 1}`, `${c.tags?.title ? `${c.tags.title} · ` : ""}${dur(Number(c.start_time))} – ${dur(Number(c.end_time))}`] as Row),
+      });
+    }
     return { adv, raw: rawAll(info) };
   }
 
@@ -233,7 +245,9 @@
       const label = s.codec_type === "video" ? tr("Vídeo") : s.codec_type === "audio" ? tr("Audio") : s.codec_type === "subtitle" ? tr("Subtítulos") : tr("Pista");
       out.push({ title: `${label} · ${tr("pista")} ${i + 1}`, rows: flat(s) });
     });
-    (info.chapters ?? []).forEach((c: any, i: number) => out.push({ title: `${tr("Capítulo")} ${i + 1}`, rows: flat(c) }));
+    // Os capítulos (que poden ser centos) van nun só grupo pechado.
+    const chapters: any[] = info.chapters ?? [];
+    if (chapters.length) out.push({ title: `${tr("Capítulos")} · ${chapters.length}`, closed: true, rows: chapters.flatMap((c, i) => flat(c, `${i + 1}.`)) });
     return out;
   }
 
@@ -315,15 +329,27 @@
   {#if loading && !shown.length}<p class="muted small">{$t("Lendo o ficheiro…")}</p>{/if}
   {#each shown as g (g.title + level)}
     {#if g.rows.length}
-      <div class="group">
-        <h4 class="group-title">{$t(g.title)}</h4>
-        <dl class="selectable">
-          {#each g.rows as [k, v]}
-            <dt>{$t(k)}</dt>
-            <dd class="wrap">{show(v)}</dd>
-          {/each}
-        </dl>
-      </div>
+      {#if g.fold && level === "advanced"}
+        <details class="group fold" open={!g.closed}>
+          <summary class="group-title">{g.title}</summary>
+          <dl class="selectable">
+            {#each g.rows as [k, v]}
+              <dt>{k}</dt>
+              <dd class="wrap">{show(v)}</dd>
+            {/each}
+          </dl>
+        </details>
+      {:else}
+        <div class="group">
+          <h4 class="group-title">{$t(g.title)}</h4>
+          <dl class="selectable">
+            {#each g.rows as [k, v]}
+              <dt>{$t(k)}</dt>
+              <dd class="wrap">{show(v)}</dd>
+            {/each}
+          </dl>
+        </div>
+      {/if}
     {/if}
   {/each}
 
@@ -331,7 +357,7 @@
     <details class="raw">
       <summary>{$t("Datos técnicos en bruto")}</summary>
       {#each raw as g (g.title)}
-        <details class="sub" open>
+        <details class="sub" open={!g.closed}>
           <summary>{g.title} <span class="muted">· {g.rows.length}</span></summary>
           <dl class="selectable mono">
             {#each g.rows as [k, v]}
@@ -352,13 +378,15 @@
 </div>
 
 <style>
-  dl { display: grid; grid-template-columns: minmax(6.5rem, 38%) 1fr; gap: 0.45rem 0.9rem; margin: 0; font-size: 0.84rem; }
-  dt { color: var(--text-muted); }
+  dl { display: grid; grid-template-columns: minmax(0, 42%) minmax(0, 1fr); gap: 0.45rem 0.9rem; margin: 0; font-size: 0.84rem; }
+  dt { color: var(--text-muted); min-width: 0; overflow-wrap: anywhere; }
   dd { margin: 0; min-width: 0; }
   dd.wrap { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
   .hash { font-family: Consolas, monospace; font-size: 0.72rem; }
   .small { font-size: 0.82rem; margin: 0; }
-  .raw { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; }
+  .fold summary { cursor: pointer; }
+  .fold dl { margin-top: 0.5rem; }
+  .raw { margin-top: 1.1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; }
   .raw summary { cursor: pointer; font-size: 0.84rem; color: var(--text-muted); }
   .sub { margin-top: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.4rem; }
   .sub summary { cursor: pointer; font-size: 0.82rem; font-weight: 600; }

@@ -30,7 +30,7 @@ fn x(l: &str, v: impl Into<String>) -> [String; 2] {
 /// todas as filas, agrupadas (co «+» quitado), e mais os grupos extra.
 fn finish(groups: Vec<Group>, extra: Vec<Group>) -> Info {
     let strip = |g: &Group| Group { title: g.title.clone(), rows: g.rows.iter().map(|r| [r[0].trim_start_matches('+').to_string(), r[1].clone()]).collect() };
-    let order = ["Tamaño", "Dimensións", "Páxinas"];
+    let order = ["Tipo", "Tamaño", "Dimensións", "Páxinas"];
     let mut core: Vec<[String; 2]> = groups.iter().flat_map(|g| g.rows.iter()).filter(|r| !r[0].starts_with('+')).cloned().collect();
     core.sort_by_key(|r| order.iter().position(|o| *o == r[0]).unwrap_or(order.len()));
     let summary = if core.is_empty() { vec![] } else { vec![Group { title: "Información".to_string(), rows: core }] };
@@ -104,7 +104,7 @@ fn file_group(path: &Path) -> Group {
         }
     }
     if let Some(e) = path.extension().and_then(|e| e.to_str()) {
-        rows.insert(0, x("Tipo", e.to_uppercase()));
+        rows.insert(0, row("Tipo", e.to_uppercase()));
     }
     group("Ficheiro", rows)
 }

@@ -27,6 +27,10 @@
   let natural = { w: 0, h: 0 };
   let sw = 0;
   let sh = 0;
+  // Barra de abaixo: con pouco ancho os botóns pasan a ser só icona e despois agóchase o que sobra.
+  let barW = 9999;
+  $: compact = barW < 820;
+  $: tiny = barW < 560;
 
   $: load(file.path);
   $: imageUrl.set(url);
@@ -428,19 +432,19 @@
       </div>
     {/if}
   </div>
-  <div class="bar">
+  <div class="bar" bind:clientWidth={barW}>
     <button class="btn" class:on={fit} on:click={() => (fit = true)}>{$t("Axustar")}</button>
     <button class="btn" class:on={!fit && zoom === 100} on:click={() => zoomAt(100, stage.clientWidth / 2, stage.clientHeight / 2)}>100%</button>
-    <span class="muted pct">{shown} %</span>
+    {#if !tiny}<span class="muted pct">{shown} %</span>{/if}
     <span class="grow"></span>
     {#if ocrOn}
       <select class="lg" bind:value={ocrLang} on:change={changeLang} aria-label={$t("Idioma do texto")} disabled={ocrBusy}>
         {#each OCR_LANGS as l}<option value={l.id}>{l.label}{$ocrInstalled.includes(l.id) ? "" : " ⇩"}</option>{/each}
       </select>
-      <button class="btn" on:click={copyAll} disabled={!ocrRes?.lines.length}><Icon name="copy" size={14} /> {$t("Copiar todo o texto")}</button>
+      <button class="btn" on:click={copyAll} disabled={!ocrRes?.lines.length}><Icon name="copy" size={14} />{#if !compact} {$t("Copiar todo o texto")}{/if}</button>
     {/if}
-    <button class="btn ocrbtn" class:on={ocrOn} on:click={toggleOcr} disabled={ocrBusy || !!$ocrDownload} title={$t("Le o texto da imaxe para poder seleccionalo e copialo")}><Icon name="type" size={15} /> {ocrBusy ? `${$t("Lendo o texto…")} ${Math.round($ocrProgress * 100)} %` : $t("Texto da imaxe")}</button>
-    {#if file.width}<span class="muted dims">{file.width} × {file.height} px</span>{/if}
+    <button class="btn ocrbtn" class:ocrc={compact} class:on={ocrOn} on:click={toggleOcr} disabled={ocrBusy || !!$ocrDownload} title={$t("Le o texto da imaxe para poder seleccionalo e copialo")} aria-label={$t("Texto da imaxe")}><Icon name="type" size={15} />{#if !compact || ocrBusy} {ocrBusy ? `${compact ? "" : `${$t("Lendo o texto…")} `}${Math.round($ocrProgress * 100)} %` : $t("Texto da imaxe")}{/if}</button>
+    {#if file.width && !tiny}<span class="muted dims">{file.width} × {file.height} px</span>{/if}
   </div>
 </div>
 
@@ -470,11 +474,14 @@
   /* Barra de abaixo: unha soa fila fixa; nada cambia de sitio nin de tamaño ao usar o OCR. */
   .bar { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; overflow: hidden; }
   .bar > * { flex: none; white-space: nowrap; }
+  @media (max-width: 520px) { .bar { flex-wrap: wrap; } }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .grow { flex: 1 1 auto; min-width: 0; }
   .pct { min-width: 3.2rem; font-variant-numeric: tabular-nums; }
   .ocrbtn { min-width: 11.5rem; justify-content: center; }
-  .lg { height: var(--control-h); width: 7.4rem; }
+  .ocrbtn.ocrc { min-width: 0; }
+  .lg { height: var(--control-h); width: 7.4rem; min-width: 0; }
+  .bar:has(.ocrc) .lg { width: 5.6rem; }
   .dims { min-width: 6.5rem; text-align: right; }
   .ocrbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.55rem 0.9rem; border-top: 1px solid var(--border-strong); background: var(--bg-elevated); font-size: 0.82rem; }
   .ocrbar .err { color: var(--accent-video); }

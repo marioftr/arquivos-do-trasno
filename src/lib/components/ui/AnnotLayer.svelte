@@ -209,6 +209,8 @@
       return;
     }
     commit(exists ? list.map((x) => (x.id === s.id ? s : x)) : [...list, s]);
+    // Queda escollido: se agora se toca un axuste do panel (letra, tamaño, xiro...), aplícase a este texto.
+    selected.set(s.id);
   }
   function dbl(e: MouseEvent) {
     if (get(annoTool) !== "select") return;

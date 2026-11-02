@@ -8,7 +8,7 @@
   import { t, tr } from "../../i18n";
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
-  import { annoActive, annoTool, annoStyle, shapes, selected, canUndo, canRedo, undo, redo, clearAll, resetAnnotations, renderAnnotated, type Tool } from "../../annot";
+  import { annoActive, annoTool, annoStyle, shapes, selected, canUndo, canRedo, undo, redo, clearAll, resetAnnotations, renderAnnotated, liveEdit, type Tool } from "../../annot";
   import { activateAnno } from "../../annot";
   import Slider from "../ui/Slider.svelte";
   import SelectField from "../ui/SelectField.svelte";
@@ -62,7 +62,7 @@
     const id = get(selected);
     const cur = get(shapes).find((x) => x.id === id);
     if (!cur || (cur.angle ?? 0) === v) return;
-    shapes.update((l) => l.map((x) => (x.id === id ? { ...x, angle: v } : x)));
+    liveEdit((l) => l.map((x) => (x.id === id ? { ...x, angle: v } : x)));
   }
   $: setAngle(uiAngle);
 
@@ -77,7 +77,7 @@
     const id = get(selected);
     const cur = get(shapes).find((x) => x.id === id);
     if (!cur || sameStyle(cur, st)) return;
-    shapes.update((l) =>
+    liveEdit((l) =>
       l.map((x) =>
         x.id !== id
           ? x

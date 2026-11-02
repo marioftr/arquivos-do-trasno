@@ -55,6 +55,7 @@ export const setAnnoPath = (p: string) => annoPath.set(p);
 const stash = new Map<string, { shapes: Shape[]; past: Shape[][]; future: Shape[][] }>();
 /** Pasa ao debuxado da imaxe `path`: garda o da anterior e recupera o desta (ou empeza baleiro). */
 export function activateAnno(path: string) {
+  flushLive();
   const cur = get(annoPath);
   if (cur === path) return;
   if (cur) stash.set(cur, { shapes: get(shapes), past: [...past], future: [...future] });
@@ -83,8 +84,31 @@ const sync = () => {
 let nextId = 1;
 export const newId = () => nextId++;
 
+// Cambios que se fan arrastrando un slider ou tocando un axuste: móstranse ao momento e quedan no historial
+// como un só paso cando se deixa de tocar.
+let liveBefore: Shape[] | null = null;
+let liveTimer: ReturnType<typeof setTimeout> | undefined;
+export function liveEdit(fn: (l: Shape[]) => Shape[]) {
+  if (!liveBefore) liveBefore = get(shapes);
+  shapes.set(fn(get(shapes)));
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(flushLive, 600);
+}
+export function flushLive() {
+  clearTimeout(liveTimer);
+  if (!liveBefore) return;
+  const before = liveBefore;
+  liveBefore = null;
+  const final = get(shapes);
+  if (JSON.stringify(final) !== JSON.stringify(before)) {
+    shapes.set(before);
+    commit(final);
+  }
+}
+
 /** Cambia a lista de figuras gardando o estado anterior para poder desfacer. */
 export function commit(next: Shape[]) {
+  flushLive();
   past.push(get(shapes));
   if (past.length > 200) past.shift();
   future.length = 0;
@@ -92,6 +116,7 @@ export function commit(next: Shape[]) {
   sync();
 }
 export function undo() {
+  flushLive();
   const prev = past.pop();
   if (!prev) return;
   future.push(get(shapes));
@@ -100,6 +125,7 @@ export function undo() {
   sync();
 }
 export function redo() {
+  flushLive();
   const nxt = future.pop();
   if (!nxt) return;
   past.push(get(shapes));
