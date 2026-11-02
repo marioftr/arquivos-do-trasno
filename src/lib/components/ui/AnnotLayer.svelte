@@ -87,7 +87,7 @@
     if (tool === "pen" || tool === "highlight") {
       draft = { id: newId(), type: tool, color: st.color, width: st.width, pts: [[x, y]] };
     } else {
-      draft = { id: newId(), type: tool, color: st.color, width: st.width, fill: st.fill && (tool === "rect" || tool === "ellipse"), x1: x, y1: y, x2: x, y2: y, angle: (tool === "rect" || tool === "ellipse") && st.angle ? st.angle : undefined };
+      draft = { id: newId(), type: tool, color: st.color, width: st.width, fill: st.fill && (tool === "rect" || tool === "ellipse"), x1: x, y1: y, x2: x, y2: y, angle: st.angle || undefined };
     }
   }
 
@@ -186,7 +186,8 @@
     const tiny = !d.pts && Math.hypot((d.x2 ?? 0) - (d.x1 ?? 0), (d.y2 ?? 0) - (d.y1 ?? 0)) * sc < 3;
     if (tiny) return;
     commit([...get(shapes), d]);
-    selected.set(null);
+    // Queda escollida, como o texto: os axustes do panel (cor, groso, xiro...) aplícanse a ela.
+    selected.set(d.id);
     annoStyle.update((st) => (st.angle ? { ...st, angle: 0 } : st));
   }
 
@@ -318,7 +319,7 @@
     {#if sel && selBox && $annoTool === "select"}
       <g transform={sel.angle ? `rotate(${sel.angle} ${(selBox.l + selBox.r) / 2} ${(selBox.t + selBox.b) / 2})` : undefined}>
         <rect class="sel" x={selBox.l} y={selBox.t} width={selBox.r - selBox.l} height={selBox.b - selBox.t} vector-effect="non-scaling-stroke" />
-        {#if sel.type === "text" || sel.type === "rect" || sel.type === "ellipse"}
+        {#if sel.type !== "pen" && sel.type !== "highlight"}
         <line class="stem" x1={(selBox.l + selBox.r) / 2} y1={selBox.t} x2={(selBox.l + selBox.r) / 2} y2={selBox.t - 26 / sc} vector-effect="non-scaling-stroke" />
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <circle class="rot" cx={(selBox.l + selBox.r) / 2} cy={selBox.t - 30 / sc} r={7 / sc} on:pointerdown={(e) => startRotate(e, sel)} />

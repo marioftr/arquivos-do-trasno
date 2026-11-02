@@ -141,7 +141,7 @@
       {#if showFill}
         <Toggle label={$t("Encher a figura")} bind:checked={$annoStyle.fill} />
       {/if}
-      {#if kind === "text" || kind === "rect" || kind === "ellipse"}
+      {#if kind !== "pen" && kind !== "highlight"}
         <Slider label={$t("Xiro")} unit="°" min={-180} max={180} bind:value={uiAngle} def={0} />
       {/if}
       {#if showText}

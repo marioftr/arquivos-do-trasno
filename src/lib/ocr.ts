@@ -127,9 +127,11 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
     if (t.length === 1 && !/[\p{L}\p{N}]/u.test(t) && c < 85) return false;
     return true;
   };
+  // Se o filtro deixase todo en branco, mellor amosar o que se leu que nada.
+  const anyKept = (data.lines ?? []).some((l: any) => (l.words ?? []).some(keep));
   const lines: OcrWord[][] = (data.lines ?? [])
     .map((l: any) => {
-      const ws = (l.words ?? []).filter(keep);
+      const ws = (l.words ?? []).filter((w: any) => (anyKept ? keep(w) : String(w.text ?? "").trim()));
       if (!ws.length) return [];
       // Todas as palabras dunha liña comparten altura (as letras sen ascendentes non encollen a caixa).
       const y0 = Math.min(...ws.map((w: any) => w.bbox.y0));

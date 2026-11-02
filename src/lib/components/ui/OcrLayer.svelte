@@ -129,6 +129,7 @@
   class="ocr"
   bind:this={root}
   style={`left:${box.l}px;top:${box.t}px;width:${box.w}px;height:${box.h}px`}
+  on:dblclick|stopPropagation
   on:pointerdown={down}
   on:pointermove={move}
   on:pointerup={up}
