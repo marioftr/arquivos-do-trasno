@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { claim } from "../../claim";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import { open } from "@tauri-apps/plugin-dialog";
@@ -192,7 +193,8 @@
             ? { image: { url: imageUrl, xPct: f.imX, yPct: f.imY, widthPct: f.imWidth, opacity: f.imOpacity / 100, pages } }
             : null,
   );
-  onDestroy(() => pdfOverlay.set(null));
+  const own = claim("pdfOverlay");
+  onDestroy(() => own.release(() => pdfOverlay.set(null)));
 
   async function chooseImage() {
     const picked = await open({ multiple: false, filters: [{ name: tr("Imaxes"), extensions: ["png", "jpg", "jpeg", "webp", "bmp", "gif"] }] });

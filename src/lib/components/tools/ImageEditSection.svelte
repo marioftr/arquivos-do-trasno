@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { claim } from "../../claim";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
@@ -53,12 +54,15 @@
     contrast: $form.contrast,
     blur: $form.blur,
   });
-  onDestroy(() => {
-    imageEdit.set(null);
-    imageCrop.set(null);
-    imageCropAspect.set(null);
-    imageCropEnabled.set(false);
-  });
+  const own = claim("imageEdit");
+  onDestroy(() =>
+    own.release(() => {
+      imageEdit.set(null);
+      imageCrop.set(null);
+      imageCropAspect.set(null);
+      imageCropEnabled.set(false);
+    }),
+  );
 
   // ---- recorte directo no visor: arrastrar sobre a imaxe debuxa o rectángulo; os campos seguen o que se ve
   // O recorte vai sobre a imaxe tal como se ve: despois de xirala ou voltala (ancho e alto trócanse cos xiros de 90°).

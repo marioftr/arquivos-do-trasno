@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { claim } from "../../claim";
   import { onMount, onDestroy, tick } from "svelte";
   import { viewUrl, imageEdit, imageCrop, imageCropAspect, imageCropEnabled, imageUrl, imageNatural, type FileEntry } from "../../files";
   import * as engine from "../../engine";
@@ -10,7 +11,7 @@
   import { toast } from "../../toasts";
   import { tr } from "../../i18n";
   import { errText } from "../../errors";
-  import { OCR_LANGS, OCR_SIZE, ocrInstalled, ocrDownload, ocrProgress, ocrActive, savedLang, rememberLang, refreshOcr, downloadLang, recognize, type OcrResult } from "../../ocr";
+  import { OCR_LANGS, OCR_SIZE, ocrInstalled, ocrDownload, ocrProgress, ocrActive, savedLang, rememberLang, refreshOcr, downloadLang, recognize, ocrPeek, type OcrResult } from "../../ocr";
   import { annoActive } from "../../annot";
   import { actionFor } from "../../keymap";
 
@@ -63,16 +64,19 @@
   let ocrErr = "";
   let ocrLang = savedLang($appLang);
   let askDownload = false;
-  const ocrCache = new Map<string, OcrResult>();
   onMount(() => void refreshOcr().catch(() => {}));
-  onDestroy(() => ocrActive.set(false));
+  const own = claim("ocr");
+  onDestroy(() => own.release(() => ocrActive.set(false)));
   $: ocrActive.set(ocrOn);
   // Outra imaxe: o texto lido deixa de valer.
-  $: if (file.path) {
-    ocrOn = false;
+  $: onFile(file.path);
+  function onFile(p: string) {
     ocrRes = null;
     ocrErr = "";
     askDownload = false;
+    // Se esta imaxe xa se leu (ou se está lendo), o texto volve sen empezar de novo.
+    ocrOn = !!ocrPeek(p, ocrLang);
+    if (ocrOn) void runOcr();
   }
   async function toggleOcr() {
     if (ocrOn) {
@@ -84,22 +88,22 @@
   }
   async function runOcr() {
     ocrErr = "";
-    if (!$ocrInstalled.includes(ocrLang)) {
+    const path = file.path;
+    const lang = ocrLang;
+    const cached = ocrPeek(path, lang);
+    if (cached && cached !== "busy") {
+      ocrRes = cached;
+      return;
+    }
+    if (!cached && !$ocrInstalled.includes(lang)) {
       askDownload = true;
       return;
     }
     askDownload = false;
-    const key = `${file.path}|${ocrLang}`;
-    const cached = ocrCache.get(key);
-    if (cached) {
-      ocrRes = cached;
-      return;
-    }
     ocrBusy = true;
     try {
-      const res = await recognize(url, ocrLang);
-      ocrCache.set(key, res);
-      if (ocrOn) ocrRes = res;
+      const res = await recognize(path, url, lang);
+      if (ocrOn && file.path === path && ocrLang === lang) ocrRes = res;
       if (!res.lines.length) toast(tr("O trasno mirou ben a imaxe e non viu letras. Proba con outro idioma ou cunha imaxe máis nítida."));
     } catch (e) {
       ocrErr = errText(e);

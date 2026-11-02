@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { claim } from "../../claim";
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
@@ -29,7 +30,8 @@
   }
   $: pages = safePages(f.pageSpec, file.pages);
   $: pdfOverlay.set({ crop: { l: f.left * PT_PER_MM, r: f.right * PT_PER_MM, t: f.top * PT_PER_MM, b: f.bottom * PT_PER_MM }, select: pages ?? undefined });
-  onDestroy(() => pdfOverlay.set(null));
+  const own = claim("pdfOverlay");
+  onDestroy(() => own.release(() => pdfOverlay.set(null)));
 
   async function apply() {
     try {

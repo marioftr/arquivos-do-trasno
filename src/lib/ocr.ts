@@ -90,10 +90,32 @@ async function langPathUrl(lang: string): Promise<string> {
 }
 
 let queue: Promise<unknown> = Promise.resolve();
+// Lecturas en curso e feitas, por imaxe e idioma: ao cambiar de ficheiro e volver non se perde nin se repite nada.
+const inflight = new Map<string, Promise<OcrResult>>();
+const finished = new Map<string, OcrResult>();
+const keyOf = (path: string, lang: string) => `${path}|${lang}`;
+/** Resultado xa lido (ou `"busy"` se aínda se está lendo) desa imaxe, se o hai. */
+export function ocrPeek(path: string, lang: string): OcrResult | "busy" | null {
+  const k = keyOf(path, lang);
+  return finished.get(k) ?? (inflight.has(k) ? "busy" : null);
+}
 /** As lecturas fanse unha a unha: o motor é un só e cambiar de idioma non pode cortar a lectura en curso. */
-export function recognize(imageUrl: string, lang: string): Promise<OcrResult> {
+export function recognize(path: string, imageUrl: string, lang: string): Promise<OcrResult> {
+  const k = keyOf(path, lang);
+  const done = finished.get(k);
+  if (done) return Promise.resolve(done);
+  const going = inflight.get(k);
+  if (going) return going;
   const run = queue.then(() => recognizeNow(imageUrl, lang));
   queue = run.catch(() => {});
+  inflight.set(k, run);
+  run
+    .then((r) => {
+      finished.set(k, r);
+      if (finished.size > 30) finished.delete(finished.keys().next().value as string);
+    })
+    .catch(() => {})
+    .finally(() => inflight.delete(k));
   return run;
 }
 

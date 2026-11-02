@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { claim } from "../../claim";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
@@ -33,7 +34,8 @@
     select: sel ?? undefined,
     rotate: $form.degrees ? { degrees: $form.degrees, page: $form.rotateAll ? null : $form.rotatePage } : undefined,
   });
-  onDestroy(() => pdfOverlay.set(null));
+  const own = claim("pdfOverlay");
+  onDestroy(() => own.release(() => pdfOverlay.set(null)));
   const busy = job.busy;
 
   function parsePages(spec: string): number[] {

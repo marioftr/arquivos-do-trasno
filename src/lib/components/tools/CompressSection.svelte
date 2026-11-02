@@ -5,6 +5,7 @@
   import { open, save } from "@tauri-apps/plugin-dialog";
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
+  import { claim } from "../../claim";
   import { videoDar, type FileEntry } from "../../files";
   import { fileNameOf, formatBytes, withExtension, TRASNO, fallo } from "../../formats";
   import { t, tr } from "../../i18n";
@@ -69,7 +70,8 @@
     unit: "MB",
   }, `comprimir2-${category}`);
   $: videoDar.set(isImage ? "" : v.dar ?? "");
-  onDestroy(() => videoDar.set(""));
+  const own = claim("videoDar");
+  onDestroy(() => own.release(() => videoDar.set("")));
   onMount(() => {
     return useForm(form);
   });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { claim } from "../../claim";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import { errText } from "../../errors";
@@ -28,10 +29,13 @@
     activateAnno(file.path);
     annoActive.set(true);
   });
-  onDestroy(() => {
-    annoActive.set(false);
-    selected.set(null);
-  });
+  const own = claim("annotate");
+  onDestroy(() =>
+    own.release(() => {
+      annoActive.set(false);
+      selected.set(null);
+    }),
+  );
   // Outra imaxe: gárdase o debuxado desta e recupérase o da nova.
   $: activateAnno(file.path);
 

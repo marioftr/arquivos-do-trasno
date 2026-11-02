@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { claim } from "../../claim";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
@@ -22,7 +23,8 @@
   onMount(() => useForm(form));
   // O visor reproduce xa coa velocidade e o volume elixidos.
   $: mediaPreview.set({ speed: $form.speed, volume: $form.volume });
-  onDestroy(() => mediaPreview.set(null));
+  const own = claim("mediaPreview");
+  onDestroy(() => own.release(() => mediaPreview.set(null)));
 
   const job = createJob();
   const busy = job.busy;

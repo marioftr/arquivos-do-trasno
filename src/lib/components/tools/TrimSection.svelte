@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { claim } from "../../claim";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
@@ -37,7 +38,8 @@
       if (f.start !== start || (f.end || total) !== end) form.update((v) => ({ ...v, start, end }));
     }),
   );
-  onDestroy(() => trimRange.set(null));
+  const own = claim("trimRange");
+  onDestroy(() => own.release(() => trimRange.set(null)));
 
   const job = createJob();
   const busy = job.busy;

@@ -30,8 +30,9 @@ export async function call<T>(cmd: string, args?: InvokeArgs, options?: InvokeOp
     const out = (args as { output?: unknown } | undefined)?.output;
     if (typeof out === "string" && out) {
       // O motor pode ter cambiado o nome (para non pisar nada): vale o camiño que devolve.
+      const real = typeof r === "string" ? r : (r as { output_path?: unknown } | null)?.output_path;
       const ext = out.slice(out.lastIndexOf(".")).toLowerCase();
-      outputHook.fn?.(typeof r === "string" && /[\\/]/.test(r) && r.toLowerCase().endsWith(ext) ? r : out);
+      outputHook.fn?.(typeof real === "string" && /[\\/]/.test(real) && real.toLowerCase().endsWith(ext) ? real : out);
     } else if (cmd === "save_bytes" && typeof r === "string" && r) outputHook.fn?.(r);
     return r;
   } catch (e) {
