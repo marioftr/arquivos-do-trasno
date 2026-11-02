@@ -27,7 +27,10 @@ fn find_tool(name: &str, env: &str) -> Result<PathBuf> {
             }
         }
     }
-    which::which(name).map_err(|_| EngineError::FfmpegNotFound)
+    // Se non está no sistema, o que descargou a propia app.
+    which::which(name)
+        .or_else(|_| crate::tools_install::installed(crate::tools_install::Tool::Ffmpeg, &format!("{name}{}", std::env::consts::EXE_SUFFIX)).ok_or(()))
+        .map_err(|_| EngineError::FfmpegNotFound)
 }
 
 pub fn ffmpeg_path() -> Result<PathBuf> {

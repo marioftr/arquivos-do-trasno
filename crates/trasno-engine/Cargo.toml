@@ -17,6 +17,8 @@ thiserror = "2"
 sha2 = "0.10"
 tempfile = "3"
 which = "7"
+ureq = { version = "2", features = ["json"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]

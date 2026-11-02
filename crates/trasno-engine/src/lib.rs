@@ -25,6 +25,7 @@ pub mod mkv;
 pub mod model3d;
 pub mod pdf;
 pub mod pdf_tools;
+pub mod tools_install;
 
 pub use error::{EngineError, Result};
 pub use formats::Category;

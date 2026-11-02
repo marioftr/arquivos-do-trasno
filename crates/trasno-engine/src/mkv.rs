@@ -29,7 +29,9 @@ pub fn mkvmerge_path() -> Result<PathBuf> {
             }
         }
     }
-    which::which("mkvmerge").map_err(|_| EngineError::IntegrityCheck("Falta MKVToolNix (mkvmerge): instálao desde a xanela de extensións.".into()))
+    which::which("mkvmerge")
+        .or_else(|_| crate::tools_install::installed(crate::tools_install::Tool::MkvToolNix, &file).ok_or(()))
+        .map_err(|_| EngineError::IntegrityCheck("Falta MKVToolNix (mkvmerge): instálao desde a xanela de extensións.".into()))
 }
 
 pub fn is_available() -> bool {

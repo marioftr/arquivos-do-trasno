@@ -895,8 +895,55 @@ pub async fn tools_status() -> serde_json::Value {
     .unwrap_or_default()
 }
 
+/// Pide cancelar a descarga de programas que está en marcha.
+static TOOL_CANCEL: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[tauri::command]
+pub fn cancel_tool_install() {
+    TOOL_CANCEL.store(true, std::sync::atomic::Ordering::SeqCst);
+}
+
+/// Descarga e instala FFmpeg ou MKVToolNix desde a súa web oficial. A interface recibe
+/// `trasno://tool-install` con `{ tool, phase, progress }` (phase: download | verify | extract).
+#[tauri::command]
+pub async fn install_tool(app: tauri::AppHandle, tool: String) -> Result<serde_json::Value, String> {
+    use tauri::Emitter;
+    use trasno_engine::tools_install::{self, Phase, Tool};
+    let t = Tool::parse(&tool).ok_or_else(|| "Programa descoñecido.".to_string())?;
+    TOOL_CANCEL.store(false, std::sync::atomic::Ordering::SeqCst);
+    blocking(move || {
+        let name = tool.clone();
+        let sink = |p: Phase, f: f64| {
+            let phase = match p {
+                Phase::Download => "download",
+                Phase::Verify => "verify",
+                Phase::Extract => "extract",
+            };
+            let _ = app.emit("trasno://tool-install", serde_json::json!({ "tool": name, "phase": phase, "progress": f }));
+        };
+        tools_install::install(t, &sink, &|| TOOL_CANCEL.load(std::sync::atomic::Ordering::SeqCst)).map_err(to_err)?;
+        Ok(tools_now())
+    })
+    .await
+}
+
+/// Quita un programa que descargou a propia app (non toca os instalados polo usuario).
+#[tauri::command]
+pub async fn remove_tool(tool: String) -> Result<serde_json::Value, String> {
+    let t = trasno_engine::tools_install::Tool::parse(&tool).ok_or_else(|| "Programa descoñecido.".to_string())?;
+    blocking(move || {
+        trasno_engine::tools_install::remove(t).map_err(to_err)?;
+        Ok(tools_now())
+    })
+    .await
+}
+
 fn tools_now() -> serde_json::Value {
+    use trasno_engine::tools_install::{installed, Tool};
+    let own = |t: Tool, f: &str| installed(t, f).is_some();
     serde_json::json!({
+        "ffmpeg_own": own(Tool::Ffmpeg, "ffmpeg.exe"),
+        "mkvmerge_own": own(Tool::MkvToolNix, "mkvmerge.exe"),
         "ffmpeg": trasno_engine::ffmpeg::ffmpeg_path().is_ok(),
         "ffprobe": trasno_engine::ffmpeg::ffprobe_path().is_ok(),
         "mkvmerge": trasno_engine::mkv::is_available(),

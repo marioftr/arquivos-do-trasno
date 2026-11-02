@@ -878,5 +878,21 @@
   "Estimar de novo": "Estimate again",
   "O nome do ficheiro de saída non ten extensión (por exemplo «.mp4»): ffmpeg necesita saber que formato crear.": "The output file name has no extension (for example “.mp4”): ffmpeg needs to know which format to create.",
   "Tentar de novo": "Try again",
-  "Listo! O trasno deixou o ficheiro en {to}.": "Done! The trasno left the file at {to}."
+  "Listo! O trasno deixou o ficheiro en {to}.": "Done! The trasno left the file at {to}.",
+  "{name} instalado. Xa se pode usar.": "{name} installed. Ready to use.",
+  "Cancelaches a descarga.": "You cancelled the download.",
+  "Descargando…": "Downloading…",
+  "Comprobando a descarga…": "Checking the download…",
+  "Instalando…": "Installing…",
+  "Cancelar descarga": "Cancel download",
+  "O trasno vai descargar {name} (uns {size}) de {source}, comprobar que o ficheiro está íntegro e deixalo na súa carpeta de datos. Non fai falta ser administrador.": "The trasno will download {name} (about {size}) from {source}, check that the file is intact and keep it in its data folder. No administrator rights needed.",
+  "Aceptar e descargar": "Accept and download",
+  "Agora non": "Not now",
+  "Descargar e instalar": "Download and install",
+  "Descargado polo trasno.": "Downloaded by the trasno.",
+  "Non atopo onde gardar os programas.": "I cannot find where to store the programs.",
+  "A suma de comprobación publicada non ten o formato esperado.": "The published checksum does not have the expected format.",
+  "A versión de MKVToolNix que anuncia a web non é válida.": "The MKVToolNix version announced by the website is not valid.",
+  "A descarga automática só está dispoñible en Windows.": "Automatic download is only available on Windows.",
+  "O ficheiro descargado non coincide coa suma de comprobación publicada, así que non o instalo.": "The downloaded file does not match the published checksum, so I will not install it."
 }

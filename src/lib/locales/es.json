@@ -878,5 +878,21 @@
   "Estimar de novo": "Estimar de nuevo",
   "O nome do ficheiro de saída non ten extensión (por exemplo «.mp4»): ffmpeg necesita saber que formato crear.": "El nombre del archivo de salida no tiene extensión (por ejemplo «.mp4»): ffmpeg necesita saber qué formato crear.",
   "Tentar de novo": "Intentar de nuevo",
-  "Listo! O trasno deixou o ficheiro en {to}.": "¡Listo! El trasno dejó el archivo en {to}."
+  "Listo! O trasno deixou o ficheiro en {to}.": "¡Listo! El trasno dejó el archivo en {to}.",
+  "{name} instalado. Xa se pode usar.": "{name} instalado. Ya se puede usar.",
+  "Cancelaches a descarga.": "Cancelaste la descarga.",
+  "Descargando…": "Descargando…",
+  "Comprobando a descarga…": "Comprobando la descarga…",
+  "Instalando…": "Instalando…",
+  "Cancelar descarga": "Cancelar descarga",
+  "O trasno vai descargar {name} (uns {size}) de {source}, comprobar que o ficheiro está íntegro e deixalo na súa carpeta de datos. Non fai falta ser administrador.": "El trasno va a descargar {name} (unos {size}) de {source}, comprobar que el archivo está íntegro y dejarlo en su carpeta de datos. No hace falta ser administrador.",
+  "Aceptar e descargar": "Aceptar y descargar",
+  "Agora non": "Ahora no",
+  "Descargar e instalar": "Descargar e instalar",
+  "Descargado polo trasno.": "Descargado por el trasno.",
+  "Non atopo onde gardar os programas.": "No encuentro dónde guardar los programas.",
+  "A suma de comprobación publicada non ten o formato esperado.": "La suma de comprobación publicada no tiene el formato esperado.",
+  "A versión de MKVToolNix que anuncia a web non é válida.": "La versión de MKVToolNix que anuncia la web no es válida.",
+  "A descarga automática só está dispoñible en Windows.": "La descarga automática solo está disponible en Windows.",
+  "O ficheiro descargado non coincide coa suma de comprobación publicada, así que non o instalo.": "El archivo descargado no coincide con la suma de comprobación publicada, así que no lo instalo."
 }

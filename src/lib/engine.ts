@@ -319,7 +319,14 @@ export interface ToolsStatus {
   ffmpeg: boolean;
   ffprobe: boolean;
   mkvmerge: boolean;
+  /** Descargados pola propia app (poden quitarse desde aquí). */
+  ffmpeg_own?: boolean;
+  mkvmerge_own?: boolean;
 }
+export type ToolId = "ffmpeg" | "mkvmerge";
+export const installTool = (tool: ToolId): Promise<ToolsStatus> => call("install_tool", { tool });
+export const cancelToolInstall = (): Promise<void> => call("cancel_tool_install");
+export const removeTool = (tool: ToolId): Promise<ToolsStatus> => call("remove_tool", { tool });
 export const toolsStatus = (): Promise<ToolsStatus> => call("tools_status");
 
 export interface MkvTrack {
