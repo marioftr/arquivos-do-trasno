@@ -7,7 +7,7 @@ import { tr } from "./i18n";
 import { errText, isCancelled, missingToolOf, outputHook } from "./errors";
 import { requestTool } from "./toolinstall";
 import { beginJob } from "./engine";
-import { track, type Tracker } from "./procs";
+import { track, refreshProcs, type Tracker } from "./procs";
 import { files, activePath } from "./files";
 import { noteAction, liveProgress, trasnoSay } from "./agent";
 
@@ -58,6 +58,7 @@ export function createJob(): Job {
       const current = get(files).find((f) => f.path === get(activePath));
       const tracker = track({ title: current?.name ?? tr("Traballo"), subtitle: tr(working), source: "app" });
       active = { tracker, progress };
+      setTimeout(refreshProcs, 250);
       noteAction("O trasno comezou o traballo de «{name}»", { name: current?.name ?? "" });
       const outs: string[] = [];
       outputHook.fn = (p) => {
@@ -72,7 +73,7 @@ export function createJob(): Job {
       } catch (e) {
         // Cancelar non é un fallo: sen frase de «tropezou».
         if (isCancelled(e)) {
-          trasnoSay(tr("O trasno cancelou o traballo e deixou todo ordenado, sen ficheiros a medias."), "info", 8000);
+          trasnoSay(tr("Traballo cancelado. Deixei todo ordenado, sen ficheiros a medias."), "info", 8000);
           noteAction("O trasno cancelou o traballo de «{name}»", { name: current?.name ?? "" });
           tracker.finish("cancelled");
         } else {
@@ -88,6 +89,7 @@ export function createJob(): Job {
         progress.set(null);
         liveProgress.set(null);
         busy.set(false);
+        setTimeout(refreshProcs, 250);
       }
     },
     say(ok, t) {

@@ -37,7 +37,7 @@ export function noteAction(gl: string, vars?: Record<string, string | number>) {
 }
 
 /** Que fai o trasno ao premelo: abrir procesos, abrir o buscador ou soltar un comentario. */
-export type ClickAction = "procs" | "palette" | "say";
+export type ClickAction = "procs" | "palette" | "news" | "settings" | "say";
 function persistedText<T extends string>(key: string, allowed: T[], fallback: T) {
   let v = fallback;
   try {
@@ -56,7 +56,7 @@ function persistedText<T extends string>(key: string, allowed: T[], fallback: T)
   });
   return store;
 }
-export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", ["procs", "palette", "say"], "procs");
+export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", ["procs", "palette", "news", "settings", "say"], "procs");
 
 // ---- o globo do trasno (un só á vez)
 export interface Bubble {
@@ -104,12 +104,13 @@ export const TIPS = [
 
 // ---- comentarios segundo o ficheiro aberto e a ferramenta activa
 export const CTX: Record<string, string[]> = {
+  "*": ["Aquí sigo, listo para o que fagas falta.", "Cando queiras, pásame outro ficheiro: non me canso.", "Se algo sae raro, un Ctrl+Z e aquí non pasou nada.", "Na barra de abaixo apunto todo o que fas, por se hai que desfacer algo."],
   imaxe: ["O WebP adoita pesar bastante menos có JPG a igual calidade.", "O PNG conserva a transparencia; o JPG non."],
   video: ["Un bitrate máis baixo dá ficheiros máis pequenos, ata que se nota. O truco é parar un chisco antes.", "O H.265 reduce o peso, pero non todos os reprodutores o len."],
   audio: ["Con 128 kbps abonda para voz; para música convén subir a 192 ou máis.", "O MP3 é o máis compatible; o FLAC garda todo sen perdas.", "Silencio na oficina. Perfecto para traballar sen que ninguén mire."],
   documento: ["Un PDF pesado adoita levar imaxes sen optimizar: Comprimir pode axudar moito."],
   modelo3d: ["No visor do modelo, o rato xira a vista e a roda achega e afasta."],
-  convert: ["Cambiar de formato nunca toca o ficheiro orixinal: sempre sae unha copia.", "O trasno non xulga: convertir o que sexa, mentres ten solución."],
+  convert: ["Cambiar de formato nunca toca o ficheiro orixinal: sempre sae unha copia.", "Eu non xulgo: convirto o que sexa, mentres teña solución."],
   compress: ["Con Comprimir, cada ficheiro lembra os seus axustes mentres a app siga aberta."],
   annotate: ["A goma borra trazo a trazo; «Borrar todas as anotacións» limpa a imaxe de golpe."],
   info: ["A pestana de Información amosa metadatos que o visor non ensina."],
@@ -124,7 +125,7 @@ export const CTX: Record<string, string[]> = {
 let lastPick = "";
 /** Un comentario ao chou, con preferencia polo que ten que ver co ficheiro e a ferramenta. */
 export function pickComment(category?: string, tool?: string): Bubble {
-  const ctx = [...(CTX[tool ?? ""] ?? []), ...(CTX[category ?? ""] ?? [])].map((text) => ({ text, kind: "info" as const }));
+  const ctx = [...(CTX[tool ?? ""] ?? []), ...(CTX[category ?? ""] ?? []), ...CTX["*"]].map((text) => ({ text, kind: "info" as const }));
   const tips = TIPS.map((text) => ({ text, kind: "tip" as const }));
   const pool = [...ctx, ...ctx, ...tips].filter((x) => x.text !== lastPick);
   const c = pool[Math.floor(Math.random() * pool.length)];
@@ -154,4 +155,5 @@ export function describeForm(before: Record<string, any>, after: Record<string, 
     else noteAction("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" ? String(v).toUpperCase() : String(v) });
     if (seen.size >= 2) break;
   }
+  if (!seen.size && Object.keys(after).some((k) => before[k] !== after[k])) noteAction("O trasno cambiou un axuste");
 }

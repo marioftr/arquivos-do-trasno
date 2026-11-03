@@ -42,6 +42,7 @@
   // ---- axustar ao espazo dispoñible (ancho ou páxina enteira); segue o tamaño da xanela
   let fitMode: "none" | "width" | "page" = "width";
   let ro: ResizeObserver;
+  let lastBox = "";
   /** Zoom (%) que encaixa a páxina co modo de axuste actual. */
   async function fitPercent(d: pdfjs.PDFDocumentProxy, pageNo: number): Promise<number | null> {
     if (!container || fitMode === "none") return null;
@@ -49,9 +50,10 @@
     const [x0, y0, x1, y1] = pg.view;
     const w = (x1 - x0) * 1.333;
     const h = (y1 - y0) * 1.333;
-    // Con holgura: ao límite exacto aparecía e desaparecía a barra de desprazamento e a páxina vibraba.
-    const availW = container.clientWidth - 36;
-    const availH = container.clientHeight - 36;
+    // Mídese a caixa exterior (que non cambia cando aparece ou desaparece unha barra de desprazamento) e
+    // réstase unha reserva fixa: así o axuste nunca depende do que el mesmo provoca e a páxina non vibra.
+    const availW = container.offsetWidth - 17 - 36;
+    const availH = container.offsetHeight - 36;
     const pct = fitMode === "width" ? (availW / w) * 100 : Math.min(availW / w, availH / h) * 100;
     return Math.max(20, Math.min(250, Math.floor(pct)));
   }
@@ -69,6 +71,10 @@
     // Ao redimensionar, o axuste ao ancho agarda a que se solte (se non, as páxinas redebuxaríanse en cada píxel e parpadearían).
     let fitTimer: ReturnType<typeof setTimeout>;
     ro = new ResizeObserver(() => {
+      // Só se reaxusta cando cambia de verdade o tamaño da caixa, non cando a barra de desprazamento fai aparecer ou desaparecer espazo.
+      const k = container ? `${container.offsetWidth}x${container.offsetHeight}` : "";
+      if (k === lastBox) return;
+      lastBox = k;
       clearTimeout(fitTimer);
       fitTimer = setTimeout(applyFit, 180);
     });

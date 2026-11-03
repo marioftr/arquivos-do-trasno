@@ -22,7 +22,7 @@
   import QuickJob from "./lib/components/QuickJob.svelte";
   import HubDialog from "./lib/components/HubDialog.svelte";
   import { procs, refreshProcs, requestCancel } from "./lib/procs";
-  import { actions, tipsOn, liveProgress, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, noteAction } from "./lib/agent";
+  import { actions, tipsOn, liveProgress, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, noteAction, type ClickAction } from "./lib/agent";
   import { reportProgress } from "./lib/job";
   import { requestTool } from "./lib/toolinstall";
   import ToolNeedDialog from "./lib/components/ToolNeedDialog.svelte";
@@ -35,45 +35,87 @@
   let unlistenOpen: (() => void) | null = null;
   let unlistenProgress: (() => void) | null = null;
   let procTimer: ReturnType<typeof setInterval>;
-  $: running = [...$procs].filter((p) => p.state === "running").sort((x, y) => (y.started ?? 0) - (x.started ?? 0));
+  $: running = [...$procs].filter((p) => p.state === "running" && !cancelling.has(p.id)).sort((x, y) => (y.started ?? 0) - (x.started ?? 0));
   $: lastRun = running[0];
   $: pct = lastRun ? (lastRun.source === "app" && $liveProgress !== null ? $liveProgress : lastRun.progress) : 0;
   // O trasno-axente: avisa do importante (sempre) e, de cando en vez, comenta algo sobre o que hai á vista.
   $: important = ffmpegOk === false && needsFfmpeg ? { text: $t("Falta ffmpeg: instalalo agora"), run: () => requestTool("ffmpeg") } : $updateAvailable ? { text: $t("Hai unha versión nova"), run: () => openHub("news.updates") } : null;
   let tipTimer: ReturnType<typeof setTimeout>;
   function sayNow() {
+    if (dockOpen) return;
     const c = pickComment($viewCtx.category, $viewCtx.tool);
     trasnoSay(c.text, c.kind, 11000);
   }
   function scheduleTip(first = false) {
     clearTimeout(tipTimer);
     tipTimer = setTimeout(() => {
-      if ($tipsOn && !running.length && !important && $files.length && !$bubble) sayNow();
+      if ($tipsOn && !running.length && !important && $files.length && !$bubble && !dockOpen) sayNow();
       scheduleTip();
     }, first ? 18000 : 80000 + Math.random() * 60000);
   }
   $: if (!$tipsOn) hideBubble();
-  function clickTrasno() {
-    if ($trasnoClick === "palette") dialog.set("palette");
-    else if ($trasnoClick === "say") sayNow();
-    else openHub("procs.running");
+
+  // ---- menú radial do trasno: sae ao pasar o rato (ou co teclado) e péchase en canto o punteiro deixa as súas ruxas
+  const ITEMS: { id: ClickAction; icon: string; label: string }[] = [
+    { id: "palette", icon: "search", label: "Buscar unha acción (Ctrl+K)" },
+    { id: "procs", icon: "layers", label: "Procesos" },
+    { id: "news", icon: "info", label: "Novidades" },
+    { id: "settings", icon: "gear", label: "Axustes" },
+    { id: "say", icon: "chat", label: "Comentario do trasno" },
+  ];
+  function runItem(id: ClickAction) {
+    if (id === "palette") dialog.set("palette");
+    else if (id === "procs") openHub("procs.running");
+    else if (id === "news") openHub("news.changelog");
+    else if (id === "settings") openHub("settings.general");
+    else sayNow();
   }
-  // Menú radial: aparece ao pasar o rato (ou co teclado) polo trasno.
+  let dockEl: HTMLDivElement;
   let dockOpen = false;
-  let dockTimer: ReturnType<typeof setTimeout>;
-  const dockShow = () => {
-    clearTimeout(dockTimer);
+  let hov = -1;
+  const RAD = 140;
+  const BTN = 40;
+  /** Posición (en px desde o centro do trasno, y cara arriba) de cada botón; os veciños do que ten o rato encima ábrense. */
+  $: pos = ITEMS.map((_, i) => {
+    const shift = hov < 0 ? 0 : i < hov ? 7 : i > hov ? -7 : 0;
+    const th = ((78 - i * 19 + shift) * Math.PI) / 180;
+    return { x: RAD * Math.cos(th), y: RAD * Math.sin(th) };
+  });
+  function dockShow() {
     dockOpen = true;
+    hideBubble();
+  }
+  function dockClose() {
+    dockOpen = false;
+    hov = -1;
+  }
+  const segDist = (px: number, py: number, ax: number, ay: number, bx: number, by: number) => {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const l2 = dx * dx + dy * dy;
+    const t = l2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2)) : 0;
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
   };
-  const dockHide = () => {
-    clearTimeout(dockTimer);
-    dockTimer = setTimeout(() => (dockOpen = false), 380);
-  };
-  const RAD = 92;
-  const place = (i: number, n: number) => {
-    const th = ((88 - (i * 80) / (n - 1)) * Math.PI) / 180;
-    return `left:${32 + RAD * Math.cos(th) - 16}px;bottom:${32 + RAD * Math.sin(th) - 16}px;--dx:${-RAD * Math.cos(th)}px;--dy:${RAD * Math.sin(th)}px`;
-  };
+  /** Mentres o punteiro estea sobre o trasno ou preto dalgún botón (ou do seu raio) o menú segue aberto; fóra, péchase. */
+  function dockTrack(e: PointerEvent) {
+    if (!dockOpen || !dockEl) return;
+    const r = dockEl.getBoundingClientRect();
+    const px = e.clientX - (r.left + 32);
+    const py = r.top + 32 - e.clientY;
+    const near = Math.hypot(px, py) <= 40 || pos.some((q) => Math.hypot(px - q.x, py - q.y) <= BTN / 2 + 12 || segDist(px, py, 0, 0, q.x, q.y) <= 16);
+    if (!near) dockClose();
+  }
+  function pick(id: ClickAction) {
+    dockClose();
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    runItem(id);
+  }
+  function clickTrasno() {
+    dockClose();
+    runItem($trasnoClick);
+  }
+  $: if (dockOpen) hideBubble();
+
   let lastShown = "";
   $: if (active && active.path !== lastShown) {
     if (lastShown && $files.length > 1) noteAction("O trasno mostrou «{name}»", { name: active.name });
@@ -81,15 +123,28 @@
   }
   let askCancel = false;
   $: if (!lastRun) askCancel = false;
+  // Ao confirmar, o proceso sae da barra ao instante (se non, quedaba «cargando» ata que a lista se refrescaba).
+  let cancelling = new Set<string>();
+  $: {
+    const gone = [...cancelling].filter((id) => !$procs.some((p) => p.id === id && p.state === "running"));
+    if (gone.length) cancelling = new Set([...cancelling].filter((id) => !gone.includes(id)));
+  }
   async function doCancel() {
     askCancel = false;
-    if (!lastRun) return;
-    if (lastRun.source === "app") await engine.cancelJob().catch(() => false);
-    else await requestCancel(lastRun.id).catch(() => {});
+    const r = lastRun;
+    if (!r) return;
+    cancelling = new Set(cancelling).add(r.id);
+    setTimeout(() => {
+      cancelling.delete(r.id);
+      cancelling = cancelling;
+    }, 6000);
+    if (r.source === "app") await engine.cancelJob().catch(() => false);
+    else await requestCancel(r.id).catch(() => {});
+    refreshProcs();
   }
   const hhmm = (n: number) => new Date(n).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   $: lastAct = $actions[0];
-  $: voice = lastRun?.subtitle ?? lastAct?.text ?? ($files.length ? $t("Listo cando queiras.") : $t("Arrastra algún ficheiro e poñémonos a elo."));
+  $: voice = lastRun?.subtitle ?? (cancelling.size ? $t("O trasno está parando o traballo…") : null) ?? lastAct?.text ?? ($files.length ? $t("Listo cando queiras.") : $t("Arrastra algún ficheiro e poñémonos a elo."));
   $: history = $actions.length ? `${$t("Últimas accións")}:\n` + $actions.map((x) => `${hhmm(x.at)}  ${x.text}`).join("\n") : "";
   $: runningProcs = $procs.filter((p) => p.state === "running").length;
   let ffmpegOk: boolean | null = null;
@@ -215,7 +270,8 @@
   $: needsFfmpeg = selection.some((f) => f.category === "audio" || f.category === "video");
 </script>
 
-<svelte:window on:keydown={onKey} />
+<svelte:window on:keydown={onKey} on:pointermove={dockTrack} on:blur={dockClose} />
+<svelte:document on:mouseleave={dockClose} />
 
 {#if quickJob === undefined}
   <div class="app"></div>
@@ -253,26 +309,38 @@
   </div>
 
   <footer class="status">
-    {#if important}
-      <button class="bubble warnb" on:click={important.run}><span class="bx">!</span><span class="bt">{important.text}</span></button>
-    {:else if $bubble}
-      <button class="bubble" class:tipb={$bubble.kind === "tip"} on:click={hideBubble} title={$t("Pechar")}>
-        <span class="bx">{$bubble.kind === "tip" ? "i" : "·"}</span>
-        <span class="bt">{#if $bubble.kind === "tip"}<b>{$t("Sabías que…")}</b> {/if}{$t($bubble.text)}</span>
-      </button>
+    {#if !dockOpen}
+      {#if important}
+        <button class="bubble warnb" on:click={important.run}><span class="bx">!</span><span class="bt">{important.text}</span></button>
+      {:else if $bubble}
+        <button class="bubble" class:tipb={$bubble.kind === "tip"} on:click={hideBubble} title={$t("Pechar")}>
+          <span class="bx">{$bubble.kind === "tip" ? "i" : "·"}</span>
+          <span class="bt">{#if $bubble.kind === "tip"}<b>{$t("Sabías que…")}</b> {/if}{$t($bubble.text)}</span>
+        </button>
+      {/if}
     {/if}
-    <div class="dock" class:open={dockOpen} on:mouseenter={dockShow} on:mouseleave={dockHide} on:focusin={dockShow} on:focusout={dockHide} role="group" aria-label="Arquivos do Trasno">
-      <div class="bridge"></div>
-      <button class="rd" style={place(0, 5)} tabindex={dockOpen ? 0 : -1} on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")} aria-label={$t("Buscar unha acción (Ctrl+K)")}><Icon name="search" size={16} /></button>
-      <button class="rd" style={place(1, 5)} tabindex={dockOpen ? 0 : -1} on:click={() => openHub("procs.running")} title={$t("Procesos")} aria-label={$t("Procesos")}>
-        <Icon name="layers" size={16} />{#if runningProcs}<span class="badge">{runningProcs}</span>{/if}
-      </button>
-      <button class="rd" style={place(2, 5)} tabindex={dockOpen ? 0 : -1} on:click={() => openHub("news.changelog")} title={$t("Novidades")} aria-label={$t("Novidades")}>
-        <Icon name="info" size={16} />{#if $updateAvailable}<span class="newdot" aria-hidden="true"></span>{/if}
-      </button>
-      <button class="rd" style={place(3, 5)} tabindex={dockOpen ? 0 : -1} on:click={() => openHub("settings.general")} title={$t("Axustes")} aria-label={$t("Axustes")}><Icon name="gear" size={16} /></button>
-      <button class="rd" style={place(4, 5)} tabindex={dockOpen ? 0 : -1} on:click={sayNow} title={$t("Comentario do trasno")} aria-label={$t("Comentario do trasno")}><Icon name="chat" size={16} /></button>
-      <button class="trasno" class:away={$trasnoAway} on:click={clickTrasno} aria-label={$t("Procesos")}>
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div class="dock" class:open={dockOpen} bind:this={dockEl} on:pointerenter={dockShow} on:focusout={(e) => { if (!dockEl.contains(e.relatedTarget as Node)) dockClose(); }} on:keydown={(e) => e.key === "Escape" && dockClose()} role="group" aria-label="Arquivos do Trasno">
+      {#each ITEMS as it, i}
+        <button
+          class="rd"
+          class:hot={hov === i}
+          style={`left:${32 + pos[i].x - BTN / 2}px;bottom:${32 + pos[i].y - BTN / 2}px;--dx:${-pos[i].x}px;--dy:${pos[i].y}px;--n:${i}`}
+          tabindex={dockOpen ? 0 : -1}
+          on:click={() => pick(it.id)}
+          on:pointerenter={() => (hov = i)}
+          on:pointerleave={() => (hov = -1)}
+          on:focus={() => (hov = i)}
+          on:blur={() => (hov = -1)}
+          aria-label={$t(it.label)}
+        >
+          <Icon name={it.icon} size={18} />
+          {#if it.id === "procs" && runningProcs}<span class="badge">{runningProcs}</span>{/if}
+          {#if it.id === "news" && $updateAvailable}<span class="newdot" aria-hidden="true"></span>{/if}
+          <span class="rl">{$t(it.label)}</span>
+        </button>
+      {/each}
+      <button class="trasno" class:away={$trasnoAway} on:click={clickTrasno} on:focus={(e) => e.currentTarget.matches(":focus-visible") && dockShow()} aria-label={$t("Procesos")}>
         <TrasnoSprite state={important ? "warn" : lastRun ? "working" : "idle"} size={64} />
         {#if important}<span class="alert" aria-hidden="true">!</span>{/if}
       </button>
@@ -281,19 +349,21 @@
       <span class="vt">{voice}</span>
       {#if !lastRun && lastAct}<span class="muted vh">{hhmm(lastAct.at)}</span>{/if}
     </button>
-    {#if lastRun}
+    {#if lastRun && !$trasnoAway}
       <div class="jobs" class:ask={askCancel}>
         {#if askCancel}
-          <span class="cq">{$t("Cancelar este proceso?")}</span>
-          <button class="cb danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
-          <button class="cb" on:click={() => (askCancel = false)}>{$t("Seguir")}</button>
+          <span class="q"><Icon name="warning" size={14} /> {$t("Cancelar este proceso?")}</span>
+          <span class="acts">
+            <button class="btn danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
+            <button class="btn ghost" on:click={() => (askCancel = false)}>{$t("Seguir")}</button>
+          </span>
         {:else}
-          <button class="jb" on:click={() => openHub("procs.running")} title={`${lastRun.title} — ${$t("Procesos")}`} aria-label={$t("Procesos")}>
+          <button class="jmain" on:click={() => openHub("procs.running")} title={`${lastRun.title} — ${$t("Procesos")}`} aria-label={$t("Procesos")}>
             <span class="jt">{lastRun.title}</span>
             <span class="track"><span class="fill" style={`width:${Math.round(Math.max(0.03, pct) * 100)}%`}></span></span>
             <span class="muted pct">{Math.round(pct * 100)} %{running.length > 1 ? ` · +${running.length - 1} ${$t("máis en marcha")}` : ""}</span>
           </button>
-          <button class="cb" on:click={() => (askCancel = true)} title={$t("Cancelar")}><Icon name="close" size={13} /> {$t("Cancelar")}</button>
+          <button class="jx" on:click={() => (askCancel = true)} title={$t("Cancelar")} aria-label={$t("Cancelar")}><Icon name="close" size={14} /></button>
         {/if}
       </div>
     {/if}
@@ -318,9 +388,22 @@
 {/if}
 
 <style>
-  .app { position: relative; display: flex; flex-direction: column; width: 100%; height: 100vh; }
+  .app { position: relative; display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: clip; }
   .frame { flex: 1; min-height: 0; display: flex; }
   .stage { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .badge { position: absolute; top: 2px; right: 1px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.64rem; font-weight: 700; padding: 0 0.35em; min-width: 1.2em; line-height: 1.35; text-align: center; }
+  .newdot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg-rail); }
+  .status { position: relative; z-index: 20; flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; height: 2.7rem; padding: 0 0.9rem 0 5rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
+  .logo { display: grid; place-items: center; margin-left: auto; opacity: 0.55; }
+  .dock { position: absolute; left: 0.4rem; bottom: 0; width: 4rem; height: 4rem; }
+  .trasno { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s; }
+  .trasno:hover:not(.away) { transform: translateY(-2px); }
+  .trasno.away { transform: translateY(115%); opacity: 0; transition: transform 0.2s ease-in, opacity 0.2s; pointer-events: none; }
+  .rd { position: absolute; z-index: 1; display: grid; place-items: center; width: 40px; height: 40px; margin: 0; padding: 0; border-radius: 50%; background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.3); transition: opacity 0.16s, transform 0.26s cubic-bezier(0.3, 1.35, 0.5, 1), left 0.22s ease, bottom 0.22s ease, color 0.12s, border-color 0.12s; transition-delay: calc(var(--n) * 25ms), calc(var(--n) * 25ms), 0s, 0s, 0s, 0s; }
+  .dock.open .rd { opacity: 1; pointer-events: auto; transform: none; }
+  .dock.open .rd.hot { z-index: 3; transform: scale(1.18); color: var(--accent); border-color: var(--accent); }
+  .rl { position: absolute; left: calc(100% + 10px); top: 50%; display: flex; align-items: center; padding: 0.3rem 0.7rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); color: var(--text); font-size: 0.78rem; font-weight: 550; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-6px, -50%); transition: opacity 0.14s, transform 0.18s ease; }
+  .rd.hot .rl { opacity: 1; transform: translate(0, -50%); }
   .badge { position: absolute; top: 2px; right: 1px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.64rem; font-weight: 700; padding: 0 0.35em; min-width: 1.2em; line-height: 1.35; text-align: center; }
   .newdot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg-rail); }
   .status { position: relative; z-index: 20; flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; height: 2.7rem; padding: 0 0.9rem 0 5rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
@@ -329,8 +412,6 @@
   .trasno { position: absolute; inset: 0; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s; }
   .trasno:hover:not(.away) { transform: translateY(-2px); }
   .trasno.away { transform: translateY(115%); opacity: 0; transition: transform 0.2s ease-in, opacity 0.2s; pointer-events: none; }
-  .bridge { position: absolute; left: 0; bottom: 0; width: 8.4rem; height: 8.4rem; border-top-right-radius: 100%; pointer-events: none; }
-  .dock.open .bridge { pointer-events: auto; }
   .rd { position: absolute; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; margin: 0; padding: 0; border-radius: 50%; background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.2); transition: opacity 0.16s, transform 0.22s cubic-bezier(0.3, 1.4, 0.5, 1), color 0.12s; }
   .dock.open .rd { opacity: 1; pointer-events: auto; transform: none; }
   .rd:hover { color: var(--accent); border-color: var(--accent); }
@@ -338,7 +419,7 @@
   .rd:nth-of-type(3) { transition-delay: 0.06s; }
   .rd:nth-of-type(4) { transition-delay: 0.09s; }
   .rd:nth-of-type(5) { transition-delay: 0.12s; }
-  .badge { position: absolute; top: -5px; right: -5px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: 700; padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
+  .badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: 700; padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
   .newdot { position: absolute; top: 1px; right: 1px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
   .alert { position: absolute; top: 0.1rem; right: 0; width: 1.15rem; height: 1.15rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-size: 0.78rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg-rail); animation: hop 0.9s ease-in-out infinite; }
   @keyframes hop { 50% { transform: translateY(-3px); } }
@@ -355,19 +436,20 @@
   .voice:hover { background: var(--bg-hover); }
   .vt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .vh { flex: none; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
-  .jobs { flex: 0 1 30rem; min-width: 0; display: flex; align-items: center; gap: 0.4rem; }
-  .jobs.ask { padding: 0 0.3rem 0 0.6rem; height: 1.9rem; border: 1px solid var(--accent-video); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--accent-video) 10%, transparent); }
-  .jb { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 1.9rem; padding: 0 0.6rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; animation: grow 0.35s ease-out; transform-origin: left center; }
-  @keyframes grow { from { opacity: 0; transform: scaleX(0.2); } }
-  .jb:hover { border-color: var(--accent); }
+  .jobs { flex: 0 1 32rem; min-width: 0; display: flex; align-items: stretch; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); overflow: hidden; transform-origin: left center; animation: grow 0.4s cubic-bezier(0.2, 0.8, 0.3, 1); }
+  @keyframes grow { from { opacity: 0; transform: scaleX(0.15); } }
+  .jobs.ask { border-color: color-mix(in srgb, var(--accent-video) 55%, var(--border)); background: color-mix(in srgb, var(--accent-video) 8%, var(--bg-input)); --control-h: 24px; }
+  .jmain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; padding: 0 0.7rem; background: none; border: none; color: var(--text); font-size: 0.78rem; }
+  .jmain:hover { background: var(--bg-hover); }
+  .jx { flex: none; display: grid; place-items: center; width: 32px; background: none; border: none; border-left: 1px solid var(--border); color: var(--text-muted); }
+  .jx:hover { background: color-mix(in srgb, var(--accent-video) 16%, transparent); color: var(--accent-video); }
+  .q { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; padding: 0 0.7rem; font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+  .acts { flex: none; display: flex; align-items: center; gap: 0.25rem; padding: 0 0.25rem; }
+  .acts :global(.btn) { font-size: 0.76rem; padding: 0 0.7em; }
   .jt { flex: 0 1 9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
   .track { flex: 1 1 4rem; min-width: 2.5rem; height: 5px; border-radius: 5px; background: var(--border-strong); overflow: hidden; }
   .fill { display: block; height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.3s; }
   .pct { white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .cq { font-size: 0.78rem; white-space: nowrap; }
-  .cb { display: inline-flex; align-items: center; gap: 0.3rem; height: 1.9rem; padding: 0 0.65rem; background: none; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; white-space: nowrap; }
-  .cb:hover { background: var(--bg-hover); }
-  .cb.danger { color: var(--accent-video); border-color: var(--accent-video); }
   .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.78rem; font-weight: 550; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); }
   .aviso:hover { background: var(--bg-hover); }
   .aviso.up { color: var(--accent); }

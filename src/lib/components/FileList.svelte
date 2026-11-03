@@ -1,6 +1,6 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
-  import { files, activePath, checked, toggleChecked, setChecked, removeFile, moveFile, moveFileTo, checkRange, clearAll, undoRemove } from "../files";
+  import { files, activePath, checked, toggleChecked, setChecked, removeFile, moveFile, moveFileTo, checkRange, clearAll, removeChecked, undoRemove } from "../files";
   import { formatBytes } from "../formats";
   import { t } from "../i18n";
   import { revealInFolder, type Category } from "../engine";
@@ -133,6 +133,13 @@
     <span class="titulo">{$t("Ficheiros")}<span class="muted cnt">&nbsp;·&nbsp;{$files.length}</span></span>
     <button class="btn" on:click={onAdd}><Icon name="plus" size={14} /> {$t("Engadir")}</button>
   </div>
+  <div class="sub">
+    <button class="link" on:click={() => setChecked(allChecked ? [] : $files.map((f) => f.path))} disabled={!$files.length}>
+      {allChecked ? $t("Desmarcar todo") : $t("Marcar todo")}
+    </button>
+    <button class="link" on:click={removeChecked} disabled={!$checked.size} title={$t("Quita da lista os ficheiros marcados (non se borran do disco)")}>{$t("Quitar marcados")}{#if $checked.size}&nbsp;({$checked.size}){/if}</button>
+    <button class="link" on:click={clearAll} disabled={!$files.length}>{$t("Baleirar")}</button>
+  </div>
 
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
   <ul class="scrollbar-thin" tabindex="0" role="listbox" aria-label={$t("Ficheiros")} on:keydown={key} bind:this={box} bind:clientHeight={viewH} on:scroll={() => (scrollTop = box.scrollTop)}>
@@ -176,12 +183,6 @@
     {#if last < $files.length}<li class="spacer" aria-hidden="true" style={`height:${($files.length - last) * ROW}px`}></li>{/if}
   </ul>
 
-  <div class="foot">
-    <button class="link" on:click={() => setChecked(allChecked ? [] : $files.map((f) => f.path))}>
-      {allChecked ? $t("Desmarcar todo") : $t("Marcar todo")}
-    </button>
-    <button class="link" on:click={clearAll}>{$t("Baleirar")}</button>
-  </div>
 </div>
 
 {#if menu}
@@ -221,9 +222,10 @@
   .mini { background: none; border: none; color: var(--text-faint); padding: 0.2rem; border-radius: var(--radius-sm); display: flex; }
   .mini:hover:not(:disabled) { color: var(--text); background: var(--bg-card); }
   .mini:disabled { opacity: 0.25; cursor: default; }
-  .foot { display: flex; justify-content: space-between; padding: 0.55rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.8rem; }
+  .sub { display: flex; align-items: center; gap: 1rem; padding: 0.4rem 0.9rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
   .link { background: none; border: none; color: var(--text-muted); padding: 0; font: inherit; }
-  .link:hover { color: var(--text); }
+  .link:hover:not(:disabled) { color: var(--text); }
+  .link:disabled { opacity: 0.4; cursor: default; }
   input[type="checkbox"] { flex-shrink: 0; }
   .ctxmenu { position: fixed; z-index: 70; min-width: 12.5rem; padding: 0.25rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; }
   .ctxmenu button { display: flex; align-items: center; gap: 0.6rem; background: none; border: none; color: var(--text); text-align: left; padding: 0.45rem 0.6rem; border-radius: 5px; font-size: 0.86rem; }

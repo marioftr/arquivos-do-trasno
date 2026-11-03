@@ -9,6 +9,7 @@
   import Segmented from "./ui/Segmented.svelte";
   import Toggle from "./ui/Toggle.svelte";
   import InfoTip from "./ui/InfoTip.svelte";
+  import SelectField from "./ui/SelectField.svelte";
   import { tipsOn, trasnoClick, type ClickAction } from "../agent";
   import Icon from "./Icon.svelte";
 
@@ -83,15 +84,18 @@
   <section>
     <h3>{$t("Trasno")}</h3>
     <Toggle label={$t("Consellos do trasno")} bind:checked={$tipsOn} hint={$t("O trasno comenta de cando en vez cousas útiles sobre o ficheiro e a ferramenta abertos. Desactivalo silencia eses comentarios, pero non os avisos importantes.")} />
-    <Segmented
+    <SelectField
       label={$t("Ao premer o trasno")}
-      info={$t("Que ocorre ao premer directamente o trasno da barra inferior.")}
+      hint={$t("Que ocorre ao premer directamente o trasno da barra inferior.")}
       options={[
         { value: "procs", label: $t("Abrir os procesos") },
         { value: "palette", label: $t("Abrir o buscador") },
+        { value: "news", label: $t("Abrir as novidades") },
+        { value: "settings", label: $t("Abrir os axustes") },
         { value: "say", label: $t("Soltar un comentario") },
       ]}
       bind:value={clickV}
+      def="procs"
     />
   </section>
 

@@ -161,6 +161,38 @@ export function removeFile(path: string) {
   if (get(activePath) === path) activePath.set(list[0]?.path ?? null);
 }
 
+// Os ficheiros quitados de golpe (os marcados), para poder desfacelo.
+let lastBatch: { entry: FileEntry; index: number }[] | null = null;
+function undoBatch() {
+  const b = lastBatch;
+  if (!b) return;
+  lastBatch = null;
+  files.update((l) => {
+    const next = [...l];
+    for (const r of b) if (!next.some((f) => f.path === r.entry.path)) next.splice(Math.min(r.index, next.length), 0, r.entry);
+    return next;
+  });
+  checked.update((s) => {
+    const n = new Set(s);
+    for (const r of b) n.add(r.entry.path);
+    return n;
+  });
+}
+/** Quita da lista os ficheiros marcados (non se tocan no disco). */
+export function removeChecked() {
+  const set = get(checked);
+  const list = get(files);
+  const gone = list.map((entry, index) => ({ entry, index })).filter((x) => set.has(x.entry.path));
+  if (!gone.length) return;
+  lastBatch = gone;
+  const rest = list.filter((f) => !set.has(f.path));
+  files.set(rest);
+  checked.set(new Set());
+  if (!rest.some((f) => f.path === get(activePath))) activePath.set(rest[0]?.path ?? null);
+  noteAction("O trasno quitou {n} ficheiros da lista", { n: gone.length });
+  toast(tr("{n} ficheiros desapareceron da lista (seguen onde estaban). Foi sen querer?", { n: gone.length }), { action: { label: tr("Desfacer"), run: undoBatch } });
+}
+
 export function clearAll() {
   if (get(files).length) noteAction("O trasno baleirou a lista de ficheiros");
   files.set([]);
@@ -211,6 +243,7 @@ export function moveFile(path: string, delta: -1 | 1) {
     if (i < 0 || j < 0 || j >= list.length) return list;
     const next = [...list];
     [next[i], next[j]] = [next[j], next[i]];
+    noteAction("O trasno moveu «{name}» na lista", { name: list[i].name });
     return next;
   });
 }
