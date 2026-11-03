@@ -56,8 +56,7 @@
 <div class="doc">
   <div class="docbar">
     <span class="kind" aria-hidden="true"><Icon name={ICONS[file.category] ?? "document"} size={16} /></span>
-    <span class="nm" title={file.path}>{file.name}</span>
-    <span class="chip">{file.ext.toUpperCase()}</span>
+    <span class="chip" title={file.path}>{file.ext.toUpperCase()}</span>
     <span class="meta muted">{meta}</span>
     <span class="grow"></span>
     <button class="ib" on:click={() => revealInFolder(file.path).catch(() => {})} title={$t("Amosar no cartafol")} aria-label={$t("Amosar no cartafol")}><Icon name="folder" size={15} /></button>

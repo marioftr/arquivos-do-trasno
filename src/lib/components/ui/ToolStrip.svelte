@@ -43,22 +43,22 @@
   {#each tabs as tab}
     <button role="tab" title={tab.label} tabindex={value === tab.id ? 0 : -1} aria-selected={value === tab.id} class:on={value === tab.id} on:click={() => (value === tab.id ? dispatch("again") : (value = tab.id))}>
       <Icon name={ICON[tab.id] ?? "sliders"} size={20} />
-      <span>{tab.label}</span>
+      <span class="sr">{tab.label}</span>
     </button>
   {/each}
 </div>
 
 <style>
-  .strip { flex: 0 0 4.7rem; width: 4.7rem; display: flex; flex-direction: column; gap: 0.2rem; padding: 0.5rem 0.35rem; overflow-y: auto; overflow-x: hidden; background: var(--bg); border-right: 1px solid var(--border); }
-  button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; min-height: 3.5rem; padding: 0.4rem 0.2rem; background: none; border: none; border-radius: var(--radius-md); color: var(--text-muted); }
-  button span { font-size: 0.66rem; line-height: 1.15; text-align: center; font-weight: 550; overflow-wrap: anywhere; hyphens: auto; }
+  .strip { flex: 0 0 3.4rem; width: 3.4rem; display: flex; flex-direction: column; gap: 0.2rem; padding: 0.5rem 0.35rem; overflow-y: auto; overflow-x: hidden; background: var(--bg); border-right: 1px solid var(--border); }
+  button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 2.8rem; padding: 0.4rem 0.2rem; background: none; border: none; border-radius: var(--radius-md); color: var(--text-muted); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   button:hover { color: var(--text); background: var(--bg-hover); }
   button.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, transparent); }
   button.on::before { content: ""; position: absolute; left: -0.35rem; top: 0.7rem; bottom: 0.7rem; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
   /* Con poucos píxeles de alto/ancho a barra pasa a ser unha fila. */
   @media (max-width: 1050px) {
     .strip { flex: 0 0 auto; width: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 0.35rem 0.5rem; border-right: none; border-bottom: 1px solid var(--border); }
-    button { flex: 0 0 auto; min-width: 4.4rem; min-height: 3rem; }
+    button { flex: 0 0 auto; min-width: 2.8rem; min-height: 2.6rem; }
     button.on::before { left: 0.7rem; right: 0.7rem; top: auto; bottom: -0.35rem; width: auto; height: 3px; border-radius: 3px 3px 0 0; }
   }
 </style>
