@@ -323,7 +323,7 @@
     {#if sel && selBox && $annoTool === "select"}
       <g transform={sel.angle ? `rotate(${sel.angle} ${(selBox.l + selBox.r) / 2} ${(selBox.t + selBox.b) / 2})` : undefined}>
         <rect class="sel" x={selBox.l} y={selBox.t} width={selBox.r - selBox.l} height={selBox.b - selBox.t} vector-effect="non-scaling-stroke" />
-        {#if sel.type !== "pen" && sel.type !== "highlight"}
+        {#if true}
         <line class="stem" x1={(selBox.l + selBox.r) / 2} y1={selBox.t} x2={(selBox.l + selBox.r) / 2} y2={selBox.t - 26 / sc} vector-effect="non-scaling-stroke" />
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <circle class="rot" cx={(selBox.l + selBox.r) / 2} cy={selBox.t - 30 / sc} r={7 / sc} on:pointerdown={(e) => startRotate(e, sel)} />

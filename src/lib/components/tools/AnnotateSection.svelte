@@ -144,18 +144,12 @@
         </button>
       {/each}
     </div>
-    <div class="pair">
-      <button class="btn" on:click={undo} disabled={!$canUndo}><Icon name="undo" size={14} /> {$t("Desfacer")}</button>
-      <button class="btn" on:click={redo} disabled={!$canRedo}><Icon name="redo" size={14} /> {$t("Refacer")}</button>
-    </div>
   </div>
 
   <div class="group">
     <h4 class="group-title">{$t("Aspecto")}</h4>
     {#if kind}
-      {#if kind !== "pen" && kind !== "highlight"}
         <Slider label={$t("Xiro")} unit="°" min={-180} max={180} bind:value={uiAngle} def={0} />
-      {/if}
       <ColorField label={$t("Cor")} bind:value={$annoStyle.color} />
       {#if showWidth}
         <Slider label={$t("Groso")} unit="px" min={1} max={60} bind:value={$annoStyle.width} def={5} />

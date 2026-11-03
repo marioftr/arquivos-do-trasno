@@ -6,6 +6,9 @@
   import ToolStrip from "./ui/ToolStrip.svelte";
   import FormBar from "./ui/FormBar.svelte";
   import { activeForm } from "../forms";
+  import { canUndo, canRedo, shapes, undo, redo, clearAll } from "../annot";
+  import { derived } from "svelte/store";
+  const hasShapes = derived(shapes, (l) => l.length > 0);
   import ConvertSection from "./tools/ConvertSection.svelte";
   import CompressSection from "./tools/CompressSection.svelte";
   import ImageEditSection from "./tools/ImageEditSection.svelte";
@@ -161,13 +164,16 @@
     <ToolStrip {tabs} bind:value={current} on:again={() => body?.scrollTo({ top: 0, behavior: "smooth" })} />
     <div class="main">
     <header>
-      <h2>{tabs.find((x) => x.id === current)?.label ?? ""}</h2>
-      {#if multi}<p class="muted sub">{$t("{n} ficheiros", { n: selection.length })}&nbsp;·&nbsp;{$t(CATEGORY_LABELS[category])}</p>{/if}
+      <div class="ttl">
+        <h2>{tabs.find((x) => x.id === current)?.label ?? ""}</h2>
+        {#if multi}<p class="muted sub">{$t("{n} ficheiros", { n: selection.length })}&nbsp;·&nbsp;{$t(CATEGORY_LABELS[category])}</p>{/if}
+      </div>
+      {#if current === "annotate" && category === "imaxe"}
+        <FormBar custom={{ canUndo, canRedo, dirty: hasShapes, undo, redo, reset: clearAll, resetTitle: "Borrar todas as anotacións" }} />
+      {:else}
+        <FormBar form={$activeForm} />
+      {/if}
     </header>
-
-    {#if $activeForm}
-      <div class="formbar"><FormBar form={$activeForm} /></div>
-    {/if}
 
     {#if $ocrActive && category === "imaxe" && (current === "edit" || current === "annotate")}
       <p class="ocrnote">{$t("Desactiva «Texto da imaxe» para usar estas ferramentas.")}</p>
@@ -245,10 +251,10 @@
   .shell { flex: 1; min-height: 0; display: flex; }
   .main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
   @media (max-width: 1050px) { .shell { flex-direction: column; } }
-  header { padding: 0.85rem 1.1rem 0.6rem; }
+  header { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.8rem 0.45rem 1.1rem; min-height: 3rem; }
+  .ttl { flex: 1; min-width: 0; }
   header h2 { margin: 0; font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sub { margin: 0.1rem 0 0; font-size: 0.76rem; }
-  .formbar { padding: 0.45rem 1.1rem 0; flex-shrink: 0; }
   .ocrnote { margin: 0; padding: 0.5rem 1.1rem; font-size: 0.8rem; color: var(--accent-pdf); border-bottom: 1px solid var(--border); }
   .body.off { opacity: 0.45; }
   .body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.9rem 1.1rem 1.5rem; }

@@ -34,6 +34,9 @@
   let unlistenOpen: (() => void) | null = null;
   let unlistenProgress: (() => void) | null = null;
   let procTimer: ReturnType<typeof setInterval>;
+  $: lastRun = [...$procs].filter((p) => p.state === "running").sort((x, y) => (y.started ?? 0) - (x.started ?? 0))[0];
+  // Provisional: o trasno-axente só avisa do importante; aquí só hai os avisos que a app xa coñece.
+  $: bubble = ffmpegOk === false && needsFfmpeg ? $t("Falta ffmpeg: instalalo agora") : $updateAvailable ? $t("Hai unha versión nova") : "";
   $: runningProcs = $procs.filter((p) => p.state === "running").length;
   let ffmpegOk: boolean | null = null;
 
@@ -170,7 +173,6 @@
   <nav class="rail" aria-label="Arquivos do Trasno">
     <span class="logo"><BrandMark size={26} /></span>
     <button class="rb add" on:click={escoller} title={$t("Escoller ficheiros")} aria-label={$t("Escoller ficheiros")}><Icon name="plus" size={20} /></button>
-    <button class="rb" on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")} aria-label={$t("Buscar unha acción (Ctrl+K)")}><Icon name="search" size={20} /></button>
     <button class="rb" on:click={() => openHub("procs.running")} title={$t("Procesos")} aria-label={$t("Procesos")}>
       <Icon name="layers" size={20} />{#if runningProcs}<span class="badge">{runningProcs}</span>{/if}
     </button>
@@ -206,10 +208,23 @@
   </div>
 
   <footer class="status">
-    <TrasnoSprite state={runningProcs ? "working" : "idle"} size={32} />
-    <span class="smsg">{runningProcs ? `${$t("En marcha")}: ${runningProcs}` : $files.length ? $t("{n} ficheiros", { n: $files.length }) : $t("Listo")}</span>
+    {#if bubble}
+      <div class="bubble" role="status"><span class="bx">!</span> {bubble}</div>
+    {/if}
+    <button class="trasno" on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")} aria-label={$t("Buscar unha acción (Ctrl+K)")}>
+      <TrasnoSprite state={bubble ? "warn" : runningProcs ? "working" : "idle"} size={32} />
+      {#if bubble}<span class="alert" aria-hidden="true">!</span>{/if}
+    </button>
+    <button class="jobs" on:click={() => openHub("procs.running")} title={$t("Procesos")} aria-label={$t("Procesos")}>
+      {#if lastRun}
+        <span class="jt">{lastRun.title}</span>
+        <span class="track"><span class="fill" style={`width:${Math.round(Math.max(0.03, lastRun.progress) * 100)}%`}></span></span>
+        <span class="muted pct">{Math.round(lastRun.progress * 100)} %{runningProcs > 1 ? ` · +${runningProcs - 1}` : ""}</span>
+      {:else}
+        <span class="muted">{$files.length ? $t("{n} ficheiros", { n: $files.length }) : $t("Listo")}</span>
+      {/if}
+    </button>
     <span class="grow"></span>
-    {#if active}<span class="muted sfile" title={active.path}>{active.name}</span>{/if}
     {#if ffmpegOk === false && needsFfmpeg}
       <button class="aviso" on:click={() => requestTool("ffmpeg")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: instalalo agora")}</button>
     {/if}
@@ -243,8 +258,19 @@
   .badge { position: absolute; top: 2px; right: 1px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.64rem; font-weight: 700; padding: 0 0.35em; min-width: 1.2em; line-height: 1.35; text-align: center; }
   .newdot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg-rail); }
   .status { flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; min-height: 2.5rem; padding: 0 0.9rem 0 0.7rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.78rem; }
-  .smsg { color: var(--text); font-weight: 550; }
-  .sfile { max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .status { position: relative; }
+  .trasno { position: relative; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; margin-left: -0.2rem; background: none; border: none; border-radius: var(--radius-md); padding: 0; }
+  .trasno:hover { background: var(--bg-hover); }
+  .alert { position: absolute; top: -0.45rem; right: 0.05rem; width: 1rem; height: 1rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-size: 0.7rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg-rail); }
+  .bubble { position: absolute; left: 0.7rem; bottom: calc(100% + 0.45rem); display: inline-flex; align-items: center; gap: 0.45rem; max-width: 70%; padding: 0.45rem 0.75rem; background: var(--bg-elevated, var(--bg-input)); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: 0.8rem; }
+  .bubble::after { content: ""; position: absolute; left: 1.2rem; bottom: -6px; width: 10px; height: 10px; background: inherit; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); transform: rotate(45deg); }
+  .bx { color: var(--accent-pdf); font-weight: 800; }
+  .jobs { flex: 0 1 26rem; min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 1.9rem; padding: 0 0.55rem; background: none; border: none; border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; }
+  .jobs:hover { background: var(--bg-hover); }
+  .jt { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
+  .track { flex: 1 1 5rem; min-width: 3rem; height: 4px; border-radius: 4px; background: var(--border-strong); overflow: hidden; }
+  .fill { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
+  .pct { white-space: nowrap; font-variant-numeric: tabular-nums; }
   .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.78rem; font-weight: 550; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); }
   .aviso:hover { background: var(--bg-hover); }
   .aviso.up { color: var(--accent); }
