@@ -150,7 +150,7 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Ordenar páxinas")}</h4>
-    <GroupNote text={$t("Arrastra as páxinas ou escribe a posición onde queres poñelas. Tamén podes xirar ou quitar. O PDF orixinal non se toca: gárdase unha copia.")} />
+    <GroupNote text={$t("As páxinas pódense arrastrar ou colocar escribindo a posición, e tamén xirar ou quitar. O PDF orixinal non se modifica: gárdase unha copia.")} />
     <div class="row">
       <button class="btn" on:click={reverse} disabled={loading}>{$t("Invertir a orde")}</button>
       <button class="btn ghost" on:click={reset} disabled={!changed}><Icon name="reset" size={14} /> {$t("Restablecer")}</button>

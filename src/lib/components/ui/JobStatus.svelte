@@ -1,46 +1,49 @@
 <script lang="ts">
   import Icon from "../Icon.svelte";
   import { t } from "../../i18n";
+  import { trasnoAway } from "../../agent";
   import type { Job } from "../../job";
 
   export let job: Job;
   $: busy = job.busy;
   $: message = job.message;
 
-  // Mentres traballa, o proceso vive na barra de abaixo: aquí só se ve como «entra» nela.
+  // Mentres traballa, o proceso vive na barra de abaixo. O trasno da barra baixa e desaparece, aparece
+  // por riba xusto onde se premeu, para un instante e leva o traballo dun golpe á barra; despois volve.
   let anchor: HTMLSpanElement;
   let was = false;
   $: if ($busy !== was) {
     was = $busy;
     if ($busy) fly();
   }
-  function fly() {
-    if (typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  async function fly() {
     const to = document.querySelector<HTMLElement>(".status .trasno");
-    if (!anchor || !to) return;
-    const a = anchor.getBoundingClientRect();
+    const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || !to) return;
+    const ae = document.activeElement as HTMLElement | null;
+    const src = ae && ae.closest(".right") && ae.tagName === "BUTTON" ? ae : anchor;
+    const a = src.getBoundingClientRect();
     const b = to.getBoundingClientRect();
+    const x = a.left + a.width / 2 - 32;
+    const top = a.top - 64 - 6;
     const el = document.createElement("img");
     el.src = "/trasno/base.png";
     el.alt = "";
-    Object.assign(el.style, { position: "fixed", left: `${a.left}px`, top: `${a.top - 16}px`, width: "32px", height: "32px", imageRendering: "pixelated", zIndex: "200", pointerEvents: "none" });
+    Object.assign(el.style, { position: "fixed", left: `${x}px`, top: "0px", width: "64px", height: "64px", imageRendering: "pixelated", zIndex: "300", pointerEvents: "none", transform: "translateY(-80px)", opacity: "0" });
+    trasnoAway.set(true);
+    await wait(210);
     document.body.appendChild(el);
-    const dx = b.left + b.width / 2 - 16 - a.left;
-    const dy = b.top + b.height / 2 - 16 - (a.top - 16);
-    el
-      .animate(
-        [
-          { transform: "translate(0,0) scale(1)", opacity: 1 },
-          { transform: `translate(${dx * 0.45}px, ${Math.min(0, dy * 0.45) - 36}px) scale(1.5)`, opacity: 1, offset: 0.4 },
-          { transform: `translate(${dx}px, ${dy}px) scale(1.9)`, opacity: 0.95 },
-        ],
-        { duration: 650, easing: "cubic-bezier(.45,.05,.3,1)" },
-      )
-      .finished.then(() => {
-        el.remove();
-        to.animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 260 });
-      })
-      .catch(() => el.remove());
+    try {
+      await el.animate([{ transform: "translateY(-80px)", opacity: 0 }, { transform: `translateY(${Math.max(0, top)}px)`, opacity: 1 }], { duration: 300, easing: "cubic-bezier(.2,.8,.3,1.1)", fill: "forwards" }).finished;
+      await wait(170);
+      const dy = b.top + b.height - 64 - Math.max(0, top);
+      await el.animate([{ transform: `translateY(${Math.max(0, top)}px)` }, { transform: `translate(${b.left + b.width / 2 - 32 - x}px, ${Math.max(0, top) + dy}px)` }], { duration: 230, easing: "cubic-bezier(.6,0,.9,.6)", fill: "forwards" }).finished;
+    } catch {
+      // sen animación
+    }
+    el.remove();
+    trasnoAway.set(false);
   }
 
   let copied = false;

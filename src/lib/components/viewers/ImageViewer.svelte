@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { noteAction } from "../../agent";
   import { claim } from "../../claim";
   import { onMount, onDestroy, tick } from "svelte";
   import { viewUrl, imageEdit, imageCrop, imageCropAspect, imageCropEnabled, imageUrl, imageNatural, type FileEntry } from "../../files";
@@ -88,6 +89,7 @@
   }
   async function runOcr() {
     ocrErr = "";
+    noteAction("O trasno leu o texto de «{name}»", { name: file.name });
     const path = file.path;
     const lang = ocrLang;
     const cached = ocrPeek(path, lang);

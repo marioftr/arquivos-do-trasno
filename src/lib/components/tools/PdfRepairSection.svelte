@@ -27,7 +27,7 @@
 
 <div class="stack">
   <div class="group">
-    <GroupNote text={$t("Volve gardar o PDF limpo, reconstruíndo as súas referencias e quitando o que sobra. Axuda con PDF que se abren mal.")} />
+    <GroupNote text={$t("Gárdase de novo o PDF limpo, reconstruíndo as súas referencias e quitando o que sobra. Axuda cos PDF que se abren mal.")} />
   </div>
   <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Reparar o PDF")}</button>
   <JobStatus {job} />

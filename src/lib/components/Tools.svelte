@@ -8,6 +8,7 @@
   import { activeForm } from "../forms";
   import { canUndo, canRedo, shapes, undo, redo, clearAll, resetAnnoStyle } from "../annot";
   import { derived } from "svelte/store";
+  import { noteAction, viewCtx } from "../agent";
   const hasShapes = derived(shapes, (l) => l.length > 0);
   // Restablecer en Anotar: fóra as anotacións e o aspecto volve ao por defecto.
   const resetAnno = () => {
@@ -90,6 +91,12 @@
 
   $: tabs = tabsFor(category, multi, isPdf, first?.ext ?? "", $t);
   let current = "convert";
+  let lastTab = "";
+  $: if (current && current !== lastTab) {
+    if (lastTab) noteAction("O trasno abriu a ferramenta «{name}»", { name: tabs.find((x) => x.id === current)?.label ?? current });
+    lastTab = current;
+  }
+  $: viewCtx.set({ category: category ?? undefined, tool: current });
   $: if (tabs.length && !tabs.some((x) => x.id === current)) current = tabs[0].id;
 
   // Lembra a última pestana usada con cada tipo de ficheiro (e co lote).

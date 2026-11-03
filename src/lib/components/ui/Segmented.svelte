@@ -1,7 +1,9 @@
 <script lang="ts">
+  import InfoTip from "./InfoTip.svelte";
   export let options: { value: string | number; label: string; hint?: string }[];
   export let value: string | number;
   export let label = "";
+  export let info = "";
 
   let seg: HTMLDivElement;
   function key(e: KeyboardEvent) {
@@ -16,7 +18,7 @@
 </script>
 
 <div class="wrap">
-  {#if label}<span class="lab">{label}</span>{/if}
+  {#if label}<span class="lab">{label}{#if info}<InfoTip text={info} />{/if}</span>{/if}
   <!-- svelte-ignore a11y_interactive_supports_focus -->
   <div class="seg" role="radiogroup" aria-label={label} on:keydown={key} bind:this={seg}>
     {#each options as o}

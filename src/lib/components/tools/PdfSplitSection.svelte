@@ -107,7 +107,7 @@
     {:else if $form.mode === "every"}
       <NumberField label={$t("Páxinas por parte")} min={1} bind:value={$form.every} def={2} />
     {:else}
-      <TextField label={$t("Intervalos")} placeholder={$t("ex: 1-3; 4-6; 7")} bind:value={$form.ranges} hint={$t("Separa cada parte con «;». Cada parte vai a un PDF.")} />
+      <TextField label={$t("Intervalos")} placeholder={$t("ex: 1-3; 4-6; 7")} bind:value={$form.ranges} hint={$t("Cada parte, separada por «;», vai a un PDF.")} />
     {/if}
     {#if preview !== null}<p class="group-note">{$t("Resultado: {n} PDF", { n: preview })} · {$t("O PDF ten {n} páxinas.", { n: total })}</p>{/if}
   </div>

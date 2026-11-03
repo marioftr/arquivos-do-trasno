@@ -22,7 +22,7 @@
   import QuickJob from "./lib/components/QuickJob.svelte";
   import HubDialog from "./lib/components/HubDialog.svelte";
   import { procs, refreshProcs, requestCancel } from "./lib/procs";
-  import { actions, tipsOn, TIPS, liveProgress } from "./lib/agent";
+  import { actions, tipsOn, liveProgress, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, noteAction } from "./lib/agent";
   import { reportProgress } from "./lib/job";
   import { requestTool } from "./lib/toolinstall";
   import ToolNeedDialog from "./lib/components/ToolNeedDialog.svelte";
@@ -38,25 +38,47 @@
   $: running = [...$procs].filter((p) => p.state === "running").sort((x, y) => (y.started ?? 0) - (x.started ?? 0));
   $: lastRun = running[0];
   $: pct = lastRun ? (lastRun.source === "app" && $liveProgress !== null ? $liveProgress : lastRun.progress) : 0;
-  // O trasno-axente: avisa do importante (sempre) e, de cando en vez, solta un consello (se non está apagado).
+  // O trasno-axente: avisa do importante (sempre) e, de cando en vez, comenta algo sobre o que hai á vista.
   $: important = ffmpegOk === false && needsFfmpeg ? { text: $t("Falta ffmpeg: instalalo agora"), run: () => requestTool("ffmpeg") } : $updateAvailable ? { text: $t("Hai unha versión nova"), run: () => openHub("news.updates") } : null;
-  let tip = "";
-  let tipIdx = -1;
   let tipTimer: ReturnType<typeof setTimeout>;
-  let tipHide: ReturnType<typeof setTimeout>;
+  function sayNow() {
+    const c = pickComment($viewCtx.category, $viewCtx.tool);
+    trasnoSay(c.text, c.kind, 11000);
+  }
   function scheduleTip(first = false) {
     clearTimeout(tipTimer);
     tipTimer = setTimeout(() => {
-      if ($tipsOn && !running.length && !important && $files.length) {
-        tipIdx = (tipIdx + 1 + Math.floor(Math.random() * (TIPS.length - 1))) % TIPS.length;
-        tip = TIPS[tipIdx];
-        clearTimeout(tipHide);
-        tipHide = setTimeout(() => (tip = ""), 13000);
-      }
+      if ($tipsOn && !running.length && !important && $files.length && !$bubble) sayNow();
       scheduleTip();
     }, first ? 18000 : 80000 + Math.random() * 60000);
   }
-  $: if (!$tipsOn) tip = "";
+  $: if (!$tipsOn) hideBubble();
+  function clickTrasno() {
+    if ($trasnoClick === "palette") dialog.set("palette");
+    else if ($trasnoClick === "say") sayNow();
+    else openHub("procs.running");
+  }
+  // Menú radial: aparece ao pasar o rato (ou co teclado) polo trasno.
+  let dockOpen = false;
+  let dockTimer: ReturnType<typeof setTimeout>;
+  const dockShow = () => {
+    clearTimeout(dockTimer);
+    dockOpen = true;
+  };
+  const dockHide = () => {
+    clearTimeout(dockTimer);
+    dockTimer = setTimeout(() => (dockOpen = false), 380);
+  };
+  const RAD = 92;
+  const place = (i: number, n: number) => {
+    const th = ((88 - (i * 80) / (n - 1)) * Math.PI) / 180;
+    return `left:${32 + RAD * Math.cos(th) - 16}px;bottom:${32 + RAD * Math.sin(th) - 16}px;--dx:${-RAD * Math.cos(th)}px;--dy:${RAD * Math.sin(th)}px`;
+  };
+  let lastShown = "";
+  $: if (active && active.path !== lastShown) {
+    if (lastShown && $files.length > 1) noteAction("O trasno mostrou «{name}»", { name: active.name });
+    lastShown = active.path;
+  }
   let askCancel = false;
   $: if (!lastRun) askCancel = false;
   async function doCancel() {
@@ -203,16 +225,6 @@
 <div class="app" class:dragging>
 
   <div class="frame">
-  <nav class="rail" aria-label="Arquivos do Trasno">
-    <span class="logo"><BrandMark size={26} /></span>
-    <button class="rb add" on:click={escoller} title={$t("Escoller ficheiros")} aria-label={$t("Escoller ficheiros")}><Icon name="plus" size={20} /></button>
-    <button class="rb" on:click={() => openHub("procs.running")} title={$t("Procesos")} aria-label={$t("Procesos")}>
-      <Icon name="layers" size={20} />{#if runningProcs}<span class="badge">{runningProcs}</span>{/if}
-    </button>
-    <button class="rb" on:click={() => openHub("news.changelog")} title={$t("Novidades")} aria-label={$t("Novidades")}><Icon name="info" size={20} />{#if $updateAvailable}<span class="newdot" aria-hidden="true"></span>{/if}</button>
-    <span class="grow"></span>
-    <button class="rb" on:click={() => openHub("settings.general")} title={$t("Axustes")} aria-label={$t("Axustes")}><Icon name="gear" size={20} /></button>
-  </nav>
   <div class="stage">
   {#if $files.length === 0}
     <main class="home">
@@ -242,41 +254,56 @@
 
   <footer class="status">
     {#if important}
-      <button class="bubble" on:click={important.run}><span class="bx">!</span> {important.text}</button>
-    {:else if tip}
-      <button class="bubble tipb" on:click={() => (tip = "")} title={$t("Pechar")}><span class="bx">i</span> <span><b>{$t("Sabías que…")}</b> {$t(tip)}</span></button>
+      <button class="bubble warnb" on:click={important.run}><span class="bx">!</span><span class="bt">{important.text}</span></button>
+    {:else if $bubble}
+      <button class="bubble" class:tipb={$bubble.kind === "tip"} on:click={hideBubble} title={$t("Pechar")}>
+        <span class="bx">{$bubble.kind === "tip" ? "i" : "·"}</span>
+        <span class="bt">{#if $bubble.kind === "tip"}<b>{$t("Sabías que…")}</b> {/if}{$t($bubble.text)}</span>
+      </button>
     {/if}
-    <button class="trasno" on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")} aria-label={$t("Buscar unha acción (Ctrl+K)")}>
-      <TrasnoSprite state={important ? "warn" : lastRun ? "working" : "idle"} size={64} />
-      {#if important}<span class="alert" aria-hidden="true">!</span>{/if}
-    </button>
-    <div class="voice" title={history}>
+    <div class="dock" class:open={dockOpen} on:mouseenter={dockShow} on:mouseleave={dockHide} on:focusin={dockShow} on:focusout={dockHide} role="group" aria-label="Arquivos do Trasno">
+      <div class="bridge"></div>
+      <button class="rd" style={place(0, 5)} tabindex={dockOpen ? 0 : -1} on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")} aria-label={$t("Buscar unha acción (Ctrl+K)")}><Icon name="search" size={16} /></button>
+      <button class="rd" style={place(1, 5)} tabindex={dockOpen ? 0 : -1} on:click={() => openHub("procs.running")} title={$t("Procesos")} aria-label={$t("Procesos")}>
+        <Icon name="layers" size={16} />{#if runningProcs}<span class="badge">{runningProcs}</span>{/if}
+      </button>
+      <button class="rd" style={place(2, 5)} tabindex={dockOpen ? 0 : -1} on:click={() => openHub("news.changelog")} title={$t("Novidades")} aria-label={$t("Novidades")}>
+        <Icon name="info" size={16} />{#if $updateAvailable}<span class="newdot" aria-hidden="true"></span>{/if}
+      </button>
+      <button class="rd" style={place(3, 5)} tabindex={dockOpen ? 0 : -1} on:click={() => openHub("settings.general")} title={$t("Axustes")} aria-label={$t("Axustes")}><Icon name="gear" size={16} /></button>
+      <button class="rd" style={place(4, 5)} tabindex={dockOpen ? 0 : -1} on:click={sayNow} title={$t("Comentario do trasno")} aria-label={$t("Comentario do trasno")}><Icon name="chat" size={16} /></button>
+      <button class="trasno" class:away={$trasnoAway} on:click={clickTrasno} aria-label={$t("Procesos")}>
+        <TrasnoSprite state={important ? "warn" : lastRun ? "working" : "idle"} size={64} />
+        {#if important}<span class="alert" aria-hidden="true">!</span>{/if}
+      </button>
+    </div>
+    <button class="voice" on:click={() => openHub("procs.running")} title={history ? `${history}\n\n${$t("Procesos")}` : $t("Procesos")}>
       <span class="vt">{voice}</span>
       {#if !lastRun && lastAct}<span class="muted vh">{hhmm(lastAct.at)}</span>{/if}
-    </div>
+    </button>
     {#if lastRun}
-      <div class="jobs">
-        <button class="jb" on:click={() => openHub("procs.running")} title={`${lastRun.title} — ${$t("Procesos")}`} aria-label={$t("Procesos")}>
-          <span class="jt">{lastRun.title}</span>
-          <span class="track"><span class="fill" style={`width:${Math.round(Math.max(0.03, pct) * 100)}%`}></span></span>
-          <span class="muted pct">{Math.round(pct * 100)} %{running.length > 1 ? ` · +${running.length - 1} ${$t("máis en marcha")}` : ""}</span>
-        </button>
+      <div class="jobs" class:ask={askCancel}>
         {#if askCancel}
-          <span class="cq">{$t("Cancelar?")}</span>
+          <span class="cq">{$t("Cancelar este proceso?")}</span>
           <button class="cb danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
-          <button class="cb" on:click={() => (askCancel = false)}>{$t("Non")}</button>
+          <button class="cb" on:click={() => (askCancel = false)}>{$t("Seguir")}</button>
         {:else}
-          <button class="cb x" on:click={() => (askCancel = true)} title={$t("Cancelar")} aria-label={$t("Cancelar")}><Icon name="close" size={14} /></button>
+          <button class="jb" on:click={() => openHub("procs.running")} title={`${lastRun.title} — ${$t("Procesos")}`} aria-label={$t("Procesos")}>
+            <span class="jt">{lastRun.title}</span>
+            <span class="track"><span class="fill" style={`width:${Math.round(Math.max(0.03, pct) * 100)}%`}></span></span>
+            <span class="muted pct">{Math.round(pct * 100)} %{running.length > 1 ? ` · +${running.length - 1} ${$t("máis en marcha")}` : ""}</span>
+          </button>
+          <button class="cb" on:click={() => (askCancel = true)} title={$t("Cancelar")}><Icon name="close" size={13} /> {$t("Cancelar")}</button>
         {/if}
       </div>
     {/if}
-    <span class="grow"></span>
     {#if ffmpegOk === false && needsFfmpeg}
       <button class="aviso" on:click={() => requestTool("ffmpeg")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: instalalo agora")}</button>
     {/if}
     {#if $updateAvailable}
       <button class="aviso up" on:click={() => openHub("news.updates")}><Icon name="download" size={14} /> {$t("Hai unha versión nova")}</button>
     {/if}
+    <span class="logo" aria-hidden="true"><BrandMark size={18} /></span>
   </footer>
 
   <Toasts />
@@ -294,39 +321,51 @@
   .app { position: relative; display: flex; flex-direction: column; width: 100%; height: 100vh; }
   .frame { flex: 1; min-height: 0; display: flex; }
   .stage { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-  .rail { flex: 0 0 3.5rem; width: 3.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.7rem 0 0.6rem; background: var(--bg-rail); border-right: 1px solid var(--border); }
-  .logo { display: grid; place-items: center; margin-bottom: 0.6rem; }
-  .rb { position: relative; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; background: none; border: none; border-radius: 0.7rem; color: var(--text-muted); transition: background 0.12s ease, color 0.12s ease; }
-  .rb:hover { background: var(--bg-hover); color: var(--text); }
-  .rb.add { background: var(--accent); color: var(--on-accent); margin-bottom: 0.5rem; }
-  .rb.add:hover { filter: brightness(1.1); background: var(--accent); color: var(--on-accent); }
-  .grow { flex: 1; }
   .badge { position: absolute; top: 2px; right: 1px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.64rem; font-weight: 700; padding: 0 0.35em; min-width: 1.2em; line-height: 1.35; text-align: center; }
   .newdot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg-rail); }
-  .status { position: relative; z-index: 20; flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; height: 2.7rem; padding: 0 0.9rem 0 0.5rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
-  .trasno { position: relative; flex: none; align-self: flex-end; width: 4rem; height: 4rem; margin-bottom: -0.1rem; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.12s; }
-  .trasno:hover { transform: translateY(-2px); }
+  .status { position: relative; z-index: 20; flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; height: 2.7rem; padding: 0 0.9rem 0 5rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
+  .logo { display: grid; place-items: center; margin-left: auto; opacity: 0.55; }
+  .dock { position: absolute; left: 0.4rem; bottom: 0; width: 4rem; height: 4rem; }
+  .trasno { position: absolute; inset: 0; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s; }
+  .trasno:hover:not(.away) { transform: translateY(-2px); }
+  .trasno.away { transform: translateY(115%); opacity: 0; transition: transform 0.2s ease-in, opacity 0.2s; pointer-events: none; }
+  .bridge { position: absolute; left: 0; bottom: 0; width: 8.4rem; height: 8.4rem; border-top-right-radius: 100%; pointer-events: none; }
+  .dock.open .bridge { pointer-events: auto; }
+  .rd { position: absolute; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; margin: 0; padding: 0; border-radius: 50%; background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.2); transition: opacity 0.16s, transform 0.22s cubic-bezier(0.3, 1.4, 0.5, 1), color 0.12s; }
+  .dock.open .rd { opacity: 1; pointer-events: auto; transform: none; }
+  .rd:hover { color: var(--accent); border-color: var(--accent); }
+  .rd:nth-of-type(2) { transition-delay: 0.03s; }
+  .rd:nth-of-type(3) { transition-delay: 0.06s; }
+  .rd:nth-of-type(4) { transition-delay: 0.09s; }
+  .rd:nth-of-type(5) { transition-delay: 0.12s; }
+  .badge { position: absolute; top: -5px; right: -5px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: 700; padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
+  .newdot { position: absolute; top: 1px; right: 1px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
   .alert { position: absolute; top: 0.1rem; right: 0; width: 1.15rem; height: 1.15rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-size: 0.78rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg-rail); animation: hop 0.9s ease-in-out infinite; }
   @keyframes hop { 50% { transform: translateY(-3px); } }
-  .bubble { position: absolute; left: 4.9rem; bottom: calc(100% + 0.25rem); display: inline-flex; align-items: center; gap: 0.5rem; max-width: min(34rem, 70%); padding: 0.5rem 0.8rem; text-align: left; color: var(--text); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: 0.82rem; line-height: 1.35; animation: rise 0.25s ease-out; }
+  .bubble { position: absolute; left: 5.1rem; bottom: calc(100% + 0.5rem); display: flex; align-items: flex-start; gap: 0.6rem; max-width: min(30rem, calc(100vw - 7rem)); padding: 0.6rem 0.85rem; text-align: left; color: var(--text); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: 0.82rem; line-height: 1.4; animation: rise 0.25s ease-out; }
   .bubble:hover { border-color: var(--accent); }
-  .bubble::before { content: ""; position: absolute; left: -6px; bottom: 0.9rem; width: 10px; height: 10px; background: var(--bg-elevated); border-left: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); transform: rotate(45deg); }
+  .bubble::before { content: ""; position: absolute; left: -6px; bottom: 0.75rem; width: 10px; height: 10px; background: var(--bg-elevated); border-left: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); transform: rotate(45deg); }
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
-  .bx { flex: none; display: grid; place-items: center; width: 1.2rem; height: 1.2rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-weight: 800; font-size: 0.78rem; }
+  .bx { flex: none; display: grid; place-items: center; width: 1.2rem; height: 1.2rem; margin-top: 0.05rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-weight: 800; font-size: 0.78rem; line-height: 1; }
   .tipb .bx { background: var(--accent); color: var(--on-accent); }
-  .voice { flex: 1 1 8rem; min-width: 0; display: flex; align-items: baseline; gap: 0.55rem; }
-  .vt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .bubble:not(.tipb) .bx { background: var(--bg-hover); color: var(--text-muted); }
+  .warnb .bx { background: var(--accent-pdf) !important; color: #111 !important; }
+  .bt { min-width: 0; }
+  .voice { flex: 1 1 8rem; min-width: 0; display: flex; align-items: center; gap: 0.55rem; height: 1.9rem; padding: 0 0.5rem; margin-left: -0.5rem; background: none; border: none; border-radius: var(--radius-sm); color: var(--text); text-align: left; font-size: 0.8rem; }
+  .voice:hover { background: var(--bg-hover); }
+  .vt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .vh { flex: none; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
-  .jobs { flex: 0 1 28rem; min-width: 0; display: flex; align-items: center; gap: 0.35rem; }
-  .jb { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 1.9rem; padding: 0 0.55rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; }
+  .jobs { flex: 0 1 30rem; min-width: 0; display: flex; align-items: center; gap: 0.4rem; }
+  .jobs.ask { padding: 0 0.3rem 0 0.6rem; height: 1.9rem; border: 1px solid var(--accent-video); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--accent-video) 10%, transparent); }
+  .jb { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 1.9rem; padding: 0 0.6rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; animation: grow 0.35s ease-out; transform-origin: left center; }
+  @keyframes grow { from { opacity: 0; transform: scaleX(0.2); } }
   .jb:hover { border-color: var(--accent); }
   .jt { flex: 0 1 9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
   .track { flex: 1 1 4rem; min-width: 2.5rem; height: 5px; border-radius: 5px; background: var(--border-strong); overflow: hidden; }
   .fill { display: block; height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.3s; }
   .pct { white-space: nowrap; font-variant-numeric: tabular-nums; }
   .cq { font-size: 0.78rem; white-space: nowrap; }
-  .cb { height: 1.9rem; padding: 0 0.6rem; background: none; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; }
-  .cb.x { width: 1.9rem; padding: 0; display: grid; place-items: center; border-color: transparent; color: var(--text-muted); }
+  .cb { display: inline-flex; align-items: center; gap: 0.3rem; height: 1.9rem; padding: 0 0.65rem; background: none; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; white-space: nowrap; }
   .cb:hover { background: var(--bg-hover); }
   .cb.danger { color: var(--accent-video); border-color: var(--accent-video); }
   .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.78rem; font-weight: 550; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); }
@@ -346,6 +385,7 @@
   .work { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: var(--lw) 1px minmax(0, 1fr) 1px var(--rw); }
   .off { overflow: hidden; visibility: hidden; }
   .left, .right { min-height: 0; min-width: 0; background: var(--bg-rail); }
+  .left { padding-bottom: 1.5rem; box-sizing: border-box; }
   .center { background: var(--bg); }
 
   .center { min-width: 0; min-height: 0; overflow: hidden; }

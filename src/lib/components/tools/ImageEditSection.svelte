@@ -187,7 +187,7 @@
 
   <div class="group">
     <h4 class="group-title">{$t("Recortar")}</h4>
-    <GroupNote text={$t("Arrastra sobre a imaxe para escoller o que queda. Despois podes mover o rectángulo ou tirar das esquinas.")} />
+    <GroupNote text={$t("Arrastrar sobre a imaxe delimita o que queda; despois pódese mover o rectángulo ou tirar das esquinas.")} />
     <Segmented
       label={$t("Proporción")}
       options={[

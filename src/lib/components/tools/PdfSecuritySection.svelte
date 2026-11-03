@@ -71,7 +71,7 @@
       </label>
       <Toggle label={$t("Permitir imprimir")} bind:checked={allowPrint} />
       <Toggle label={$t("Permitir copiar texto")} bind:checked={allowCopy} />
-      <GroupNote text={$t("Gárdase unha copia cifrada; o PDF orixinal queda como estaba. Se perdes o contrasinal non hai maneira de recuperalo.")} />
+      <GroupNote text={$t("Gárdase unha copia cifrada; o PDF orixinal queda como estaba. Se se perde o contrasinal non hai maneira de recuperalo.")} />
     {:else}
       {#if encrypted === false}<p class="group-note">{$t("Este PDF non ten contrasinal.")}</p>{/if}
       <label class="pw">

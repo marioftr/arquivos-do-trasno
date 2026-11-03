@@ -123,8 +123,8 @@ export async function addPaths(input: string[]) {
     }
   }
   const added = get(files).length - before;
-  if (added === 1) noteAction("Acabo de engadir «{name}»", { name: get(files)[get(files).length - 1].name });
-  else if (added > 1) noteAction("Acabo de engadir {n} ficheiros", { n: added });
+  if (added === 1) noteAction("O trasno engadiu «{name}»", { name: get(files)[get(files).length - 1].name });
+  else if (added > 1) noteAction("O trasno engadiu {n} ficheiros", { n: added });
   if (skipped) toast(tr("O trasno deixou {n} ficheiros fóra da lista: non coñece ese tipo de cousas.", { n: skipped }), { kind: "warn" });
 }
 
@@ -148,7 +148,7 @@ export function removeFile(path: string) {
   const index = get(files).findIndex((f) => f.path === path);
   if (index >= 0) {
     lastRemoved = { entry: get(files)[index], index, wasChecked: get(checked).has(path) };
-    noteAction("Quitei «{name}» da lista", { name: lastRemoved.entry.name });
+    noteAction("O trasno quitou «{name}» da lista", { name: lastRemoved.entry.name });
     toast(tr("«{name}» desapareceu da lista (o ficheiro segue onde estaba). Foi sen querer?", { name: lastRemoved.entry.name }), { action: { label: tr("Desfacer"), run: undoRemove } });
   }
   const list = get(files).filter((f) => f.path !== path);
@@ -162,7 +162,7 @@ export function removeFile(path: string) {
 }
 
 export function clearAll() {
-  if (get(files).length) noteAction("Baleirei a lista de ficheiros");
+  if (get(files).length) noteAction("O trasno baleirou a lista de ficheiros");
   files.set([]);
   checked.set(new Set());
   activePath.set(null);

@@ -77,6 +77,10 @@
   {:else if name === "arrow-right"}
     <line x1="4.5" y1="12" x2="18" y2="12" />
     <polyline points="12.5 6 18.5 12 12.5 18" />
+  {:else if name === "chat"}
+    <path d="M4 5h16v11H9l-5 4z" />
+    <line x1="8" y1="9.5" x2="16" y2="9.5" />
+    <line x1="8" y1="12.5" x2="13" y2="12.5" />
   {:else if name === "search"}
     <circle cx="11" cy="11" r="6.5" />
     <line x1="16" y1="16" x2="21" y2="21" />

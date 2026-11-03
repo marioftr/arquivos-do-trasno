@@ -167,7 +167,7 @@
         <Slider label={$t("Tamaño do texto")} unit="px" min={8} max={300} bind:value={$annoStyle.size} def={40} />
       {/if}
     {:else if tool === "select"}
-      <GroupNote text={$t("Preme unha figura para movela, cambiar o seu aspecto, escalala coa esquina ou xirala co círculo.")} />
+      <GroupNote text={$t("Premer nunha figura permite movela, cambiar o seu aspecto, escalala coa esquina ou xirala co círculo.")} />
     {/if}
   </div>
 

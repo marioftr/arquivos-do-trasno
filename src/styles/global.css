@@ -398,6 +398,8 @@ dd {
 .group:has(> .group-title) > .gn { position: absolute; top: 0.95rem; right: 0; margin: 0; }
 .group:first-of-type:has(> .group-title) > .gn { top: 0.25rem; }
 .group:has(> .gn) > .group-title { padding-right: 1.8rem; }
+.group:not(:has(> .group-title)) > .gn:has(+ .btn) { position: absolute; top: calc(0.95rem + 6px); right: 0.7rem; margin: 0; z-index: 3; }
+.group:first-of-type:not(:has(> .group-title)) > .gn:has(+ .btn) { top: calc(0.25rem + 6px); }
 
 .group-title { padding-right: 1.8rem; }
 .group:has(> .gn):not(:has(> .group-title)) { padding-top: 2.1rem; }

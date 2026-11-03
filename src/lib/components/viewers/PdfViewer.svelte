@@ -49,15 +49,16 @@
     const [x0, y0, x1, y1] = pg.view;
     const w = (x1 - x0) * 1.333;
     const h = (y1 - y0) * 1.333;
-    const availW = container.clientWidth - 32;
-    const availH = container.clientHeight - 32;
+    // Con holgura: ao límite exacto aparecía e desaparecía a barra de desprazamento e a páxina vibraba.
+    const availW = container.clientWidth - 36;
+    const availH = container.clientHeight - 36;
     const pct = fitMode === "width" ? (availW / w) * 100 : Math.min(availW / w, availH / h) * 100;
-    return Math.max(20, Math.min(250, Math.round(pct)));
+    return Math.max(20, Math.min(250, Math.floor(pct)));
   }
   async function applyFit() {
     if (!doc) return;
     const next = await fitPercent(doc, current);
-    if (next !== null && next !== scale) scale = next;
+    if (next !== null && Math.abs(next - scale) > 1) scale = next;
   }
   function setFit(m: "width" | "page") {
     fitMode = m;
@@ -666,7 +667,7 @@
       <button class="btn" on:click={() => open(file.path)}>{$t("Tentar de novo")}</button>
     </div>
   {:else}
-    <div class="pages scrollbar-thin" bind:this={container} on:scroll={onScroll}></div>
+    <div class="pages scrollbar-thin" class:fitting={fitMode !== "none"} bind:this={container} on:scroll={onScroll}></div>
   {/if}
   <div class="bar">
     <button class="btn" class:on={fitMode === "width"} on:click={() => setFit("width")} title={$t("Axustar ao ancho (0)")}>{$t("Ancho")}</button>
@@ -685,6 +686,7 @@
 
 <style>
   .wrap { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  .pages.fitting { overflow-x: hidden; }
   .pages {
     scrollbar-gutter: stable;
     flex: 1; min-height: 0; overflow: auto;

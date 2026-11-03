@@ -334,7 +334,7 @@
       {/if}
     {:else}
       <button class="btn" on:click={chooseImage}><Icon name="image" size={14} /> {imagePath ? fileNameOf(imagePath) : $t("Escoller imaxe…")}</button>
-      <GroupNote text={$t("Vale un PNG con fondo transparente, por exemplo a túa firma.")} />
+      <GroupNote text={$t("Admítese un PNG con fondo transparente, por exemplo unha sinatura.")} />
       <Slider label={$t("Posición horizontal")} unit="%" min={0} max={100} bind:value={$form.imX} def={80} />
       <Slider label={$t("Posición vertical")} unit="%" min={0} max={100} bind:value={$form.imY} def={12} hint={$t("0 % = abaixo; 100 % = arriba")} />
       <Slider label={$t("Ancho")} unit="%" min={3} max={90} bind:value={$form.imWidth} def={25} />

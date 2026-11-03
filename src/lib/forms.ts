@@ -2,6 +2,7 @@
 // valores por defecto (restaurar un campo ou todos). Os campos úsanse con
 // `bind:value={$form.campo}`; Ctrl+Z / Ctrl+Y actúan sobre o formulario activo.
 
+import { describeForm, noteAction } from "./agent";
 import { writable, get, type Readable, type Writable } from "svelte/store";
 
 export interface Form<T extends Record<string, any>> extends Writable<T> {
@@ -90,6 +91,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
     last = { ...v };
     clearTimeout(timer);
     timer = setTimeout(() => {
+      if (burstStart) describeForm(burstStart, last);
       flush();
       sync();
     }, 450);
@@ -110,6 +112,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
     defaults,
     undo() {
       flush();
+      noteAction("O trasno desfixo o último cambio dos axustes");
       const prev = past.pop();
       if (!prev) return;
       future.push({ ...last });
@@ -118,6 +121,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
     },
     redo() {
       flush();
+      noteAction("O trasno refixo o cambio dos axustes");
       const next = future.pop();
       if (!next) return;
       past.push({ ...last });
@@ -128,6 +132,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
       store.update((v) => ({ ...v, [key]: defaults[key] }));
     },
     resetAll() {
+      noteAction("O trasno restableceu os axustes");
       store.set({ ...defaults });
     },
     canUndo,

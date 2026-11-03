@@ -9,7 +9,7 @@ import { requestTool } from "./toolinstall";
 import { beginJob } from "./engine";
 import { track, type Tracker } from "./procs";
 import { files, activePath } from "./files";
-import { noteAction, liveProgress } from "./agent";
+import { noteAction, liveProgress, trasnoSay } from "./agent";
 
 export interface JobMessage {
   ok: boolean;
@@ -58,6 +58,7 @@ export function createJob(): Job {
       const current = get(files).find((f) => f.path === get(activePath));
       const tracker = track({ title: current?.name ?? tr("Traballo"), subtitle: tr(working), source: "app" });
       active = { tracker, progress };
+      noteAction("O trasno comezou o traballo de «{name}»", { name: current?.name ?? "" });
       const outs: string[] = [];
       outputHook.fn = (p) => {
         if (!outs.includes(p)) outs.push(p);
@@ -66,19 +67,19 @@ export function createJob(): Job {
       try {
         const done = await job();
         if (done) message.set({ ok: true, text: done });
-        noteAction("Rematei co traballo de «{name}»", { name: current?.name ?? "" });
+        noteAction("O trasno rematou o traballo de «{name}»", { name: current?.name ?? "" });
         tracker.finish("done", { detail: done ? String(done).slice(0, 200) : undefined });
       } catch (e) {
         // Cancelar non é un fallo: sen frase de «tropezou».
         if (isCancelled(e)) {
-          message.set({ ok: true, neutral: true, text: tr("Traballo cancelado. O trasno deixou todo ordenado, sen ficheiros a medias.") });
-          noteAction("Cancelei o traballo de «{name}»", { name: current?.name ?? "" });
+          trasnoSay(tr("O trasno cancelou o traballo e deixou todo ordenado, sen ficheiros a medias."), "info", 8000);
+          noteAction("O trasno cancelou o traballo de «{name}»", { name: current?.name ?? "" });
           tracker.finish("cancelled");
         } else {
           const missing = missingToolOf(e);
           if (missing) requestTool(missing, undefined, () => void this.run(working, fail, job));
           message.set({ ok: false, text: `${tr(fail)}\n${errText(e)}` });
-          noteAction("Tropecei co traballo de «{name}»", { name: current?.name ?? "" });
+          noteAction("O trasno tropezou co traballo de «{name}»", { name: current?.name ?? "" });
           tracker.finish("error", { detail: errText(e).slice(0, 200) });
         }
       } finally {

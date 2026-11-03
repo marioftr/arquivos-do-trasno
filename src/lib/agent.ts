@@ -29,11 +29,61 @@ export interface Action {
   text: string;
   at: number;
 }
-/** Últimas accións, a máis recente primeiro (en primeira persoa: fainas o trasno). */
+/** Últimas accións, a máis recente primeiro. Sempre en terceira persoa: o programa conta o que fixo o trasno. */
 export const actions = writable<Action[]>([]);
 export function noteAction(gl: string, vars?: Record<string, string | number>) {
-  actions.update((l) => [{ text: tr(gl, vars), at: Date.now() }, ...l].slice(0, 8));
+  const text = tr(gl, vars);
+  actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now() }, ...l.slice(1)] : [{ text, at: Date.now() }, ...l].slice(0, 12)));
 }
+
+/** Que fai o trasno ao premelo: abrir procesos, abrir o buscador ou soltar un comentario. */
+export type ClickAction = "procs" | "palette" | "say";
+function persistedText<T extends string>(key: string, allowed: T[], fallback: T) {
+  let v = fallback;
+  try {
+    const s = localStorage.getItem(key);
+    if (s && (allowed as string[]).includes(s)) v = s as T;
+  } catch {
+    // ignorar
+  }
+  const store = writable<T>(v);
+  store.subscribe((x) => {
+    try {
+      localStorage.setItem(key, x);
+    } catch {
+      // ignorar
+    }
+  });
+  return store;
+}
+export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", ["procs", "palette", "say"], "procs");
+
+// ---- o globo do trasno (un só á vez)
+export interface Bubble {
+  id: number;
+  text: string;
+  /** «tip» leva o prefixo «Sabías que…»; «info» é un comentario ou aviso sen máis. */
+  kind: "tip" | "info";
+}
+export const bubble = writable<Bubble | null>(null);
+let bubbleId = 0;
+let bubbleTimer: ReturnType<typeof setTimeout> | undefined;
+export function trasnoSay(text: string, kind: Bubble["kind"] = "info", ms = 9000) {
+  const id = ++bubbleId;
+  bubble.set({ id, text, kind });
+  clearTimeout(bubbleTimer);
+  bubbleTimer = setTimeout(() => bubble.update((b) => (b?.id === id ? null : b)), ms);
+}
+export function hideBubble() {
+  clearTimeout(bubbleTimer);
+  bubble.set(null);
+}
+
+/** O trasno non pode estar en dous sitios: mentres voa ata o botón de empezar, o da barra agóchase. */
+export const trasnoAway = writable(false);
+
+/** Ficheiro e ferramenta á vista: os comentarios do trasno tenen que ver con eles. */
+export const viewCtx = writable<{ category?: string; tool?: string }>({});
 
 /** Avance en directo do traballo da app en marcha (a lista de procesos só se refresca cada poucos segundos). */
 export const liveProgress = writable<number | null>(null);
@@ -51,3 +101,57 @@ export const TIPS = [
   "Preme o recadro de progreso para ver todos os procesos.",
   "O texto das imaxes pódese seleccionar e copiar coa ferramenta de texto.",
 ];
+
+// ---- comentarios segundo o ficheiro aberto e a ferramenta activa
+export const CTX: Record<string, string[]> = {
+  imaxe: ["O WebP adoita pesar bastante menos có JPG a igual calidade.", "O PNG conserva a transparencia; o JPG non."],
+  video: ["Un bitrate máis baixo dá ficheiros máis pequenos, ata que se nota. O truco é parar un chisco antes.", "O H.265 reduce o peso, pero non todos os reprodutores o len."],
+  audio: ["Con 128 kbps abonda para voz; para música convén subir a 192 ou máis.", "O MP3 é o máis compatible; o FLAC garda todo sen perdas.", "Silencio na oficina. Perfecto para traballar sen que ninguén mire."],
+  documento: ["Un PDF pesado adoita levar imaxes sen optimizar: Comprimir pode axudar moito."],
+  modelo3d: ["No visor do modelo, o rato xira a vista e a roda achega e afasta."],
+  convert: ["Cambiar de formato nunca toca o ficheiro orixinal: sempre sae unha copia.", "O trasno non xulga: convertir o que sexa, mentres ten solución."],
+  compress: ["Con Comprimir, cada ficheiro lembra os seus axustes mentres a app siga aberta."],
+  annotate: ["A goma borra trazo a trazo; «Borrar todas as anotacións» limpa a imaxe de golpe."],
+  info: ["A pestana de Información amosa metadatos que o visor non ensina."],
+  extract: ["Extraer o son dun vídeo non modifica o vídeo."],
+  mkv: ["Cambiar as pistas dun MKV non recodifica nada: só se reempaqueta."],
+  merge: ["Na unión, a orde da lista é a orde final."],
+  pages: ["Marcar as páxinas nas miniaturas é máis rápido que escribir os números."],
+  marks: ["As marcas e a numeración aplícanse á copia, nunca ao orixinal."],
+  security: ["O contrasinal dun PDF cifrado non se pode recuperar se se perde."],
+};
+
+let lastPick = "";
+/** Un comentario ao chou, con preferencia polo que ten que ver co ficheiro e a ferramenta. */
+export function pickComment(category?: string, tool?: string): Bubble {
+  const ctx = [...(CTX[tool ?? ""] ?? []), ...(CTX[category ?? ""] ?? [])].map((text) => ({ text, kind: "info" as const }));
+  const tips = TIPS.map((text) => ({ text, kind: "tip" as const }));
+  const pool = [...ctx, ...ctx, ...tips].filter((x) => x.text !== lastPick);
+  const c = pool[Math.floor(Math.random() * pool.length)];
+  lastPick = c.text;
+  return { id: 0, text: c.text, kind: c.kind };
+}
+
+// ---- axustes cambiados: o trasno conta o que se tocou
+const LABEL: Record<string, string> = {
+  targetExt: "o formato", quality: "a calidade", audioBitrate: "o bitrate de audio", audioKbps: "o bitrate de audio", bitrate: "o bitrate", videoKbps: "o bitrate de vídeo",
+  crf: "a calidade (CRF)", profile: "o perfil", maxHeight: "a altura máxima", maxSide: "o lado máximo", resizeW: "o ancho", resizeH: "o alto", keepRatio: "manter a proporción",
+  dar: "a relación de aspecto", deinterlace: "o desentrelazado", rotate: "o xiro", flipH: "o espello horizontal", flipV: "o espello vertical", grayscale: "a escala de grises",
+  invert: "a inversión de cor", blur: "o desenfoque", brightness: "o brillo", contrast: "o contraste", volume: "o volume", speed: "a velocidade", pageSpec: "as páxinas",
+  cropOn: "o recorte", cw: "o recorte", cx: "o recorte", cy: "o recorte", wmText: "o texto da marca", wmSize: "o tamaño da marca", wmColor: "a cor da marca",
+  wmOpacity: "a opacidade da marca", wmAngle: "o xiro da marca", wmFamily: "a letra da marca", wmBold: "a negriña da marca", wmItalic: "a cursiva da marca",
+  mode: "o modo", compat: "a compatibilidade", sizeValue: "o tamaño obxectivo", select: "a pista escollida", kind: "o modo",
+};
+export function describeForm(before: Record<string, any>, after: Record<string, any>) {
+  const seen = new Set<string>();
+  for (const k of Object.keys(after)) {
+    if (before[k] === after[k] || !LABEL[k] || seen.has(LABEL[k])) continue;
+    const v = after[k];
+    if (v === "" || v === null || v === undefined || typeof v === "object") continue;
+    seen.add(LABEL[k]);
+    const what = tr(LABEL[k]);
+    if (typeof v === "boolean") noteAction(v ? "O trasno activou {what}" : "O trasno desactivou {what}", { what });
+    else noteAction("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" ? String(v).toUpperCase() : String(v) });
+    if (seen.size >= 2) break;
+  }
+}

@@ -8,7 +8,8 @@
   import { errText } from "../errors";
   import Segmented from "./ui/Segmented.svelte";
   import Toggle from "./ui/Toggle.svelte";
-  import { tipsOn } from "../agent";
+  import InfoTip from "./ui/InfoTip.svelte";
+  import { tipsOn, trasnoClick, type ClickAction } from "../agent";
   import Icon from "./Icon.svelte";
 
   // Segmented usa texto; as tendas teñen tipos máis estritos.
@@ -18,6 +19,8 @@
   $: lang.set(langV as Lang);
   $: theme.set(themeV as Theme);
   $: outputMode.set(modeV as OutputMode);
+  let clickV: string = $trasnoClick;
+  $: trasnoClick.set(clickV as ClickAction);
 
   // Menú de clic dereito do Explorador (só Windows).
   let ex: engine.ExplorerStatus | null = null;
@@ -79,11 +82,21 @@
 
   <section>
     <h3>{$t("Trasno")}</h3>
-    <Toggle label={$t("Consellos do trasno")} bind:checked={$tipsOn} />
+    <Toggle label={$t("Consellos do trasno")} bind:checked={$tipsOn} hint={$t("O trasno comenta de cando en vez cousas útiles sobre o ficheiro e a ferramenta abertos. Desactivalo silencia eses comentarios, pero non os avisos importantes.")} />
+    <Segmented
+      label={$t("Ao premer o trasno")}
+      info={$t("Que ocorre ao premer directamente o trasno da barra inferior.")}
+      options={[
+        { value: "procs", label: $t("Abrir os procesos") },
+        { value: "palette", label: $t("Abrir o buscador") },
+        { value: "say", label: $t("Soltar un comentario") },
+      ]}
+      bind:value={clickV}
+    />
   </section>
 
   <section>
-    <h3>{$t("Onde se gardan os resultados")}</h3>
+    <h3>{$t("Onde se gardan os resultados")}<InfoTip text={modeV === "ask" ? $t("Cada exportación pregunta onde gardar.") : $t("Gárdase sen preguntar e nunca se pisa un ficheiro existente: engádese un número ao nome. Os orixinais non se tocan.")} /></h3>
     <Segmented
       options={[
         { value: "ask", label: $t("Preguntar cada vez") },
@@ -95,18 +108,11 @@
     {#if modeV === "folder"}
       <button class="btn" on:click={chooseFolder}><Icon name="folder" size={14} /> {$outputFolder ? fileNameOf($outputFolder) : $t("Escoller cartafol…")}</button>
     {/if}
-    <p class="muted note">
-      {modeV === "ask"
-        ? $t("Cada vez que exportes, o trasno pregunta onde gardar.")
-        : $t("O trasno garda sen preguntar e nunca pisa un ficheiro que xa exista: engade un número ao nome. Os orixinais non se tocan.")}
-    </p>
   </section>
 
   {#if ex?.available}
   <section>
-    <h3>{$t("Menú do clic dereito (Explorador)")}</h3>
-    <p class="muted note">{$t("Engade «Converter a…» e «Comprimir» ao clic dereito sobre un ficheiro, sen abrir a aplicación completa. Non fai falta ser administrador e pódese quitar cando queiras.")}</p>
-    <p class="muted note">{$t("En Windows 11 aparece en «Mostrar máis opcións». Se cambias a aplicación de cartafol, volve instalalo.")}</p>
+    <h3>{$t("Menú do clic dereito (Explorador)")}<InfoTip text={$t("Engade «Converter a…» e «Comprimir» ao clic dereito sobre un ficheiro, sen abrir a aplicación completa. Non fai falta ser administrador e pódese quitar en calquera momento. En Windows 11 aparece en «Mostrar máis opcións»; se a aplicación cambia de cartafol, hai que instalalo de novo.")} /></h3>
     <div class="exrow">
       <button class="btn primary" on:click={exInstall} disabled={exBusy}>{ex.installed ? $t("Actualizar entradas") : $t("Instalar no menú")}</button>
       {#if ex.installed}<button class="btn" on:click={exRemove} disabled={exBusy}>{$t("Quitar do menú")}</button>{/if}
@@ -118,8 +124,7 @@
   
 
 <section>
-  <h3>{$t("Actualizacións")}</h3>
-  <p class="muted note">{$t("A busca de versións novas e o rexistro de cambios están en Novidades.")}</p>
+  <h3>{$t("Actualizacións")}<InfoTip text={$t("A busca de versións novas e o rexistro de cambios están en Novidades.")} /></h3>
   <div class="exrow"><button class="btn" on:click={() => openHub("news.updates")}><Icon name="open" size={14} /> {$t("Ir a Actualizacións")}</button></div>
 </section>
 

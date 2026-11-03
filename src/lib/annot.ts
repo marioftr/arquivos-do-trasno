@@ -2,6 +2,8 @@
 // As figuras gárdanse como vectores en píxeles da imaxe orixinal; só se «queiman» na imaxe ao gardar a copia.
 
 import { writable, get } from "svelte/store";
+import { tr } from "./i18n";
+import { noteAction } from "./agent";
 import { cssFamily } from "./fonts";
 
 export type Tool = "select" | "pen" | "highlight" | "line" | "arrow" | "rect" | "ellipse" | "text" | "eraser";
@@ -127,9 +129,33 @@ export function flushLive() {
   }
 }
 
+const NOUN: Record<string, string> = { pen: "un trazo a lapis", highlight: "un trazo co marcador", line: "unha liña", arrow: "unha frecha", rect: "un rectángulo", ellipse: "unha elipse", text: "un texto" };
+/** O trasno conta o que se fixo coas anotacións comparando a lista antes e despois. */
+function narrate(before: Shape[], after: Shape[]) {
+  const b = new Map(before.map((s) => [s.id, s]));
+  const a = new Map(after.map((s) => [s.id, s]));
+  const added = after.filter((s) => !b.has(s.id));
+  const removed = before.filter((s) => !a.has(s.id));
+  if (added.length === 1 && !removed.length) return noteAction("O trasno debuxou {what}", { what: tr(NOUN[added[0].type]) });
+  if (!after.length && removed.length > 1) return noteAction("O trasno borrou todas as anotacións");
+  if (removed.length === 1 && !added.length) return noteAction("O trasno borrou {what}", { what: tr(NOUN[removed[0].type]) });
+  if (removed.length > 1) return noteAction("O trasno borrou {n} anotacións", { n: removed.length });
+  for (const s of after) {
+    const o = b.get(s.id);
+    if (!o) continue;
+    const what = tr(NOUN[s.type]);
+    if ((o.angle ?? 0) !== (s.angle ?? 0)) return noteAction("O trasno xirou {what}", { what });
+    if (s.type === "text" && o.text !== s.text) return noteAction("O trasno editou o texto");
+    if (o.size !== s.size || o.width !== s.width) return noteAction("O trasno cambiou o tamaño de {what}", { what });
+    if (o.color !== s.color || o.fill !== s.fill || o.fillColor !== s.fillColor || o.family !== s.family || o.bold !== s.bold || o.italic !== s.italic) return noteAction("O trasno cambiou o aspecto de {what}", { what });
+    if (JSON.stringify(o) !== JSON.stringify(s)) return noteAction("O trasno moveu {what}", { what });
+  }
+}
+
 /** Cambia a lista de figuras gardando o estado anterior para poder desfacer. */
 export function commit(next: Shape[]) {
   flushLive();
+  narrate(get(shapes), next);
   past.push(get(shapes));
   if (past.length > 200) past.shift();
   future.length = 0;
@@ -138,6 +164,7 @@ export function commit(next: Shape[]) {
 }
 export function undo() {
   flushLive();
+  if (past.length) noteAction("O trasno desfixo o último cambio das anotacións");
   const prev = past.pop();
   if (!prev) return;
   future.push(get(shapes));
@@ -147,6 +174,7 @@ export function undo() {
 }
 export function redo() {
   flushLive();
+  if (future.length) noteAction("O trasno refixo o cambio das anotacións");
   const nxt = future.pop();
   if (!nxt) return;
   past.push(get(shapes));
