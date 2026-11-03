@@ -39,7 +39,7 @@
   $: lastRun = running[0];
   $: pct = lastRun ? (lastRun.source === "app" && $liveProgress !== null ? $liveProgress : lastRun.progress) : 0;
   // O trasno-axente: avisa do importante (sempre) e, de cando en vez, comenta algo sobre o que hai á vista.
-  $: important = ffmpegOk === false && needsFfmpeg ? { text: $t("Falta ffmpeg: instalalo agora"), run: () => requestTool("ffmpeg") } : $updateAvailable ? { text: $t("Hai unha versión nova"), run: () => openHub("news.updates") } : null;
+  $: important = ffmpegOk === false && needsFfmpeg ? { text: $t("Falta FFmpeg: sen el non podo traballar con audio nin vídeo. Prémeme para instalalo."), run: () => requestTool("ffmpeg") } : $updateAvailable ? { text: $t("Hai unha versión nova. Prémeme para ver as novidades."), run: () => openHub("news.updates") } : null;
   let tipTimer: ReturnType<typeof setTimeout>;
   function sayNow() {
     if (dockOpen) return;
@@ -58,13 +58,13 @@
   // ---- menú radial do trasno: sae ao pasar o rato (ou co teclado) e péchase en canto o punteiro deixa as súas ruxas
   // Tres botóns polo interior e dous un pouco máis fóra, arredor do trasno (esquina de abaixo á esquerda).
   const ITEMS = CLICK_ITEMS;
-  const BTN = 56;
+  const BTN = 60;
   const RINGS = [
-    { r: 102, a: 76 },
-    { r: 102, a: 42 },
-    { r: 102, a: 8 },
-    { r: 150, a: 59 },
-    { r: 150, a: 25 },
+    { r: 110, a: 76 },
+    { r: 110, a: 42 },
+    { r: 110, a: 8 },
+    { r: 160, a: 59 },
+    { r: 160, a: 25 },
   ];
   const pos = RINGS.map((q) => ({ x: q.r * Math.cos((q.a * Math.PI) / 180), y: q.r * Math.sin((q.a * Math.PI) / 180) }));
   function runItem(id: ClickAction) {
@@ -124,6 +124,11 @@
     if (lastShown && $files.length > 1) noteAction("O trasno mostrou «{name}»", { name: active.name });
     lastShown = active.path;
   }
+  /** Ao abrir o historial, déixase á vista o máis recente (abaixo). */
+  const toEnd = (n: HTMLElement) => {
+    const box = n.closest(".hist") as HTMLElement | null;
+    if (box) box.scrollTop = box.scrollHeight;
+  };
   let histOpen = false;
   let revertIdx: number | null = null;
   $: if (!histOpen) revertIdx = null;
@@ -340,7 +345,7 @@
           on:blur={() => (hov = -1)}
           aria-label={$t(it.label)}
         >
-          <Icon name={it.icon} size={26} strokeWidth={1.7} />
+          <Icon name={it.icon} size={32} strokeWidth={1.6} />
           {#if it.id === "procs" && runningProcs}<span class="badge">{runningProcs}</span>{/if}
           {#if it.id === "news" && $updateAvailable}<span class="newdot" aria-hidden="true"></span>{/if}
           <span class="rl">{$t(it.label)}</span>
@@ -368,8 +373,8 @@
             </div>
           </div>
         {:else if $actions.length}
-          <ul>
-            {#each $actions as a, i}
+          <ul use:toEnd>
+            {#each $actions.map((a, i) => ({ a, i })).reverse() as { a, i }}
               <li>
                 <button class="hrow" disabled={!revertCount($actions, i)} on:click={() => (revertIdx = i)} title={revertCount($actions, i) ? $t("Volver a este punto") : ""}>
                   <time class="muted">{hhmm(a.at)}</time>
@@ -403,9 +408,12 @@
       </div>
     {/if}
     {#if !lastRun}
-      <button class="jobs idle" on:click={() => openHub("procs.running")} title={$t("Ver os procesos e o seu historial")}>
-        <span class="jmain"><Icon name="layers" size={15} /><span class="jt">{$t("Sen procesos activos")}</span><span class="grow"></span><Icon name="arrow-right" size={14} /></span>
-      </button>
+      <div class="jobs idle">
+        <button class="imain" on:click={() => openHub("procs.running")} title={$t("Ver os procesos e o seu historial")}>
+          <Icon name="layers" size={16} /><span>{$t("Sen procesos activos")}</span>
+        </button>
+        <button class="jx" on:click={() => openHub("procs.history")} title={$t("Ver o historial de procesos")} aria-label={$t("Ver o historial de procesos")}><Icon name="clock" size={15} /></button>
+      </div>
     {/if}
     {#if ffmpegOk === false && needsFfmpeg}
       <button class="aviso" on:click={() => requestTool("ffmpeg")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: instalalo agora")}</button>
@@ -431,34 +439,17 @@
   .app { position: relative; display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: clip; }
   .frame { flex: 1; min-height: 0; display: flex; }
   .stage { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-  .badge { position: absolute; top: 2px; right: 1px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.64rem; font-weight: 700; padding: 0 0.35em; min-width: 1.2em; line-height: 1.35; text-align: center; }
-  .newdot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg-rail); }
   .status { position: relative; z-index: 20; flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; height: 44px; padding: 0 0.9rem 0 84px; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
   .logo { display: grid; place-items: center; margin-left: auto; opacity: 0.55; }
   .dock { position: absolute; left: 6px; bottom: 0; width: 64px; height: 64px; }
   .trasno { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s; }
   .trasno:hover:not(.away) { transform: translateY(-2px); }
   .trasno.away { transform: translateY(115%); opacity: 0; transition: transform 0.2s ease-in, opacity 0.2s; pointer-events: none; }
-  .rd { --c: var(--accent); position: absolute; z-index: 1; display: grid; place-items: center; width: 56px; height: 56px; margin: 0; padding: 0; border-radius: 50%; color: var(--c); background: radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--c) 30%, var(--bg-elevated)), var(--bg-elevated) 74%); border: 1px solid color-mix(in srgb, var(--c) 45%, var(--border-strong)); box-shadow: var(--shadow-pop), inset 0 0 0 3px var(--bg-elevated), inset 0 0 0 4px color-mix(in srgb, var(--c) 28%, transparent); opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.3); transition: opacity 0.16s, transform 0.26s cubic-bezier(0.3, 1.25, 0.5, 1), border-color 0.12s, box-shadow 0.12s; transition-delay: calc(var(--n) * 22ms), calc(var(--n) * 22ms), 0s, 0s; }
+  .rd { --c: var(--accent); position: absolute; z-index: 1; display: grid; place-items: center; width: 60px; height: 60px; margin: 0; padding: 0; border-radius: 50%; color: var(--c); background: radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--c) 30%, var(--bg-elevated)), var(--bg-elevated) 74%); border: 1px solid color-mix(in srgb, var(--c) 45%, var(--border-strong)); box-shadow: var(--shadow-pop), inset 0 0 0 3px var(--bg-elevated), inset 0 0 0 4px color-mix(in srgb, var(--c) 28%, transparent); opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.3); transition: opacity 0.16s, transform 0.26s cubic-bezier(0.3, 1.25, 0.5, 1), border-color 0.12s, box-shadow 0.12s; transition-delay: calc(var(--n) * 22ms), calc(var(--n) * 22ms), 0s, 0s; }
   .dock.open .rd { opacity: 1; pointer-events: auto; transform: none; }
   .dock.open .rd.hot { z-index: 3; transform: scale(1.1); border-color: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 24%, transparent), var(--shadow-pop), inset 0 0 0 3px var(--bg-elevated), inset 0 0 0 4px color-mix(in srgb, var(--c) 45%, transparent); transition-delay: 0s; }
   .rl { position: absolute; left: calc(100% + 12px); top: 50%; display: flex; align-items: center; padding: 0.3rem 0.7rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); color: var(--text); font-size: 0.78rem; font-weight: 550; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-6px, -50%); transition: opacity 0.14s, transform 0.18s ease; }
   .rd.hot .rl { opacity: 1; transform: translate(0, -50%); }
-  .badge { position: absolute; top: 2px; right: 1px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.64rem; font-weight: 700; padding: 0 0.35em; min-width: 1.2em; line-height: 1.35; text-align: center; }
-  .newdot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg-rail); }
-  .status { position: relative; z-index: 20; flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; height: 2.7rem; padding: 0 0.9rem 0 5rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
-  .logo { display: grid; place-items: center; margin-left: auto; opacity: 0.55; }
-  .dock { position: absolute; left: 0.4rem; bottom: 0; width: 4rem; height: 4rem; }
-  .trasno { position: absolute; inset: 0; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s; }
-  .trasno:hover:not(.away) { transform: translateY(-2px); }
-  .trasno.away { transform: translateY(115%); opacity: 0; transition: transform 0.2s ease-in, opacity 0.2s; pointer-events: none; }
-  .rd { position: absolute; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; margin: 0; padding: 0; border-radius: 50%; background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.2); transition: opacity 0.16s, transform 0.22s cubic-bezier(0.3, 1.4, 0.5, 1), color 0.12s; }
-  .dock.open .rd { opacity: 1; pointer-events: auto; transform: none; }
-  .rd:hover { color: var(--accent); border-color: var(--accent); }
-  .rd:nth-of-type(2) { transition-delay: 0.03s; }
-  .rd:nth-of-type(3) { transition-delay: 0.06s; }
-  .rd:nth-of-type(4) { transition-delay: 0.09s; }
-  .rd:nth-of-type(5) { transition-delay: 0.12s; }
   .badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: 700; padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
   .newdot { position: absolute; top: 1px; right: 1px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
   .alert { position: absolute; top: 0.1rem; right: 0; width: 1.15rem; height: 1.15rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-size: 0.78rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg-rail); animation: hop 0.9s ease-in-out infinite; }
@@ -481,7 +472,7 @@
   .hrow:disabled { cursor: default; }
   .hrow:hover:not(:disabled) { background: var(--bg-hover); }
   .hu { color: var(--text-faint); display: inline-flex; }
-  .hrow:hover .hu { color: var(--accent); }
+  .hrow:hover .hu { color: var(--accent-video); }
   .conf { padding: 0.3rem 0.9rem 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.82rem; }
   .conf p { margin: 0; }
   .cacts { display: flex; gap: 0.4rem; margin-top: 0.3rem; }
@@ -504,11 +495,12 @@
   .track { flex: 1 1 4rem; min-width: 2.5rem; height: 5px; border-radius: 5px; background: var(--border-strong); overflow: hidden; }
   .fill { display: block; height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.3s; }
   .pct { white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .jobs.idle { cursor: pointer; flex-basis: 20rem; padding: 0; color: var(--text-muted); animation: none; }
-  .jobs.idle:hover { border-color: var(--accent); }
-  .jobs.idle .jmain { pointer-events: none; }
-  .jobs.idle .jt { flex: 1 1 auto; font-weight: 500; }
-  .grow { flex: 1; }
+  .jobs.idle { flex: 0 1 auto; border-color: transparent; background: none; animation: none; }
+  .jobs.idle:hover { border-color: var(--border-strong); background: var(--bg-input); }
+  .imain { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0 0.8rem; background: none; border: none; color: var(--text-muted); font-size: 0.78rem; }
+  .imain:hover { color: var(--text); }
+  .jobs.idle .jx { border-left-color: transparent; }
+  .jobs.idle:hover .jx { border-left-color: var(--border); }
   .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.78rem; font-weight: 550; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); }
   .aviso:hover { background: var(--bg-hover); }
   .aviso.up { color: var(--accent); }

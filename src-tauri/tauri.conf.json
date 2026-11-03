@@ -14,6 +14,7 @@
       {
         "title": "Arquivos do Trasno",
         "visible": false,
+        "center": true,
         "width": 1180,
         "height": 760,
         "minWidth": 860,

@@ -177,9 +177,9 @@
           </span>
         </button>
         <span class="acc">
-          <button class="mini" tabindex="-1" on:click={() => moveFile(f.path, -1)} disabled={i === 0} aria-label={$t("Subir")} title={$t("Subir")}><Icon name="up" size={13} /></button>
-          <button class="mini" tabindex="-1" on:click={() => moveFile(f.path, 1)} disabled={i === $files.length - 1} aria-label={$t("Baixar")} title={$t("Baixar")}><Icon name="down" size={13} /></button>
-          <button class="mini" tabindex="-1" on:click={() => removeFile(f.path)} aria-label={$t("Quitar")} title={$t("Quitar da lista")}><Icon name="close" size={13} /></button>
+          <button class="mini" tabindex="-1" on:click={() => moveFile(f.path, -1)} disabled={i === 0} aria-label={$t("Subir")} title={$t("Subir")}><Icon name="up" size={15} /></button>
+          <button class="mini" tabindex="-1" on:click={() => moveFile(f.path, 1)} disabled={i === $files.length - 1} aria-label={$t("Baixar")} title={$t("Baixar")}><Icon name="down" size={15} /></button>
+          <button class="mini" tabindex="-1" on:click={() => removeFile(f.path)} aria-label={$t("Quitar")} title={$t("Quitar da lista")}><Icon name="close" size={15} /></button>
         </span>
       </li>
     {/each}
@@ -221,9 +221,9 @@
   .nome { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.86rem; }
   .meta { font-size: 0.74rem; }
   /* As accións flotan sobre o final da fila: o texto non se reordena ao pasar o rato. */
-  .acc { display: none; position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%); align-items: center; padding-left: 1.2rem; background: linear-gradient(90deg, transparent, var(--rowbg) 1.2rem); }
+  .acc { display: none; position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%); align-items: center; padding-left: 1.6rem; background: linear-gradient(90deg, transparent, var(--rowbg) 1.6rem); }
   li:hover .acc { display: flex; }
-  .mini { background: none; border: none; color: var(--text-faint); padding: 0.2rem; border-radius: var(--radius-sm); display: flex; }
+  .mini { background: none; border: none; color: var(--text-faint); width: 26px; height: 26px; align-items: center; justify-content: center; border-radius: var(--radius-sm); display: flex; }
   .mini:hover:not(:disabled) { color: var(--text); background: var(--bg-card); }
   .mini:disabled { opacity: 0.25; cursor: default; }
   .hact { display: flex; align-items: center; gap: 0.35rem; }

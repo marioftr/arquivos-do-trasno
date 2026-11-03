@@ -83,10 +83,10 @@ function persistedText<T extends string>(key: string, allowed: T[], fallback: T)
   return store;
 }
 export const CLICK_ITEMS: { id: ClickAction; icon: string; label: string; action: string; tone: string }[] = [
-  { id: "palette", icon: "search", label: "Buscar unha acción (Ctrl+K)", action: "Abrir o buscador", tone: "var(--accent)" },
+  { id: "palette", icon: "search", label: "Buscar", action: "Abrir o buscador", tone: "var(--accent)" },
   { id: "procs", icon: "layers", label: "Procesos", action: "Abrir os procesos", tone: "var(--accent-conversor)" },
-  { id: "say", icon: "chat", label: "Comentario do trasno", action: "Soltar un comentario", tone: "var(--accent-pdf)" },
-  { id: "news", icon: "sparkles", label: "Novidades", action: "Abrir as novidades", tone: "var(--accent-imaxe)" },
+  { id: "say", icon: "chat", label: "Comentar", action: "Soltar un comentario", tone: "var(--accent-pdf)" },
+  { id: "news", icon: "newspaper", label: "Novidades", action: "Abrir as novidades", tone: "var(--accent-imaxe)" },
   { id: "settings", icon: "gear", label: "Axustes", action: "Abrir os axustes", tone: "var(--text-muted)" },
 ];
 export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", ["procs", "palette", "news", "settings", "say"], "procs");
@@ -123,36 +123,37 @@ export const liveProgress = writable<number | null>(null);
 
 export const TIPS = [
   "Ctrl+K abre o buscador de accións.",
-  "Arrastra ficheiros á xanela e engádoos sen botóns.",
-  "Con Seleccionar podes mover, escalar e xirar calquera anotación.",
-  "Ctrl+Z desfai o último cambio dos axustes e Restablecer volve ao por defecto.",
-  "Cada ficheiro lembra os seus axustes mentres a app siga aberta.",
-  "Co botón central do rato móvese a imaxe aínda que esteas anotando.",
-  "Na lista podes arrastrar os ficheiros para cambiarlles a orde.",
-  "Se marcas varios ficheiros do mesmo tipo, a ferramenta aplícase a todos á vez.",
-  "Quitar un ficheiro da lista non o borra do disco, e ata podes desfacelo.",
-  "Preme o recadro de progreso para ver todos os procesos.",
+  "Arrastrar ficheiros á xanela é a forma máis rápida de engadilos.",
+  "Coa ferramenta Seleccionar pódese mover, escalar e xirar calquera anotación.",
+  "Ctrl+Z desfai o último cambio dos axustes, e Restablecer volve aos valores por defecto.",
+  "Cada ficheiro lembra os seus propios axustes mentres a aplicación siga aberta.",
+  "O botón central do rato move a imaxe aínda que estea activa unha ferramenta de anotación.",
+  "Os ficheiros da lista pódense arrastrar para cambiarlles a orde.",
+  "Se se marcan varios ficheiros do mesmo tipo, a ferramenta aplícase a todos á vez.",
+  "Quitar un ficheiro da lista non o borra do disco, e pódese desfacer.",
+  "O recadro de progreso da barra inferior abre a lista de procesos.",
   "O texto das imaxes pódese seleccionar e copiar coa ferramenta de texto.",
+  "O historial da barra inferior permite volver ao estado de calquera acción anterior.",
 ];
 
 // ---- comentarios segundo o ficheiro aberto e a ferramenta activa
 export const CTX: Record<string, string[]> = {
-  "*": ["Aquí sigo, listo para o que fagas falta.", "Cando queiras, pásame outro ficheiro: non me canso.", "Se algo sae raro, un Ctrl+Z e aquí non pasou nada.", "Na barra de abaixo apunto todo o que fas, por se hai que desfacer algo."],
-  imaxe: ["O WebP adoita pesar bastante menos có JPG a igual calidade.", "O PNG conserva a transparencia; o JPG non."],
-  video: ["Un bitrate máis baixo dá ficheiros máis pequenos, ata que se nota. O truco é parar un chisco antes.", "O H.265 reduce o peso, pero non todos os reprodutores o len."],
-  audio: ["Con 128 kbps abonda para voz; para música convén subir a 192 ou máis.", "O MP3 é o máis compatible; o FLAC garda todo sen perdas.", "Silencio na oficina. Perfecto para traballar sen que ninguén mire."],
+  "*": ["Aquí sigo, listo para o que faga falta.", "Cando queiras, pásame outro ficheiro: non me canso.", "Se algo sae raro, un Ctrl+Z e aquí non pasou nada.", "Na barra de abaixo apunto todo o que se fai, por se hai que desfacer algo."],
+  imaxe: ["O WebP adoita pesar bastante menos que o JPG coa mesma calidade.", "O PNG conserva a transparencia; o JPG non."],
+  video: ["Un bitrate máis baixo dá ficheiros máis pequenos, ata que se nota: o truco é parar un chisco antes.", "O H.265 reduce o peso, pero non todos os reprodutores o len."],
+  audio: ["Con 128 kbps abonda para voz; para música convén 192 ou máis.", "O MP3 é o máis compatible; o FLAC garda todo sen perdas.", "Eu non xulgo o gusto musical de ninguén: só convirto."],
   documento: ["Un PDF pesado adoita levar imaxes sen optimizar: Comprimir pode axudar moito."],
-  modelo3d: ["No visor do modelo, o rato xira a vista e a roda achega e afasta."],
-  convert: ["Cambiar de formato nunca toca o ficheiro orixinal: sempre sae unha copia.", "Eu non xulgo: convirto o que sexa, mentres teña solución."],
-  compress: ["Con Comprimir, cada ficheiro lembra os seus axustes mentres a app siga aberta."],
+  modelo3d: ["No visor do modelo, arrastrar co rato xira a vista e a roda achega e afasta."],
+  convert: ["Cambiar de formato nunca toca o ficheiro orixinal: sempre se garda unha copia.", "Eu non xulgo: convirto o que sexa, mentres teña solución."],
+  compress: ["En Comprimir, cada ficheiro lembra os seus axustes mentres a aplicación siga aberta."],
   annotate: ["A goma borra trazo a trazo; «Borrar todas as anotacións» limpa a imaxe de golpe."],
-  info: ["A pestana de Información amosa metadatos que o visor non ensina."],
-  extract: ["Extraer o son dun vídeo non modifica o vídeo."],
+  info: ["A pestana Información amosa metadatos que o visor non ensina."],
+  extract: ["Extraer o son dun vídeo non modifica o vídeo orixinal."],
   mkv: ["Cambiar as pistas dun MKV non recodifica nada: só se reempaqueta."],
-  merge: ["Na unión, a orde da lista é a orde final."],
+  merge: ["Na unión, a orde da lista é a orde final do resultado."],
   pages: ["Marcar as páxinas nas miniaturas é máis rápido que escribir os números."],
   marks: ["As marcas e a numeración aplícanse á copia, nunca ao orixinal."],
-  security: ["O contrasinal dun PDF cifrado non se pode recuperar se se perde."],
+  security: ["Se se perde o contrasinal dun PDF cifrado, non hai maneira de recuperalo."],
 };
 
 let lastPick = "";

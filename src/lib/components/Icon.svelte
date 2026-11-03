@@ -81,6 +81,15 @@
     <path d="M4 5h16v11H9l-5 4z" />
     <line x1="8" y1="9.5" x2="16" y2="9.5" />
     <line x1="8" y1="12.5" x2="13" y2="12.5" />
+  {:else if name === "newspaper"}
+    <rect x="4" y="4" width="13" height="16" rx="2" />
+    <path d="M17 9h3v8a3 3 0 0 1-3 3" />
+    <line x1="7.5" y1="8.5" x2="13.5" y2="8.5" />
+    <line x1="7.5" y1="12" x2="13.5" y2="12" />
+    <line x1="7.5" y1="15.5" x2="11.5" y2="15.5" />
+  {:else if name === "clock"}
+    <circle cx="12" cy="12" r="8.5" />
+    <polyline points="12,7 12,12 15.5,14" />
   {:else if name === "bulb"}
     <path d="M9 18h6" />
     <path d="M10 21h4" />
