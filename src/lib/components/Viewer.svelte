@@ -79,7 +79,6 @@
   .vbody > :global(*) { flex: 1 1 auto; min-height: 0; }
   .docbar { flex: none; display: flex; align-items: center; gap: 0.55rem; min-height: 2.6rem; padding: 0 0.6rem 0 0.9rem; background: var(--bg-rail); border-bottom: 1px solid var(--border); font-size: 0.84rem; }
   .kind { display: inline-flex; color: var(--text-muted); }
-  .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .chip { flex: none; padding: 0.05rem 0.45rem; border-radius: 99px; background: var(--bg-hover); color: var(--text-muted); font-size: 0.68rem; font-weight: 650; letter-spacing: 0.04em; }
   .meta { white-space: nowrap; font-size: 0.78rem; }
   .grow { flex: 1; }
