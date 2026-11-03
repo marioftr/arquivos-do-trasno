@@ -38,16 +38,15 @@ export function noteAction(gl: string, vars?: Record<string, string | number>, u
   actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now(), undo: l[0].undo ?? undo }, ...l.slice(1)] : [{ text, at: Date.now(), undo }, ...l].slice(0, 12)));
 }
 
-/** Número de cambios que se desfarían ao volver ao estado que había tras a acción `idx` (0 é a máis recente). */
-export const revertCount = (list: Action[], idx: number) => list.slice(0, idx).filter((a) => a.undo).length;
+/** Número de cambios que se desfán ao premer a acción `idx` (0 é a máis recente): ela e todas as posteriores. */
+export const revertCount = (list: Action[], idx: number) => list.slice(0, idx + 1).filter((a) => a.undo).length;
 
-/** Desfai, da máis nova á máis vella, todo o que veu despois da acción `idx`. */
+/** Desfai, da máis nova á máis vella, a acción `idx` e todo o que veu despois. */
 export function revertTo(idx: number): number {
   const l = get(actions);
-  const target = l[idx];
-  if (!target) return 0;
+  if (!l[idx]) return 0;
   let n = 0;
-  for (const a of l.slice(0, idx)) {
+  for (const a of l.slice(0, idx + 1)) {
     try {
       if (a.undo) {
         a.undo();
@@ -57,13 +56,13 @@ export function revertTo(idx: number): number {
       // un paso que non se pode desfacer non debe frear os demais
     }
   }
-  actions.set(l.slice(idx));
-  noteAction("O trasno retrocedeu ata «{what}»", { what: target.text });
+  actions.set(l.slice(idx + 1));
+  noteAction(n === 1 ? "O trasno retrocedeu un cambio" : "O trasno retrocedeu {n} cambios", { n });
   return n;
 }
 
 /** Que fai o trasno ao premelo: abrir procesos, abrir o buscador ou soltar un comentario. */
-export type ClickAction = "procs" | "palette" | "news" | "settings" | "say";
+export type ClickAction = "procs" | "palette" | "settings" | "say";
 function persistedText<T extends string>(key: string, allowed: T[], fallback: T) {
   let v = fallback;
   try {
@@ -82,28 +81,28 @@ function persistedText<T extends string>(key: string, allowed: T[], fallback: T)
   });
   return store;
 }
-export const CLICK_ITEMS: { id: ClickAction; icon: string; label: string; action: string; tone: string }[] = [
-  { id: "palette", icon: "search", label: "Buscar", action: "Abrir o buscador", tone: "var(--accent)" },
+export const CLICK_ITEMS: { id: ClickAction; icon: string; label: string; action: string; tone: string; actionId?: string }[] = [
+  { id: "palette", icon: "search", label: "Buscar", action: "Abrir o buscador", tone: "var(--accent)", actionId: "g.palette" },
   { id: "procs", icon: "layers", label: "Procesos", action: "Abrir os procesos", tone: "var(--accent-conversor)" },
   { id: "say", icon: "chat", label: "Comentar", action: "Soltar un comentario", tone: "var(--accent-pdf)" },
-  { id: "news", icon: "newspaper", label: "Novidades", action: "Abrir as novidades", tone: "var(--accent-imaxe)" },
   { id: "settings", icon: "gear", label: "Axustes", action: "Abrir os axustes", tone: "var(--text-muted)" },
 ];
-export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", ["procs", "palette", "news", "settings", "say"], "procs");
+export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", ["procs", "palette", "settings", "say"], "procs");
 
 // ---- o globo do trasno (un só á vez)
 export interface Bubble {
   id: number;
   text: string;
   /** «tip» leva o prefixo «Sabías que…»; «info» é un comentario ou aviso sen máis. */
-  kind: "tip" | "info";
+  kind: "tip" | "info" | "warn";
+  action?: { label: string; run: () => void };
 }
 export const bubble = writable<Bubble | null>(null);
 let bubbleId = 0;
 let bubbleTimer: ReturnType<typeof setTimeout> | undefined;
-export function trasnoSay(text: string, kind: Bubble["kind"] = "info", ms = 9000) {
+export function trasnoSay(text: string, kind: Bubble["kind"] = "info", ms = 9000, action?: Bubble["action"]) {
   const id = ++bubbleId;
-  bubble.set({ id, text, kind });
+  bubble.set({ id, text, kind, action });
   clearTimeout(bubbleTimer);
   bubbleTimer = setTimeout(() => bubble.update((b) => (b?.id === id ? null : b)), ms);
 }
@@ -134,36 +133,52 @@ export const TIPS = [
   "O recadro de progreso da barra inferior abre a lista de procesos.",
   "O texto das imaxes pódese seleccionar e copiar coa ferramenta de texto.",
   "O historial da barra inferior permite volver ao estado de calquera acción anterior.",
+  "Ctrl+O abre o selector de ficheiros.",
+  "Ctrl+W quita da lista o ficheiro que se está vendo, sen borralo do disco.",
+  "O que fai o trasno ao premelo pódese cambiar en Axustes.",
+  "Mantendo o punteiro sobre o trasno sae un menú con accesos rápidos.",
+  "Os atallos de teclado pódense cambiar en Axustes.",
+  "Todo o que remata queda rexistrado no historial de procesos.",
+  "Maiús + clic na lista marca todos os ficheiros entre dous.",
+  "Se un proceso se cancela, non queda ningún ficheiro a medias.",
+  "O buscador de accións (Ctrl+K) tamén atopa ferramentas e axustes.",
+  "O número de versión da barra inferior abre as novidades.",
+  "No historial da barra inferior, premer unha acción desfai ese cambio e os posteriores.",
 ];
 
 // ---- comentarios segundo o ficheiro aberto e a ferramenta activa
 export const CTX: Record<string, string[]> = {
-  "*": ["Aquí sigo, listo para o que faga falta.", "Cando queiras, pásame outro ficheiro: non me canso.", "Se algo sae raro, un Ctrl+Z e aquí non pasou nada.", "Na barra de abaixo apunto todo o que se fai, por se hai que desfacer algo."],
-  imaxe: ["O WebP adoita pesar bastante menos que o JPG coa mesma calidade.", "O PNG conserva a transparencia; o JPG non."],
-  video: ["Un bitrate máis baixo dá ficheiros máis pequenos, ata que se nota: o truco é parar un chisco antes.", "O H.265 reduce o peso, pero non todos os reprodutores o len."],
-  audio: ["Con 128 kbps abonda para voz; para música convén 192 ou máis.", "O MP3 é o máis compatible; o FLAC garda todo sen perdas.", "Eu non xulgo o gusto musical de ninguén: só convirto."],
-  documento: ["Un PDF pesado adoita levar imaxes sen optimizar: Comprimir pode axudar moito."],
-  modelo3d: ["No visor do modelo, arrastrar co rato xira a vista e a roda achega e afasta."],
-  convert: ["Cambiar de formato nunca toca o ficheiro orixinal: sempre se garda unha copia.", "Eu non xulgo: convirto o que sexa, mentres teña solución."],
-  compress: ["En Comprimir, cada ficheiro lembra os seus axustes mentres a aplicación siga aberta."],
-  annotate: ["A goma borra trazo a trazo; «Borrar todas as anotacións» limpa a imaxe de golpe."],
-  info: ["A pestana Información amosa metadatos que o visor non ensina."],
+  "*": ["Aquí sigo, listo para o que faga falta.", "Cando queiras, pásame outro ficheiro: non me canso.", "Se algo sae raro, un Ctrl+Z e aquí non pasou nada.", "Na barra de abaixo apunto todo o que se fai, por se hai que desfacer algo.", "Non hai présa: eu aquí sigo.", "Se tocas algo sen querer, o historial da barra de abaixo sabe volver atrás.", "Podes arrastrarme ficheiros directamente á xanela: eu encárgome do resto.", "Levo a conta de todo o que fas, pero non xulgo.", "Un trasno ordenado é un trasno feliz. Un ficheiro ordenado, tamén.", "Se algo tarda, probablemente é un vídeo. Os vídeos sempre tardan.", "Prefiro os ficheiros pequenos, pero respecto os grandes."],
+  imaxe: ["O WebP adoita pesar bastante menos que o JPG coa mesma calidade.", "O PNG conserva a transparencia; o JPG non.", "O JPG perde un chisco de calidade cada vez que se garda: convén traballar sobre unha copia."],
+  video: ["Un bitrate máis baixo dá ficheiros máis pequenos, ata que se nota: o truco é parar un chisco antes.", "O H.265 reduce o peso, pero non todos os reprodutores o len.", "Os vídeos entrelazados de cinta piden desentrelazado ao convertilos.", "Reducir a altura máxima a 720p aforra moito peso e apenas se nota nunha pantalla pequena."],
+  audio: ["Con 128 kbps abonda para voz; para música convén 192 ou máis.", "O MP3 é o máis compatible; o FLAC garda todo sen perdas.", "Eu non xulgo o gusto musical de ninguén: só convirto.", "O WAV non leva compresión: pesa moito, pero é perfecto para editar.", "Subir o bitrate non mellora un audio que xa viña comprimido."],
+  documento: ["Un PDF pesado adoita levar imaxes sen optimizar: Comprimir pode axudar moito.", "Un PDF escaneado é unha imaxe: sen OCR, o seu texto non se pode seleccionar.", "Ctrl+F busca texto dentro do PDF aberto."],
+  modelo3d: ["No visor do modelo, arrastrar co rato xira a vista e a roda achega e afasta.", "Os modelos FBX e glTF ábrense co mesmo cargador do visor."],
+  convert: ["Cambiar de formato nunca toca o ficheiro orixinal: sempre se garda unha copia.", "Eu non xulgo: convirto o que sexa, mentres teña solución.", "Con varios ficheiros marcados, a conversión faise en lote."],
+  compress: ["En Comprimir, cada ficheiro lembra os seus axustes mentres a aplicación siga aberta.", "Estimar o tamaño antes de comprimir evita sorpresas."],
+  annotate: ["A goma borra trazo a trazo; «Borrar todas as anotacións» limpa a imaxe de golpe.", "A letra, o tamaño e a cor dun texto pódense cambiar despois de escribilo.", "Cada ferramenta de debuxo lembra o seu propio groso."],
+  info: ["A pestana Información amosa metadatos que o visor non ensina.", "A información dun ficheiro inclúe o seu SHA-256, que serve para comparar dous ficheiros."],
   extract: ["Extraer o son dun vídeo non modifica o vídeo orixinal."],
   mkv: ["Cambiar as pistas dun MKV non recodifica nada: só se reempaqueta."],
   merge: ["Na unión, a orde da lista é a orde final do resultado."],
   pages: ["Marcar as páxinas nas miniaturas é máis rápido que escribir os números."],
   marks: ["As marcas e a numeración aplícanse á copia, nunca ao orixinal."],
+  edit: ["O resultado de Editar gárdase como unha copia: o orixinal queda intacto."],
   security: ["Se se perde o contrasinal dun PDF cifrado, non hai maneira de recuperalo."],
 };
 
-let lastPick = "";
+/** As últimas frases ditas: non se repite ningunha ata que pasen outras 10. */
+const recent: string[] = [];
 /** Un comentario ao chou, con preferencia polo que ten que ver co ficheiro e a ferramenta. */
 export function pickComment(category?: string, tool?: string): Bubble {
   const ctx = [...(CTX[tool ?? ""] ?? []), ...(CTX[category ?? ""] ?? []), ...CTX["*"]].map((text) => ({ text, kind: "info" as const }));
   const tips = TIPS.map((text) => ({ text, kind: "tip" as const }));
-  const pool = [...ctx, ...ctx, ...tips].filter((x) => x.text !== lastPick);
+  const all = [...ctx, ...ctx, ...tips];
+  let pool = all.filter((x) => !recent.includes(x.text));
+  if (!pool.length) pool = all;
   const c = pool[Math.floor(Math.random() * pool.length)];
-  lastPick = c.text;
+  recent.push(c.text);
+  if (recent.length > 10) recent.shift();
   return { id: 0, text: c.text, kind: c.kind };
 }
 
