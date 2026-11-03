@@ -9,8 +9,8 @@
   import Segmented from "./ui/Segmented.svelte";
   import Toggle from "./ui/Toggle.svelte";
   import InfoTip from "./ui/InfoTip.svelte";
-  import SelectField from "./ui/SelectField.svelte";
-  import { tipsOn, trasnoClick, type ClickAction } from "../agent";
+  import IconSelect from "./ui/IconSelect.svelte";
+  import { tipsOn, trasnoClick, CLICK_ITEMS, type ClickAction } from "../agent";
   import Icon from "./Icon.svelte";
 
   // Segmented usa texto; as tendas teñen tipos máis estritos.
@@ -84,19 +84,10 @@
   <section>
     <h3>{$t("Trasno")}</h3>
     <Toggle label={$t("Consellos do trasno")} bind:checked={$tipsOn} hint={$t("O trasno comenta de cando en vez cousas útiles sobre o ficheiro e a ferramenta abertos. Desactivalo silencia eses comentarios, pero non os avisos importantes.")} />
-    <SelectField
-      label={$t("Ao premer o trasno")}
-      hint={$t("Que ocorre ao premer directamente o trasno da barra inferior.")}
-      options={[
-        { value: "procs", label: $t("Abrir os procesos") },
-        { value: "palette", label: $t("Abrir o buscador") },
-        { value: "news", label: $t("Abrir as novidades") },
-        { value: "settings", label: $t("Abrir os axustes") },
-        { value: "say", label: $t("Soltar un comentario") },
-      ]}
-      bind:value={clickV}
-      def="procs"
-    />
+    <div class="row">
+      <span class="lab">{$t("Ao premer o trasno")}<InfoTip text={$t("Que ocorre ao premer directamente o trasno da barra inferior.")} /></span>
+      <IconSelect label={$t("Ao premer o trasno")} options={CLICK_ITEMS.map((c) => ({ value: c.id, label: $t(c.action), icon: c.icon }))} bind:value={clickV} />
+    </div>
   </section>
 
   <section>
@@ -135,6 +126,8 @@
 <style>
   section { display: flex; flex-direction: column; gap: 0.6rem; }
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
+  .lab { font-size: 0.86rem; display: inline-flex; align-items: center; }
   .note { margin: 0; font-size: 0.8rem; }
   .exrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
 </style>

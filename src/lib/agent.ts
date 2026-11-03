@@ -56,6 +56,13 @@ function persistedText<T extends string>(key: string, allowed: T[], fallback: T)
   });
   return store;
 }
+export const CLICK_ITEMS: { id: ClickAction; icon: string; label: string; action: string }[] = [
+  { id: "palette", icon: "search", label: "Buscar unha acción (Ctrl+K)", action: "Abrir o buscador" },
+  { id: "procs", icon: "activity", label: "Procesos", action: "Abrir os procesos" },
+  { id: "say", icon: "chat", label: "Comentario do trasno", action: "Soltar un comentario" },
+  { id: "news", icon: "sparkles", label: "Novidades", action: "Abrir as novidades" },
+  { id: "settings", icon: "gear", label: "Axustes", action: "Abrir os axustes" },
+];
 export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", ["procs", "palette", "news", "settings", "say"], "procs");
 
 // ---- o globo do trasno (un só á vez)

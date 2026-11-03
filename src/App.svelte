@@ -22,7 +22,7 @@
   import QuickJob from "./lib/components/QuickJob.svelte";
   import HubDialog from "./lib/components/HubDialog.svelte";
   import { procs, refreshProcs, requestCancel } from "./lib/procs";
-  import { actions, tipsOn, liveProgress, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, noteAction, type ClickAction } from "./lib/agent";
+  import { actions, tipsOn, liveProgress, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, noteAction, CLICK_ITEMS, type ClickAction } from "./lib/agent";
   import { reportProgress } from "./lib/job";
   import { requestTool } from "./lib/toolinstall";
   import ToolNeedDialog from "./lib/components/ToolNeedDialog.svelte";
@@ -56,13 +56,17 @@
   $: if (!$tipsOn) hideBubble();
 
   // ---- menú radial do trasno: sae ao pasar o rato (ou co teclado) e péchase en canto o punteiro deixa as súas ruxas
-  const ITEMS: { id: ClickAction; icon: string; label: string }[] = [
-    { id: "palette", icon: "search", label: "Buscar unha acción (Ctrl+K)" },
-    { id: "procs", icon: "layers", label: "Procesos" },
-    { id: "news", icon: "info", label: "Novidades" },
-    { id: "settings", icon: "gear", label: "Axustes" },
-    { id: "say", icon: "chat", label: "Comentario do trasno" },
+  // Tres botóns polo interior e dous un pouco máis fóra, arredor do trasno (esquina de abaixo á esquerda).
+  const ITEMS = CLICK_ITEMS;
+  const BTN = 44;
+  const RINGS = [
+    { r: 92, a: 72 },
+    { r: 92, a: 42 },
+    { r: 92, a: 12 },
+    { r: 152, a: 56 },
+    { r: 152, a: 26 },
   ];
+  const pos = RINGS.map((q) => ({ x: q.r * Math.cos((q.a * Math.PI) / 180), y: q.r * Math.sin((q.a * Math.PI) / 180) }));
   function runItem(id: ClickAction) {
     if (id === "palette") dialog.set("palette");
     else if (id === "procs") openHub("procs.running");
@@ -73,14 +77,6 @@
   let dockEl: HTMLDivElement;
   let dockOpen = false;
   let hov = -1;
-  const RAD = 140;
-  const BTN = 40;
-  /** Posición (en px desde o centro do trasno, y cara arriba) de cada botón; os veciños do que ten o rato encima ábrense. */
-  $: pos = ITEMS.map((_, i) => {
-    const shift = hov < 0 ? 0 : i < hov ? 7 : i > hov ? -7 : 0;
-    const th = ((78 - i * 19 + shift) * Math.PI) / 180;
-    return { x: RAD * Math.cos(th), y: RAD * Math.sin(th) };
-  });
   function dockShow() {
     dockOpen = true;
     hideBubble();
@@ -121,6 +117,7 @@
     if (lastShown && $files.length > 1) noteAction("O trasno mostrou «{name}»", { name: active.name });
     lastShown = active.path;
   }
+  let histOpen = false;
   let askCancel = false;
   $: if (!lastRun) askCancel = false;
   // Ao confirmar, o proceso sae da barra ao instante (se non, quedaba «cargando» ata que a lista se refrescaba).
@@ -270,7 +267,7 @@
   $: needsFfmpeg = selection.some((f) => f.category === "audio" || f.category === "video");
 </script>
 
-<svelte:window on:keydown={onKey} on:pointermove={dockTrack} on:blur={dockClose} />
+<svelte:window on:keydown={onKey} on:pointermove={dockTrack} on:blur={dockClose} on:pointerdown={(e) => { if (histOpen && !(e.target as HTMLElement).closest(".hist, .voice")) histOpen = false; }} on:keydown={(e) => e.key === "Escape" && (histOpen = false)} />
 <svelte:document on:mouseleave={dockClose} />
 
 {#if quickJob === undefined}
@@ -334,7 +331,7 @@
           on:blur={() => (hov = -1)}
           aria-label={$t(it.label)}
         >
-          <Icon name={it.icon} size={18} />
+          <Icon name={it.icon} size={20} />
           {#if it.id === "procs" && runningProcs}<span class="badge">{runningProcs}</span>{/if}
           {#if it.id === "news" && $updateAvailable}<span class="newdot" aria-hidden="true"></span>{/if}
           <span class="rl">{$t(it.label)}</span>
@@ -345,10 +342,22 @@
         {#if important}<span class="alert" aria-hidden="true">!</span>{/if}
       </button>
     </div>
-    <button class="voice" on:click={() => openHub("procs.running")} title={history ? `${history}\n\n${$t("Procesos")}` : $t("Procesos")}>
+    <button class="voice" class:on={histOpen} on:click={() => (histOpen = !histOpen)} aria-expanded={histOpen} aria-haspopup="dialog" title={$t("Últimas accións")}>
       <span class="vt">{voice}</span>
       {#if !lastRun && lastAct}<span class="muted vh">{hhmm(lastAct.at)}</span>{/if}
     </button>
+    {#if histOpen}
+      <div class="hist" role="dialog" aria-label={$t("Últimas accións")}>
+        <h4>{$t("Últimas accións")}</h4>
+        {#if $actions.length}
+          <ul>
+            {#each $actions as a}<li><time class="muted">{hhmm(a.at)}</time><span>{a.text}</span></li>{/each}
+          </ul>
+        {:else}
+          <p class="muted">{$t("Aínda non hai accións.")}</p>
+        {/if}
+      </div>
+    {/if}
     {#if lastRun && !$trasnoAway}
       <div class="jobs" class:ask={askCancel}>
         {#if askCancel}
@@ -393,15 +402,15 @@
   .stage { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
   .badge { position: absolute; top: 2px; right: 1px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.64rem; font-weight: 700; padding: 0 0.35em; min-width: 1.2em; line-height: 1.35; text-align: center; }
   .newdot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg-rail); }
-  .status { position: relative; z-index: 20; flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; height: 2.7rem; padding: 0 0.9rem 0 5rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
+  .status { position: relative; z-index: 20; flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; height: 3rem; padding: 0 0.9rem 0 5.7rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
   .logo { display: grid; place-items: center; margin-left: auto; opacity: 0.55; }
-  .dock { position: absolute; left: 0.4rem; bottom: 0; width: 4rem; height: 4rem; }
+  .dock { position: absolute; left: 0.4rem; bottom: 0.5rem; width: 4rem; height: 4rem; }
   .trasno { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s; }
   .trasno:hover:not(.away) { transform: translateY(-2px); }
   .trasno.away { transform: translateY(115%); opacity: 0; transition: transform 0.2s ease-in, opacity 0.2s; pointer-events: none; }
-  .rd { position: absolute; z-index: 1; display: grid; place-items: center; width: 40px; height: 40px; margin: 0; padding: 0; border-radius: 50%; background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.3); transition: opacity 0.16s, transform 0.26s cubic-bezier(0.3, 1.35, 0.5, 1), left 0.22s ease, bottom 0.22s ease, color 0.12s, border-color 0.12s; transition-delay: calc(var(--n) * 25ms), calc(var(--n) * 25ms), 0s, 0s, 0s, 0s; }
+  .rd { position: absolute; z-index: 1; display: grid; place-items: center; width: 44px; height: 44px; margin: 0; padding: 0; border-radius: 50%; background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.3); transition: opacity 0.16s, transform 0.26s cubic-bezier(0.3, 1.25, 0.5, 1), color 0.12s, border-color 0.12s; transition-delay: calc(var(--n) * 22ms), calc(var(--n) * 22ms), 0s, 0s; }
   .dock.open .rd { opacity: 1; pointer-events: auto; transform: none; }
-  .dock.open .rd.hot { z-index: 3; transform: scale(1.18); color: var(--accent); border-color: var(--accent); }
+  .dock.open .rd.hot { z-index: 3; transform: scale(1.1); color: var(--accent); border-color: var(--accent); transition-delay: 0s; }
   .rl { position: absolute; left: calc(100% + 10px); top: 50%; display: flex; align-items: center; padding: 0.3rem 0.7rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); color: var(--text); font-size: 0.78rem; font-weight: 550; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-6px, -50%); transition: opacity 0.14s, transform 0.18s ease; }
   .rd.hot .rl { opacity: 1; transform: translate(0, -50%); }
   .badge { position: absolute; top: 2px; right: 1px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.64rem; font-weight: 700; padding: 0 0.35em; min-width: 1.2em; line-height: 1.35; text-align: center; }
@@ -432,8 +441,15 @@
   .bubble:not(.tipb) .bx { background: var(--bg-hover); color: var(--text-muted); }
   .warnb .bx { background: var(--accent-pdf) !important; color: #111 !important; }
   .bt { min-width: 0; }
-  .voice { flex: 1 1 8rem; min-width: 0; display: flex; align-items: center; gap: 0.55rem; height: 1.9rem; padding: 0 0.5rem; margin-left: -0.5rem; background: none; border: none; border-radius: var(--radius-sm); color: var(--text); text-align: left; font-size: 0.8rem; }
-  .voice:hover { background: var(--bg-hover); }
+  .voice { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 28px; padding: 0 0.6rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text); text-align: left; font-size: 0.8rem; }
+  .voice:hover, .voice.on { background: var(--bg-hover); }
+  .hist { position: absolute; left: 5.7rem; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); max-height: 50vh; overflow: auto; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }
+  .hist h4 { margin: 0 0.8rem 0.4rem; font-size: 0.72rem; font-weight: 650; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
+  .hist ul { margin: 0; padding: 0; list-style: none; }
+  .hist li { display: grid; grid-template-columns: 3.2rem 1fr; gap: 0.5rem; padding: 0.3rem 0.8rem; font-size: 0.8rem; }
+  .hist li:hover { background: var(--bg-hover); }
+  .hist time { font-variant-numeric: tabular-nums; }
+  .hist p { margin: 0; padding: 0.3rem 0.8rem; font-size: 0.8rem; }
   .vt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .vh { flex: none; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
   .jobs { flex: 0 1 32rem; min-width: 0; display: flex; align-items: stretch; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); overflow: hidden; transform-origin: left center; animation: grow 0.4s cubic-bezier(0.2, 0.8, 0.3, 1); }
@@ -467,7 +483,7 @@
   .work { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: var(--lw) 1px minmax(0, 1fr) 1px var(--rw); }
   .off { overflow: hidden; visibility: hidden; }
   .left, .right { min-height: 0; min-width: 0; background: var(--bg-rail); }
-  .left { padding-bottom: 1.5rem; box-sizing: border-box; }
+  .left { padding-bottom: 1.9rem; box-sizing: border-box; }
   .center { background: var(--bg); }
 
   .center { min-width: 0; min-height: 0; overflow: hidden; }

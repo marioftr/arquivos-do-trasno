@@ -81,6 +81,20 @@
     <path d="M4 5h16v11H9l-5 4z" />
     <line x1="8" y1="9.5" x2="16" y2="9.5" />
     <line x1="8" y1="12.5" x2="13" y2="12.5" />
+  {:else if name === "trash"}
+    <polyline points="4,7 20,7" />
+    <path d="M9 7V4.5h6V7" />
+    <path d="M6.5 7l1 13h9l1-13" />
+    <line x1="10" y1="11" x2="10" y2="16" />
+    <line x1="14" y1="11" x2="14" y2="16" />
+  {:else if name === "checks"}
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+    <polyline points="8,12 11,15 16,9" />
+  {:else if name === "activity"}
+    <polyline points="3,12 7,12 10,5 14,19 17,12 21,12" />
+  {:else if name === "sparkles"}
+    <path d="M10 3l1.8 5.2L17 10l-5.2 1.8L10 17l-1.8-5.2L3 10l5.2-1.8z" />
+    <path d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z" />
   {:else if name === "search"}
     <circle cx="11" cy="11" r="6.5" />
     <line x1="16" y1="16" x2="21" y2="21" />

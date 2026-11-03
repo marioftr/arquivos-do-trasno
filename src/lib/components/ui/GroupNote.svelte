@@ -7,7 +7,7 @@
   export let text: string;
 
   let el: HTMLSpanElement;
-  let mode: "row" | "title" | "btn" = "row";
+  let mode: "row" | "title" | "inbtn" = "row";
   let style = "";
 
   onMount(() => {
@@ -21,7 +21,7 @@
         title.style.paddingRight = "1.8rem";
         style = `top:${title.offsetTop + (title.offsetHeight - 18) / 2}px;right:0`;
       } else if (next && next.matches("button.btn")) {
-        mode = "btn";
+        mode = "inbtn";
         style = `top:${next.offsetTop + (next.offsetHeight - 18) / 2}px;right:0.7rem`;
       } else {
         mode = "row";
@@ -39,6 +39,6 @@
 
 <style>
   .gn { line-height: 1; }
-  .gn.title, .gn.btn { position: absolute; z-index: 3; }
+  .gn.title, .gn.inbtn { position: absolute; z-index: 3; }
   .gn.row { align-self: flex-end; margin: -0.2rem 0 -0.4rem; }
 </style>

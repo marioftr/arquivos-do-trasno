@@ -1303,5 +1303,10 @@
   "Aquí sigo, listo para o que fagas falta.": "Still here, ready for whatever is needed.",
   "Cando queiras, pásame outro ficheiro: non me canso.": "Whenever you like, hand me another file: I don't get tired.",
   "Se algo sae raro, un Ctrl+Z e aquí non pasou nada.": "If something looks odd, one Ctrl+Z and nothing happened.",
-  "Na barra de abaixo apunto todo o que fas, por se hai que desfacer algo.": "In the bar below I note everything you do, in case something has to be undone."
+  "Na barra de abaixo apunto todo o que fas, por se hai que desfacer algo.": "In the bar below I note everything you do, in case something has to be undone.",
+  "Baleirar a lista": "Clear the list",
+  "{n} marcados": "{n} ticked",
+  "Ficheiros marcados": "Ticked files",
+  "Quitar marcados da lista": "Remove ticked files from the list",
+  "Aínda non hai accións.": "No actions yet."
 }

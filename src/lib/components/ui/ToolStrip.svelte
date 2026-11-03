@@ -49,16 +49,15 @@
 </div>
 
 <style>
-  .strip { flex: 0 0 3.4rem; width: 3.4rem; display: flex; flex-direction: column; gap: 0.2rem; padding: 0.5rem 0.35rem; overflow-y: auto; overflow-x: hidden; background: var(--bg); border-right: 1px solid var(--border); }
-  button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 2.8rem; padding: 0.4rem 0.2rem; background: none; border: none; border-radius: var(--radius-md); color: var(--text-muted); }
+  .strip { flex: 0 0 3.4rem; width: 3.4rem; display: flex; flex-direction: column; padding: 0.3rem 0; overflow-y: auto; overflow-x: hidden; background: var(--bg-rail); border-right: 1px solid var(--border); }
+  button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 3.4rem; padding: 0; background: none; border: none; border-left: 2px solid transparent; border-radius: 0; color: var(--text-muted); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   button:hover { color: var(--text); background: var(--bg-hover); }
-  button.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, transparent); }
-  button.on::before { content: ""; position: absolute; left: -0.35rem; top: 0.7rem; bottom: 0.7rem; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
+  button.on { color: var(--text); background: color-mix(in srgb, var(--accent) 10%, var(--bg-rail)); border-left-color: var(--accent-conversor); }
   /* Con poucos píxeles de alto/ancho a barra pasa a ser unha fila. */
   @media (max-width: 1050px) {
-    .strip { flex: 0 0 auto; width: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 0.35rem 0.5rem; border-right: none; border-bottom: 1px solid var(--border); }
-    button { flex: 0 0 auto; min-width: 2.8rem; min-height: 2.6rem; }
-    button.on::before { left: 0.7rem; right: 0.7rem; top: auto; bottom: -0.35rem; width: auto; height: 3px; border-radius: 3px 3px 0 0; }
+    .strip { flex: 0 0 auto; width: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 0 0.3rem; border-right: none; border-bottom: 1px solid var(--border); }
+    button { flex: 0 0 auto; min-width: 2.8rem; min-height: 2.6rem; border-left: none; border-bottom: 2px solid transparent; }
+    button.on { border-left-color: transparent; border-bottom-color: var(--accent-conversor); }
   }
 </style>
