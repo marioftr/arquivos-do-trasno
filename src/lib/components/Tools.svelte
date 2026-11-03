@@ -6,9 +6,14 @@
   import ToolStrip from "./ui/ToolStrip.svelte";
   import FormBar from "./ui/FormBar.svelte";
   import { activeForm } from "../forms";
-  import { canUndo, canRedo, shapes, undo, redo, clearAll } from "../annot";
+  import { canUndo, canRedo, shapes, undo, redo, clearAll, resetAnnoStyle } from "../annot";
   import { derived } from "svelte/store";
   const hasShapes = derived(shapes, (l) => l.length > 0);
+  // Restablecer en Anotar: fóra as anotacións e o aspecto volve ao por defecto.
+  const resetAnno = () => {
+    clearAll();
+    resetAnnoStyle();
+  };
   import ConvertSection from "./tools/ConvertSection.svelte";
   import CompressSection from "./tools/CompressSection.svelte";
   import ImageEditSection from "./tools/ImageEditSection.svelte";
@@ -169,7 +174,7 @@
         {#if multi}<p class="muted sub">{$t("{n} ficheiros", { n: selection.length })}&nbsp;·&nbsp;{$t(CATEGORY_LABELS[category])}</p>{/if}
       </div>
       {#if current === "annotate" && category === "imaxe"}
-        <FormBar custom={{ canUndo, canRedo, dirty: hasShapes, undo, redo, reset: clearAll, resetTitle: "Borrar todas as anotacións" }} />
+        <FormBar custom={{ canUndo, canRedo, dirty: hasShapes, undo, redo, reset: resetAnno }} />
       {:else}
         <FormBar form={$activeForm} />
       {/if}

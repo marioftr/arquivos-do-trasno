@@ -21,7 +21,8 @@
   import { installExplorerMenu } from "./lib/explorerMenu";
   import QuickJob from "./lib/components/QuickJob.svelte";
   import HubDialog from "./lib/components/HubDialog.svelte";
-  import { procs, refreshProcs } from "./lib/procs";
+  import { procs, refreshProcs, requestCancel } from "./lib/procs";
+  import { actions, tipsOn, TIPS, liveProgress } from "./lib/agent";
   import { reportProgress } from "./lib/job";
   import { requestTool } from "./lib/toolinstall";
   import ToolNeedDialog from "./lib/components/ToolNeedDialog.svelte";
@@ -34,9 +35,40 @@
   let unlistenOpen: (() => void) | null = null;
   let unlistenProgress: (() => void) | null = null;
   let procTimer: ReturnType<typeof setInterval>;
-  $: lastRun = [...$procs].filter((p) => p.state === "running").sort((x, y) => (y.started ?? 0) - (x.started ?? 0))[0];
-  // Provisional: o trasno-axente só avisa do importante; aquí só hai os avisos que a app xa coñece.
-  $: bubble = ffmpegOk === false && needsFfmpeg ? $t("Falta ffmpeg: instalalo agora") : $updateAvailable ? $t("Hai unha versión nova") : "";
+  $: running = [...$procs].filter((p) => p.state === "running").sort((x, y) => (y.started ?? 0) - (x.started ?? 0));
+  $: lastRun = running[0];
+  $: pct = lastRun ? (lastRun.source === "app" && $liveProgress !== null ? $liveProgress : lastRun.progress) : 0;
+  // O trasno-axente: avisa do importante (sempre) e, de cando en vez, solta un consello (se non está apagado).
+  $: important = ffmpegOk === false && needsFfmpeg ? { text: $t("Falta ffmpeg: instalalo agora"), run: () => requestTool("ffmpeg") } : $updateAvailable ? { text: $t("Hai unha versión nova"), run: () => openHub("news.updates") } : null;
+  let tip = "";
+  let tipIdx = -1;
+  let tipTimer: ReturnType<typeof setTimeout>;
+  let tipHide: ReturnType<typeof setTimeout>;
+  function scheduleTip(first = false) {
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(() => {
+      if ($tipsOn && !running.length && !important && $files.length) {
+        tipIdx = (tipIdx + 1 + Math.floor(Math.random() * (TIPS.length - 1))) % TIPS.length;
+        tip = TIPS[tipIdx];
+        clearTimeout(tipHide);
+        tipHide = setTimeout(() => (tip = ""), 13000);
+      }
+      scheduleTip();
+    }, first ? 18000 : 80000 + Math.random() * 60000);
+  }
+  $: if (!$tipsOn) tip = "";
+  let askCancel = false;
+  $: if (!lastRun) askCancel = false;
+  async function doCancel() {
+    askCancel = false;
+    if (!lastRun) return;
+    if (lastRun.source === "app") await engine.cancelJob().catch(() => false);
+    else await requestCancel(lastRun.id).catch(() => {});
+  }
+  const hhmm = (n: number) => new Date(n).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  $: lastAct = $actions[0];
+  $: voice = lastRun?.subtitle ?? lastAct?.text ?? ($files.length ? $t("Listo cando queiras.") : $t("Arrastra algún ficheiro e poñémonos a elo."));
+  $: history = $actions.length ? `${$t("Últimas accións")}:\n` + $actions.map((x) => `${hhmm(x.at)}  ${x.text}`).join("\n") : "";
   $: runningProcs = $procs.filter((p) => p.state === "running").length;
   let ffmpegOk: boolean | null = null;
 
@@ -104,6 +136,7 @@
       engine.enableProgress().catch(() => {});
       unlistenProgress = await listen<number>("trasno://progress", (e) => reportProgress(e.payload));
       refreshProcs();
+      scheduleTip(true);
       procTimer = setInterval(refreshProcs, 2000);
     }
     unlisten = await getCurrentWebview().onDragDropEvent((event) => {
@@ -208,22 +241,35 @@
   </div>
 
   <footer class="status">
-    {#if bubble}
-      <div class="bubble" role="status"><span class="bx">!</span> {bubble}</div>
+    {#if important}
+      <button class="bubble" on:click={important.run}><span class="bx">!</span> {important.text}</button>
+    {:else if tip}
+      <button class="bubble tipb" on:click={() => (tip = "")} title={$t("Pechar")}><span class="bx">i</span> <span><b>{$t("Sabías que…")}</b> {$t(tip)}</span></button>
     {/if}
     <button class="trasno" on:click={() => dialog.set("palette")} title={$t("Buscar unha acción (Ctrl+K)")} aria-label={$t("Buscar unha acción (Ctrl+K)")}>
-      <TrasnoSprite state={bubble ? "warn" : runningProcs ? "working" : "idle"} size={32} />
-      {#if bubble}<span class="alert" aria-hidden="true">!</span>{/if}
+      <TrasnoSprite state={important ? "warn" : lastRun ? "working" : "idle"} size={64} />
+      {#if important}<span class="alert" aria-hidden="true">!</span>{/if}
     </button>
-    <button class="jobs" on:click={() => openHub("procs.running")} title={$t("Procesos")} aria-label={$t("Procesos")}>
-      {#if lastRun}
-        <span class="jt">{lastRun.title}</span>
-        <span class="track"><span class="fill" style={`width:${Math.round(Math.max(0.03, lastRun.progress) * 100)}%`}></span></span>
-        <span class="muted pct">{Math.round(lastRun.progress * 100)} %{runningProcs > 1 ? ` · +${runningProcs - 1}` : ""}</span>
-      {:else}
-        <span class="muted">{$files.length ? $t("{n} ficheiros", { n: $files.length }) : $t("Listo")}</span>
-      {/if}
-    </button>
+    <div class="voice" title={history}>
+      <span class="vt">{voice}</span>
+      {#if !lastRun && lastAct}<span class="muted vh">{hhmm(lastAct.at)}</span>{/if}
+    </div>
+    {#if lastRun}
+      <div class="jobs">
+        <button class="jb" on:click={() => openHub("procs.running")} title={`${lastRun.title} — ${$t("Procesos")}`} aria-label={$t("Procesos")}>
+          <span class="jt">{lastRun.title}</span>
+          <span class="track"><span class="fill" style={`width:${Math.round(Math.max(0.03, pct) * 100)}%`}></span></span>
+          <span class="muted pct">{Math.round(pct * 100)} %{running.length > 1 ? ` · +${running.length - 1} ${$t("máis en marcha")}` : ""}</span>
+        </button>
+        {#if askCancel}
+          <span class="cq">{$t("Cancelar?")}</span>
+          <button class="cb danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
+          <button class="cb" on:click={() => (askCancel = false)}>{$t("Non")}</button>
+        {:else}
+          <button class="cb x" on:click={() => (askCancel = true)} title={$t("Cancelar")} aria-label={$t("Cancelar")}><Icon name="close" size={14} /></button>
+        {/if}
+      </div>
+    {/if}
     <span class="grow"></span>
     {#if ffmpegOk === false && needsFfmpeg}
       <button class="aviso" on:click={() => requestTool("ffmpeg")}><Icon name="warning" size={14} /> {$t("Falta ffmpeg: instalalo agora")}</button>
@@ -257,20 +303,32 @@
   .grow { flex: 1; }
   .badge { position: absolute; top: 2px; right: 1px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.64rem; font-weight: 700; padding: 0 0.35em; min-width: 1.2em; line-height: 1.35; text-align: center; }
   .newdot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg-rail); }
-  .status { flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; min-height: 2.5rem; padding: 0 0.9rem 0 0.7rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.78rem; }
-  .status { position: relative; }
-  .trasno { position: relative; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; margin-left: -0.2rem; background: none; border: none; border-radius: var(--radius-md); padding: 0; }
-  .trasno:hover { background: var(--bg-hover); }
-  .alert { position: absolute; top: -0.45rem; right: 0.05rem; width: 1rem; height: 1rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-size: 0.7rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg-rail); }
-  .bubble { position: absolute; left: 0.7rem; bottom: calc(100% + 0.45rem); display: inline-flex; align-items: center; gap: 0.45rem; max-width: 70%; padding: 0.45rem 0.75rem; background: var(--bg-elevated, var(--bg-input)); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: 0.8rem; }
-  .bubble::after { content: ""; position: absolute; left: 1.2rem; bottom: -6px; width: 10px; height: 10px; background: inherit; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); transform: rotate(45deg); }
-  .bx { color: var(--accent-pdf); font-weight: 800; }
-  .jobs { flex: 0 1 26rem; min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 1.9rem; padding: 0 0.55rem; background: none; border: none; border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; }
-  .jobs:hover { background: var(--bg-hover); }
-  .jt { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
-  .track { flex: 1 1 5rem; min-width: 3rem; height: 4px; border-radius: 4px; background: var(--border-strong); overflow: hidden; }
-  .fill { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
+  .status { position: relative; z-index: 20; flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; height: 2.7rem; padding: 0 0.9rem 0 0.5rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
+  .trasno { position: relative; flex: none; align-self: flex-end; width: 4rem; height: 4rem; margin-bottom: -0.1rem; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.12s; }
+  .trasno:hover { transform: translateY(-2px); }
+  .alert { position: absolute; top: 0.1rem; right: 0; width: 1.15rem; height: 1.15rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-size: 0.78rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg-rail); animation: hop 0.9s ease-in-out infinite; }
+  @keyframes hop { 50% { transform: translateY(-3px); } }
+  .bubble { position: absolute; left: 4.9rem; bottom: calc(100% + 0.25rem); display: inline-flex; align-items: center; gap: 0.5rem; max-width: min(34rem, 70%); padding: 0.5rem 0.8rem; text-align: left; color: var(--text); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: 0.82rem; line-height: 1.35; animation: rise 0.25s ease-out; }
+  .bubble:hover { border-color: var(--accent); }
+  .bubble::before { content: ""; position: absolute; left: -6px; bottom: 0.9rem; width: 10px; height: 10px; background: var(--bg-elevated); border-left: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); transform: rotate(45deg); }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  .bx { flex: none; display: grid; place-items: center; width: 1.2rem; height: 1.2rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-weight: 800; font-size: 0.78rem; }
+  .tipb .bx { background: var(--accent); color: var(--on-accent); }
+  .voice { flex: 1 1 8rem; min-width: 0; display: flex; align-items: baseline; gap: 0.55rem; }
+  .vt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .vh { flex: none; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+  .jobs { flex: 0 1 28rem; min-width: 0; display: flex; align-items: center; gap: 0.35rem; }
+  .jb { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 1.9rem; padding: 0 0.55rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; }
+  .jb:hover { border-color: var(--accent); }
+  .jt { flex: 0 1 9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
+  .track { flex: 1 1 4rem; min-width: 2.5rem; height: 5px; border-radius: 5px; background: var(--border-strong); overflow: hidden; }
+  .fill { display: block; height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.3s; }
   .pct { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cq { font-size: 0.78rem; white-space: nowrap; }
+  .cb { height: 1.9rem; padding: 0 0.6rem; background: none; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; }
+  .cb.x { width: 1.9rem; padding: 0; display: grid; place-items: center; border-color: transparent; color: var(--text-muted); }
+  .cb:hover { background: var(--bg-hover); }
+  .cb.danger { color: var(--accent-video); border-color: var(--accent-video); }
   .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.78rem; font-weight: 550; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); }
   .aviso:hover { background: var(--bg-hover); }
   .aviso.up { color: var(--accent); }

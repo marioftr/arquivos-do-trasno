@@ -9,6 +9,7 @@ import { requestTool } from "./toolinstall";
 import { beginJob } from "./engine";
 import { track, type Tracker } from "./procs";
 import { files, activePath } from "./files";
+import { noteAction, liveProgress } from "./agent";
 
 export interface JobMessage {
   ok: boolean;
@@ -34,6 +35,7 @@ let active: { tracker: Tracker; progress: Writable<number | null> } | null = nul
 export function reportProgress(f: number) {
   if (!active) return;
   active.progress.set(f);
+  liveProgress.set(f);
   active.tracker.update({ progress: f });
 }
 
@@ -64,22 +66,26 @@ export function createJob(): Job {
       try {
         const done = await job();
         if (done) message.set({ ok: true, text: done });
+        noteAction("Rematei co traballo de «{name}»", { name: current?.name ?? "" });
         tracker.finish("done", { detail: done ? String(done).slice(0, 200) : undefined });
       } catch (e) {
         // Cancelar non é un fallo: sen frase de «tropezou».
         if (isCancelled(e)) {
           message.set({ ok: true, neutral: true, text: tr("Traballo cancelado. O trasno deixou todo ordenado, sen ficheiros a medias.") });
+          noteAction("Cancelei o traballo de «{name}»", { name: current?.name ?? "" });
           tracker.finish("cancelled");
         } else {
           const missing = missingToolOf(e);
           if (missing) requestTool(missing, undefined, () => void this.run(working, fail, job));
           message.set({ ok: false, text: `${tr(fail)}\n${errText(e)}` });
+          noteAction("Tropecei co traballo de «{name}»", { name: current?.name ?? "" });
           tracker.finish("error", { detail: errText(e).slice(0, 200) });
         }
       } finally {
         active = null;
         outputHook.fn = null;
         progress.set(null);
+        liveProgress.set(null);
         busy.set(false);
       }
     },

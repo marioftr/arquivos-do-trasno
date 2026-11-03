@@ -1,22 +1,46 @@
 <script lang="ts">
   import Icon from "../Icon.svelte";
-  import TrasnoSprite from "./TrasnoSprite.svelte";
   import { t } from "../../i18n";
   import type { Job } from "../../job";
-  import { cancelJob } from "../../engine";
 
   export let job: Job;
   $: busy = job.busy;
-  $: text = job.text;
-  $: progress = job.progress;
   $: message = job.message;
 
-  // Cancelar pide confirmación; o traballo en marcha para e non queda ningún ficheiro a medias.
-  let asking = false;
-  $: if (!$busy) asking = false;
-  async function doCancel() {
-    asking = false;
-    await cancelJob().catch(() => false);
+  // Mentres traballa, o proceso vive na barra de abaixo: aquí só se ve como «entra» nela.
+  let anchor: HTMLSpanElement;
+  let was = false;
+  $: if ($busy !== was) {
+    was = $busy;
+    if ($busy) fly();
+  }
+  function fly() {
+    if (typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const to = document.querySelector<HTMLElement>(".status .trasno");
+    if (!anchor || !to) return;
+    const a = anchor.getBoundingClientRect();
+    const b = to.getBoundingClientRect();
+    const el = document.createElement("img");
+    el.src = "/trasno/base.png";
+    el.alt = "";
+    Object.assign(el.style, { position: "fixed", left: `${a.left}px`, top: `${a.top - 16}px`, width: "32px", height: "32px", imageRendering: "pixelated", zIndex: "200", pointerEvents: "none" });
+    document.body.appendChild(el);
+    const dx = b.left + b.width / 2 - 16 - a.left;
+    const dy = b.top + b.height / 2 - 16 - (a.top - 16);
+    el
+      .animate(
+        [
+          { transform: "translate(0,0) scale(1)", opacity: 1 },
+          { transform: `translate(${dx * 0.45}px, ${Math.min(0, dy * 0.45) - 36}px) scale(1.5)`, opacity: 1, offset: 0.4 },
+          { transform: `translate(${dx}px, ${dy}px) scale(1.9)`, opacity: 0.95 },
+        ],
+        { duration: 650, easing: "cubic-bezier(.45,.05,.3,1)" },
+      )
+      .finished.then(() => {
+        el.remove();
+        to.animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 260 });
+      })
+      .catch(() => el.remove());
   }
 
   let copied = false;
@@ -31,21 +55,7 @@
   }
 </script>
 
-{#if $busy}
-  <div class="busyrow">
-    <p class="busy"><TrasnoSprite state="working" size={32} />{$text}{#if $progress !== null}&nbsp;·&nbsp;{Math.round($progress * 100)} %{/if}</p>
-    {#if asking}
-      <span class="ask">{$t("Cancelar e non gardar nada?")}</span>
-      <button class="btn danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
-      <button class="btn" on:click={() => (asking = false)}>{$t("Seguir")}</button>
-    {:else}
-      <button class="btn ghost" on:click={() => (asking = true)}>{$t("Cancelar")}</button>
-    {/if}
-  </div>
-  {#if $progress !== null}
-    <div class="pbar"><div class="pfill" style={`width:${Math.round($progress * 100)}%`}></div></div>
-  {/if}
-{/if}
+<span class="anchor" bind:this={anchor}></span>
 {#if $message}
   <div class="msg-wrap" class:ok={$message.ok && !$message.neutral} class:err={!$message.ok} class:neutral={$message.neutral}>
     <p class="msg selectable">{$message.text}</p>
@@ -56,12 +66,7 @@
 {/if}
 
 <style>
-  .busyrow :global(.btn) { height: var(--control-h); min-height: var(--control-h); padding-block: 0; box-sizing: border-box; }
-  .pbar { height: 6px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
-  .pfill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.3s ease; }
-  .busyrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-  .ask { font-size: 0.82rem; }
-  .busy { margin: 0; display: flex; align-items: center; gap: 0.6rem; font-size: 0.86rem; color: var(--text-muted); }
+  .anchor { display: block; height: 0; }
   .msg-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem; border-left: 2px solid var(--border-strong); padding: 0.1rem 0 0.1rem 0.75rem; }
   .msg-wrap.ok { border-left-color: var(--accent-imaxe); }
   .msg-wrap.err { border-left-color: var(--accent-video); }

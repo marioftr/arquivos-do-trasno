@@ -7,6 +7,8 @@
   import * as engine from "../engine";
   import { errText } from "../errors";
   import Segmented from "./ui/Segmented.svelte";
+  import Toggle from "./ui/Toggle.svelte";
+  import { tipsOn } from "../agent";
   import Icon from "./Icon.svelte";
 
   // Segmented usa texto; as tendas teñen tipos máis estritos.
@@ -73,6 +75,11 @@
       ]}
       bind:value={themeV}
     />
+  </section>
+
+  <section>
+    <h3>{$t("Trasno")}</h3>
+    <Toggle label={$t("Consellos do trasno")} bind:checked={$tipsOn} />
   </section>
 
   <section>

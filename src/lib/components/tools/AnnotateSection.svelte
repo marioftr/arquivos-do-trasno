@@ -149,7 +149,9 @@
   <div class="group">
     <h4 class="group-title">{$t("Aspecto")}</h4>
     {#if kind}
+      {#if tool === "select"}
         <Slider label={$t("Xiro")} unit="°" min={-180} max={180} bind:value={uiAngle} def={0} />
+      {/if}
       <ColorField label={$t("Cor")} bind:value={$annoStyle.color} />
       {#if showWidth}
         <Slider label={$t("Groso")} unit="px" min={1} max={60} bind:value={$annoStyle.width} def={5} />

@@ -50,7 +50,8 @@ export interface Style {
 /** O separador de anotar está aberto: o visor deixa de mover a imaxe co rato esquerdo. */
 export const annoActive = writable(false);
 export const annoTool = writable<Tool>("pen");
-export const annoStyle = writable<Style>({ color: "#ff3b30", width: 5, fill: false, fillColor: "", family: "Helvetica", size: 40, bold: false, italic: false, angle: 0 });
+export const DEFAULT_ANNO: Style = { color: "#ff3b30", width: 5, fill: false, fillColor: "", family: "Helvetica", size: 40, bold: false, italic: false, angle: 0 };
+export const annoStyle = writable<Style>({ ...DEFAULT_ANNO });
 /** Groso e recheo que lembra cada ferramenta por separado (o xiro e o resto non pasan dunha a outra). */
 export const toolPrefs: Record<string, { width: number; fill: boolean }> = {
   pen: { width: 5, fill: false },
@@ -60,6 +61,12 @@ export const toolPrefs: Record<string, { width: number; fill: boolean }> = {
   rect: { width: 5, fill: false },
   ellipse: { width: 5, fill: false },
 };
+/** Aspecto das anotacións de volta ao por defecto (tamén o groso que lembra cada ferramenta). */
+export function resetAnnoStyle() {
+  for (const k of Object.keys(toolPrefs)) toolPrefs[k] = { width: k === "highlight" ? 15 : 5, fill: false };
+  const p = toolPrefs[get(annoTool)];
+  annoStyle.set({ ...DEFAULT_ANNO, width: p?.width ?? DEFAULT_ANNO.width });
+}
 export const shapes = writable<Shape[]>([]);
 export const selected = writable<number | null>(null);
 /** Imaxe á que pertence o debuxado actual: ao cambiar de imaxe, empeza de cero. */

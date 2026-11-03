@@ -395,7 +395,11 @@ dd {
   padding-top: 0.25rem;
 }
 
+.group:has(> .group-title) > .gn { position: absolute; top: 0.95rem; right: 0; margin: 0; }
+.group:first-of-type:has(> .group-title) > .gn { top: 0.25rem; }
 .group:has(> .gn) > .group-title { padding-right: 1.8rem; }
+
+.group-title { padding-right: 1.8rem; }
 .group:has(> .gn):not(:has(> .group-title)) { padding-top: 2.1rem; }
 .group:first-of-type:has(> .gn):not(:has(> .group-title)) { padding-top: 1.7rem; }
 

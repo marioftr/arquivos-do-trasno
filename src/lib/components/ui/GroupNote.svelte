@@ -8,5 +8,5 @@
 <span class="gn"><InfoTip {text} /></span>
 
 <style>
-  .gn { position: absolute; top: 0.95rem; right: 0; line-height: 1; }
+  .gn { align-self: flex-end; line-height: 1; margin: -0.2rem 0 -0.4rem; }
 </style>

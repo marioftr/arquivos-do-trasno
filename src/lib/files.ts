@@ -1,6 +1,7 @@
 // Estado do espazo de traballo: os ficheiros cargados, cal se está vendo e
 // cales están marcados para operacións en lote (unir, comprimir varios...).
 
+import { noteAction } from "./agent";
 import type { FontSpec } from "./fonts";
 import { writable, get } from "svelte/store";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -64,6 +65,7 @@ function pump() {
 
 export async function addPaths(input: string[]) {
   let selectedNew = false;
+  const before = get(files).length;
   // Os cartafoles abren as súas ficheiros; as categorías míranse todas á vez e despois entran por orde.
   const paths = [...new Set(await engine.expandPaths(input).catch(() => input))];
   let skipped = 0;
@@ -120,6 +122,9 @@ export async function addPaths(input: string[]) {
       engine.imageDimensions(path).then(([width, height]) => patch(path, { width, height })).catch(() => {});
     }
   }
+  const added = get(files).length - before;
+  if (added === 1) noteAction("Acabo de engadir «{name}»", { name: get(files)[get(files).length - 1].name });
+  else if (added > 1) noteAction("Acabo de engadir {n} ficheiros", { n: added });
   if (skipped) toast(tr("O trasno deixou {n} ficheiros fóra da lista: non coñece ese tipo de cousas.", { n: skipped }), { kind: "warn" });
 }
 
@@ -143,6 +148,7 @@ export function removeFile(path: string) {
   const index = get(files).findIndex((f) => f.path === path);
   if (index >= 0) {
     lastRemoved = { entry: get(files)[index], index, wasChecked: get(checked).has(path) };
+    noteAction("Quitei «{name}» da lista", { name: lastRemoved.entry.name });
     toast(tr("«{name}» desapareceu da lista (o ficheiro segue onde estaba). Foi sen querer?", { name: lastRemoved.entry.name }), { action: { label: tr("Desfacer"), run: undoRemove } });
   }
   const list = get(files).filter((f) => f.path !== path);
@@ -156,6 +162,7 @@ export function removeFile(path: string) {
 }
 
 export function clearAll() {
+  if (get(files).length) noteAction("Baleirei a lista de ficheiros");
   files.set([]);
   checked.set(new Set());
   activePath.set(null);
