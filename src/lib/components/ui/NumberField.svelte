@@ -52,8 +52,8 @@
   .reset:hover { color: var(--accent); background: var(--bg-hover); }
   .num { display: flex; align-items: center; height: var(--control-h); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding-right: 0.6em; }
   .num:hover { border-color: var(--text-faint); }
-  .num:focus-within { border-color: var(--accent); }
+  .num:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
   .num input { flex: 1; width: 100%; min-width: 0; height: 100%; border: none; background: transparent; padding: 0 0.4em 0 0.65em; text-align: left; }
-  .num input:focus { outline: none; border: none; }
+  .num input:focus { outline: none; border: none; box-shadow: none; }
   .unit { font-size: 0.78rem; color: var(--text-faint); white-space: nowrap; }
 </style>

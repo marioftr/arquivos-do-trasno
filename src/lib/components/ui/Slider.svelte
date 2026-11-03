@@ -65,8 +65,8 @@
   .ctl input[type="range"] { flex: 1; min-width: 0; }
   .num { display: inline-flex; align-items: center; height: var(--control-h); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding-right: 0.55em; }
   .num:hover { border-color: var(--text-faint); }
-  .num:focus-within { border-color: var(--accent); }
+  .num:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
   .num input { width: 4.2em; height: 100%; border: none; background: transparent; padding: 0 0.3em 0 0.6em; }
-  .num input:focus { outline: none; border: none; }
+  .num input:focus { outline: none; border: none; box-shadow: none; }
   .unit { font-size: 0.78rem; color: var(--text-faint); min-width: 1.6em; }
 </style>

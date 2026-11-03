@@ -1,6 +1,6 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
-  import { files, activePath, checked, toggleChecked, setChecked, removeFile, moveFile, moveFileTo, checkRange, clearAll, removeChecked, undoRemove } from "../files";
+  import { files, activePath, checked, toggleChecked, setChecked, removeFile, moveFile, moveFileTo, checkRange, removeChecked, undoRemove } from "../files";
   import { formatBytes } from "../formats";
   import { t } from "../i18n";
   import { revealInFolder, type Category } from "../engine";
@@ -131,10 +131,7 @@
 <div class="list" data-filelist>
   <div class="head">
     <span class="titulo">{$t("Ficheiros")}<span class="muted cnt">&nbsp;·&nbsp;{$files.length}</span></span>
-    <span class="hact">
-      <button class="ib" on:click={clearAll} disabled={!$files.length} title={$t("Baleirar a lista")} aria-label={$t("Baleirar a lista")}><Icon name="trash" size={16} /></button>
-      <button class="btn" on:click={onAdd}><Icon name="plus" size={14} /> {$t("Engadir")}</button>
-    </span>
+    <button class="btn" on:click={onAdd}><Icon name="plus" size={14} /> {$t("Engadir")}</button>
   </div>
   {#if $checked.size}
     <div class="sel" role="toolbar" aria-label={$t("Ficheiros marcados")}>
@@ -142,7 +139,7 @@
       <span class="hact">
         <button class="ib" on:click={() => setChecked($files.map((f) => f.path))} disabled={allChecked} title={$t("Marcar todo")} aria-label={$t("Marcar todo")}><Icon name="checks" size={16} /></button>
         <button class="ib" on:click={() => setChecked([])} title={$t("Desmarcar todo")} aria-label={$t("Desmarcar todo")}><Icon name="square" size={16} /></button>
-        <button class="ib danger" on:click={removeChecked} title={$t("Quitar marcados da lista")} aria-label={$t("Quitar marcados da lista")}><Icon name="close" size={16} /></button>
+        <button class="ib danger" on:click={removeChecked} title={$t("Quitar marcados da lista")} aria-label={$t("Quitar marcados da lista")}><Icon name="trash" size={16} /></button>
       </span>
     </div>
   {/if}
@@ -211,11 +208,11 @@
   ul:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
   li.spacer { padding: 0; border: none; background: none; pointer-events: none; }
   li:not(.spacer) { height: 54px; box-sizing: border-box; overflow: hidden; }
-  li { display: flex; align-items: center; gap: 0.4rem; padding: 0 0.5rem 0 0.3rem; border-left: 2px solid transparent; background: var(--bg-rail); }
-  li:hover { background: var(--bg-hover); }
-  li.active { background: color-mix(in srgb, var(--accent) 10%, var(--bg-rail)); border-left-color: var(--accent-conversor); }
-  li.lifted { position: relative; z-index: 5; pointer-events: none; opacity: 0.92; box-shadow: var(--shadow-pop); background: var(--bg-elevated); }
-  li.target { background: color-mix(in srgb, var(--accent) 18%, var(--bg-rail)); }
+  li { --rowbg: var(--bg-rail); position: relative; display: flex; align-items: center; gap: 0.4rem; padding: 0 0.5rem 0 0.3rem; border-left: 2px solid transparent; background: var(--rowbg); }
+  li:hover { --rowbg: var(--bg-hover); }
+  li.active { --rowbg: color-mix(in srgb, var(--accent) 10%, var(--bg-rail)); border-left-color: var(--accent-conversor); }
+  li.lifted { --rowbg: var(--bg-elevated); position: relative; z-index: 5; pointer-events: none; opacity: 0.92; box-shadow: var(--shadow-pop); }
+  li.target { --rowbg: color-mix(in srgb, var(--accent) 18%, var(--bg-rail)); }
   .grip { cursor: grab; touch-action: none; user-select: none; color: var(--text-faint); padding: 0.4rem 0.15rem; line-height: 1; opacity: 0; }
   li:hover .grip, li.active .grip { opacity: 1; }
   .row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; background: none; border: none; color: var(--text-muted); padding: 0.55rem 0; text-align: left; }
@@ -223,7 +220,8 @@
   .info { display: flex; flex-direction: column; min-width: 0; }
   .nome { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.86rem; }
   .meta { font-size: 0.74rem; }
-  .acc { display: none; align-items: center; }
+  /* As accións flotan sobre o final da fila: o texto non se reordena ao pasar o rato. */
+  .acc { display: none; position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%); align-items: center; padding-left: 1.2rem; background: linear-gradient(90deg, transparent, var(--rowbg) 1.2rem); }
   li:hover .acc { display: flex; }
   .mini { background: none; border: none; color: var(--text-faint); padding: 0.2rem; border-radius: var(--radius-sm); display: flex; }
   .mini:hover:not(:disabled) { color: var(--text); background: var(--bg-card); }

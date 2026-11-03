@@ -11,6 +11,8 @@ export interface Form<T extends Record<string, any>> extends Writable<T> {
   redo: () => void;
   resetKey: (key: keyof T) => void;
   resetAll: () => void;
+  /** Pon uns valores sen deixar rastro no historial nin na lista de accións (serve para retroceder). */
+  restore: (v: T) => void;
   canUndo: Readable<boolean>;
   canRedo: Readable<boolean>;
   dirty: Readable<boolean>;
@@ -91,7 +93,10 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
     last = { ...v };
     clearTimeout(timer);
     timer = setTimeout(() => {
-      if (burstStart) describeForm(burstStart, last);
+      if (burstStart) {
+        const snap = { ...burstStart };
+        describeForm(snap, last, () => form.restore(snap));
+      }
       flush();
       sync();
     }, 450);
@@ -112,28 +117,40 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
     defaults,
     undo() {
       flush();
-      noteAction("O trasno desfixo o último cambio dos axustes");
       const prev = past.pop();
       if (!prev) return;
+      const snap = { ...last };
       future.push({ ...last });
       apply(prev);
       sync();
+      noteAction("O trasno desfixo o último cambio dos axustes", undefined, () => form.restore(snap));
     },
     redo() {
       flush();
-      noteAction("O trasno refixo o cambio dos axustes");
       const next = future.pop();
       if (!next) return;
+      const snap = { ...last };
       past.push({ ...last });
       apply(next);
+      sync();
+      noteAction("O trasno refixo o cambio dos axustes", undefined, () => form.restore(snap));
+    },
+    restore(v) {
+      flush();
+      apply({ ...v });
       sync();
     },
     resetKey(key) {
       store.update((v) => ({ ...v, [key]: defaults[key] }));
     },
     resetAll() {
-      noteAction("O trasno restableceu os axustes");
-      store.set({ ...defaults });
+      flush();
+      const snap = { ...last };
+      past.push({ ...last });
+      future = [];
+      apply({ ...defaults });
+      sync();
+      noteAction("O trasno restableceu os axustes", undefined, () => form.restore(snap));
     },
     canUndo,
     canRedo,

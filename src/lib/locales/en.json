@@ -1156,7 +1156,6 @@
   "Cor do recheo": "Fill colour",
   "Arrastra os ficheiros aquí": "Drop your files here",
   "Listo": "Ready",
-  "Ctrl+K abre o buscador de accións. Tamén podes premerme a min.": "Ctrl+K opens the action search. You can also click me.",
   "Arrastra ficheiros á xanela e engádoos sen botóns.": "Drag files onto the window and I'll add them, no buttons needed.",
   "Con Seleccionar podes mover, escalar e xirar calquera anotación.": "With Select you can move, scale and rotate any annotation.",
   "Ctrl+Z desfai o último cambio dos axustes e Restablecer volve ao por defecto.": "Ctrl+Z undoes the last settings change and Reset goes back to the defaults.",
@@ -1308,5 +1307,14 @@
   "{n} marcados": "{n} ticked",
   "Ficheiros marcados": "Ticked files",
   "Quitar marcados da lista": "Remove ticked files from the list",
-  "Aínda non hai accións.": "No actions yet."
+  "Aínda non hai accións.": "No actions yet.",
+  "Ctrl+K abre o buscador de accións.": "Ctrl+K opens the action search.",
+  "O trasno retrocedeu ata «{what}»": "The trasno went back to “{what}”",
+  "Volver a este punto": "Go back to this point",
+  "Volver ao estado de «{what}»?": "Go back to the state after “{what}”?",
+  "Desfarase 1 cambio.": "1 change will be undone.",
+  "Desfaranse {n} cambios.": "{n} changes will be undone.",
+  "Si, volver": "Yes, go back",
+  "Sen procesos activos": "No active processes",
+  "Ver os procesos e o seu historial": "See processes and their history"
 }

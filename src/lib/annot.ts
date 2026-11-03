@@ -132,30 +132,41 @@ export function flushLive() {
 const NOUN: Record<string, string> = { pen: "un trazo a lapis", highlight: "un trazo co marcador", line: "unha liña", arrow: "unha frecha", rect: "un rectángulo", ellipse: "unha elipse", text: "un texto" };
 /** O trasno conta o que se fixo coas anotacións comparando a lista antes e despois. */
 function narrate(before: Shape[], after: Shape[]) {
+  const path = get(annoPath);
+  const undo = () => restoreShapesFor(path, before);
   const b = new Map(before.map((s) => [s.id, s]));
   const a = new Map(after.map((s) => [s.id, s]));
   const added = after.filter((s) => !b.has(s.id));
   const removed = before.filter((s) => !a.has(s.id));
-  if (added.length === 1 && !removed.length) return noteAction("O trasno debuxou {what}", { what: tr(NOUN[added[0].type]) });
-  if (!after.length && removed.length > 1) return noteAction("O trasno borrou todas as anotacións");
-  if (removed.length === 1 && !added.length) return noteAction("O trasno borrou {what}", { what: tr(NOUN[removed[0].type]) });
-  if (removed.length > 1) return noteAction("O trasno borrou {n} anotacións", { n: removed.length });
+  if (added.length === 1 && !removed.length) return noteAction("O trasno debuxou {what}", { what: tr(NOUN[added[0].type]) }, undo);
+  if (!after.length && removed.length > 1) return noteAction("O trasno borrou todas as anotacións", undefined, undo);
+  if (removed.length === 1 && !added.length) return noteAction("O trasno borrou {what}", { what: tr(NOUN[removed[0].type]) }, undo);
+  if (removed.length > 1) return noteAction("O trasno borrou {n} anotacións", { n: removed.length }, undo);
   for (const s of after) {
     const o = b.get(s.id);
     if (!o) continue;
     const what = tr(NOUN[s.type]);
-    if ((o.angle ?? 0) !== (s.angle ?? 0)) return noteAction("O trasno xirou {what}", { what });
-    if (s.type === "text" && o.text !== s.text) return noteAction("O trasno editou o texto");
-    if (o.size !== s.size || o.width !== s.width) return noteAction("O trasno cambiou o tamaño de {what}", { what });
-    if (o.color !== s.color || o.fill !== s.fill || o.fillColor !== s.fillColor || o.family !== s.family || o.bold !== s.bold || o.italic !== s.italic) return noteAction("O trasno cambiou o aspecto de {what}", { what });
-    if (JSON.stringify(o) !== JSON.stringify(s)) return noteAction("O trasno moveu {what}", { what });
+    if ((o.angle ?? 0) !== (s.angle ?? 0)) return noteAction("O trasno xirou {what}", { what }, undo);
+    if (s.type === "text" && o.text !== s.text) return noteAction("O trasno editou o texto", undefined, undo);
+    if (o.size !== s.size || o.width !== s.width) return noteAction("O trasno cambiou o tamaño de {what}", { what }, undo);
+    if (o.color !== s.color || o.fill !== s.fill || o.fillColor !== s.fillColor || o.family !== s.family || o.bold !== s.bold || o.italic !== s.italic) return noteAction("O trasno cambiou o aspecto de {what}", { what }, undo);
+    if (JSON.stringify(o) !== JSON.stringify(s)) return noteAction("O trasno moveu {what}", { what }, undo);
+  }
+}
+
+/** Deixa as figuras dunha imaxe como estaban (sen contalo outra vez; entra no historial para poder desfacelo). */
+function restoreShapesFor(path: string, list: Shape[]) {
+  if (get(annoPath) === path) commit(list, false);
+  else {
+    const st = stash.get(path);
+    if (st) st.shapes = list;
   }
 }
 
 /** Cambia a lista de figuras gardando o estado anterior para poder desfacer. */
-export function commit(next: Shape[]) {
+export function commit(next: Shape[], announce = true) {
   flushLive();
-  narrate(get(shapes), next);
+  if (announce) narrate(get(shapes), next);
   past.push(get(shapes));
   if (past.length > 200) past.shift();
   future.length = 0;
@@ -164,23 +175,27 @@ export function commit(next: Shape[]) {
 }
 export function undo() {
   flushLive();
-  if (past.length) noteAction("O trasno desfixo o último cambio das anotacións");
   const prev = past.pop();
   if (!prev) return;
-  future.push(get(shapes));
+  const cur = get(shapes);
+  const path = get(annoPath);
+  future.push(cur);
   shapes.set(prev);
   selected.set(null);
   sync();
+  noteAction("O trasno desfixo o último cambio das anotacións", undefined, () => restoreShapesFor(path, cur));
 }
 export function redo() {
   flushLive();
-  if (future.length) noteAction("O trasno refixo o cambio das anotacións");
   const nxt = future.pop();
   if (!nxt) return;
-  past.push(get(shapes));
+  const cur = get(shapes);
+  const path = get(annoPath);
+  past.push(cur);
   shapes.set(nxt);
   selected.set(null);
   sync();
+  noteAction("O trasno refixo o cambio das anotacións", undefined, () => restoreShapesFor(path, cur));
 }
 /** Borra só o debuxado polo usuario (a imaxe non se toca). Pódese desfacer. */
 export function clearAll() {

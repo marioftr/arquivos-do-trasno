@@ -1,7 +1,7 @@
 // O trasno como axente: lembra o que fixo a persoa (para contalo na barra inferior) e ten un
 // repertorio de consellos que solta de cando en vez. Os consellos pódense apagar en Axustes.
 
-import { writable } from "svelte/store";
+import { writable, get } from "svelte/store";
 import { tr } from "./i18n";
 
 function persistedBool(key: string, fallback: boolean) {
@@ -28,12 +28,38 @@ export const tipsOn = persistedBool("arquivos-do-trasno.tips", true);
 export interface Action {
   text: string;
   at: number;
+  /** Como deixar as cousas como estaban antes desta acción (se se pode). */
+  undo?: () => void;
 }
 /** Últimas accións, a máis recente primeiro. Sempre en terceira persoa: o programa conta o que fixo o trasno. */
 export const actions = writable<Action[]>([]);
-export function noteAction(gl: string, vars?: Record<string, string | number>) {
+export function noteAction(gl: string, vars?: Record<string, string | number>, undo?: () => void) {
   const text = tr(gl, vars);
-  actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now() }, ...l.slice(1)] : [{ text, at: Date.now() }, ...l].slice(0, 12)));
+  actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now(), undo: l[0].undo ?? undo }, ...l.slice(1)] : [{ text, at: Date.now(), undo }, ...l].slice(0, 12)));
+}
+
+/** Número de cambios que se desfarían ao volver ao estado que había tras a acción `idx` (0 é a máis recente). */
+export const revertCount = (list: Action[], idx: number) => list.slice(0, idx).filter((a) => a.undo).length;
+
+/** Desfai, da máis nova á máis vella, todo o que veu despois da acción `idx`. */
+export function revertTo(idx: number): number {
+  const l = get(actions);
+  const target = l[idx];
+  if (!target) return 0;
+  let n = 0;
+  for (const a of l.slice(0, idx)) {
+    try {
+      if (a.undo) {
+        a.undo();
+        n++;
+      }
+    } catch {
+      // un paso que non se pode desfacer non debe frear os demais
+    }
+  }
+  actions.set(l.slice(idx));
+  noteAction("O trasno retrocedeu ata «{what}»", { what: target.text });
+  return n;
 }
 
 /** Que fai o trasno ao premelo: abrir procesos, abrir o buscador ou soltar un comentario. */
@@ -56,12 +82,12 @@ function persistedText<T extends string>(key: string, allowed: T[], fallback: T)
   });
   return store;
 }
-export const CLICK_ITEMS: { id: ClickAction; icon: string; label: string; action: string }[] = [
-  { id: "palette", icon: "search", label: "Buscar unha acción (Ctrl+K)", action: "Abrir o buscador" },
-  { id: "procs", icon: "activity", label: "Procesos", action: "Abrir os procesos" },
-  { id: "say", icon: "chat", label: "Comentario do trasno", action: "Soltar un comentario" },
-  { id: "news", icon: "sparkles", label: "Novidades", action: "Abrir as novidades" },
-  { id: "settings", icon: "gear", label: "Axustes", action: "Abrir os axustes" },
+export const CLICK_ITEMS: { id: ClickAction; icon: string; label: string; action: string; tone: string }[] = [
+  { id: "palette", icon: "search", label: "Buscar unha acción (Ctrl+K)", action: "Abrir o buscador", tone: "var(--accent)" },
+  { id: "procs", icon: "layers", label: "Procesos", action: "Abrir os procesos", tone: "var(--accent-conversor)" },
+  { id: "say", icon: "chat", label: "Comentario do trasno", action: "Soltar un comentario", tone: "var(--accent-pdf)" },
+  { id: "news", icon: "sparkles", label: "Novidades", action: "Abrir as novidades", tone: "var(--accent-imaxe)" },
+  { id: "settings", icon: "gear", label: "Axustes", action: "Abrir os axustes", tone: "var(--text-muted)" },
 ];
 export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", ["procs", "palette", "news", "settings", "say"], "procs");
 
@@ -96,7 +122,7 @@ export const viewCtx = writable<{ category?: string; tool?: string }>({});
 export const liveProgress = writable<number | null>(null);
 
 export const TIPS = [
-  "Ctrl+K abre o buscador de accións. Tamén podes premerme a min.",
+  "Ctrl+K abre o buscador de accións.",
   "Arrastra ficheiros á xanela e engádoos sen botóns.",
   "Con Seleccionar podes mover, escalar e xirar calquera anotación.",
   "Ctrl+Z desfai o último cambio dos axustes e Restablecer volve ao por defecto.",
@@ -150,7 +176,7 @@ const LABEL: Record<string, string> = {
   wmOpacity: "a opacidade da marca", wmAngle: "o xiro da marca", wmFamily: "a letra da marca", wmBold: "a negriña da marca", wmItalic: "a cursiva da marca",
   mode: "o modo", compat: "a compatibilidade", sizeValue: "o tamaño obxectivo", select: "a pista escollida", kind: "o modo",
 };
-export function describeForm(before: Record<string, any>, after: Record<string, any>) {
+export function describeForm(before: Record<string, any>, after: Record<string, any>, restore?: () => void) {
   const seen = new Set<string>();
   for (const k of Object.keys(after)) {
     if (before[k] === after[k] || !LABEL[k] || seen.has(LABEL[k])) continue;
@@ -158,9 +184,9 @@ export function describeForm(before: Record<string, any>, after: Record<string, 
     if (v === "" || v === null || v === undefined || typeof v === "object") continue;
     seen.add(LABEL[k]);
     const what = tr(LABEL[k]);
-    if (typeof v === "boolean") noteAction(v ? "O trasno activou {what}" : "O trasno desactivou {what}", { what });
-    else noteAction("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" ? String(v).toUpperCase() : String(v) });
+    if (typeof v === "boolean") noteAction(v ? "O trasno activou {what}" : "O trasno desactivou {what}", { what }, restore);
+    else noteAction("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" ? String(v).toUpperCase() : String(v) }, restore);
     if (seen.size >= 2) break;
   }
-  if (!seen.size && Object.keys(after).some((k) => before[k] !== after[k])) noteAction("O trasno cambiou un axuste");
+  if (!seen.size && Object.keys(after).some((k) => before[k] !== after[k])) noteAction("O trasno cambiou un axuste", undefined, restore);
 }

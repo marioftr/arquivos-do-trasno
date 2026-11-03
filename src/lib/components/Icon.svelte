@@ -81,6 +81,10 @@
     <path d="M4 5h16v11H9l-5 4z" />
     <line x1="8" y1="9.5" x2="16" y2="9.5" />
     <line x1="8" y1="12.5" x2="13" y2="12.5" />
+  {:else if name === "bulb"}
+    <path d="M9 18h6" />
+    <path d="M10 21h4" />
+    <path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z" />
   {:else if name === "trash"}
     <polyline points="4,7 20,7" />
     <path d="M9 7V4.5h6V7" />

@@ -63,9 +63,19 @@ function pump() {
   }
 }
 
+/** Deixa a lista como estaba (mantendo os datos máis novos dos ficheiros que seguen), sen contalo outra vez. */
+function restoreFiles(before: FileEntry[]) {
+  const cur = get(files);
+  const list = before.map((b) => cur.find((c) => c.path === b.path) ?? b);
+  files.set(list);
+  checked.update((s) => new Set([...s].filter((p) => list.some((f) => f.path === p))));
+  if (!list.some((f) => f.path === get(activePath))) activePath.set(list[0]?.path ?? null);
+}
+
 export async function addPaths(input: string[]) {
   let selectedNew = false;
-  const before = get(files).length;
+  const beforeList = get(files);
+  const before = beforeList.length;
   // Os cartafoles abren as súas ficheiros; as categorías míranse todas á vez e despois entran por orde.
   const paths = [...new Set(await engine.expandPaths(input).catch(() => input))];
   let skipped = 0;
@@ -123,8 +133,8 @@ export async function addPaths(input: string[]) {
     }
   }
   const added = get(files).length - before;
-  if (added === 1) noteAction("O trasno engadiu «{name}»", { name: get(files)[get(files).length - 1].name });
-  else if (added > 1) noteAction("O trasno engadiu {n} ficheiros", { n: added });
+  if (added === 1) noteAction("O trasno engadiu «{name}»", { name: get(files)[get(files).length - 1].name }, () => restoreFiles(beforeList));
+  else if (added > 1) noteAction("O trasno engadiu {n} ficheiros", { n: added }, () => restoreFiles(beforeList));
   if (skipped) toast(tr("O trasno deixou {n} ficheiros fóra da lista: non coñece ese tipo de cousas.", { n: skipped }), { kind: "warn" });
 }
 
@@ -145,10 +155,11 @@ export function undoRemove() {
 }
 
 export function removeFile(path: string) {
+  const beforeList = get(files);
   const index = get(files).findIndex((f) => f.path === path);
   if (index >= 0) {
     lastRemoved = { entry: get(files)[index], index, wasChecked: get(checked).has(path) };
-    noteAction("O trasno quitou «{name}» da lista", { name: lastRemoved.entry.name });
+    noteAction("O trasno quitou «{name}» da lista", { name: lastRemoved.entry.name }, () => restoreFiles(beforeList));
     toast(tr("«{name}» desapareceu da lista (o ficheiro segue onde estaba). Foi sen querer?", { name: lastRemoved.entry.name }), { action: { label: tr("Desfacer"), run: undoRemove } });
   }
   const list = get(files).filter((f) => f.path !== path);
@@ -189,12 +200,13 @@ export function removeChecked() {
   files.set(rest);
   checked.set(new Set());
   if (!rest.some((f) => f.path === get(activePath))) activePath.set(rest[0]?.path ?? null);
-  noteAction("O trasno quitou {n} ficheiros da lista", { n: gone.length });
+  noteAction("O trasno quitou {n} ficheiros da lista", { n: gone.length }, () => restoreFiles(list));
   toast(tr("{n} ficheiros desapareceron da lista (seguen onde estaban). Foi sen querer?", { n: gone.length }), { action: { label: tr("Desfacer"), run: undoBatch } });
 }
 
 export function clearAll() {
-  if (get(files).length) noteAction("O trasno baleirou a lista de ficheiros");
+  const beforeList = get(files);
+  if (beforeList.length) noteAction("O trasno baleirou a lista de ficheiros", undefined, () => restoreFiles(beforeList));
   files.set([]);
   checked.set(new Set());
   activePath.set(null);
@@ -221,6 +233,7 @@ export function moveFileTo(from: number, to: number) {
     const next = [...list];
     const [x] = next.splice(from, 1);
     next.splice(to, 0, x);
+    noteAction("O trasno moveu «{name}» na lista", { name: x.name }, () => restoreFiles(list));
     return next;
   });
 }
@@ -243,7 +256,7 @@ export function moveFile(path: string, delta: -1 | 1) {
     if (i < 0 || j < 0 || j >= list.length) return list;
     const next = [...list];
     [next[i], next[j]] = [next[j], next[i]];
-    noteAction("O trasno moveu «{name}» na lista", { name: list[i].name });
+    noteAction("O trasno moveu «{name}» na lista", { name: list[i].name }, () => restoreFiles(list));
     return next;
   });
 }
