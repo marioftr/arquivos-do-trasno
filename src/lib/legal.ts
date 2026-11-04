@@ -20,7 +20,7 @@ export const LINKS = { repo: REPO, issues: `${REPO}/issues`, releases: `${REPO}/
 export const DOCS: Record<DocId, LegalDoc> = {
   privacy: {
     title: { gl: "Política de privacidade", es: "Política de privacidad", en: "Privacy policy" },
-    updated: "2026-11-01",
+    updated: "2026-11-04",
     sections: [
       {
         h: { gl: "Resumo", es: "Resumen", en: "Summary" },
@@ -40,15 +40,20 @@ export const DOCS: Record<DocId, LegalDoc> = {
             es: "Para funcionar, la app guarda en local: tus ajustes (idioma, tema, carpeta de salida), los atajos de teclado, los perfiles de salida que crees, la lista de archivos de la última sesión (sus rutas), el historial de procesos (nombres y rutas de archivos, hasta 40 entradas o 14 días) y copias temporales para las vistas previas, que se borran al abrir la app. Nada de eso sale de tu ordenador. Puedes borrarlo desde la propia app (historial) o eliminando los datos de la aplicación.",
             en: "To work, the app stores locally: your settings (language, theme, output folder), keyboard shortcuts, the output profiles you create, the list of files from your last session (their paths), the process history (file names and paths, up to 40 entries or 14 days) and temporary copies for previews, which are deleted when the app opens. None of this leaves your computer. You can delete it from the app (history) or by removing the application data.",
           },
+          {
+            gl: "Tamén se gardan no teu usuario (cartafol de datos da app) os programas e paquetes que descargas desde a propia app: FFmpeg, MKVToolNix e os paquetes de idioma do recoñecemento de texto (OCR). Pódense quitar desde Axustes → Extensións. O historial de accións da barra inferior só vive na memoria e desaparece ao pechar a app.",
+            es: "También se guardan en tu usuario (carpeta de datos de la app) los programas y paquetes que descargas desde la propia app: FFmpeg, MKVToolNix y los paquetes de idioma del reconocimiento de texto (OCR). Se pueden quitar desde Ajustes → Extensiones. El historial de acciones de la barra inferior solo vive en la memoria y desaparece al cerrar la app.",
+            en: "The programs and packages you download from within the app are also stored in your user profile (the app's data folder): FFmpeg, MKVToolNix and the text-recognition (OCR) language packs. They can be removed in Settings → Extensions. The action history in the bottom bar lives in memory only and disappears when the app closes.",
+          },
         ],
       },
       {
         h: { gl: "Conexións á rede", es: "Conexiones de red", en: "Network connections" },
         p: [
           {
-            gl: "A única conexión que a app fai por si soa é a busca de versións novas: pide o ficheiro público «latest.json» dos Releases deste proxecto en GitHub e, se aceptas unha actualización, descarga o instalador de alí. Nesa petición non se envía información sobre ti nin sobre os teus ficheiros, máis alá do que revela calquera petición HTTPS (o teu enderezo IP, que GitHub trata segundo a súa propia política de privacidade). Podes desactivar a busca automática en Novidades → Actualizacións.",
-            es: "La única conexión que la app hace por sí sola es la búsqueda de versiones nuevas: pide el archivo público «latest.json» de los Releases de este proyecto en GitHub y, si aceptas una actualización, descarga el instalador de allí. En esa petición no se envía información sobre ti ni sobre tus archivos, más allá de lo que revela cualquier petición HTTPS (tu dirección IP, que GitHub trata según su propia política de privacidad). Puedes desactivar la búsqueda automática en Novedades → Actualizaciones.",
-            en: "The only connection the app makes by itself is the check for new versions: it requests the public “latest.json” file from this project's GitHub Releases and, if you accept an update, downloads the installer from there. That request sends no information about you or your files beyond what any HTTPS request reveals (your IP address, which GitHub handles under its own privacy policy). You can turn the automatic check off in What's new → Updates.",
+            gl: "A app só se conecta a Internet nestes casos: (1) a busca de versións novas, que pide o ficheiro público «latest.json» dos Releases deste proxecto en GitHub e, se aceptas unha actualización, descarga o instalador de alí; (2) cando ti aceptas descargar FFmpeg (de gyan.dev) ou MKVToolNix (de mkvtoolnix.download); e (3) cando ti pides un paquete de idioma para o recoñecemento de texto (do proxecto Tesseract en GitHub). Nesas peticións non se envía información sobre ti nin sobre os teus ficheiros, máis alá do que revela calquera petición HTTPS (o teu enderezo IP, que o servidor trata segundo a súa propia política). As descargas de programas compróbanse (suma de verificación) antes de usalas.",
+            es: "La app solo se conecta a Internet en estos casos: (1) la búsqueda de versiones nuevas, que pide el archivo público «latest.json» de los Releases de este proyecto en GitHub y, si aceptas una actualización, descarga el instalador de allí; (2) cuando tú aceptas descargar FFmpeg (de gyan.dev) o MKVToolNix (de mkvtoolnix.download); y (3) cuando tú pides un paquete de idioma para el reconocimiento de texto (del proyecto Tesseract en GitHub). En esas peticiones no se envía información sobre ti ni sobre tus archivos, más allá de lo que revela cualquier petición HTTPS (tu dirección IP, que el servidor trata según su propia política). Las descargas de programas se comprueban (suma de verificación) antes de usarlas.",
+            en: "The app connects to the Internet only in these cases: (1) the check for new versions, which requests the public “latest.json” file from this project's GitHub Releases and, if you accept an update, downloads the installer from there; (2) when you agree to download FFmpeg (from gyan.dev) or MKVToolNix (from mkvtoolnix.download); and (3) when you ask for a language pack for text recognition (from the Tesseract project on GitHub). Those requests send no information about you or your files beyond what any HTTPS request reveals (your IP address, which the server handles under its own policy). Program downloads are verified (checksum) before use.",
           },
           {
             gl: "As ligazóns que se amosan na app (por exemplo, onde descargar ffmpeg) só se abren no teu navegador cando as premes.",
@@ -61,9 +66,9 @@ export const DOCS: Record<DocId, LegalDoc> = {
         h: { gl: "Programas externos", es: "Programas externos", en: "External programs" },
         p: [
           {
-            gl: "Para audio e vídeo a app usa FFmpeg e, para pistas de MKV, MKVToolNix, se os tes instalados. Execútanse no teu ordenador e a app non os instala nin lles envía nada á rede.",
-            es: "Para audio y vídeo la app usa FFmpeg y, para pistas de MKV, MKVToolNix, si los tienes instalados. Se ejecutan en tu ordenador y la app no los instala ni les envía nada a la red.",
-            en: "For audio and video the app uses FFmpeg and, for MKV tracks, MKVToolNix, if you have them installed. They run on your computer and the app neither installs them nor sends anything to the network.",
+            gl: "Para audio e vídeo a app usa FFmpeg (tamén para ler e escribir AVIF, JPEG 2000 e JPEG XL) e, para pistas de MKV, MKVToolNix. Non van no instalador: podes usar os que xa teñas instalados ou deixar que a app os descargue, só se o aceptas, en Axustes → Extensións. Execútanse no teu ordenador como programas independentes e a app non lles envía nada á rede.",
+            es: "Para audio y vídeo la app usa FFmpeg (también para leer y escribir AVIF, JPEG 2000 y JPEG XL) y, para pistas de MKV, MKVToolNix. No van en el instalador: puedes usar los que ya tengas instalados o dejar que la app los descargue, solo si lo aceptas, en Ajustes → Extensiones. Se ejecutan en tu ordenador como programas independientes y la app no les envía nada a la red.",
+            en: "For audio and video the app uses FFmpeg (also to read and write AVIF, JPEG 2000 and JPEG XL) and, for MKV tracks, MKVToolNix. They are not in the installer: you can use the ones you already have installed or let the app download them, only if you agree, in Settings → Extensions. They run on your computer as independent programs and the app sends nothing to the network on their behalf.",
           },
         ],
       },
@@ -92,7 +97,7 @@ export const DOCS: Record<DocId, LegalDoc> = {
 
   terms: {
     title: { gl: "Termos e condicións de uso", es: "Términos y condiciones de uso", en: "Terms of use" },
-    updated: "2026-11-01",
+    updated: "2026-11-04",
     sections: [
       {
         h: { gl: "Aceptación", es: "Aceptación", en: "Acceptance" },

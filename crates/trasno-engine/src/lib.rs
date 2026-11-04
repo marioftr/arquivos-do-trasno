@@ -22,6 +22,7 @@ pub mod fileinfo;
 pub mod fonts;
 pub mod formats;
 pub mod image_convert;
+pub mod image_ffmpeg;
 pub mod integrity;
 pub mod mkv;
 pub mod model3d;
@@ -127,7 +128,11 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
 /// pensado para que a UI só ofreza opcións que teñan sentido.
 pub fn suggested_targets(input: &Path) -> Vec<&'static str> {
     match formats::category_of_path(input) {
-        Category::Imaxe => formats::IMAGE_ENCODE.to_vec(),
+        Category::Imaxe => {
+            let mut v = formats::IMAGE_ENCODE.to_vec();
+            v.extend(image_ffmpeg::ENCODE_EXTS.iter().copied());
+            v
+        }
         Category::Audio => formats::AUDIO_EXTS.to_vec(),
         Category::Video => formats::VIDEO_EXTS.to_vec(),
         Category::Documento => match formats::extension_of(input).as_deref() {

@@ -79,8 +79,9 @@ export function createJob(): Job {
         } else {
           const missing = missingToolOf(e);
           if (missing) requestTool(missing, undefined, () => void this.run(working, fail, job));
-          message.set({ ok: false, text: `${tr(fail)}\n${errText(e)}` });
-          noteAction("O trasno tropezou co traballo de «{name}»", { name: current?.name ?? "" });
+          const full = `${tr(fail)}\n${errText(e)}`;
+          trasnoSay(full, "warn", 45000, undefined, { copy: full, notify: true });
+          noteAction("O trasno tropezou co traballo de «{name}»", { name: current?.name ?? "" }, undefined, `${tr(fail)}\n${errText(e)}`);
           tracker.finish("error", { detail: errText(e).slice(0, 200) });
         }
       } finally {
@@ -93,7 +94,11 @@ export function createJob(): Job {
       }
     },
     say(ok, t) {
-      message.set({ ok, text: t });
+      if (ok) message.set({ ok, text: t });
+      else {
+        trasnoSay(t, "warn", 45000, undefined, { copy: t, notify: true });
+        noteAction(t.split("\n")[0].slice(0, 120), undefined, undefined, t);
+      }
     },
     clear() {
       message.set(null);

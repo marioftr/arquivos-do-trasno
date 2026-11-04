@@ -203,6 +203,19 @@ export function clearAll() {
   commit([]);
   selected.set(null);
 }
+/** Esquece as anotacións dunha imaxe (para reimportala desde cero). */
+export function forgetAnno(path: string) {
+  stash.delete(path);
+  if (get(annoPath) === path) {
+    clearTimeout(liveTimer);
+    liveBefore = null;
+    past.length = 0;
+    future.length = 0;
+    shapes.set([]);
+    selected.set(null);
+    sync();
+  }
+}
 /** Empeza de cero ao cambiar de imaxe. */
 export function resetAnnotations() {
   clearTimeout(liveTimer);

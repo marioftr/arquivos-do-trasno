@@ -2,6 +2,11 @@
 // cales están marcados para operacións en lote (unir, comprimir varios...).
 
 import { noteAction } from "./agent";
+import { forgetView } from "./viewCache";
+import { forgetOcr } from "./ocr";
+import { forgetAnno } from "./annot";
+import { forgetFile } from "./forms";
+import { forgetPdf, viewState } from "./pdfCache";
 import type { FontSpec } from "./fonts";
 import { writable, get } from "svelte/store";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -63,6 +68,33 @@ function pump() {
   }
 }
 
+/** Le os datos dun ficheiro (tamaño, páxinas, duración, dimensións) en segundo plano. */
+function loadMeta(entry: FileEntry) {
+  const { path, category } = entry;
+  engine.fileSize(path).then((size) => patch(path, { size })).catch(() => {});
+  if (category === "documento" && entry.ext === "pdf") {
+    engine.pdfPageCount(path).then((pages) => patch(path, { pages })).catch(() => {});
+  }
+  if (category === "audio" || category === "video") {
+    later(() =>
+      engine
+      .probeMedia(path)
+      .then((info) => {
+        const v = info.streams?.find((s) => s.codec_type === "video");
+        const duration = Number(info.format?.duration);
+        patch(path, {
+          duration: isFinite(duration) ? duration : undefined,
+          width: v?.width,
+          height: v?.height,
+        });
+      })
+      .catch(() => {}));
+  }
+  if (category === "imaxe") {
+    engine.imageDimensions(path).then(([width, height]) => patch(path, { width, height })).catch(() => {});
+  }
+}
+
 /** Deixa a lista como estaba (mantendo os datos máis novos dos ficheiros que seguen), sen contalo outra vez. */
 function restoreFiles(before: FileEntry[]) {
   const cur = get(files);
@@ -109,28 +141,7 @@ export async function addPaths(input: string[]) {
       selectedNew = true;
     }
 
-    engine.fileSize(path).then((size) => patch(path, { size })).catch(() => {});
-    if (category === "documento" && entry.ext === "pdf") {
-      engine.pdfPageCount(path).then((pages) => patch(path, { pages })).catch(() => {});
-    }
-    if (category === "audio" || category === "video") {
-      later(() =>
-        engine
-        .probeMedia(path)
-        .then((info) => {
-          const v = info.streams?.find((s) => s.codec_type === "video");
-          const duration = Number(info.format?.duration);
-          patch(path, {
-            duration: isFinite(duration) ? duration : undefined,
-            width: v?.width,
-            height: v?.height,
-          });
-        })
-        .catch(() => {}));
-    }
-    if (category === "imaxe") {
-      engine.imageDimensions(path).then(([width, height]) => patch(path, { width, height })).catch(() => {});
-    }
+    loadMeta(entry);
   }
   const added = get(files).length - before;
   if (added === 1) noteAction("O trasno engadiu «{name}»", { name: get(files)[get(files).length - 1].name }, () => restoreFiles(beforeList));
@@ -394,4 +405,35 @@ export async function restoreSession() {
   }
   restored = true;
   files.update((l) => l); // fixa o estado actual
+}
+
+/** Sobe cada vez que se reimporta un ficheiro: os visores e as ferramentas volven montarse. */
+export const reloadTick = writable(0);
+
+/** Reimporta un ficheiro: esquece vistas previas, axustes, anotacións e textos lidos, volve detectalo e volve a ler os seus datos. */
+export async function reimportFile(path: string) {
+  const old = get(files).find((f) => f.path === path);
+  if (!old) return;
+  forgetView(path);
+  forgetOcr(path);
+  forgetAnno(path);
+  forgetFile(path);
+  forgetPdf(path);
+  viewState.delete(path);
+  await engine.forgetPreviews(path).catch(() => {});
+  let category: Category | null = null;
+  try {
+    category = await engine.detectCategory(path);
+  } catch {
+    category = null;
+  }
+  if (!category || category === "descoñecido") {
+    toast(tr("O trasno rebuscou en «{name}» e non foi quen de lelo. Estará danado ou protexido?", { name: old.name }), { kind: "warn" });
+    return;
+  }
+  const entry: FileEntry = { path, name: fileNameOf(path), ext: extensionOf(path), category };
+  files.update((l) => l.map((f) => (f.path === path ? entry : f)));
+  loadMeta(entry);
+  reloadTick.update((n) => n + 1);
+  noteAction("O trasno reimportou «{name}»", { name: entry.name });
 }

@@ -163,3 +163,9 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
     .filter((l: OcrWord[]) => l.length);
   return { text: lines.map((l) => l.map((w) => w.text).join(" ")).join("\n"), lines };
 }
+
+/** Esquece os textos lidos dunha imaxe (para reimportala desde cero). */
+export function forgetOcr(path: string) {
+  for (const k of [...finished.keys()]) if (k.startsWith(path + "|")) finished.delete(k);
+  for (const k of [...inflight.keys()]) if (k.startsWith(path + "|")) inflight.delete(k);
+}

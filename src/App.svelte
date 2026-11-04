@@ -9,7 +9,7 @@
   import FileList from "./lib/components/FileList.svelte";
   import Viewer from "./lib/components/Viewer.svelte";
   import Tools from "./lib/components/Tools.svelte";
-  import { files, activePath, checked, addPaths, removeFile, restoreSession } from "./lib/files";
+  import { files, activePath, checked, addPaths, removeFile, restoreSession, reloadTick } from "./lib/files";
   import { activeForm } from "./lib/forms";
   import { get } from "svelte/store";
   import * as engine from "./lib/engine";
@@ -20,7 +20,7 @@
   import QuickJob from "./lib/components/QuickJob.svelte";
   import HubDialog from "./lib/components/HubDialog.svelte";
   import { procs, refreshProcs, requestCancel } from "./lib/procs";
-  import { actions, tipsOn, liveProgress, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, noteAction, CLICK_ITEMS, revertTo, revertCount, type ClickAction } from "./lib/agent";
+  import { actions, tipsOn, liveProgress, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, CLICK_ITEMS, revertTo, revertCount, holdBubble, releaseBubble, type ClickAction } from "./lib/agent";
   import { reportProgress } from "./lib/job";
   import { requestTool } from "./lib/toolinstall";
   import ToolNeedDialog from "./lib/components/ToolNeedDialog.svelte";
@@ -42,7 +42,7 @@
   function sayNow() {
     if (dockOpen) return;
     const c = pickComment($viewCtx.category, $viewCtx.tool);
-    trasnoSay(c.text, c.kind, 11000);
+    trasnoSay(c.text, c.kind, 14000);
   }
   function scheduleTip(first = false) {
     clearTimeout(tipTimer);
@@ -56,8 +56,9 @@
   // ---- menú radial do trasno: sae ao pasar o rato (ou co teclado) e péchase en canto o punteiro deixa as súas ruxas
   // Catro botóns nun arco arredor do trasno (esquina de abaixo á esquerda).
   const ITEMS = CLICK_ITEMS;
+  const HALF = 36; // metade do trasno (72 px)
   const BTN = 52;
-  const RINGS = [84, 58, 32, 6].map((a) => ({ r: 130, a }));
+  const RINGS = [80, 54, 28, 2].map((a) => ({ r: 118, a }));
   const pos = RINGS.map((q) => ({ x: q.r * Math.cos((q.a * Math.PI) / 180), y: q.r * Math.sin((q.a * Math.PI) / 180) }));
   function runItem(id: ClickAction) {
     if (id === "palette") dialog.set("palette");
@@ -91,8 +92,8 @@
   function dockTrack(e: PointerEvent) {
     if (!dockOpen || !dockEl) return;
     const r = dockEl.getBoundingClientRect();
-    const px = e.clientX - (r.left + 32);
-    const py = r.top + 32 - e.clientY;
+    const px = e.clientX - (r.left + HALF);
+    const py = r.top + HALF - e.clientY;
     const near = Math.hypot(px, py) <= 46 || pos.some((q) => Math.hypot(px - q.x, py - q.y) <= BTN / 2 + 22 || segDist(px, py, 0, 0, q.x, q.y) <= 24);
     if (near) {
       clearTimeout(closeTimer);
@@ -112,7 +113,6 @@
 
   let lastShown = "";
   $: if (active && active.path !== lastShown) {
-    if (lastShown && $files.length > 1) noteAction("O trasno mostrou «{name}»", { name: active.name });
     lastShown = active.path;
   }
   /** Ao abrir o historial, déixase á vista o máis recente (abaixo). */
@@ -120,6 +120,16 @@
     const box = n.closest(".hist") as HTMLElement | null;
     if (box) box.scrollTop = box.scrollHeight;
   };
+  let copied = "";
+  async function copyText(text: string, key: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = key;
+      setTimeout(() => (copied = ""), 1400);
+    } catch {
+      // o texto tamén se pode seleccionar a man
+    }
+  }
   let histOpen = false;
   let revertIdx: number | null = null;
   $: if (!histOpen) revertIdx = null;
@@ -303,7 +313,7 @@
         {#if active}<Viewer file={active} />{/if}
       </section>
       <Splitter side="right" bind:width={rightW} min={R.min} max={R.max} initial={R.init} collapsed={rightOff} on:toggle={() => (rightOff = !rightOff)} />
-      <aside class="right" class:off={rightOff} inert={rightOff}><Tools {selection} /></aside>
+      <aside class="right" class:off={rightOff} inert={rightOff}>{#key $reloadTick}<Tools {selection} />{/key}</aside>
     </main>
   {/if}
 
@@ -313,9 +323,10 @@
   <footer class="status">
     {#if !dockOpen}
       {#if $bubble}
-        <div class="bubble" class:tipb={$bubble.kind === "tip"} class:warnb={$bubble.kind === "warn"} role={$bubble.kind === "warn" ? "alert" : "status"}>
+        <div class="bubble" class:tipb={$bubble.kind === "tip"} class:warnb={$bubble.kind === "warn"} role={$bubble.kind === "warn" ? "alert" : "status"} on:pointerenter={holdBubble} on:pointerleave={() => releaseBubble()}>
           <span class="bi"><Icon name={$bubble.kind === "tip" ? "bulb" : $bubble.kind === "warn" ? "warning" : "sparkles"} size={17} /></span>
           <span class="bt">{#if $bubble.kind === "tip"}<b>{$t("Sabías que…")}</b>{" "}{/if}{$t($bubble.text)}{#if $bubble.action}{" "}<button class="bact" on:click={() => { $bubble?.action?.run(); hideBubble(); }}>{$bubble.action.label}</button>{/if}</span>
+          {#if $bubble.copy}<button class="bclose" on:click={() => copyText($bubble?.copy ?? "", "bubble")} aria-label={$t("Copiar")} title={$t("Copiar")}><Icon name={copied === "bubble" ? "check" : "copy"} size={14} /></button>{/if}
           <button class="bclose" on:click={hideBubble} aria-label={$t("Pechar")} title={$t("Pechar")}><Icon name="close" size={13} /></button>
         </div>
       {:else if important}
@@ -328,7 +339,7 @@
         <button
           class="rd"
           class:hot={hov === i}
-          style={`left:${32 + pos[i].x - BTN / 2}px;bottom:${32 + pos[i].y - BTN / 2}px;--dx:${-pos[i].x}px;--dy:${pos[i].y}px;--n:${i};--c:${it.tone}`}
+          style={`left:${HALF + pos[i].x - BTN / 2}px;bottom:${HALF + pos[i].y - BTN / 2}px;--dx:${-pos[i].x}px;--dy:${pos[i].y}px;--n:${i};--c:${it.tone}`}
           tabindex={dockOpen ? 0 : -1}
           on:click={() => pick(it.id)}
           on:pointerenter={() => (hov = i)}
@@ -343,7 +354,7 @@
         </button>
       {/each}
       <button class="trasno" class:away={$trasnoAway} on:click={clickTrasno} on:focus={(e) => e.currentTarget.matches(":focus-visible") && dockShow()} aria-label={$t("Procesos")}>
-        <TrasnoSprite state={important || $bubble?.kind === "warn" ? "warn" : lastRun ? "working" : "idle"} size={64} />
+        <TrasnoSprite state={important || $bubble?.kind === "warn" || $bubble?.notify ? "notice" : lastRun ? "working" : "idle"} size={72} />
         {#if important}<span class="alert" aria-hidden="true">!</span>{/if}
       </button>
     </div>
@@ -373,6 +384,7 @@
                   <span class="ht">{a.text}</span>
                   {#if a.undo}<span class="hu"><Icon name="undo" size={14} /></span>{/if}
                 </button>
+                {#if a.copy}<button class="hcopy" on:click={() => copyText(a.copy ?? "", `h${i}`)} aria-label={$t("Copiar")} title={$t("Copiar a mensaxe")}><Icon name={copied === `h${i}` ? "check" : "copy"} size={14} /></button>{/if}
               </li>
             {/each}
           </ul>
@@ -402,7 +414,7 @@
           </div>
         {/if}
       {:else}
-        <button class="idle" on:click={() => openHub("procs.running")} title={$t("Ver os procesos e o seu historial")}>
+        <button class="idle" on:click={() => openHub("procs.running")} title={$t("Ver os procesos activos")}>
           <Icon name="layers" size={16} /><span>{$t("Sen procesos activos")}</span>
         </button>
       {/if}
@@ -433,25 +445,25 @@
   .app { position: relative; display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: clip; }
   .frame { flex: 1; min-height: 0; display: flex; }
   .stage { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-  .status { position: relative; z-index: 20; flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; height: 44px; padding: 0 0.9rem 0 84px; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
-  .rside { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+  .status { position: relative; z-index: 20; flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 0.7rem; height: 44px; padding: 0 0.9rem; background: var(--bg-rail); border-top: 1px solid var(--border); font-size: 0.8rem; }
+  .rside { justify-self: end; display: flex; align-items: center; gap: 0.5rem; }
   .ver { position: relative; height: 28px; padding: 0 0.65rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.76rem; font-variant-numeric: tabular-nums; }
-  .ver:hover { border-color: var(--accent); color: var(--text); }
+  .ver:hover { background: var(--bg-hover); color: var(--text); }
   .vdot { position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-  .dock { position: absolute; left: 6px; bottom: 0; width: 64px; height: 64px; }
+  .dock { position: absolute; left: 6px; bottom: 0; width: 72px; height: 72px; }
   .trasno { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s; }
   .trasno:hover:not(.away) { transform: translateY(-2px); }
   .trasno.away { transform: translateY(115%); opacity: 0; transition: transform 0.2s ease-in, opacity 0.2s; pointer-events: none; }
-  .rd { --c: var(--accent); position: absolute; z-index: 1; display: grid; place-items: center; width: 52px; height: 52px; margin: 0; padding: 0; border-radius: 50%; color: var(--c); background: color-mix(in srgb, var(--c) 10%, var(--bg-elevated)); border: 1px solid color-mix(in srgb, var(--c) 42%, var(--border-strong)); box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.3); transition: opacity 0.16s, transform 0.26s cubic-bezier(0.3, 1.25, 0.5, 1), border-color 0.12s, box-shadow 0.12s; transition-delay: calc(var(--n) * 22ms), calc(var(--n) * 22ms), 0s, 0s; }
+  .rd { --c: var(--accent); position: absolute; z-index: 1; display: grid; place-items: center; width: 52px; height: 52px; margin: 0; padding: 0; border-radius: 50%; color: var(--text-muted); background: radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--text-muted) 14%, var(--bg-elevated)), var(--bg-elevated) 74%); border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop), inset 0 0 0 4px var(--bg-elevated), inset 0 0 0 5px transparent; opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.3); transition: opacity 0.16s, transform 0.26s cubic-bezier(0.3, 1.25, 0.5, 1), color 0.14s, border-color 0.14s, box-shadow 0.14s, background 0.14s; transition-delay: calc(var(--n) * 22ms), calc(var(--n) * 22ms), 0s, 0s, 0s, 0s; }
   .dock.open .rd { opacity: 1; pointer-events: auto; transform: none; }
-  .dock.open .rd.hot { z-index: 3; transform: scale(1.08); border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent), var(--shadow-pop); transition-delay: 0s; }
+  .dock.open .rd.hot { z-index: 3; transform: scale(1.08); color: var(--c); border-color: color-mix(in srgb, var(--c) 55%, var(--border-strong)); background: radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--c) 26%, var(--bg-elevated)), var(--bg-elevated) 74%); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 20%, transparent), var(--shadow-pop), inset 0 0 0 4px var(--bg-elevated), inset 0 0 0 5px color-mix(in srgb, var(--c) 50%, transparent); transition-delay: 0s; }
   .rl { position: absolute; left: calc(100% + 12px); top: 50%; display: flex; align-items: center; padding: 0.3rem 0.7rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); color: var(--text); font-size: 0.78rem; font-weight: 550; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-6px, -50%); transition: opacity 0.14s, transform 0.18s ease; }
   .rd.hot .rl { opacity: 1; transform: translate(0, -50%); }
   .rl kbd { margin-left: 0.55rem; padding: 0 5px; font: inherit; font-size: 0.7rem; color: var(--text-muted); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: 4px; }
   .badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: 700; padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
   .alert { position: absolute; top: 0.1rem; right: 0; width: 1.15rem; height: 1.15rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-size: 0.78rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg-rail); animation: hop 0.9s ease-in-out infinite; }
   @keyframes hop { 50% { transform: translateY(-3px); } }
-  .bubble { --c: var(--accent-conversor); position: absolute; left: 80px; bottom: calc(100% + 0.5rem); display: flex; align-items: flex-start; gap: 0.65rem; max-width: min(30rem, calc(100vw - 7rem)); padding: 0.6rem 0.85rem 0.6rem 0.6rem; text-align: left; color: var(--text); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: 0.82rem; line-height: 1.4; animation: rise 0.25s ease-out; }
+  .bubble { --c: var(--accent-conversor); position: absolute; left: 90px; bottom: calc(100% + 0.5rem); display: flex; align-items: flex-start; gap: 0.65rem; max-width: min(30rem, calc(100vw - 7rem)); padding: 0.6rem 0.85rem 0.6rem 0.6rem; text-align: left; color: var(--text); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: 0.82rem; line-height: 1.4; animation: rise 0.25s ease-out; }
   .bubble.tipb { --c: var(--accent); }
   .bubble.warnb { --c: var(--accent-pdf); }
   button.bubble:hover { border-color: var(--c); }
@@ -463,17 +475,20 @@
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
   .bi { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
   .bt { min-width: 0; align-self: center; }
-  .voice { flex: 0 1 auto; min-width: 0; max-width: max(8rem, calc(50% - 84px - 18rem)); display: flex; align-items: center; gap: 0.6rem; height: 28px; padding: 0 0.6rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text); text-align: left; font-size: 0.8rem; }
+  .voice { justify-self: start; margin-left: 84px; max-width: calc(100% - 84px); min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 28px; padding: 0 0.6rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text); text-align: left; font-size: 0.8rem; }
   .voice:hover, .voice.on { background: var(--bg-hover); }
-  .hist { position: absolute; left: 84px; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); max-height: 50vh; overflow: auto; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }
+  .hist { position: absolute; left: 92px; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); max-height: 50vh; overflow: auto; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }
   .hist h4 { margin: 0 0.8rem 0.4rem; font-size: 0.72rem; font-weight: 650; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
   .hist ul { margin: 0; padding: 0; list-style: none; }
   .hist li { padding: 0; }
   .hrow { width: 100%; display: grid; grid-template-columns: 3.4rem 1fr auto; align-items: center; gap: 0.6rem; padding: 0.55rem 0.9rem; background: none; border: none; border-radius: 0; color: var(--text); text-align: left; font-size: 0.8rem; }
   .hrow:disabled { cursor: default; }
   .hrow:hover:not(:disabled) { background: var(--bg-hover); }
+  .hist li { position: relative; }
+  .hcopy { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 28px; height: 28px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-muted); }
+  .hcopy:hover { background: var(--bg-hover); color: var(--text); }
   .hu { color: var(--text-faint); display: inline-flex; }
-  .hrow:hover .hu { color: var(--accent); }
+  .hrow:hover .hu { color: var(--accent-video); }
   .cqt { padding: 0.35rem 0.6rem; background: var(--bg-input); border-radius: var(--radius-sm); }
   .conf { padding: 0.3rem 0.9rem 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.82rem; }
   .conf p { margin: 0; }
@@ -497,8 +512,8 @@
   .track { flex: 1 1 4rem; min-width: 2.5rem; height: 5px; border-radius: 5px; background: var(--border-strong); overflow: hidden; }
   .fill { display: block; height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.3s; }
   .pct { white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .mid { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 0.6rem; max-width: 46%; }
-  .mid:has(.jobs) { width: min(34rem, 46%); }
+  .mid { display: flex; align-items: center; gap: 0.6rem; }
+  .mid:has(.jobs) { width: min(32rem, 44vw); }
   .idle, .hbtn { display: inline-flex; align-items: center; gap: 0.5rem; height: 32px; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.78rem; }
   .idle { padding: 0 0.9rem; }
   .hbtn { width: 32px; justify-content: center; flex: none; }
@@ -520,7 +535,7 @@
   .work { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: var(--lw) 1px minmax(0, 1fr) 1px var(--rw); }
   .off { overflow: hidden; visibility: hidden; }
   .left, .right { min-height: 0; min-width: 0; background: var(--bg-rail); }
-  .left { padding-bottom: 28px; box-sizing: border-box; }
+  .left { padding-bottom: 36px; box-sizing: border-box; }
   .center { background: var(--bg); }
 
   .center { min-width: 0; min-height: 0; overflow: hidden; }

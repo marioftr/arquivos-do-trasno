@@ -5,7 +5,7 @@
 import type { Category } from "./engine";
 
 export const IMAGE_TARGETS = [
-  "png", "jpg", "webp", "bmp", "gif", "ico", "tiff", "ppm", "pbm", "pgm", "tga", "qoi",
+  "png", "jpg", "webp", "bmp", "gif", "ico", "tiff", "ppm", "pbm", "pgm", "tga", "qoi", "avif", "jp2", "jxl",
 ];
 
 export const AUDIO_TARGETS = ["mp3", "wav", "flac", "ogg", "opus", "m4a", "aac", "aiff"];

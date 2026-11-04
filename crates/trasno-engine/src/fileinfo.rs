@@ -130,7 +130,9 @@ fn color_text(c: image::ColorType) -> (&'static str, &'static str) {
 
 pub fn describe_image(path: &Path) -> Result<Info> {
     use image::ImageDecoder;
-    let reader = image::ImageReader::open(path)?.with_guessed_format()?;
+    let readable = crate::image_ffmpeg::readable(path)?;
+    let ext_label = crate::formats::extension_of(path).filter(|e| crate::image_ffmpeg::is_decode_ext(e)).map(|e| e.to_uppercase());
+    let reader = image::ImageReader::open(&readable)?.with_guessed_format()?;
     let format = reader.format();
     let mut dec = reader.into_decoder()?;
     let (w, h) = dec.dimensions();
@@ -146,7 +148,9 @@ pub fn describe_image(path: &Path) -> Result<Info> {
     size_rows.push(x("Cor", if depth.is_empty() { mode.to_string() } else { format!("{mode} · {depth}") }));
     size_rows.push(x("Transparencia", if has_alpha { "Si" } else { "Non" }));
     size_rows.push(x("Píxeles en total", group_digits(w as u64 * h as u64)));
-    if let Some(f) = format {
+    if let Some(label) = ext_label {
+        size_rows.insert(0, x("Formato", label));
+    } else if let Some(f) = format {
         size_rows.insert(0, x("Formato", format!("{f:?}").to_uppercase()));
     }
     summary.push(group("Imaxe", size_rows));

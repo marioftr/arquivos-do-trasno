@@ -60,7 +60,7 @@ pub fn extension_of(path: &std::path::Path) -> Option<String> {
 
 pub fn category_of_extension(ext: &str) -> Category {
     let ext = ext.to_ascii_lowercase();
-    if IMAGE_DECODE.contains(&ext.as_str()) {
+    if IMAGE_DECODE.contains(&ext.as_str()) || crate::image_ffmpeg::is_decode_ext(&ext) {
         Category::Imaxe
     } else if AUDIO_EXTS.contains(&ext.as_str()) {
         Category::Audio

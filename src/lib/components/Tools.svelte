@@ -8,7 +8,7 @@
   import { activeForm } from "../forms";
   import { canUndo, canRedo, shapes, undo, redo, clearAll, resetAnnoStyle } from "../annot";
   import { derived } from "svelte/store";
-  import { noteAction, viewCtx } from "../agent";
+  import { viewCtx } from "../agent";
   const hasShapes = derived(shapes, (l) => l.length > 0);
   // Restablecer en Anotar: fóra as anotacións e o aspecto volve ao por defecto.
   const resetAnno = () => {
@@ -93,7 +93,6 @@
   let current = "convert";
   let lastTab = "";
   $: if (current && current !== lastTab) {
-    if (lastTab) noteAction("O trasno abriu a ferramenta «{name}»", { name: tabs.find((x) => x.id === current)?.label ?? current });
     lastTab = current;
   }
   $: viewCtx.set({ category: category ?? undefined, tool: current });

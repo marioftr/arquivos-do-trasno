@@ -3,6 +3,7 @@
   import { openLink, cancelToolInstall, type ToolId } from "../engine";
   import { t } from "../i18n";
   import { tools, refreshTools } from "../settings";
+  import { ocrInstalled, refreshOcr, OCR_LANGS } from "../ocr";
   import { installing, installError, installToolNow, removeToolNow, overall, phaseText, TOOL_INFO } from "../toolinstall";
   import Icon from "./Icon.svelte";
   import { toast } from "../toasts";
@@ -26,10 +27,20 @@
   }
 
   onMount(() => {
+    refreshOcr().catch(() => {});
     refreshTools();
   });
 
   const keys: ToolId[] = ["ffmpeg", "mkvmerge"];
+  // O que vai dentro da aplicación: non hai que instalar nada.
+  const builtin: { name: string; what: string; license: string }[] = [
+    { name: "Motor de imaxes", what: "Le e escribe PNG, JPG, WebP, GIF, BMP, ICO, TIFF, PNM, TGA e QOI.", license: "image-rs · MIT / Apache-2.0" },
+    { name: "PDF.js", what: "Visor, miniaturas e busca de texto nos PDF.", license: "Mozilla · Apache-2.0" },
+    { name: "lopdf", what: "Cortar, unir, ordenar, protexer e reparar PDF.", license: "MIT" },
+    { name: "three.js", what: "Visor 3D e conversión de FBX e glTF.", license: "MIT" },
+    { name: "Tesseract.js", what: "Recoñecemento de texto en imaxes (OCR). Cada idioma é un paquete que se descarga só se o pides.", license: "Apache-2.0" },
+  ];
+  $: ocrNames = $ocrInstalled.map((id) => OCR_LANGS.find((l) => l.id === id)?.label ?? id);
   // Antes de descargar pídese a aceptación expresa do usuario.
   let confirming: ToolId | null = null;
   async function accept(k: ToolId) {
@@ -42,6 +53,14 @@
   <p class="muted lead">
     {$t("Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: o trasno pode descargalos por ti ou podes instalalos ti e a app detectaos soa.")}
   </p>
+
+  <section class="card ok">
+    <div class="head"><strong>{$t("Incluído coa aplicación")}</strong><span class="state ok"><Icon name="check" size={13} /> {$t("Sempre dispoñible")}</span></div>
+    {#each builtin as b}
+      <p><strong>{b.name}</strong> · <span class="muted">{$t(b.what)}</span> <span class="muted small">({b.license})</span></p>
+    {/each}
+    <p class="muted small">{$t("Idiomas de OCR descargados:")} {ocrNames.length ? ocrNames.join(", ") : $t("ningún")}</p>
+  </section>
 
   {#each keys as key}
     {@const it = TOOL_INFO[key]}

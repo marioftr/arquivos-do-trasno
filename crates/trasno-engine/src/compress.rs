@@ -65,7 +65,7 @@ fn load_for_jpeg(input: &Path, max_side: Option<u32>) -> Result<image::RgbImage>
     if !input.is_file() {
         return Err(EngineError::InputNotFound(input.to_path_buf()));
     }
-    let mut img = image::open(input)?;
+    let mut img = image::open(crate::image_ffmpeg::readable(input)?)?;
     if let Some(m) = max_side.filter(|m| *m > 0) {
         if img.width().max(img.height()) > m {
             img = img.resize(m, m, image::imageops::FilterType::Lanczos3);

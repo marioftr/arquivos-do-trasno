@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { FileEntry } from "../files";
   import { t, tr } from "../i18n";
-  import { removeFile } from "../files";
+  import { removeFile, reimportFile, reloadTick } from "../files";
   import { revealInFolder } from "../engine";
   import { formatBytes } from "../formats";
   import Icon from "./Icon.svelte";
@@ -59,11 +59,12 @@
     <span class="chip" title={file.path}>{file.ext.toUpperCase()}</span>
     <span class="meta muted">{meta}</span>
     <span class="grow"></span>
+    <button class="ib" on:click={() => reimportFile(file.path)} title={$t("Actualizar: volver importar o ficheiro e deixalo todo como ao principio")} aria-label={$t("Actualizar o ficheiro")}><Icon name="reset" size={15} /></button>
     <button class="ib" on:click={() => revealInFolder(file.path).catch(() => {})} title={$t("Amosar no cartafol")} aria-label={$t("Amosar no cartafol")}><Icon name="folder" size={15} /></button>
     <button class="ib" on:click={() => removeFile(file.path)} title={$t("Quitar da lista")} aria-label={$t("Quitar da lista")}><Icon name="close" size={15} /></button>
   </div>
   <div class="vbody">
-    {#key file.path}
+    {#key `${file.path}|${$reloadTick}`}
       {#if kind && Comp && shownFor === kind}
         <svelte:component this={Comp} {file} />
       {:else if !kind}

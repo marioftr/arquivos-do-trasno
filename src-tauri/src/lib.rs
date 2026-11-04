@@ -40,6 +40,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::detect_category,
+            commands::forget_previews,
             commands::suggested_targets,
             commands::ffmpeg_available,
             commands::tools_status,

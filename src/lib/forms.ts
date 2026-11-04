@@ -50,6 +50,11 @@ function remember(key: string, value: Record<string, unknown>) {
 // Axustes de cada ficheiro mentres a app está aberta: ao volver a un ficheiro, volven os que levaba.
 const fileMemory = new Map<string, Record<string, unknown>>();
 
+/** Esquece os axustes que lembraba un ficheiro (para reimportalo desde cero). */
+export function forgetFile(path: string) {
+  for (const k of [...fileMemory.keys()]) if (k.includes(path)) fileMemory.delete(k);
+}
+
 export function createForm<T extends Record<string, any>>(defaults: T, memoryKey?: string, fileKey?: string): Form<T> {
   // Con `memoryKey`, arranca cos últimos valores usados (só os campos que seguen existindo).
   // Con `fileKey`, cada ficheiro arranca cos seus propios valores (ou os por defecto se aínda non se tocou).

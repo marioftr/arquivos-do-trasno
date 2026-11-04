@@ -23,7 +23,7 @@ export const TOOL_INFO: Record<ToolId, ToolInfo> = {
   ffmpeg: {
     name: "FFmpeg",
     why: "Lee e escribe case todos os formatos de audio e vídeo.",
-    unlocks: "Convertir, comprimir, editar, cortar e unir audio e vídeo, extraer fotogramas e audio, efectos de son e vistas previas de MKV, AVI ou AIFF.",
+    unlocks: "Convertir, comprimir, editar, cortar e unir audio e vídeo, extraer fotogramas e audio, efectos de son, vistas previas de MKV, AVI ou AIFF, e ler ou escribir imaxes AVIF, JPEG 2000 e JPEG XL.",
     link: "ffmpeg",
     winget: "winget install ffmpeg",
     size: "115 MB",

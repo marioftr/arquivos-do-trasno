@@ -32,3 +32,11 @@ export const peaksCache = lru<number[]>(40);
 export const textCache = lru<string>(30);
 /** Vista previa xa preparada de vídeo/audio que o navegador non le: ruta e se está recodificada. */
 export const previewCache = lru<{ path: string; converted: boolean }>(40);
+
+/** Esquece o que se lembraba dun ficheiro (para reimportalo desde cero). */
+export function forgetView(path: string) {
+  peaksCache.delete(path);
+  textCache.delete(path);
+  previewCache.delete(path);
+  playPos.delete(path);
+}

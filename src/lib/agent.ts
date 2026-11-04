@@ -30,12 +30,14 @@ export interface Action {
   at: number;
   /** Como deixar as cousas como estaban antes desta acción (se se pode). */
   undo?: () => void;
+  /** Texto completo para copiar (os erros). */
+  copy?: string;
 }
 /** Últimas accións, a máis recente primeiro. Sempre en terceira persoa: o programa conta o que fixo o trasno. */
 export const actions = writable<Action[]>([]);
-export function noteAction(gl: string, vars?: Record<string, string | number>, undo?: () => void) {
+export function noteAction(gl: string, vars?: Record<string, string | number>, undo?: () => void, copy?: string) {
   const text = tr(gl, vars);
-  actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now(), undo: l[0].undo ?? undo }, ...l.slice(1)] : [{ text, at: Date.now(), undo }, ...l].slice(0, 12)));
+  actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now(), undo: l[0].undo ?? undo, copy: copy ?? l[0].copy }, ...l.slice(1)] : [{ text, at: Date.now(), undo, copy }, ...l].slice(0, 12)));
 }
 
 /** Número de cambios que se desfán ao premer a acción `idx` (0 é a máis recente): ela e todas as posteriores. */
@@ -84,7 +86,7 @@ function persistedText<T extends string>(key: string, allowed: T[], fallback: T)
 export const CLICK_ITEMS: { id: ClickAction; icon: string; label: string; action: string; tone: string; actionId?: string }[] = [
   { id: "palette", icon: "search", label: "Buscar", action: "Abrir o buscador", tone: "var(--accent)", actionId: "g.palette" },
   { id: "procs", icon: "layers", label: "Procesos", action: "Abrir os procesos", tone: "var(--accent-conversor)" },
-  { id: "say", icon: "chat", label: "Comentar", action: "Soltar un comentario", tone: "var(--accent-pdf)" },
+  { id: "say", icon: "chat", label: "Comentario do trasno", action: "Soltar un comentario", tone: "var(--accent-pdf)" },
   { id: "settings", icon: "gear", label: "Axustes", action: "Abrir os axustes", tone: "var(--text-muted)" },
 ];
 export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", ["procs", "palette", "settings", "say"], "procs");
@@ -96,13 +98,26 @@ export interface Bubble {
   /** «tip» leva o prefixo «Sabías que…»; «info» é un comentario ou aviso sen máis. */
   kind: "tip" | "info" | "warn";
   action?: { label: string; run: () => void };
+  /** Texto que o botón de copiar deixa no portapapeis. */
+  copy?: string;
+  /** Notificación: o trasno pestanexa e queda sorprendido. */
+  notify?: boolean;
 }
 export const bubble = writable<Bubble | null>(null);
 let bubbleId = 0;
 let bubbleTimer: ReturnType<typeof setTimeout> | undefined;
-export function trasnoSay(text: string, kind: Bubble["kind"] = "info", ms = 9000, action?: Bubble["action"]) {
+export function trasnoSay(text: string, kind: Bubble["kind"] = "info", ms = 14000, action?: Bubble["action"], extra: { copy?: string; notify?: boolean } = {}) {
   const id = ++bubbleId;
-  bubble.set({ id, text, kind, action });
+  bubble.set({ id, text, kind, action, copy: extra.copy, notify: extra.notify });
+  clearTimeout(bubbleTimer);
+  bubbleTimer = setTimeout(() => bubble.update((b) => (b?.id === id ? null : b)), ms);
+}
+/** Mentres o punteiro está sobre o globo non se vai; ao saír, queda un pouco máis para acabar de ler. */
+export function holdBubble() {
+  clearTimeout(bubbleTimer);
+}
+export function releaseBubble(ms = 5000) {
+  const id = get(bubble)?.id;
   clearTimeout(bubbleTimer);
   bubbleTimer = setTimeout(() => bubble.update((b) => (b?.id === id ? null : b)), ms);
 }

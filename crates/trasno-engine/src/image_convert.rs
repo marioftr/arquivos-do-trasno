@@ -25,7 +25,8 @@ pub fn image_dimensions(path: &Path) -> Result<(u32, u32)> {
     if !path.is_file() {
         return Err(EngineError::InputNotFound(path.to_path_buf()));
     }
-    image::image_dimensions(path).map_err(EngineError::Image)
+    let readable = crate::image_ffmpeg::readable(path)?;
+    image::image_dimensions(&readable).map_err(EngineError::Image)
 }
 
 fn format_from_ext(ext: &str) -> Result<ImageFormat> {
@@ -61,14 +62,22 @@ pub fn convert_image(
             to: "(sen extensión)".to_string(),
         }
     })?;
+    // AVIF, JPEG 2000 e JPEG XL escríbense con FFmpeg a partir dun PNG temporal (que xa leva o redimensionado).
+    if crate::image_ffmpeg::is_encode_ext(&dst_ext) {
+        let tmp = tempfile::Builder::new().suffix(".png").tempfile()?.into_temp_path();
+        let tmp_path = tmp.to_path_buf();
+        convert_image(input, &tmp_path, true, options)?;
+        return crate::image_ffmpeg::encode(&tmp_path, output, overwrite, options.quality);
+    }
     let dst_format = format_from_ext(&dst_ext)?;
+    let readable = crate::image_ffmpeg::readable(input)?;
 
     // Decodificar por completo antes de tocar o destino: se a imaxe de
     // orixe está corrompida, fallamos aquí e nunca chegamos a crear nada.
     // A orientación EXIF aplícase ao abrir: as medidas do recorte son as da imaxe tal como se ve.
     let mut img = {
         use image::ImageDecoder;
-        let mut dec = image::ImageReader::open(input)?.with_guessed_format()?.into_decoder()?;
+        let mut dec = image::ImageReader::open(&readable)?.with_guessed_format()?.into_decoder()?;
         let orientation = dec.orientation().unwrap_or(image::metadata::Orientation::NoTransforms);
         let mut i = image::DynamicImage::from_decoder(dec)?;
         i.apply_orientation(orientation);
@@ -153,7 +162,7 @@ pub fn edit_image(
     })?;
     let to_pdf = dst_ext == "pdf";
     let dst_format = if to_pdf { ImageFormat::Png } else { format_from_ext(&dst_ext)? };
-    let mut img = image::open(input)?;
+    let mut img = image::open(crate::image_ffmpeg::readable(input)?)?;
 
     img = match edits.rotate % 360 {
         90 => img.rotate90(),

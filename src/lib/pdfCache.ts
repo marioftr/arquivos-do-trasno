@@ -135,3 +135,4 @@ export function prefetchThumbs(path: string, total: number) {
   for (let n = 1; n <= total; n++) if (!cachedThumbs(path).has(n)) low.push({ path, n });
   work();
 }
+

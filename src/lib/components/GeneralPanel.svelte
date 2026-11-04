@@ -64,24 +64,6 @@
 </script>
 
   <section>
-    <h3>{$t("Aparencia")}</h3>
-    <Segmented
-      label={$t("Idioma")}
-      options={LANGS.map((l) => ({ value: l.id, label: l.label }))}
-      bind:value={langV}
-    />
-    <Segmented
-      label={$t("Tema")}
-      options={[
-        { value: "system", label: $t("Sistema") },
-        { value: "light", label: $t("Claro") },
-        { value: "dark", label: $t("Escuro") },
-      ]}
-      bind:value={themeV}
-    />
-  </section>
-
-  <section>
     <h3>{$t("Trasno")}</h3>
     <Toggle label={$t("Consellos do trasno")} bind:checked={$tipsOn} hint={$t("O trasno comenta de cando en vez cousas útiles sobre o ficheiro e a ferramenta abertos. Desactivalo silencia eses comentarios, pero non os avisos importantes.")} />
     <div class="row">
@@ -103,6 +85,31 @@
     {#if modeV === "folder"}
       <button class="btn" on:click={chooseFolder}><Icon name="folder" size={14} /> {$outputFolder ? fileNameOf($outputFolder) : $t("Escoller cartafol…")}</button>
     {/if}
+  </section>
+
+  <section>
+    <h3>{$t("Aparencia")}</h3>
+    <Segmented
+      label={$t("Idioma")}
+      options={LANGS.map((l) => ({ value: l.id, label: l.label }))}
+      bind:value={langV}
+    />
+    <div class="lab">{$t("Tema")}</div>
+    <div class="themes" role="radiogroup" aria-label={$t("Tema")}>
+      {#each [{ id: "system", label: $t("Sistema") }, { id: "light", label: $t("Claro") }, { id: "dark", label: $t("Escuro") }] as th}
+        <button class="theme" class:on={themeV === th.id} role="radio" aria-checked={themeV === th.id} on:click={() => (themeV = th.id)}>
+          <span class={`mini ${th.id}`} aria-hidden="true">
+            {#if th.id === "system"}
+              <span class="half l"><i class="sb"></i><i class="hd"></i><i class="bd"></i><i class="ac"></i></span>
+              <span class="half d"><i class="sb"></i><i class="hd"></i><i class="bd"></i><i class="ac"></i></span>
+            {:else}
+              <i class="sb"></i><i class="hd"></i><i class="bd"></i><i class="ac"></i>
+            {/if}
+          </span>
+          <span class="tl">{th.label}</span>
+        </button>
+      {/each}
+    </div>
   </section>
 
   {#if ex?.available}
@@ -128,6 +135,25 @@
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
   .lab { font-size: 0.86rem; display: inline-flex; align-items: center; }
+  .themes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+  .theme { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.4rem 0.4rem 0.5rem; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); color: var(--text-muted); font-size: 0.82rem; }
+  .theme:hover { border-color: var(--text-faint); color: var(--text); }
+  .theme.on { border-color: var(--accent); color: var(--text); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+  .mini { position: relative; display: block; height: 58px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(128, 128, 128, 0.35); }
+  .mini.light, .half.l { --m-bg: #f4f5f7; --m-side: #ffffff; --m-head: #e4e6ea; --m-body: #dcdfe4; }
+  .mini.dark, .half.d { --m-bg: #14161a; --m-side: #1f2126; --m-head: #272a30; --m-body: #2f333a; }
+  .mini.light, .mini.dark { background: var(--m-bg); }
+  .mini.system { display: flex; }
+  .half { position: relative; display: block; flex: 1; background: var(--m-bg); }
+  .mini i { position: absolute; display: block; border-radius: 2px; }
+  .mini .sb { left: 0; top: 0; bottom: 0; width: 22%; background: var(--m-side); border-radius: 0; }
+  .mini .hd { left: 28%; right: 6%; top: 10%; height: 14%; background: var(--m-head); }
+  .mini .bd { left: 28%; right: 6%; top: 32%; height: 34%; background: var(--m-body); }
+  .mini .ac { left: 28%; width: 30%; bottom: 10%; height: 14%; background: #5ecf6f; }
+  .half .sb { width: 28%; }
+  .half .hd, .half .bd { left: 36%; right: 8%; }
+  .half .ac { left: 36%; width: 40%; }
+  .tl { text-align: center; }
   .note { margin: 0; font-size: 0.8rem; }
   .exrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
 </style>

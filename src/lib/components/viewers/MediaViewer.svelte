@@ -225,6 +225,7 @@
   let totalDur = 0;
   let afterLoad: { offset: number; play: boolean } | null = null;
   let segToken = 0;
+  let segWatch: ReturnType<typeof setTimeout>;
   const prefetched = new Set<number>();
   $: segStart = segIndex * SEG;
 
@@ -258,12 +259,32 @@
     loadingSeg = true;
     segIndex = idx;
     afterLoad = { offset, play };
+    // Se o tramo nunca chega a cargar, avísase en vez de quedar «preparando» para sempre.
+    clearTimeout(segWatch);
+    segWatch = setTimeout(() => {
+      if (mine === segToken && loadingSeg) {
+        loadingSeg = false;
+        failed = true;
+        failMsg = tr("O tramo tardou demasiado en prepararse.");
+      }
+    }, 60000);
     try {
       const path = await engine.makePreviewChunk(file.path, idx * SEG, SEG, pickV);
       if (mine !== segToken) return;
-      url = await viewUrl(path);
+      const next = await viewUrl(path);
+      if (mine !== segToken) return;
+      if (next === url && el) {
+        // É o mesmo tramo que xa está cargado: non haberá novo «loadedmetadata», así que se vai ao punto directamente.
+        clearTimeout(segWatch);
+        loadingSeg = false;
+        afterLoad = null;
+        el.currentTime = offset;
+        if (play) el.play().catch(() => {});
+        tick();
+      } else url = next;
     } catch (e) {
       if (mine !== segToken) return;
+      clearTimeout(segWatch);
       loadingSeg = false;
       failed = true;
       failMsg = errText(e);
@@ -284,6 +305,7 @@
       afterLoad = null;
     }
     loadingSeg = false;
+    clearTimeout(segWatch);
     if (el && $mediaPreview) el.playbackRate = Math.min(4, Math.max(0.25, $mediaPreview.speed));
     tick();
   }
@@ -435,6 +457,9 @@
   async function prepare(force = false, resume?: { t: number; play: boolean }) {
     if (triedPreview && !force) {
       failed = true;
+      loadingSeg = false;
+      clearTimeout(segWatch);
+      if (!failMsg) failMsg = tr("O visor non puido reproducir este vídeo.");
       return;
     }
     triedPreview = true;

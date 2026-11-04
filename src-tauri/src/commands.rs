@@ -429,9 +429,30 @@ fn preview_dir() -> PathBuf {
     std::env::temp_dir().join("arquivos-do-trasno-previsualizacions")
 }
 
+/// Borra as vistas previas (imaxe, remux e tramos) que se fixeron dun ficheiro, para volver a xeralas desde cero.
+#[tauri::command]
+pub async fn forget_previews(path: String) -> Result<(), String> {
+    blocking(move || {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        path.hash(&mut h);
+        let stem = format!("{:x}", h.finish());
+        if let Ok(rd) = std::fs::read_dir(preview_dir()) {
+            for e in rd.flatten() {
+                if e.file_name().to_string_lossy().starts_with(&stem) {
+                    let _ = std::fs::remove_file(e.path());
+                }
+            }
+        }
+        Ok(())
+    })
+    .await
+}
+
 /// Borra as vistas previas de execucións anteriores.
 pub fn clean_previews() {
     let _ = std::fs::remove_dir_all(preview_dir());
+    let _ = std::fs::remove_dir_all(trasno_engine::image_ffmpeg::cache_dir());
     // Restos de colas do menú do clic dereito (se unha apertura morreu a medias).
     for name in ["trasno-jobs", "trasno-open"] {
         let dir = std::env::temp_dir().join(name);
