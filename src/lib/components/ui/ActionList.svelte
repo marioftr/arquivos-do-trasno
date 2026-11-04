@@ -14,6 +14,8 @@
   export let limit = Infinity;
   /** Ao abrir déixase á vista o final (o máis recente). */
   export let stick = false;
+  /** Na lista grande de Axustes a máis recente vai arriba; no globo da barra, abaixo (máis perto do trasno). */
+  export let newestFirst = false;
   /** Chámase despois de abrir un ficheiro desde a lista (para pechar o globo do historial). */
   export let onOpen: () => void = () => {};
 
@@ -47,7 +49,10 @@
       undo: false,
       outputs: p.outputs,
     }));
-  $: rows = [...actionRows, ...procRows].sort((x, y) => x.at - y.at).slice(-limit);
+  $: rows = (() => {
+    const l = [...actionRows, ...procRows].sort((x, y) => x.at - y.at).slice(-limit);
+    return newestFirst ? l.reverse() : l;
+  })();
 
   const toEnd = (n: HTMLElement) => {
     if (!stick) return;

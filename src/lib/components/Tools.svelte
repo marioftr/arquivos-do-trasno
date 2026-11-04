@@ -95,7 +95,7 @@
   $: if (current && current !== lastTab) {
     lastTab = current;
   }
-  $: viewCtx.set({ category: category ?? undefined, tool: current });
+  $: viewCtx.set({ category: category ?? undefined, tool: current, ext: first?.ext, count: selection.length });
   $: if (tabs.length && !tabs.some((x) => x.id === current)) current = tabs[0].id;
 
   // Lembra a última pestana usada con cada tipo de ficheiro (e co lote).

@@ -139,7 +139,26 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
     });
     workerLang = lang;
   }
-  const { data } = await worker.recognize(imageUrl);
+  // Primeira lectura coa imaxe tal cal; se fica pobre (texto pequeno sobre fondos cheos, como un visor 3D ou unha captura),
+  // préparase a imaxe de dous xeitos máis (só o claro e só o escuro, ampliada) e queda a lectura que máis texto fiable dea.
+  let best = shape((await worker.recognize(imageUrl)).data, 1);
+  if (best.score < WEAK) {
+    for (const mode of ["bright", "dark"] as const) {
+      const prepared = await prepare(imageUrl, mode);
+      if (!prepared) break;
+      const r = shape((await worker.recognize(prepared.blob)).data, prepared.scale);
+      if (r.score > Math.max(MIN_GAIN, best.score * 1.3)) best = r;
+    }
+  }
+  return best.result;
+}
+
+/** Palabras fiables que se esperan dunha lectura boa: por baixo diso proban os pasos extra. */
+const WEAK = 12;
+const MIN_GAIN = 6;
+
+/** Colle o resultado de Tesseract (a `scale` veces o tamaño orixinal), descarta o ruído e devolve as caixas en coordenadas da imaxe. */
+function shape(data: any, scale: number): { result: OcrResult; score: number } {
   // Descártanse as palabras que o motor le con pouca confianza (ruído de fotos, texturas...) e os símbolos soltos.
   const keep = (w: any) => {
     const t = String(w.text ?? "").trim();
@@ -151,17 +170,49 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
   };
   // Se o filtro deixase todo en branco, mellor amosar o que se leu que nada.
   const anyKept = (data.lines ?? []).some((l: any) => (l.words ?? []).some(keep));
+  let score = 0;
   const lines: OcrWord[][] = (data.lines ?? [])
     .map((l: any) => {
       const ws = (l.words ?? []).filter((w: any) => (anyKept ? keep(w) : String(w.text ?? "").trim()));
       if (!ws.length) return [];
+      for (const w of ws) if (Number(w.confidence ?? 0) >= 60 && /[\p{L}\p{N}]{2,}/u.test(String(w.text))) score++;
       // Todas as palabras dunha liña comparten altura (as letras sen ascendentes non encollen a caixa).
-      const y0 = Math.min(...ws.map((w: any) => w.bbox.y0));
-      const y1 = Math.max(...ws.map((w: any) => w.bbox.y1));
-      return ws.map((w: any) => ({ text: String(w.text).trim(), x0: w.bbox.x0, y0, x1: w.bbox.x1, y1 }));
+      const y0 = Math.min(...ws.map((w: any) => w.bbox.y0)) / scale;
+      const y1 = Math.max(...ws.map((w: any) => w.bbox.y1)) / scale;
+      return ws.map((w: any) => ({ text: String(w.text).trim(), x0: w.bbox.x0 / scale, y0, x1: w.bbox.x1 / scale, y1 }));
     })
     .filter((l: OcrWord[]) => l.length);
-  return { text: lines.map((l) => l.map((w) => w.text).join(" ")).join("\n"), lines };
+  return { result: { text: lines.map((l) => l.map((w) => w.text).join(" ")).join("\n"), lines }, score };
+}
+
+/** Imaxe preparada para ler: ampliada (as letras pequenas melloran moito) e en branco e negro, quedando só o claro («bright», texto claro
+ *  sobre fondo medio) ou só o escuro («dark»). Devolve tamén a ampliación usada para volver ás coordenadas orixinais. */
+async function prepare(imageUrl: string, mode: "bright" | "dark"): Promise<{ blob: Blob; scale: number } | null> {
+  try {
+    const bmp = await createImageBitmap(await (await fetch(imageUrl)).blob());
+    const side = Math.max(bmp.width, bmp.height);
+    // Non se amplían as imaxes grandes: o texto xa ten tamaño de sobra e custaría memoria e tempo.
+    const scale = side <= 900 ? 3 : side <= 1800 ? 2 : 1;
+    const cv = new OffscreenCanvas(bmp.width * scale, bmp.height * scale);
+    const ctx = cv.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(bmp, 0, 0, cv.width, cv.height);
+    bmp.close();
+    const img = ctx.getImageData(0, 0, cv.width, cv.height);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const y = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+      const ink = mode === "bright" ? y > 185 : y < 75;
+      const v = ink ? 0 : 255;
+      d[i] = d[i + 1] = d[i + 2] = v;
+      d[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    return { blob: await cv.convertToBlob({ type: "image/png" }), scale };
+  } catch {
+    return null;
+  }
 }
 
 /** Esquece os textos lidos dunha imaxe (para reimportala desde cero). */

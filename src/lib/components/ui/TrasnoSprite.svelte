@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { motionReduced } from "../../settings";
 
   /** O trasno en pixel art (32 × 32). Os fotogramas viven en `public/trasno/`: substituír os PNG
    *  (mesmos nomes) cambia a arte en toda a aplicación sen tocar nada máis. */
@@ -22,7 +23,7 @@
 
   let i = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const still = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  $: still = $motionReduced;
   $: seq = SEQ[state] ?? SEQ.idle;
   $: if (state) i = still && (state === "notice" || state === "warn") ? seq.length - 1 : 0;
   function tick() {

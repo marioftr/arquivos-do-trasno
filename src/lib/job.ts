@@ -11,19 +11,11 @@ import { track, refreshProcs, type Tracker } from "./procs";
 import { files, activePath } from "./files";
 import { noteAction, liveProgress, trasnoSay, jobEnd, trasnoDone } from "./agent";
 
-export interface JobMessage {
-  ok: boolean;
-  text: string;
-  /** Aviso sen valoración (por exemplo, cancelado): non se pinta nin de verde nin de vermello. */
-  neutral?: boolean;
-}
-
 export interface Job {
   busy: Writable<boolean>;
   text: Writable<string>;
   /** Avance real (0 a 1) cando o motor o dá; `null` se non se sabe. */
   progress: Writable<number | null>;
-  message: Writable<JobMessage | null>;
   run: (working: string, fail: string, job: () => Promise<string | void>) => Promise<void>;
   say: (ok: boolean, text: string) => void;
   clear: () => void;
@@ -43,17 +35,14 @@ export function createJob(): Job {
   const busy = writable(false);
   const text = writable("");
   const progress = writable<number | null>(null);
-  const message = writable<JobMessage | null>(null);
   return {
     busy,
     text,
     progress,
-    message,
     async run(working, fail, job) {
       busy.set(true);
       text.set(tr(working));
       progress.set(null);
-      message.set(null);
       await beginJob().catch(() => {});
       const current = get(files).find((f) => f.path === get(activePath));
       const tracker = track({ title: current?.name ?? tr("Traballo"), subtitle: tr(working), source: "app" });
@@ -67,11 +56,14 @@ export function createJob(): Job {
       };
       try {
         const done = await job();
-        if (done) message.set({ ok: true, text: done });
-        noteAction("O trasno rematou o traballo de «{name}»", { name: current?.name ?? "" }, undefined, undefined, outs.length ? [...outs] : undefined);
+        // O resultado (tamaño, aforro...) di o trasno e queda no historial, cos botóns dos ficheiros que deixou.
+        const info = done ? String(done) : "";
+        if (info) noteAction(info, undefined, undefined, undefined, outs.length ? [...outs] : undefined);
+        else noteAction("O trasno rematou o traballo de «{name}»", { name: current?.name ?? "" }, undefined, undefined, outs.length ? [...outs] : undefined);
         tracker.finish("done", { detail: done ? String(done).slice(0, 200) : undefined });
         jobEnd.set({ kind: "done", title: current?.name ?? tr("Traballo"), at: Date.now() });
-        trasnoDone(current?.name ?? tr("Traballo"));
+        if (info) trasnoSay(info, "info", 16000);
+        else trasnoDone(current?.name ?? tr("Traballo"));
       } catch (e) {
         // Cancelar non é un fallo: sen frase de «tropezou».
         if (isCancelled(e)) {
@@ -98,14 +90,14 @@ export function createJob(): Job {
       }
     },
     say(ok, t) {
-      if (ok) message.set({ ok, text: t });
-      else {
+      if (ok) {
+        trasnoSay(t, "info", 16000);
+        noteAction(t);
+      } else {
         trasnoSay(t, "warn", 45000, undefined, { copy: t, notify: true });
         noteAction(t.split("\n")[0].slice(0, 120), undefined, undefined, t);
       }
     },
-    clear() {
-      message.set(null);
-    },
+    clear() {},
   };
 }

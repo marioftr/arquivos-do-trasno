@@ -1,7 +1,7 @@
 <script lang="ts">
   import { open } from "@tauri-apps/plugin-dialog";
   import { t, lang, LANGS, type Lang } from "../i18n";
-  import { theme, outputMode, outputFolder, openHub, type Theme, type OutputMode } from "../settings";
+  import { theme, outputMode, outputFolder, openHub, motionReduced, motionPref, uiScale, UI_SCALES, type Theme, type OutputMode } from "../settings";
   import { installExplorerMenu } from "../explorerMenu";
   import { fileNameOf } from "../formats";
   import * as engine from "../engine";
@@ -12,6 +12,8 @@
   import IconSelect from "./ui/IconSelect.svelte";
   import { tipsOn, trasnoClick, CLICK_ITEMS, type ClickAction } from "../agent";
   import Icon from "./Icon.svelte";
+  let motionV = $motionReduced;
+  $: if (motionV !== $motionReduced) motionPref.set(motionV ? "reduce" : "full");
 
   // Segmented usa texto; as tendas teñen tipos máis estritos.
   let langV: string = $lang;
@@ -88,6 +90,12 @@
   </section>
 
   <section>
+    <h3>{$t("Accesibilidade")}<InfoTip text={$t("O tamaño da interface amplía o texto e os controis por igual, como o zoom do navegador. A xanela non pode ser máis pequena que o necesario para que nada se solape.")} /></h3>
+    <Toggle label={$t("Reducir animacións")} bind:checked={motionV} hint={$t("O trasno e a interface quedan quietos: sen saltos, voos nin transicións. Por defecto segue o axuste de animacións do sistema.")} />
+    <Segmented label={$t("Tamaño da interface")} options={UI_SCALES.map((v) => ({ value: v, label: `${v} %` }))} bind:value={$uiScale} />
+  </section>
+
+  <section>
     <h3>{$t("Aparencia")}</h3>
     <Segmented
       label={$t("Idioma")}
@@ -131,6 +139,7 @@
 </section>
 
 <style>
+  .hint { margin: 0.3rem 0 0; font-size: 0.78rem; line-height: 1.4; }
   section { display: flex; flex-direction: column; gap: 0.6rem; }
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }

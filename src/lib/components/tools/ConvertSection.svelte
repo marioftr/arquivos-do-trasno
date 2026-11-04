@@ -169,9 +169,8 @@
       <Toggle label={$t("Sen perdas")} bind:checked={$form.lossless} hint={$t("Conserva exactamente a calidade do orixinal, sen compresión con perdas. O ficheiro resultante pesa moito máis e o proceso tarda máis.")} />
     {/if}
 
-    {#if exact}
-      <GroupNote text={$t("Sen perdas: o resultado conserva o orixinal tal cal, así que non hai calidade, bitrate nin tamaño que axustar.")} />
-    {:else if category === "imaxe" && $form.targetExt === "pdf"}
+    <div class="locked" class:on={exact} inert={exact}>
+    {#if category === "imaxe" && $form.targetExt === "pdf"}
       <GroupNote text={$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")} />
     {:else if category === "imaxe"}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto = mellor imaxe e máis peso (só JPG)")} />
@@ -202,6 +201,7 @@
     {:else if category === "modelo3d" && !ENGINE_3D.includes(first.ext)}
       <GroupNote text={$t("Os FBX e glTF conviértense co mesmo cargador do visor.")} />
     {/if}
+    </div>
   </div>
 
   {#if multi}
@@ -227,3 +227,9 @@
 
   <JobStatus {job} />
 </div>
+
+<style>
+  /* «Sen perdas»: os axustes que xa non valen quedan en gris e bloqueados (non desaparecen) */
+  .locked { display: flex; flex-direction: column; gap: inherit; transition: opacity 0.2s, filter 0.2s; }
+  .locked.on { opacity: 0.4; filter: grayscale(1); pointer-events: none; user-select: none; }
+</style>

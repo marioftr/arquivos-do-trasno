@@ -223,6 +223,9 @@
   /* As accións flotan sobre o final da fila: o texto non se reordena ao pasar o rato. */
   .acc { display: none; position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%); align-items: center; padding-left: 1.6rem; background: linear-gradient(90deg, transparent, var(--rowbg) 1.6rem); }
   li:hover .acc { display: flex; }
+  /* O degradado das frechas non pode comer os clics: só os botóns reciben o punteiro */
+  .acc { pointer-events: none; }
+  .acc > :global(*) { pointer-events: auto; }
   .mini { background: none; border: none; color: var(--text-faint); width: 26px; height: 26px; align-items: center; justify-content: center; border-radius: var(--radius-sm); display: flex; }
   .mini:hover:not(:disabled) { color: var(--text); background: var(--bg-card); }
   .mini:disabled { opacity: 0.25; cursor: default; }

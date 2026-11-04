@@ -90,9 +90,8 @@
     30% { opacity: 1; }
     100% { opacity: 0; }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .mark { animation: fade 3.4s ease-out forwards; }
-    .rays { display: none; }
-    @keyframes fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
-  }
+  /* Con animacións reducidas: aparece quieto e desaparece suave */
+  :global(:root[data-motion="reduce"]) .mark { animation: fade 3.4s ease-out forwards !important; animation-duration: 3.4s !important; }
+  :global([data-motion="reduce"]) .rays { display: none; }
+  @keyframes fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 </style>

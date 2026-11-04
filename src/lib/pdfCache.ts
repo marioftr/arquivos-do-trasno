@@ -5,6 +5,9 @@ import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { writable } from "svelte/store";
 import { viewUrl } from "./files";
+import { viewState, onForgetPdf } from "./pdfState";
+
+export { viewState };
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -34,16 +37,15 @@ export function getPdf(path: string): Promise<pdfjs.PDFDocumentProxy> {
   return p;
 }
 
-/** Onde estaba cada PDF (páxina e zoom), para volver exactamente ao mesmo sitio. */
-export const viewState = new Map<string, { page: number; scale: number; fit: "none" | "width" | "page" }>();
-
 /** Esquece un ficheiro (por exemplo, ao quitalo da lista). */
-export function forgetPdf(path: string) {
+function forgetDoc(path: string) {
   const d = docs.get(path);
   docs.delete(path);
   thumbs.delete(path);
   d?.then((x) => x.destroy()).catch(() => {});
 }
+
+onForgetPdf(forgetDoc);
 
 // ------------------------------------------------------------ miniaturas
 

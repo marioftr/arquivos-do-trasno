@@ -154,7 +154,7 @@ export function trasnoDone(name: string) {
 export const trasnoAway = writable(false);
 
 /** Ficheiro e ferramenta á vista: os comentarios do trasno tenen que ver con eles. */
-export const viewCtx = writable<{ category?: string; tool?: string }>({});
+export const viewCtx = writable<{ category?: string; tool?: string; ext?: string; count?: number }>({});
 
 /** Avance en directo do traballo da app en marcha (a lista de procesos só se refresca cada poucos segundos). */
 export const liveProgress = writable<number | null>(null);
@@ -206,13 +206,46 @@ export const CTX: Record<string, string[]> = {
   security: ["Se se perde o contrasinal dun PDF cifrado, non hai maneira de recuperalo."],
 };
 
+/** Comentarios propios dun formato concreto. */
+const EXT_CTX: Record<string, string[]> = {
+  pdf: ["Un PDF escaneado non ten texto seleccionable: a ferramenta de texto da imaxe pode lelo.", "Unir, dividir ou reordenar un PDF fai sempre unha copia: o orixinal non se toca."],
+  avi: ["O AVI é un contedor antigo: convertelo a MP4 adoita aforrar moito espazo.", "Os AVI vellos agochan pistas estrañas; en Pistas pódese ver o que levan."],
+  mkv: ["O MKV pode levar varias pistas de audio e subtítulos: en Pistas vense todas."],
+  mp4: ["O MP4 H.264 abre case en calquera sitio."],
+  mov: ["Os MOV do móbil adoitan pesar moito: convertelos a MP4 ou baixar a altura máxima axuda."],
+  gif: ["Un GIF pesa moito máis que o mesmo vídeo en MP4 ou WebM.", "O GIF só ten 256 cores; ao convertelo a PNG ou JPG non se gaña calidade."],
+  png: ["O PNG non perde calidade ao gardarse; o JPG e o WebP si, aínda que pesan moito menos.", "Un PNG con moita foto dentro pesa moito: en JPG ou WebP aforra bastante."],
+  jpg: ["O JPG perde un chisco de calidade cada vez que se garda: convén traballar sobre unha copia."],
+  jpeg: ["O JPEG perde un chisco de calidade cada vez que se garda: convén traballar sobre unha copia."],
+  webp: ["O WebP pesa menos que o JPG coa mesma calidade, pero algúns programas vellos non o abren."],
+  avif: ["O AVIF comprime moito máis que o JPG; para arquivar sen perdas hai o modo «Sen perdas».", "Algúns programas vellos aínda non abren AVIF: o JPG é máis universal."],
+  heic: ["O HEIC das cámaras de iPhone non o abre todo o mundo: converter a JPG axuda a compartilo."],
+  jxl: ["O JPEG XL pode ir sen perdas e adoita pesar menos ca un PNG."],
+  wav: ["O WAV non leva compresión: pesa moito, pero é perfecto para editar."],
+  mp3: ["O MP3 é o máis compatible. Pasalo a outro formato con perdas non devolve calidade."],
+  flac: ["O FLAC garda todo sen perdas e pesa bastante menos que un WAV."],
+  glb: ["O GLB leva o modelo e as texturas nun só ficheiro."],
+  fbx: ["Os FBX e glTF ábrense co mesmo cargador do visor."],
+};
+/** Comentarios para cando hai varios ficheiros marcados á vez. */
+const MULTI_CTX: Record<string, string[]> = {
+  "*": ["Con varios ficheiros marcados, o que se axuste aplícase a todos á vez.", "Os ficheiros marcados convértense en lote, e cada un garda o seu propio resultado."],
+  imaxe: ["Varias imaxes marcadas: o lado máximo axusta todas ao mesmo tamaño sen deformalas.", "Varias imaxes marcadas pódense unir nun só PDF desde Unir."],
+  video: ["Varios vídeos marcados: o mesmo perfil vale para todos, e o lote tarda máis que un só.", "Os vídeos marcados pódense unir nun só desde Unir."],
+  audio: ["Varios audios marcados poden unirse nun só desde Unir, na orde da lista."],
+  documento: ["Varios PDF marcados poden unirse nun só desde Unir, na orde da lista."],
+};
+
 /** As últimas frases ditas: non se repite ningunha ata que pasen outras 10. */
 const recent: string[] = [];
 /** Un comentario ao chou, con preferencia polo que ten que ver co ficheiro e a ferramenta. */
-export function pickComment(category?: string, tool?: string): Bubble {
-  const ctx = [...(CTX[tool ?? ""] ?? []), ...(CTX[category ?? ""] ?? []), ...CTX["*"]].map((text) => ({ text, kind: "info" as const }));
+export function pickComment(category?: string, tool?: string, ext?: string, count = 1): Bubble {
+  // O máis propio primeiro: o formato concreto, a selección múltiple, a ferramenta e o tipo; o xeral só enche.
+  const own = [...(EXT_CTX[(ext ?? "").toLowerCase()] ?? []), ...(count > 1 ? [...(MULTI_CTX[category ?? ""] ?? []), ...MULTI_CTX["*"]] : []), ...(CTX[tool ?? ""] ?? []), ...(CTX[category ?? ""] ?? [])].map((text) => ({ text, kind: "info" as const }));
+  const general = CTX["*"].map((text) => ({ text, kind: "info" as const }));
   const tips = TIPS.map((text) => ({ text, kind: "tip" as const }));
-  const all = [...ctx, ...ctx, ...tips];
+  // Con algo á vista, o propio pesa tres veces; sen nada, só o xeral.
+  const all = own.length ? [...own, ...own, ...own, ...general, ...tips] : [...general, ...general, ...tips];
   let pool = all.filter((x) => !recent.includes(x.text));
   if (!pool.length) pool = all;
   const c = pool[Math.floor(Math.random() * pool.length)];

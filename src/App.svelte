@@ -1,7 +1,7 @@
 <script lang="ts">
   import TrasnoSprite from "./lib/components/ui/TrasnoSprite.svelte";
   import { onMount, onDestroy } from "svelte";
-  import { open } from "@tauri-apps/plugin-dialog";
+  import { open, ask } from "@tauri-apps/plugin-dialog";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { listen } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -19,7 +19,9 @@
   import { installExplorerMenu } from "./lib/explorerMenu";
   import QuickJob from "./lib/components/QuickJob.svelte";
   import HubDialog from "./lib/components/HubDialog.svelte";
-  import { procs, refreshProcs, requestCancel } from "./lib/procs";
+  import { procs, refreshProcs, requestCancel, type Proc } from "./lib/procs";
+  import { pausedId } from "./lib/jobui";
+  import JobBar from "./lib/components/ui/JobBar.svelte";
   import { actions, tipsOn, liveProgress, jobEnd, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, CLICK_ITEMS, holdBubble, releaseBubble, type ClickAction } from "./lib/agent";
   import { reportProgress } from "./lib/job";
   import { requestTool } from "./lib/toolinstall";
@@ -34,6 +36,7 @@
   let unlisten: (() => void) | null = null;
   let unlistenOpen: (() => void) | null = null;
   let unlistenProgress: (() => void) | null = null;
+  let unlistenClose: (() => void) | null = null;
   let procTimer: ReturnType<typeof setInterval>;
   $: running = [...$procs].filter((p) => p.state === "running" && !cancelling.has(p.id)).sort((x, y) => (y.started ?? 0) - (x.started ?? 0));
   $: lastRun = running[0];
@@ -45,7 +48,7 @@
   let tipTimer: ReturnType<typeof setTimeout>;
   function sayNow() {
     if (dockOpen) return;
-    const c = pickComment($viewCtx.category, $viewCtx.tool);
+    const c = pickComment($viewCtx.category, $viewCtx.tool, $viewCtx.ext, $viewCtx.count);
     trasnoSay(c.text, c.kind, 14000);
   }
   function scheduleTip(first = false) {
@@ -130,32 +133,26 @@
     }
   }
   let histOpen = false;
-  let askCancel = false;
-  /** O ffmpeg está parado de verdade (se non se puido parar, só se pregunta). */
-  let paused = false;
-  $: if (!lastRun) {
-    askCancel = false;
-    paused = false;
-  }
-  async function askStop() {
-    askCancel = true;
-    paused = lastRun?.source === "app" ? await engine.pauseJob(true).catch(() => false) : false;
-  }
-  async function resumeJob() {
-    const was = paused;
-    askCancel = false;
-    paused = false;
-    if (was) await engine.pauseJob(false).catch(() => false);
-  }
+  $: if (!lastRun) pausedId.set(null);
   // Ao rematar un traballo: a barra enchese e muda de cor un instante, e se foi ben o trasno bota un salto.
   let endFlash: { kind: "done" | "cancelled" | "error"; title: string } | null = null;
+  let endLeaving = false;
   let celebrate = false;
+  let shrug = false;
   let endTimer: ReturnType<typeof setTimeout>;
+  let endTimer2: ReturnType<typeof setTimeout>;
   let celebTimer: ReturnType<typeof setTimeout>;
   $: if ($jobEnd) {
     endFlash = { kind: $jobEnd.kind, title: $jobEnd.title };
+    endLeaving = false;
     clearTimeout(endTimer);
-    endTimer = setTimeout(() => (endFlash = null), 2200);
+    clearTimeout(endTimer2);
+    endTimer = setTimeout(() => (endLeaving = true), 2000);
+    endTimer2 = setTimeout(() => (endFlash = null), 2350);
+    if ($jobEnd.kind === "cancelled") {
+      shrug = true;
+      setTimeout(() => (shrug = false), 700);
+    }
     if ($jobEnd.kind === "done") {
       celebrate = true;
       clearTimeout(celebTimer);
@@ -168,11 +165,8 @@
     const gone = [...cancelling].filter((id) => !$procs.some((p) => p.id === id && p.state === "running"));
     if (gone.length) cancelling = new Set([...cancelling].filter((id) => !gone.includes(id)));
   }
-  async function doCancel() {
-    askCancel = false;
-    paused = false;
-    const r = lastRun;
-    if (!r) return;
+  async function doCancel(r: Proc) {
+    pausedId.set(null);
     cancelling = new Set(cancelling).add(r.id);
     setTimeout(() => {
       cancelling.delete(r.id);
@@ -256,6 +250,17 @@
       scheduleTip(true);
       procTimer = setInterval(refreshProcs, 2000);
     }
+    // Pechar co traballo a medias: avísase antes, e se se confirma páranse os procesos sen deixar ficheiros rotos.
+    unlistenClose = await getCurrentWindow().onCloseRequested(async (e) => {
+      const busy = $procs.some((p) => p.state === "running");
+      if (!busy) return;
+      e.preventDefault();
+      const ok = await ask($t("Hai procesos en marcha. Se pechas agora, cancelaranse e non quedará ningún ficheiro a medias."), { title: $t("Pechar a aplicación?"), kind: "warning", okLabel: $t("Pechar igualmente"), cancelLabel: $t("Seguir") }).catch(() => false);
+      if (!ok) return;
+      pausedId.set(null);
+      await engine.cancelJob().catch(() => false);
+      await getCurrentWindow().destroy();
+    });
     unlisten = await getCurrentWebview().onDragDropEvent((event) => {
       const p = event.payload;
       if (p.type === "drop") {
@@ -299,6 +304,7 @@
     unlisten?.();
     unlistenOpen?.();
     unlistenProgress?.();
+    unlistenClose?.();
     clearInterval(procTimer);
   });
 
@@ -381,7 +387,7 @@
           <span class="rl">{$t(it.label)}{#if it.actionId && slotsOf(it.actionId, $custom)[0]}<kbd>{slotsOf(it.actionId, $custom)[0]}</kbd>{/if}</span>
         </button>
       {/each}
-      <button class="trasno" class:away={$trasnoAway} on:click={clickTrasno} on:focus={(e) => e.currentTarget.matches(":focus-visible") && dockShow()} aria-label={$t("Procesos")}>
+      <button class="trasno" class:away={$trasnoAway} class:shrug on:click={clickTrasno} on:focus={(e) => e.currentTarget.matches(":focus-visible") && dockShow()} aria-label={$t("Procesos")}>
         <TrasnoSprite state={important || $bubble?.kind === "warn" || $bubble?.notify ? "notice" : celebrate ? "done" : lastRun ? "working" : "idle"} size={96} />
         {#key `${$bubble?.id ?? 0}|${important?.kind ?? ""}`}
           {#if alertIcon}<span class="alert" aria-hidden="true"><AlertMark kind={alertIcon} /></span>{/if}
@@ -404,23 +410,12 @@
     <div class="mid">
       {#if lastRun}
         {#if !$trasnoAway}
-          <div class="jobs" class:ask={askCancel && !paused} class:paused>
-            <span class="jfill" style={`width:${Math.round(Math.max(0.03, pct) * 100)}%`} aria-hidden="true"></span>
-            {#if askCancel}
-              <span class="jtext"><Icon name={paused ? "pause" : "warning"} size={14} /> {paused ? $t("En pausa") : $t("Cancelar este proceso?")}<span class="pct">{Math.round(pct * 100)} %</span></span>
-              <button class="jx" on:click={resumeJob} title={paused ? $t("Continuar") : $t("Seguir")} aria-label={paused ? $t("Continuar") : $t("Seguir")}><Icon name="play" size={14} /></button>
-              <button class="jx stop" on:click={doCancel} title={$t("Cancelar o proceso")} aria-label={$t("Cancelar o proceso")}><Icon name="close" size={14} /></button>
-            {:else}
-              <button class="jmain" on:click={() => openHub("procs.running")} title={`${lastRun.title} — ${$t("Procesos")}`} aria-label={$t("Procesos")}>
-                <span class="jt">{lastRun.title}</span>
-                <span class="pct">{Math.round(pct * 100)} %{running.length > 1 ? ` · +${running.length - 1} ${$t("máis en marcha")}` : ""}</span>
-              </button>
-              <button class="jx" on:click={askStop} title={$t("Cancelar")} aria-label={$t("Cancelar")}><Icon name="close" size={14} /></button>
-            {/if}
+          <div class="jobs">
+            <JobBar proc={lastRun} {pct} more={running.length - 1} onOpen={() => openHub("procs.running")} onCancel={doCancel} />
           </div>
         {/if}
       {:else if endFlash}
-        <div class={`jobs end ${endFlash.kind}`} role="status">
+        <div class={`jobs end ${endFlash.kind}`} class:leaving={endLeaving} role="status">
           <span class="jfill" style="width:100%" aria-hidden="true"></span>
           <span class="jtext"><Icon name={endFlash.kind === "done" ? "check" : endFlash.kind === "error" ? "exclamation" : "close"} size={14} /> {endFlash.kind === "done" ? $t("Feito") : endFlash.kind === "error" ? $t("Con erro") : $t("Cancelado")}<span class="jt2">{endFlash.title}</span></span>
         </div>
@@ -463,6 +458,8 @@
   .dock { position: absolute; left: 6px; bottom: 0; width: 96px; height: 96px; }
   .trasno { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s; }
   .trasno:hover:not(.away) { transform: translateY(-2px); }
+  .trasno.shrug { animation: shrug 0.6s ease-in-out; }
+  @keyframes shrug { 20% { transform: translateX(-5px) rotate(-3deg); } 40% { transform: translateX(5px) rotate(3deg); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
   .trasno.away { transform: translateY(115%); opacity: 0; transition: transform 0.2s ease-in, opacity 0.2s; pointer-events: none; }
   .rd { --c: var(--accent); position: absolute; z-index: 1; display: grid; place-items: center; width: 52px; height: 52px; margin: 0; padding: 0; border-radius: 50%; color: var(--text-muted); background: radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--text-muted) 14%, var(--bg-elevated)), var(--bg-elevated) 74%); border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop), inset 0 0 0 4px var(--bg-elevated), inset 0 0 0 5px transparent; opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.3); transition: opacity 0.16s, transform 0.26s cubic-bezier(0.3, 1.25, 0.5, 1), color 0.14s, border-color 0.14s, box-shadow 0.14s, background 0.14s; transition-delay: calc(var(--n) * 22ms), calc(var(--n) * 22ms), 0s, 0s, 0s, 0s; }
   .dock.open .rd { opacity: 1; pointer-events: auto; transform: none; }
@@ -494,28 +491,18 @@
   .hclock:hover { background: var(--bg-hover); color: var(--text); }
   .vt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .vh { flex: none; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
-  .jobs { --jc: var(--accent); position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); overflow: hidden; transform-origin: left center; animation: grow 0.4s cubic-bezier(0.2, 0.8, 0.3, 1); transition: border-color 0.25s; }
+  .jobs { --jc: var(--accent); position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; height: 32px; transform-origin: left center; animation: grow 0.4s cubic-bezier(0.2, 0.8, 0.3, 1); }
+  .jobs.end { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); overflow: hidden; animation: grow 0.3s ease-out; }
   @keyframes grow { from { opacity: 0; transform: scaleX(0.15); } }
-  /* O rectángulo enteiro vai enchéndose de esquerda a dereita; o texto vai por riba */
-  .jfill { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0; background: color-mix(in srgb, var(--jc) 30%, transparent); border-right: 2px solid var(--jc); box-sizing: border-box; transition: width 0.3s, background 0.25s, border-color 0.25s; }
-  .jobs.paused, .jobs.ask { --jc: var(--accent-pdf); border-color: color-mix(in srgb, var(--jc) 55%, var(--border)); }
-  .jobs.paused .jfill { animation: pausePulse 1.6s ease-in-out infinite; }
-  @keyframes pausePulse { 50% { opacity: 0.55; } }
-  .jobs.end { animation: grow 0.3s ease-out; }
+  .jfill { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0; background: color-mix(in srgb, var(--jc) 30%, transparent); border-right: 2px solid var(--jc); box-sizing: border-box; }
   .jobs.end.cancelled { --jc: var(--accent-pdf); }
   .jobs.end.error { --jc: var(--accent-video); }
   .jobs.end .jfill { animation: endFill 0.5s ease-out; }
+  .jobs.end.leaving { animation: leave 0.32s ease-in forwards; transform-origin: right center; }
+  @keyframes leave { to { opacity: 0; transform: scaleX(0.2); } }
   @keyframes endFill { from { width: 0; } }
-  .jmain, .jtext { position: relative; z-index: 1; flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; padding: 0 0.7rem; background: none; border: none; color: var(--text); font-size: 0.78rem; text-align: left; }
-  .jmain:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
-  .jtext { gap: 0.5rem; white-space: nowrap; overflow: hidden; }
-  .jtext .pct { margin-left: auto; }
+  .jtext { position: relative; z-index: 1; flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; padding: 0 0.7rem; color: var(--text); font-size: 0.78rem; white-space: nowrap; overflow: hidden; }
   .jt2 { margin-left: 0.5rem; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); }
-  .jt { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
-  .jx { position: relative; z-index: 1; flex: none; display: grid; place-items: center; width: 32px; padding: 0; background: none; border: none; border-left: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 0; color: var(--text-muted); }
-  .jx:hover { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text); }
-  .jx.stop:hover { background: color-mix(in srgb, var(--accent-video) 20%, transparent); color: var(--accent-video); }
-  .pct { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-muted); }
   .mid { display: flex; align-items: center; gap: 0.6rem; }
   .mid:has(.jobs) { width: min(32rem, 44vw); }
   .idle { display: inline-flex; align-items: center; gap: 0.5rem; height: 32px; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.78rem; }
@@ -548,7 +535,7 @@
     .work { grid-template-columns: minmax(190px, 230px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 42%); }
     .work > :global(.split) { display: none; }
     .left.off, .right.off { visibility: visible; }
-    .right { grid-column: 1 / -1; border-top: 1px solid var(--border); }
+    .right { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-bottom: 56px; box-sizing: border-box; }
   }
 
   .veil {
