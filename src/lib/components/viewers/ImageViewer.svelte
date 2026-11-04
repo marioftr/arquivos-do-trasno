@@ -34,7 +34,9 @@
   $: compact = barW < 820;
   $: tiny = barW < 560;
 
-  $: load(file.path);
+  // Só cando cambia a ruta, non cada vez que chegan datos novos do ficheiro (tamaño, dimensións…).
+  $: filePath = file.path;
+  $: load(filePath);
   $: imageUrl.set(url);
   $: e = $imageEdit;
 
@@ -70,7 +72,7 @@
   onDestroy(() => own.release(() => ocrActive.set(false)));
   $: ocrActive.set(ocrOn);
   // Outra imaxe: o texto lido deixa de valer.
-  $: onFile(file.path);
+  $: onFile(filePath);
   function onFile(p: string) {
     ocrRes = null;
     ocrErr = "";

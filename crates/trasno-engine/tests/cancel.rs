@@ -37,3 +37,27 @@ fn cancelar_para_ffmpeg_e_non_deixa_temporais() {
     ffmpeg::convert_media(&src, &ok, false, &["-t".into(), "1".into(), "-c".into(), "copy".into()]).unwrap();
     assert!(ok.exists());
 }
+
+/// Unha cancelación vella (que queda marcada ata o seguinte traballo) non pode romper traballos de fondo como as vistas previas.
+#[test]
+fn unha_cancelacion_vella_non_afecta_aos_traballos_de_fondo() {
+    if !ffmpeg::is_available() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("a.mp4");
+    let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+        .args(["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x120:rate=10:duration=1", "-pix_fmt", "yuv420p"])
+        .arg(&src)
+        .status()
+        .unwrap();
+    assert!(st.success());
+    ffmpeg::begin_job();
+    ffmpeg::cancel_current();
+    let out = dir.path().join("b.mkv");
+    // Como traballo do usuario, falla por cancelado...
+    assert!(matches!(ffmpeg::convert_media(&src, &out, false, &["-c".into(), "copy".into()]), Err(EngineError::Cancelled)));
+    // ...pero como traballo de fondo (vista previa) funciona igual.
+    ffmpeg::background(|| ffmpeg::convert_media(&src, &out, false, &["-c".into(), "copy".into()])).unwrap();
+    assert!(out.exists());
+}

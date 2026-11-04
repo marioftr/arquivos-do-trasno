@@ -17,6 +17,8 @@ pub struct ImageConvertOptions {
     /// deformar a imaxe se a proporción non coincide coa orixinal; a UI
     /// ofrece "manter proporción" calculando o lado que falta primeiro).
     pub resize: Option<(u32, u32)>,
+    /// Sen perdas (só JPEG XL e JPEG 2000, que se escriben con FFmpeg).
+    pub lossless: bool,
 }
 
 /// Le só as dimensións dunha imaxe (cabeceira, sen decodificar os píxeles),
@@ -67,7 +69,7 @@ pub fn convert_image(
         let tmp = tempfile::Builder::new().suffix(".png").tempfile()?.into_temp_path();
         let tmp_path = tmp.to_path_buf();
         convert_image(input, &tmp_path, true, options)?;
-        return crate::image_ffmpeg::encode(&tmp_path, output, overwrite, options.quality);
+        return crate::image_ffmpeg::encode(&tmp_path, output, overwrite, options.quality, options.lossless);
     }
     let dst_format = format_from_ext(&dst_ext)?;
     let readable = crate::image_ffmpeg::readable(input)?;
@@ -267,7 +269,7 @@ mod tests {
         image::DynamicImage::ImageRgb8(img).save(&input).unwrap();
 
         let output = dir.path().join("destino.jpg");
-        let opts = ImageConvertOptions { quality: Some(85), resize: None };
+        let opts = ImageConvertOptions { quality: Some(85), resize: None, lossless: false };
         let result = convert_image(&input, &output, false, &opts).unwrap();
 
         assert!(result.exists());
@@ -299,7 +301,7 @@ mod tests {
             .save(&input)
             .unwrap();
         let output = dir.path().join("destino.png");
-        let opts = ImageConvertOptions { quality: None, resize: Some((20, 10)) };
+        let opts = ImageConvertOptions { quality: None, resize: Some((20, 10)), lossless: false };
         let result = convert_image(&input, &output, false, &opts).unwrap();
 
         let decoded = image::open(&result).unwrap();

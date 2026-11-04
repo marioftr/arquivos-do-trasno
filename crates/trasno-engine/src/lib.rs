@@ -44,6 +44,9 @@ pub struct ConvertOptions {
     /// Só para audio/vídeo (delegado en ffmpeg): bitrate obxectivo en kbps.
     /// `None` deixa que ffmpeg escolla o seu bitrate por defecto.
     pub bitrate_kbps: Option<u32>,
+    /// Sen perdas: JPEG XL e JPEG 2000 en imaxes; H.264 sen compresión con perdas en MP4, MKV e MOV.
+    #[serde(default)]
+    pub lossless: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -69,6 +72,7 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
             &image_convert::ImageConvertOptions {
                 quality: options.quality,
                 resize: options.resize,
+                lossless: options.lossless,
             },
         )?,
         (Category::Audio, Category::Audio)
@@ -83,7 +87,14 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
                 // contedor que só admite audio (mp3, flac...) e falla.
                 extra_args.push("-vn".to_string());
             }
-            if let Some(kbps) = options.bitrate_kbps {
+            let dst_ext = formats::extension_of(output).unwrap_or_default();
+            if options.lossless && src_category == Category::Video && dst_category == Category::Video && matches!(dst_ext.as_str(), "mp4" | "mkv" | "mov") {
+                // H.264 con QP 0: sen perdas respecto dos fotogramas do orixinal; o son vai en ALAC (MP4/MOV) ou FLAC (MKV).
+                let audio = if dst_ext == "mkv" { "flac" } else { "alac" };
+                for a in ["-c:v", "libx264", "-qp", "0", "-preset", "medium", "-c:a", audio] {
+                    extra_args.push(a.to_string());
+                }
+            } else if let Some(kbps) = options.bitrate_kbps {
                 let flag = if dst_category == Category::Audio { "-b:a" } else { "-b:v" };
                 extra_args.push(flag.to_string());
                 extra_args.push(format!("{kbps}k"));

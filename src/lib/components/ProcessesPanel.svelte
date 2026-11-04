@@ -8,6 +8,7 @@
   import { fileNameOf } from "../formats";
   import { addPaths } from "../files";
   import Icon from "./Icon.svelte";
+  import ActionList from "./ui/ActionList.svelte";
 
   let timer: ReturnType<typeof setInterval>;
   let asking: string | null = null;
@@ -66,6 +67,11 @@
 
 {:else}
   <section>
+    <h3>{$t("Accións do trasno")}</h3>
+    <div class="alist"><ActionList /></div>
+  </section>
+
+  <section>
     <div class="hh">
       <h3>{$t("Historial")}<span class="muted cnt">&nbsp;·&nbsp;{history.length}</span></h3>
       {#if history.length}<button class="btn ghost" on:click={clearFinished}>{$t("Borrar historial")}</button>{/if}
@@ -91,6 +97,7 @@
 {/if}
 
 <style>
+  .alist { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); padding: 0.3rem 0; }
   section { display: flex; flex-direction: column; gap: 0.5rem; }
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
   .cnt { font-weight: 500; }

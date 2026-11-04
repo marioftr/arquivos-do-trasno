@@ -27,7 +27,7 @@
     const src = ae && ae.tagName === "BUTTON" && ae.closest(".right") ? ae : anchor;
     const a = src.getBoundingClientRect();
     const b = dock.getBoundingClientRect();
-    const S = 72;
+    const S = 96;
     const cx = a.left + a.width / 2;
     const standY = Math.max(4, a.top - S + 10); // de pé sobre o botón
     const fallTo = b.top;

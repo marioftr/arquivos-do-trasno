@@ -37,7 +37,7 @@ export interface Action {
 export const actions = writable<Action[]>([]);
 export function noteAction(gl: string, vars?: Record<string, string | number>, undo?: () => void, copy?: string) {
   const text = tr(gl, vars);
-  actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now(), undo: l[0].undo ?? undo, copy: copy ?? l[0].copy }, ...l.slice(1)] : [{ text, at: Date.now(), undo, copy }, ...l].slice(0, 12)));
+  actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now(), undo: l[0].undo ?? undo, copy: copy ?? l[0].copy }, ...l.slice(1)] : [{ text, at: Date.now(), undo, copy }, ...l].slice(0, 300)));
 }
 
 /** Número de cambios que se desfán ao premer a acción `idx` (0 é a máis recente): ela e todas as posteriores. */
@@ -205,8 +205,11 @@ const LABEL: Record<string, string> = {
   invert: "a inversión de cor", blur: "o desenfoque", brightness: "o brillo", contrast: "o contraste", volume: "o volume", speed: "a velocidade", pageSpec: "as páxinas",
   cropOn: "o recorte", cw: "o recorte", cx: "o recorte", cy: "o recorte", wmText: "o texto da marca", wmSize: "o tamaño da marca", wmColor: "a cor da marca",
   wmOpacity: "a opacidade da marca", wmAngle: "o xiro da marca", wmFamily: "a letra da marca", wmBold: "a negriña da marca", wmItalic: "a cursiva da marca",
-  mode: "o modo", compat: "a compatibilidade", sizeValue: "o tamaño obxectivo", select: "a pista escollida", kind: "o modo",
+  lossless: "o modo sen perdas", mode: "o modo", compat: "a compatibilidade", sizeValue: "o tamaño obxectivo", select: "a pista escollida", kind: "o modo",
 };
+// Valores de texto que se amosan tal cal; para os demais amósase só o que cambiou (nunca un código interno).
+const RAW_VALUE = new Set(["targetExt", "pageSpec", "wmText", "wmFamily", "dar", "maxHeight", "wmColor"]);
+const VALUE_LABEL: Record<string, Record<string, string>> = { mode: { quality: "calidade", bitrate: "bitrate", size: "tamaño máximo" } };
 export function describeForm(before: Record<string, any>, after: Record<string, any>, restore?: () => void) {
   const seen = new Set<string>();
   for (const k of Object.keys(after)) {
@@ -216,7 +219,9 @@ export function describeForm(before: Record<string, any>, after: Record<string, 
     seen.add(LABEL[k]);
     const what = tr(LABEL[k]);
     if (typeof v === "boolean") noteAction(v ? "O trasno activou {what}" : "O trasno desactivou {what}", { what }, restore);
-    else noteAction("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" ? String(v).toUpperCase() : String(v) }, restore);
+    else if (typeof v === "number" || RAW_VALUE.has(k)) noteAction("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" ? String(v).toUpperCase() : String(v) }, restore);
+    else if (VALUE_LABEL[k]?.[v]) noteAction("O trasno cambiou {what} a {value}", { what, value: tr(VALUE_LABEL[k][v]) }, restore);
+    else noteAction("O trasno cambiou {what}", { what }, restore);
     if (seen.size >= 2) break;
   }
   if (!seen.size && Object.keys(after).some((k) => before[k] !== after[k])) noteAction("O trasno cambiou un axuste", undefined, restore);

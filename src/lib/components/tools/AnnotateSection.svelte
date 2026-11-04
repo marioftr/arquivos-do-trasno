@@ -38,7 +38,8 @@
     }),
   );
   // Outra imaxe: gárdase o debuxado desta e recupérase o da nova.
-  $: activateAnno(file.path);
+  $: filePath = file.path;
+  $: activateAnno(filePath);
 
   const TOOLS: { id: Tool; label: string; icon: string; hint: string }[] = [
     { id: "select", label: "Seleccionar", icon: "cursor", hint: "Move as figuras. Dobre clic nun texto para editalo; Supr borra a seleccionada." },

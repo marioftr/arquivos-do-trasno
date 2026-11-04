@@ -59,6 +59,23 @@ fn hide_console(cmd: &mut Command) {
 static CANCELLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 static CHILD_PID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
+thread_local! {
+    static BACKGROUND: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Executa `f` como traballo de fondo (vistas previas, lectura de formatos...): non lle afectan as cancelacións dos traballos
+/// do usuario (nin unha cancelación vella que quedase marcada), non se pode matar con «Cancelar» e non informa do avance.
+pub fn background<T>(f: impl FnOnce() -> T) -> T {
+    let before = BACKGROUND.with(|b| b.replace(true));
+    let out = f();
+    BACKGROUND.with(|b| b.set(before));
+    out
+}
+
+fn is_background() -> bool {
+    BACKGROUND.with(|b| b.get())
+}
+
 /// Empeza un traballo novo: esquece calquera cancelación anterior.
 pub fn begin_job() {
     CANCELLED.store(false, std::sync::atomic::Ordering::SeqCst);
@@ -112,7 +129,8 @@ fn parse_clock(s: &str) -> Option<f64> {
 
 /// Executa ffmpeg lendo o seu avance (`-progress`) para informar de canto leva feito.
 fn run_ffmpeg_with_progress(bin: PathBuf, args: &[std::ffi::OsString], sink: Option<ProgressSink>) -> Result<Output> {
-    if CANCELLED.load(std::sync::atomic::Ordering::SeqCst) {
+    let bg = is_background();
+    if !bg && CANCELLED.load(std::sync::atomic::Ordering::SeqCst) {
         return Err(EngineError::Cancelled);
     }
     use std::io::{BufRead, BufReader, Read};
@@ -126,7 +144,9 @@ fn run_ffmpeg_with_progress(bin: PathBuf, args: &[std::ffi::OsString], sink: Opt
         .stderr(Stdio::piped())
         .spawn()
         .map_err(EngineError::Io)?;
-    CHILD_PID.store(child.id(), std::sync::atomic::Ordering::SeqCst);
+    if !bg {
+        CHILD_PID.store(child.id(), std::sync::atomic::Ordering::SeqCst);
+    }
     let duration = std::sync::Arc::new(std::sync::Mutex::new(0.0f64));
     let mut stderr = child.stderr.take().expect("stderr");
     let dur2 = duration.clone();
@@ -164,8 +184,10 @@ fn run_ffmpeg_with_progress(bin: PathBuf, args: &[std::ffi::OsString], sink: Opt
     }
     let status = child.wait().map_err(EngineError::Io)?;
     let stderr = err_thread.join().unwrap_or_default();
-    CHILD_PID.store(0, std::sync::atomic::Ordering::SeqCst);
-    if CANCELLED.load(std::sync::atomic::Ordering::SeqCst) {
+    if !bg {
+        CHILD_PID.store(0, std::sync::atomic::Ordering::SeqCst);
+    }
+    if !bg && CANCELLED.load(std::sync::atomic::Ordering::SeqCst) {
         return Err(EngineError::Cancelled);
     }
     if let (true, Some(sink)) = (status.success(), &sink) {
@@ -176,7 +198,7 @@ fn run_ffmpeg_with_progress(bin: PathBuf, args: &[std::ffi::OsString], sink: Opt
 
 pub(crate) fn run_ffmpeg(args: &[std::ffi::OsString]) -> Result<Output> {
     let bin = ffmpeg_path()?;
-    let sink = SINK.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    let sink = if is_background() { None } else { SINK.lock().unwrap_or_else(|e| e.into_inner()).clone() };
     run_ffmpeg_with_progress(bin, args, sink)
 }
 

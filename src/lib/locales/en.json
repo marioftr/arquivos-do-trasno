@@ -1410,5 +1410,14 @@
   "Datos EXIF das fotos": "EXIF data of photos",
   "Lectura de tipos de letra do sistema": "Reading system fonts",
   "Descargas (actualizacións, programas e paquetes de idioma)": "Downloads (updates, programs and language packs)",
-  "Descompresión dos programas descargados": "Unpacking downloaded programs"
+  "Descompresión dos programas descargados": "Unpacking downloaded programs",
+  "Sen perdas": "Lossless",
+  "Conserva exactamente a calidade do orixinal, sen compresión con perdas. O ficheiro resultante pesa moito máis e o proceso tarda máis.": "Keeps the original quality exactly, with no lossy compression. The resulting file is much larger and the process takes longer.",
+  "o modo sen perdas": "lossless mode",
+  "O trasno cambiou {what}": "The trasno changed {what}",
+  "calidade": "quality",
+  "bitrate": "bitrate",
+  "tamaño máximo": "maximum size",
+  "Ver o historial completo": "See the full history",
+  "Accións do trasno": "Trasno actions"
 }

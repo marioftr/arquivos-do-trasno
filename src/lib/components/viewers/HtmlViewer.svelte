@@ -10,7 +10,9 @@
   let mode: "view" | "code" = "view";
   let error = "";
 
-  $: load(file.path);
+  // Só cando cambia a ruta, non cada vez que chegan datos novos do ficheiro (tamaño, duración…).
+  $: filePath = file.path;
+  $: load(filePath);
 
   async function load(path: string) {
     error = "";

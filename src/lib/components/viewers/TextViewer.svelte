@@ -10,7 +10,8 @@
   export let file: FileEntry;
 
   let text = "";
-  $: load(file.path);
+  $: filePath = file.path;
+  $: load(filePath);
 
   async function load(path: string) {
     const hit = textCache.get(path);

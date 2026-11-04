@@ -117,6 +117,11 @@ export const DOCS: Record<DocId, LegalDoc> = {
             es: "La aplicación es software libre bajo licencia MIT (ver «Licencia»): puedes usarla, copiarla, modificarla y distribuirla según esa licencia. Las bibliotecas y programas de terceros que incluye o usa tienen sus propias licencias, listadas en «Créditos y licencias».",
             en: "The application is free software under the MIT licence (see “Licence”): you may use, copy, modify and distribute it under that licence. Third-party libraries and programs it includes or uses have their own licences, listed in “Credits and licences”.",
           },
+          {
+            gl: "Os programas e datos de terceiros que descargas desde a propia app (FFmpeg, MKVToolNix e os paquetes de idioma do OCR) descárganse só se o pides, non forman parte desta aplicación e rexense polas súas propias licenzas e termos, que debes aceptar para usalos.",
+            es: "Los programas y datos de terceros que descargas desde la propia app (FFmpeg, MKVToolNix y los paquetes de idioma del OCR) se descargan solo si lo pides, no forman parte de esta aplicación y se rigen por sus propias licencias y términos, que debes aceptar para usarlos.",
+            en: "Third-party programs and data you download from within the app (FFmpeg, MKVToolNix and the OCR language packs) are downloaded only if you ask, are not part of this application and are governed by their own licences and terms, which you must accept to use them.",
+          },
         ],
       },
       {
@@ -202,7 +207,7 @@ export const DOCS: Record<DocId, LegalDoc> = {
 
   signing: {
     title: { gl: "Asinado e verificación das descargas", es: "Firma y verificación de las descargas", en: "Signing and download verification" },
-    updated: "2026-11-02",
+    updated: "2026-11-04",
     sections: [
       {
         h: { gl: "Aviso de Windows ao instalar", es: "Aviso de Windows al instalar", en: "Windows warning when installing" },
@@ -226,6 +231,16 @@ export const DOCS: Record<DocId, LegalDoc> = {
             gl: "Os programas que a app descarga por petición túa (FFmpeg e MKVToolNix) compróbanse coa suma SHA-256 que publica a propia fonte antes de instalarse.",
             es: "Los programas que la app descarga a petición tuya (FFmpeg y MKVToolNix) se comprueban con la suma SHA-256 que publica la propia fuente antes de instalarse.",
             en: "Programs the app downloads at your request (FFmpeg and MKVToolNix) are checked against the SHA-256 checksum published by their source before being installed.",
+          },
+          {
+            gl: "Os paquetes de idioma do recoñecemento de texto (OCR) descárganse por HTTPS desde o repositorio oficial de Tesseract en GitHub e só se comproba que o tamaño sexa o dun paquete válido: non levan suma de verificación.",
+            es: "Los paquetes de idioma del reconocimiento de texto (OCR) se descargan por HTTPS desde el repositorio oficial de Tesseract en GitHub y solo se comprueba que el tamaño sea el de un paquete válido: no llevan suma de verificación.",
+            en: "The text-recognition (OCR) language packs are downloaded over HTTPS from the official Tesseract repository on GitHub, and only their size is checked to be that of a valid package: they have no checksum.",
+          },
+          {
+            gl: "Cada versión publícase como instalador («.exe») e como paquete MSI, ambos con ficheiro de sinatura de actualizacións, e co ficheiro «latest.json» que le a app para buscar versións novas.",
+            es: "Cada versión se publica como instalador («.exe») y como paquete MSI, ambos con archivo de firma de actualizaciones, y con el archivo «latest.json» que lee la app para buscar versiones nuevas.",
+            en: "Each release is published as an installer (“.exe”) and an MSI package, both with an update-signature file, plus the “latest.json” file the app reads to look for new versions.",
           },
         ],
       },

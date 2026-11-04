@@ -20,11 +20,12 @@
   import QuickJob from "./lib/components/QuickJob.svelte";
   import HubDialog from "./lib/components/HubDialog.svelte";
   import { procs, refreshProcs, requestCancel } from "./lib/procs";
-  import { actions, tipsOn, liveProgress, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, CLICK_ITEMS, revertTo, revertCount, holdBubble, releaseBubble, type ClickAction } from "./lib/agent";
+  import { actions, tipsOn, liveProgress, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, CLICK_ITEMS, holdBubble, releaseBubble, type ClickAction } from "./lib/agent";
   import { reportProgress } from "./lib/job";
   import { requestTool } from "./lib/toolinstall";
   import ToolNeedDialog from "./lib/components/ToolNeedDialog.svelte";
   import { actionFor, custom, slotsOf } from "./lib/keymap";
+  import ActionList from "./lib/components/ui/ActionList.svelte";
   import Splitter from "./lib/components/ui/Splitter.svelte";
   import CommandPalette from "./lib/components/CommandPalette.svelte";
 
@@ -37,7 +38,9 @@
   $: lastRun = running[0];
   $: pct = lastRun ? (lastRun.source === "app" && $liveProgress !== null ? $liveProgress : lastRun.progress) : 0;
   // O trasno-axente: avisa do importante (sempre) e, de cando en vez, comenta algo sobre o que hai á vista.
-  $: important = ffmpegOk === false && needsFfmpeg ? { text: $t("Falta FFmpeg: sen el non podo traballar con audio nin vídeo. Prémeme para instalalo."), run: () => requestTool("ffmpeg") } : $updateAvailable ? { text: $t("Hai unha versión nova. Prémeme para ver as novidades."), run: () => openHub("news.updates") } : null;
+  $: important = ffmpegOk === false && needsFfmpeg ? { kind: "ffmpeg", icon: "warning", tone: "var(--accent-pdf)", text: $t("Falta FFmpeg: sen el non podo traballar con audio nin vídeo. Prémeme para instalalo."), run: () => requestTool("ffmpeg") } : $updateAvailable ? { kind: "update", icon: "download", tone: "var(--accent)", text: $t("Hai unha versión nova. Prémeme para ver as novidades."), run: () => openHub("news.updates") } : null;
+  // Sobre o trasno aparece un instante un símbolo só cando hai un aviso: sinal de erro nos erros e triángulo nos avisos do programa.
+  $: alertIcon = $bubble?.kind === "warn" ? { name: "exclamation", tone: "var(--accent-video)" } : !$bubble && important ? { name: important.icon, tone: important.tone } : null;
   let tipTimer: ReturnType<typeof setTimeout>;
   function sayNow() {
     if (dockOpen) return;
@@ -56,9 +59,9 @@
   // ---- menú radial do trasno: sae ao pasar o rato (ou co teclado) e péchase en canto o punteiro deixa as súas ruxas
   // Catro botóns nun arco arredor do trasno (esquina de abaixo á esquerda).
   const ITEMS = CLICK_ITEMS;
-  const HALF = 36; // metade do trasno (72 px)
+  const HALF = 48; // metade do trasno (96 px)
   const BTN = 52;
-  const RINGS = [80, 54, 28, 2].map((a) => ({ r: 118, a }));
+  const RINGS = [82, 52, 22, -8].map((a) => ({ r: 118, a }));
   const pos = RINGS.map((q) => ({ x: q.r * Math.cos((q.a * Math.PI) / 180), y: q.r * Math.sin((q.a * Math.PI) / 180) }));
   function runItem(id: ClickAction) {
     if (id === "palette") dialog.set("palette");
@@ -115,11 +118,6 @@
   $: if (active && active.path !== lastShown) {
     lastShown = active.path;
   }
-  /** Ao abrir o historial, déixase á vista o máis recente (abaixo). */
-  const toEnd = (n: HTMLElement) => {
-    const box = n.closest(".hist") as HTMLElement | null;
-    if (box) box.scrollTop = box.scrollHeight;
-  };
   let copied = "";
   async function copyText(text: string, key: string) {
     try {
@@ -131,8 +129,6 @@
     }
   }
   let histOpen = false;
-  let revertIdx: number | null = null;
-  $: if (!histOpen) revertIdx = null;
   let askCancel = false;
   $: if (!lastRun) askCancel = false;
   // Ao confirmar, o proceso sae da barra ao instante (se non, quedaba «cargando» ata que a lista se refrescaba).
@@ -354,8 +350,10 @@
         </button>
       {/each}
       <button class="trasno" class:away={$trasnoAway} on:click={clickTrasno} on:focus={(e) => e.currentTarget.matches(":focus-visible") && dockShow()} aria-label={$t("Procesos")}>
-        <TrasnoSprite state={important || $bubble?.kind === "warn" || $bubble?.notify ? "notice" : lastRun ? "working" : "idle"} size={72} />
-        {#if important}<span class="alert" aria-hidden="true">!</span>{/if}
+        <TrasnoSprite state={important || $bubble?.kind === "warn" || $bubble?.notify ? "notice" : lastRun ? "working" : "idle"} size={96} />
+        {#key `${$bubble?.id ?? 0}|${important?.kind ?? ""}`}
+          {#if alertIcon}<span class="alert" style={`--a:${alertIcon.tone}`} aria-hidden="true"><Icon name={alertIcon.name} size={22} strokeWidth={2.2} /></span>{/if}
+        {/key}
       </button>
     </div>
     <button class="voice" class:on={histOpen} on:click={() => (histOpen = !histOpen)} aria-expanded={histOpen} aria-haspopup="dialog" title={$t("Últimas accións")}>
@@ -363,34 +361,12 @@
       {#if !lastRun && lastAct}<span class="muted vh">{hhmm(lastAct.at)}</span>{/if}
     </button>
     {#if histOpen}
-      <div class="hist" role="dialog" aria-label={$t("Últimas accións")}>
-        <h4>{$t("Últimas accións")}</h4>
-        {#if revertIdx !== null && $actions[revertIdx]}
-          <div class="conf">
-            <p><b>{$t("Desfacer este cambio?")}</b></p>
-            <p class="cqt">{$actions[revertIdx].text}</p>
-            <p class="muted">{revertCount($actions, revertIdx) === 1 ? $t("Desfarase só este cambio.") : $t("Desfaranse este cambio e os posteriores ({n} en total).", { n: revertCount($actions, revertIdx) })}</p>
-            <div class="cacts">
-              <button class="btn danger" on:click={() => { revertTo(revertIdx ?? 0); revertIdx = null; histOpen = false; }}>{$t("Si, desfacer")}</button>
-              <button class="btn ghost" on:click={() => (revertIdx = null)}>{$t("Cancelar")}</button>
-            </div>
-          </div>
-        {:else if $actions.length}
-          <ul use:toEnd>
-            {#each $actions.map((a, i) => ({ a, i })).reverse() as { a, i }}
-              <li>
-                <button class="hrow" disabled={!a.undo} on:click={() => (revertIdx = i)} title={a.undo ? $t("Desfacer este cambio e os posteriores") : ""}>
-                  <time class="muted">{hhmm(a.at)}</time>
-                  <span class="ht">{a.text}</span>
-                  {#if a.undo}<span class="hu"><Icon name="undo" size={14} /></span>{/if}
-                </button>
-                {#if a.copy}<button class="hcopy" on:click={() => copyText(a.copy ?? "", `h${i}`)} aria-label={$t("Copiar")} title={$t("Copiar a mensaxe")}><Icon name={copied === `h${i}` ? "check" : "copy"} size={14} /></button>{/if}
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <p class="muted">{$t("Aínda non hai accións.")}</p>
-        {/if}
+      <div class="hist scrolls" role="dialog" aria-label={$t("Últimas accións")}>
+        <div class="hhead">
+          <h4>{$t("Últimas accións")}</h4>
+          <button class="hclock" on:click={() => { histOpen = false; openHub("procs.history"); }} title={$t("Ver o historial completo")} aria-label={$t("Ver o historial completo")}><Icon name="clock" size={15} /></button>
+        </div>
+        <ActionList limit={12} stick />
       </div>
     {/if}
     <div class="mid">
@@ -398,11 +374,12 @@
         {#if !$trasnoAway}
           <div class="jobs" class:ask={askCancel}>
             {#if askCancel}
-              <span class="q"><Icon name="warning" size={14} /> {$t("Cancelar este proceso?")}</span>
+              <span class="q"><Icon name="warning" size={14} /> {$t("Cancelar este proceso?")}<span class="muted pct">{Math.round(pct * 100)} %</span></span>
               <span class="acts">
                 <button class="btn danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
                 <button class="btn ghost" on:click={() => (askCancel = false)}>{$t("Seguir")}</button>
               </span>
+              <span class="askbar" aria-hidden="true"><span class="fill" style={`width:${Math.round(Math.max(0.03, pct) * 100)}%`}></span></span>
             {:else}
               <button class="jmain" on:click={() => openHub("procs.running")} title={`${lastRun.title} — ${$t("Procesos")}`} aria-label={$t("Procesos")}>
                 <span class="jt">{lastRun.title}</span>
@@ -418,7 +395,6 @@
           <Icon name="layers" size={16} /><span>{$t("Sen procesos activos")}</span>
         </button>
       {/if}
-      <button class="hbtn" on:click={() => openHub("procs.history")} title={$t("Ver o historial de procesos")} aria-label={$t("Ver o historial de procesos")}><Icon name="clock" size={16} /></button>
     </div>
     <div class="rside">
       {#if ffmpegOk === false && needsFfmpeg}
@@ -450,7 +426,7 @@
   .ver { position: relative; height: 28px; padding: 0 0.65rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.76rem; font-variant-numeric: tabular-nums; }
   .ver:hover { background: var(--bg-hover); color: var(--text); }
   .vdot { position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-  .dock { position: absolute; left: 6px; bottom: 0; width: 72px; height: 72px; }
+  .dock { position: absolute; left: 6px; bottom: 0; width: 96px; height: 96px; }
   .trasno { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s; }
   .trasno:hover:not(.away) { transform: translateY(-2px); }
   .trasno.away { transform: translateY(115%); opacity: 0; transition: transform 0.2s ease-in, opacity 0.2s; pointer-events: none; }
@@ -461,9 +437,10 @@
   .rd.hot .rl { opacity: 1; transform: translate(0, -50%); }
   .rl kbd { margin-left: 0.55rem; padding: 0 5px; font: inherit; font-size: 0.7rem; color: var(--text-muted); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: 4px; }
   .badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: 700; padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
-  .alert { position: absolute; top: 0.1rem; right: 0; width: 1.15rem; height: 1.15rem; border-radius: 50%; background: var(--accent-pdf); color: #111; font-size: 0.78rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg-rail); animation: hop 0.9s ease-in-out infinite; }
+  .alert { position: absolute; top: -4px; right: -2px; z-index: 5; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; background: var(--a); box-shadow: 0 0 0 3px var(--bg-rail), var(--shadow-pop); pointer-events: none; animation: alertPop 3.2s ease-out forwards; }
+  @keyframes alertPop { 0% { transform: scale(0.2) translateY(6px); opacity: 0; } 10% { transform: scale(1.15) translateY(-6px); opacity: 1; } 18% { transform: scale(1) translateY(0); } 80% { transform: scale(1) translateY(-2px); opacity: 1; } 100% { transform: scale(0.8) translateY(-8px); opacity: 0; } }
   @keyframes hop { 50% { transform: translateY(-3px); } }
-  .bubble { --c: var(--accent-conversor); position: absolute; left: 90px; bottom: calc(100% + 0.5rem); display: flex; align-items: flex-start; gap: 0.65rem; max-width: min(30rem, calc(100vw - 7rem)); padding: 0.6rem 0.85rem 0.6rem 0.6rem; text-align: left; color: var(--text); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: 0.82rem; line-height: 1.4; animation: rise 0.25s ease-out; }
+  .bubble { --c: var(--accent-conversor); position: absolute; left: 116px; bottom: calc(100% + 0.5rem); display: flex; align-items: flex-start; gap: 0.65rem; max-width: min(30rem, calc(100vw - 7rem)); padding: 0.6rem 0.85rem 0.6rem 0.6rem; text-align: left; color: var(--text); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: 0.82rem; line-height: 1.4; animation: rise 0.25s ease-out; }
   .bubble.tipb { --c: var(--accent); }
   .bubble.warnb { --c: var(--accent-pdf); }
   button.bubble:hover { border-color: var(--c); }
@@ -475,37 +452,25 @@
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
   .bi { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
   .bt { min-width: 0; align-self: center; }
-  .voice { justify-self: start; margin-left: 84px; max-width: calc(100% - 84px); min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 28px; padding: 0 0.6rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text); text-align: left; font-size: 0.8rem; }
+  .voice { justify-self: start; margin-left: 108px; max-width: calc(100% - 108px); min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 28px; padding: 0 0.6rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text); text-align: left; font-size: 0.8rem; }
   .voice:hover, .voice.on { background: var(--bg-hover); }
-  .hist { position: absolute; left: 92px; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); max-height: 50vh; overflow: auto; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }
-  .hist h4 { margin: 0 0.8rem 0.4rem; font-size: 0.72rem; font-weight: 650; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
-  .hist ul { margin: 0; padding: 0; list-style: none; }
-  .hist li { padding: 0; }
-  .hrow { width: 100%; display: grid; grid-template-columns: 3.4rem 1fr auto; align-items: center; gap: 0.6rem; padding: 0.55rem 0.9rem; background: none; border: none; border-radius: 0; color: var(--text); text-align: left; font-size: 0.8rem; }
-  .hrow:disabled { cursor: default; }
-  .hrow:hover:not(:disabled) { background: var(--bg-hover); }
-  .hist li { position: relative; }
-  .hcopy { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 28px; height: 28px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-muted); }
-  .hcopy:hover { background: var(--bg-hover); color: var(--text); }
-  .hu { color: var(--text-faint); display: inline-flex; }
-  .hrow:hover .hu { color: var(--accent-video); }
-  .cqt { padding: 0.35rem 0.6rem; background: var(--bg-input); border-radius: var(--radius-sm); }
-  .conf { padding: 0.3rem 0.9rem 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.82rem; }
-  .conf p { margin: 0; }
-  .cacts { display: flex; gap: 0.4rem; margin-top: 0.3rem; }
-  .hist time { font-variant-numeric: tabular-nums; }
-  .ht { min-width: 0; }
-  .hist p { margin: 0; padding: 0.3rem 0.8rem; font-size: 0.8rem; }
+  .hist { position: absolute; left: 118px; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); max-height: 50vh; overflow: auto; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }
+  .hhead { display: flex; align-items: center; justify-content: space-between; padding: 0 0.5rem 0.2rem 0.8rem; }
+  .hhead h4 { margin: 0; font-size: 0.72rem; font-weight: 650; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
+  .hclock { display: grid; place-items: center; width: 28px; height: 28px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-muted); }
+  .hclock:hover { background: var(--bg-hover); color: var(--text); }
   .vt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .vh { flex: none; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
   .jobs { flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); overflow: hidden; transform-origin: left center; animation: grow 0.4s cubic-bezier(0.2, 0.8, 0.3, 1); }
   @keyframes grow { from { opacity: 0; transform: scaleX(0.15); } }
-  .jobs.ask { border-color: color-mix(in srgb, var(--accent-video) 55%, var(--border)); background: color-mix(in srgb, var(--accent-video) 8%, var(--bg-input)); --control-h: 24px; }
+  .jobs.ask { position: relative; border-color: color-mix(in srgb, var(--accent-video) 55%, var(--border)); background: color-mix(in srgb, var(--accent-video) 8%, var(--bg-input)); --control-h: 24px; }
   .jmain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; padding: 0 0.7rem; background: none; border: none; color: var(--text); font-size: 0.78rem; }
   .jmain:hover { background: var(--bg-hover); }
   .jx { flex: none; display: grid; place-items: center; width: 32px; background: none; border: none; border-left: 1px solid var(--border); color: var(--text-muted); }
   .jx:hover { background: color-mix(in srgb, var(--accent-video) 16%, transparent); color: var(--accent-video); }
   .q { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; padding: 0 0.7rem; font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+  .askbar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--border-strong); }
+  .askbar .fill { border-radius: 0; }
   .acts { flex: none; display: flex; align-items: center; gap: 0.25rem; padding: 0 0.25rem; }
   .acts :global(.btn) { font-size: 0.76rem; padding: 0 0.7em; }
   .jt { flex: 0 1 9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
@@ -514,10 +479,9 @@
   .pct { white-space: nowrap; font-variant-numeric: tabular-nums; }
   .mid { display: flex; align-items: center; gap: 0.6rem; }
   .mid:has(.jobs) { width: min(32rem, 44vw); }
-  .idle, .hbtn { display: inline-flex; align-items: center; gap: 0.5rem; height: 32px; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.78rem; }
+  .idle { display: inline-flex; align-items: center; gap: 0.5rem; height: 32px; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.78rem; }
   .idle { padding: 0 0.9rem; }
-  .hbtn { width: 32px; justify-content: center; flex: none; }
-  .idle:hover, .hbtn:hover { border-color: var(--accent); color: var(--text); }
+  .idle:hover { border-color: var(--accent); color: var(--text); }
   .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: 0.78rem; font-weight: 550; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); }
   .aviso:hover { background: var(--bg-hover); }
   .aviso.up { color: var(--accent); }
@@ -535,7 +499,7 @@
   .work { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: var(--lw) 1px minmax(0, 1fr) 1px var(--rw); }
   .off { overflow: hidden; visibility: hidden; }
   .left, .right { min-height: 0; min-width: 0; background: var(--bg-rail); }
-  .left { padding-bottom: 36px; box-sizing: border-box; }
+  .left { padding-bottom: 60px; box-sizing: border-box; }
   .center { background: var(--bg); }
 
   .center { min-width: 0; min-height: 0; overflow: hidden; }

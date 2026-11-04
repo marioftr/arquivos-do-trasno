@@ -206,7 +206,8 @@
     e.preventDefault();
   }
 
-  $: open(file.path);
+  $: filePath = file.path;
+  $: open(filePath);
   $: if (doc && container) render(scale);
   $: paint($pdfOverlay, pages);
 

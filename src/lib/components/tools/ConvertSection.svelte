@@ -44,8 +44,12 @@
     resizeH: null as number | null,
     keepRatio: true,
     maxSide: null as number | null,
+    lossless: false,
   }, undefined, "convert|" + selection.map((f) => f.path).join("|"));
   onMount(() => useForm(form));
+
+  // Sen perdas: só onde o formato de destino o permite.
+  $: canLossless = (category === "imaxe" && ($form.targetExt === "jxl" || $form.targetExt === "jp2")) || (category === "video" && ["mp4", "mkv", "mov"].includes($form.targetExt));
 
   const job = createJob();
   const busy = job.busy;
@@ -93,7 +97,8 @@
       overwrite,
       quality: f.category === "imaxe" ? v.quality : undefined,
       resize: f.category === "imaxe" ? resizeFor(f) : undefined,
-      bitrateKbps: toAudio ? v.audioBitrate : isMedia && v.bitrate ? v.bitrate : undefined,
+      bitrateKbps: canLossless && v.lossless ? undefined : toAudio ? v.audioBitrate : isMedia && v.bitrate ? v.bitrate : undefined,
+      lossless: canLossless && v.lossless,
     });
   }
 
@@ -156,6 +161,10 @@
       def={form.defaults.targetExt}
       disabled={$busy}
     />
+
+    {#if canLossless}
+      <Toggle label={$t("Sen perdas")} bind:checked={$form.lossless} hint={$t("Conserva exactamente a calidade do orixinal, sen compresión con perdas. O ficheiro resultante pesa moito máis e o proceso tarda máis.")} />
+    {/if}
 
     {#if category === "imaxe" && $form.targetExt === "pdf"}
       <GroupNote text={$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")} />

@@ -17,6 +17,7 @@ export interface ConvertOptions {
   quality?: number;
   resize?: [number, number];
   bitrateKbps?: number;
+  lossless?: boolean;
 }
 
 export async function detectCategory(path: string): Promise<Category> {
@@ -51,6 +52,7 @@ export async function convertFile(
     quality: options.quality ?? null,
     resize: options.resize ?? null,
     bitrateKbps: options.bitrateKbps ?? null,
+    lossless: options.lossless ?? null,
   });
 }
 

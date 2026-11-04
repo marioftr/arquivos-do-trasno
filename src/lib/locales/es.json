@@ -1410,5 +1410,14 @@
   "Datos EXIF das fotos": "Datos EXIF de las fotos",
   "Lectura de tipos de letra do sistema": "Lectura de fuentes del sistema",
   "Descargas (actualizacións, programas e paquetes de idioma)": "Descargas (actualizaciones, programas y paquetes de idioma)",
-  "Descompresión dos programas descargados": "Descompresión de los programas descargados"
+  "Descompresión dos programas descargados": "Descompresión de los programas descargados",
+  "Sen perdas": "Sin pérdidas",
+  "Conserva exactamente a calidade do orixinal, sen compresión con perdas. O ficheiro resultante pesa moito máis e o proceso tarda máis.": "Conserva exactamente la calidad del original, sin compresión con pérdidas. El archivo resultante pesa mucho más y el proceso tarda más.",
+  "o modo sen perdas": "el modo sin pérdidas",
+  "O trasno cambiou {what}": "El trasno cambió {what}",
+  "calidade": "calidad",
+  "bitrate": "bitrate",
+  "tamaño máximo": "tamaño máximo",
+  "Ver o historial completo": "Ver el historial completo",
+  "Accións do trasno": "Acciones del trasno"
 }

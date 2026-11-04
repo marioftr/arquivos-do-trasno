@@ -90,6 +90,9 @@
   {:else if name === "clock"}
     <circle cx="12" cy="12" r="8.5" />
     <polyline points="12,7 12,12 15.5,14" />
+  {:else if name === "exclamation"}
+    <line x1="12" y1="5" x2="12" y2="14" />
+    <line x1="12" y1="19" x2="12" y2="19.01" />
   {:else if name === "bulb"}
     <path d="M9 18h6" />
     <path d="M10 21h4" />

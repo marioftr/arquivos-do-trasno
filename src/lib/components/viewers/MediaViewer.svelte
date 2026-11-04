@@ -25,7 +25,10 @@
   let el: HTMLMediaElement | undefined;
   let failed = false;
 
-  $: load(file.path);
+  // Só cando cambia a ruta, non cada vez que chegan datos novos do ficheiro (tamaño, duración…): senón, a vista previa
+  // que se está preparando reiniciábase ao chegar eses datos.
+  $: filePath = file.path;
+  $: load(filePath);
   // Vista previa en directo: velocidade e volume (o navegador non pasa de volume 1) e salto a un instante.
   $: if (el && $mediaPreview) el.playbackRate = Math.min(4, Math.max(0.25, $mediaPreview.speed));
   // Volume do reprodutor propio (0 a 1), combinado coa vista previa do multiplicador.
@@ -305,6 +308,7 @@
       afterLoad = null;
     }
     loadingSeg = false;
+    chunkRetries = 0;
     clearTimeout(segWatch);
     if (el && $mediaPreview) el.playbackRate = Math.min(4, Math.max(0.25, $mediaPreview.speed));
     tick();
@@ -416,6 +420,7 @@
   let converted = false; // a vista previa non é o ficheiro orixinal (recodificada)
   let failMsg = "";
   let triedPreview = false;
+  let preparingNow = false;
 
   async function load(path: string) {
     ready = false;
@@ -438,6 +443,8 @@
     segToken++;
     prefetched.clear();
     triedPreview = false;
+    chunkRetries = 0;
+    preparingNow = false;
     preparing = false;
     playing = false;
     url = await viewUrl(path);
@@ -445,6 +452,20 @@
 
   // Formatos que o navegador non reproduce (MKV, AVI, AIFF...): o trasno prepara
   // unha copia lixeira temporal. O ficheiro orixinal non se modifica.
+  // Un tramo recén feito pode fallar á primeira (o ficheiro aínda ocupado ou o visor adiantándose): reinténtase un par de veces antes de dar erro.
+  let chunkRetries = 0;
+  function onVideoError() {
+    if (chunked && chunkRetries < 2 && url) {
+      chunkRetries++;
+      const base = url.replace(/([?&])r=\d+/, "").replace(/[?&]$/, "");
+      const again = `${base}${base.includes("?") ? "&" : "?"}r=${Date.now()}`;
+      setTimeout(() => {
+        if (chunked) url = again;
+      }, 700);
+      return;
+    }
+    prepare();
+  }
   /** Volve intentar a vista previa sen ter que cambiar de ficheiro. */
   function retry() {
     failed = false;
@@ -455,6 +476,8 @@
     prepare(true);
   }
   async function prepare(force = false, resume?: { t: number; play: boolean }) {
+    // Un segundo erro do reprodutor mentres a vista previa aínda se prepara non vale como fallo.
+    if (triedPreview && !force && preparingNow) return;
     if (triedPreview && !force) {
       failed = true;
       loadingSeg = false;
@@ -463,6 +486,7 @@
       return;
     }
     triedPreview = true;
+    preparingNow = true;
     // Ao cambiar de pista non se desmonta o reprodutor: só se avisa por riba.
     if (resume) loadingSeg = true;
     else preparing = true;
@@ -502,6 +526,7 @@
       loadingSeg = false;
     } finally {
       preparing = false;
+      preparingNow = false;
     }
   }
 </script>
@@ -530,7 +555,7 @@
       <div class="vid">
         <div class="screen" use:size>
           <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-          <video bind:this={el} style={vstyle} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={() => prepare()} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
+          <video bind:this={el} style={vstyle} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={onVideoError} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
           {#if subText}<div class="subs" aria-live="off">{subText}</div>{/if}
           {#if loadingSeg}<div class="segload" role="status"><span class="indet" aria-hidden="true"><span></span></span>{$t("Preparando este tramo…")}</div>{/if}
         </div>

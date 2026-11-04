@@ -47,19 +47,21 @@ pub fn readable(input: &Path) -> Result<PathBuf> {
     if out.is_file() {
         return Ok(out);
     }
-    ffmpeg::convert_media(input, &out, true, &["-frames:v".to_string(), "1".to_string()])?;
+    ffmpeg::background(|| ffmpeg::convert_media(input, &out, true, &["-frames:v".to_string(), "1".to_string()]))?;
     Ok(out)
 }
 
 /// Escribe `output` (AVIF, JPEG 2000 ou JPEG XL) a partir dunha imaxe que a crate `image` sabe ler.
 /// `quality` vai de 1 a 100 (por defecto, 80).
-pub fn encode(source: &Path, output: &Path, overwrite: bool, quality: Option<u8>) -> Result<PathBuf> {
+pub fn encode(source: &Path, output: &Path, overwrite: bool, quality: Option<u8>, lossless: bool) -> Result<PathBuf> {
     let ext = crate::formats::extension_of(output).unwrap_or_default();
     let q = quality.unwrap_or(80).clamp(1, 100) as f64;
     let args: Vec<String> = match ext.as_str() {
         // CRF de 0 (sen perdas) a 63; -b:v 0 deixa que mande só a calidade.
         "avif" => vec!["-frames:v".into(), "1".into(), "-c:v".into(), "libaom-av1".into(), "-still-picture".into(), "1".into(), "-crf".into(), format!("{}", ((100.0 - q) * 0.63).round() as u32), "-b:v".into(), "0".into(), "-cpu-used".into(), "6".into()],
-        "jxl" => vec!["-frames:v".into(), "1".into(), "-c:v".into(), "libjxl".into(), "-distance".into(), format!("{:.2}", (100.0 - q) / 10.0)],
+        "jxl" => vec!["-frames:v".into(), "1".into(), "-c:v".into(), "libjxl".into(), "-distance".into(), if lossless { "0".into() } else { format!("{:.2}", (100.0 - q) / 10.0) }],
+        // «-pred 1»: transformada reversible 5/3, sen perdas.
+        "jp2" if lossless => vec!["-frames:v".into(), "1".into(), "-c:v".into(), "jpeg2000".into(), "-pred".into(), "1".into()],
         _ => vec!["-frames:v".into(), "1".into()],
     };
     ffmpeg::convert_media(source, output, overwrite, &args)
@@ -91,6 +93,28 @@ mod tests {
                 // A compilación de FFmpeg pode non levar este códec: non é un fallo do motor.
                 Err(e) => eprintln!("{ext}: {e}"),
             }
+        }
+    }
+
+    /// JPEG XL e JPEG 2000 sen perdas: o PNG de volta ten exactamente os mesmos píxeles.
+    #[test]
+    fn lossless_keeps_every_pixel() {
+        if !ffmpeg::is_available() {
+            return;
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let png = dir.path().join("a.png");
+        let src = image::RgbImage::from_fn(64, 48, |x, y| image::Rgb([((x * 37 + y * 11) % 256) as u8, ((x * 5 + y * 91) % 256) as u8, ((x * y) % 256) as u8]));
+        src.save(&png).unwrap();
+        let opts = ImageConvertOptions { lossless: true, ..Default::default() };
+        for ext in ["jxl", "jp2"] {
+            let out = dir.path().join(format!("b.{ext}"));
+            if convert_image(&png, &out, true, &opts).is_err() {
+                continue; // a compilación de FFmpeg pode non levar este códec
+            }
+            let back = dir.path().join(format!("c-{ext}.png"));
+            convert_image(&out, &back, true, &ImageConvertOptions::default()).unwrap();
+            assert_eq!(image::open(&back).unwrap().to_rgb8(), src, "{ext}");
         }
     }
 }
