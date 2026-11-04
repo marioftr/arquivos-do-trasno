@@ -19,6 +19,8 @@ pub struct ImageCompress {
     pub target_bytes: Option<u64>,
     /// Lado máximo en píxeles (só reduce, nunca amplía).
     pub max_side: Option<u32>,
+    /// Fondo para a transparencia se o resultado é JPG (por defecto, branco).
+    pub background: Option<[u8; 3]>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -44,12 +46,12 @@ pub fn output_ext_for(ext: &str) -> String {
 }
 
 /// JPEG non ten transparencia: compónse sobre fondo branco (en vez de negro).
-fn flatten(img: &DynamicImage) -> image::RgbImage {
-    crate::image_convert::flatten_on_white(img)
+fn flatten(img: &DynamicImage, bg: Option<[u8; 3]>) -> image::RgbImage {
+    crate::image_convert::flatten_on(img, bg.unwrap_or(crate::image_convert::WHITE))
 }
 
-fn jpeg_bytes(img: &DynamicImage, quality: u8) -> Result<Vec<u8>> {
-    let rgb = flatten(img);
+fn jpeg_bytes(img: &DynamicImage, quality: u8, bg: Option<[u8; 3]>) -> Result<Vec<u8>> {
+    let rgb = flatten(img, bg);
     let mut buf = Vec::new();
     let mut enc = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, quality.clamp(1, 100));
     enc.encode_image(&rgb)?;
@@ -75,9 +77,9 @@ fn ffmpeg_bytes(img: &DynamicImage, ext: &str, quality: u8) -> Result<Vec<u8>> {
 }
 
 /// Os bytes que daría a imaxe nese formato con esa calidade (a calidade non conta en PNG, que é sen perdas).
-fn encode_bytes(img: &DynamicImage, ext: &str, quality: u8) -> Result<Vec<u8>> {
+fn encode_bytes(img: &DynamicImage, ext: &str, quality: u8, bg: Option<[u8; 3]>) -> Result<Vec<u8>> {
     match ext {
-        "jpg" | "jpeg" => jpeg_bytes(img, quality),
+        "jpg" | "jpeg" => jpeg_bytes(img, quality, bg),
         "png" => png_bytes(img),
         _ => ffmpeg_bytes(img, ext, quality),
     }
@@ -106,11 +108,11 @@ fn load_base(input: &Path, max_side: Option<u32>) -> Result<DynamicImage> {
 }
 
 /// Tamaño aproximado (bytes) do resultado en `ext` con esta calidade.
-pub fn estimate_image_bytes(input: &Path, ext: &str, quality: u8, max_side: Option<u32>) -> Result<u64> {
+pub fn estimate_image_bytes(input: &Path, ext: &str, quality: u8, max_side: Option<u32>, bg: Option<[u8; 3]>) -> Result<u64> {
     let ext = output_ext_for(ext);
     let img = load_base(input, max_side)?;
     // A estimación non é un traballo do usuario: non lle afecta «Cancelar».
-    let bytes = ffmpeg::background(|| encode_bytes(&img, &ext, quality))?;
+    let bytes = ffmpeg::background(|| encode_bytes(&img, &ext, quality, bg))?;
     Ok(bytes.len() as u64)
 }
 
@@ -138,7 +140,7 @@ pub fn compress_image(
     let (bytes, quality, scale) = match o.target_bytes {
         None => {
             let q = o.quality.unwrap_or(80).clamp(1, 100);
-            (encode_bytes(&base, &ext, q)?, if lossy { q } else { 100 }, 100)
+            (encode_bytes(&base, &ext, q, o.background)?, if lossy { q } else { 100 }, 100)
         }
         Some(target) => {
             let mut found = None;
@@ -151,7 +153,7 @@ pub fn compress_image(
                     let mut best: Option<(Vec<u8>, u8)> = None;
                     while lo <= hi {
                         let mid = lo + (hi - lo) / 2;
-                        let b = encode_bytes(&img, &ext, mid)?;
+                        let b = encode_bytes(&img, &ext, mid, o.background)?;
                         if b.len() as u64 <= target {
                             best = Some((b, mid));
                             lo = mid + 1;

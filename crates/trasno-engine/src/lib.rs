@@ -47,6 +47,9 @@ pub struct ConvertOptions {
     /// Sen perdas: JPEG XL e JPEG 2000 en imaxes; H.264 sen compresión con perdas en MP4, MKV e MOV.
     #[serde(default)]
     pub lossless: bool,
+    /// Fondo (RGB) para a transparencia ao pasar a un formato que non a admite (JPG, BMP, PNM). Por defecto, branco.
+    #[serde(default)]
+    pub background: Option<[u8; 3]>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -73,6 +76,7 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
                 quality: options.quality,
                 resize: options.resize,
                 lossless: options.lossless,
+                background: options.background,
             },
         )?,
         (Category::Audio, Category::Audio)

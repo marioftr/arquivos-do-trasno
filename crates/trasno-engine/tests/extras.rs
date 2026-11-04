@@ -231,7 +231,7 @@ fn comprimir_imaxe_a_un_tamano_maximo() {
     assert!(compress::compress_image(&src, &dir.path().join("a.bmp"), false, &Default::default()).is_err());
     assert!(compress::compress_image(&src, &out, false, &Default::default()).is_err());
     // A estimación vai en liña co resultado real á mesma calidade.
-    let est = compress::estimate_image_bytes(&src, "jpg", 80, None).unwrap();
+    let est = compress::estimate_image_bytes(&src, "jpg", 80, None, None).unwrap();
     let real = compress::compress_image(&src, &dir.path().join("b.jpg"), false, &compress::ImageCompress { quality: Some(80), ..Default::default() }).unwrap();
     assert_eq!(est, real.bytes_written);
 }

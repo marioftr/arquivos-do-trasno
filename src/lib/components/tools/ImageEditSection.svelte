@@ -9,6 +9,7 @@
   import { fileNameOf, TRASNO, fallo, listo, IMAGE_TARGETS } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
+  import { NO_ALPHA, BACKGROUNDS, hasTransparency, type Bg } from "../../transparency";
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
   import Slider from "../ui/Slider.svelte";
@@ -37,8 +38,12 @@
     cw: file.width ?? 0,
     ch: file.height ?? 0,
     ext: file.ext === "jpg" || file.ext === "png" || file.ext === "webp" ? file.ext : "png",
+    bg: "white" as Bg,
   }, undefined, "imgedit|" + file.path);
   onMount(() => useForm(form));
+
+  let transparent = false;
+  $: void hasTransparency(file.path).then((r) => (transparent = r));
 
   const job = createJob();
   const busy = job.busy;
@@ -160,6 +165,7 @@
             blur: f.blur,
             crop: f.cropOn ? [f.cx, f.cy, f.cw, f.ch] : undefined,
             quality: 90,
+            background: NO_ALPHA.includes(f.ext) ? BACKGROUNDS[f.bg] : undefined,
           },
           true,
         );
@@ -224,6 +230,14 @@
   </div>
 
   <div class="group">
+    {#if NO_ALPHA.includes($form.ext) && transparent}
+      <Segmented
+        label={$t("Fondo")}
+        info={$t("A imaxe ten transparencia e este formato non a admite: hai que escoller un fondo sobre o que compoñela.")}
+        options={[{ value: "white", label: $t("Branco") }, { value: "black", label: $t("Negro") }, { value: "gray", label: $t("Gris neutro") }]}
+        bind:value={$form.bg}
+      />
+    {/if}
     <SelectField label={$t("Gardar como")} bind:value={$form.ext} options={[...IMAGE_TARGETS, "pdf"].map((x) => ({ value: x, label: x.toUpperCase() }))} def={form.defaults.ext} />
     <button class="btn primary block" on:click={apply} disabled={!$dirty || $busy}>
       {$t("Gardar copia editada")}

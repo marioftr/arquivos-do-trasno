@@ -260,6 +260,10 @@
       scheduleTip(true);
       procTimer = setInterval(refreshProcs, 2000);
     }
+    // Co zoom do navegador activado (necesario para recibir a pinza do touchpad), Ctrl + roda e Ctrl +/−/0 non poden
+    // facer zoom da xanela enteira: o zoom da interface escóllese en Axustes e o das imaxes xestiónao o visor.
+    window.addEventListener("wheel", (e) => e.ctrlKey && e.preventDefault(), { passive: false });
+    window.addEventListener("keydown", (e) => (e.ctrlKey || e.metaKey) && ["+", "=", "-", "_", "0"].includes(e.key) && e.preventDefault());
     // Pechar co traballo a medias: avísase antes, e se se confirma páranse os procesos sen deixar ficheiros rotos.
     unlistenClose = await getCurrentWindow().onCloseRequested(async (e) => {
       const busy = $procs.some((p) => p.state === "running");

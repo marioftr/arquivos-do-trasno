@@ -184,3 +184,24 @@ fn transparencia_a_jpg_sobre_branco() {
     let px = image::open(&out).unwrap().to_rgb8().get_pixel(5, 5).0;
     assert!(px.iter().all(|c| *c > 240), "{px:?}");
 }
+
+/// O fondo escollido para a transparencia vale (negro, gris, branco) tamén en BMP, e a detección ve a transparencia real.
+#[test]
+fn fondo_da_transparencia_a_eleccion() {
+    use trasno_engine::image_convert::has_transparency;
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("t.png");
+    image::RgbaImage::from_pixel(20, 20, image::Rgba([200, 10, 10, 0])).save(&src).unwrap();
+    assert!(has_transparency(&src).unwrap());
+    let opaque = dir.path().join("o.png");
+    image::RgbaImage::from_pixel(8, 8, image::Rgba([1, 2, 3, 255])).save(&opaque).unwrap();
+    assert!(!has_transparency(&opaque).unwrap(), "alfa pero sen transparencia real");
+    for (bg, ext) in [([0u8, 0, 0], "jpg"), ([128, 128, 128], "jpg"), ([255, 255, 255], "bmp")] {
+        let out = dir.path().join(format!("t-{}.{ext}", bg[0]));
+        convert_file(&src, &out, &ConvertOptions { overwrite: true, background: Some(bg), ..Default::default() }).unwrap();
+        let px = image::open(&out).unwrap().to_rgb8().get_pixel(3, 3).0;
+        for c in 0..3 {
+            assert!((px[c] as i32 - bg[c] as i32).abs() <= 3, "{ext} {bg:?} -> {px:?}");
+        }
+    }
+}

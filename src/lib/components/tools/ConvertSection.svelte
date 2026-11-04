@@ -18,6 +18,7 @@
   import SelectField from "../ui/SelectField.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
+  import { NO_ALPHA, BACKGROUNDS, anyTransparent, type Bg } from "../../transparency";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let selection: FileEntry[];
@@ -45,11 +46,25 @@
     keepRatio: true,
     maxSide: null as number | null,
     lossless: false,
+    bg: "white" as Bg,
   }, undefined, "convert|" + selection.map((f) => f.path).join("|"));
   onMount(() => useForm(form));
 
   // Sen perdas: só onde o formato de destino o permite.
   $: canLossless = (category === "imaxe" && ["jxl", "jp2", "avif"].includes($form.targetExt)) || (category === "video" && ["mp4", "mkv", "mov"].includes($form.targetExt));
+
+  // Se hai imaxes con transparencia e o formato de destino non a admite, hai que escoller o fondo.
+  $: needsBg = category === "imaxe" && NO_ALPHA.includes($form.targetExt);
+  let transparent = false;
+  $: checkTransparency(needsBg, selection);
+  async function checkTransparency(on: boolean, sel: FileEntry[]) {
+    if (!on) {
+      transparent = false;
+      return;
+    }
+    const r = await anyTransparent(sel.map((f) => f.path));
+    if (on === needsBg && sel === selection) transparent = r;
+  }
 
   // Con «sen perdas» o resultado é o orixinal tal cal: calidade, bitrate e tamaño deixan de ter sentido.
   $: exact = canLossless && $form.lossless;
@@ -102,6 +117,7 @@
       resize: f.category === "imaxe" && !exact ? resizeFor(f) : undefined,
       bitrateKbps: canLossless && v.lossless ? undefined : toAudio ? v.audioBitrate : isMedia && v.bitrate ? v.bitrate : undefined,
       lossless: canLossless && v.lossless,
+      background: f.category === "imaxe" && NO_ALPHA.includes(v.targetExt) ? BACKGROUNDS[v.bg] : undefined,
     });
   }
 
@@ -164,6 +180,15 @@
       def={form.defaults.targetExt}
       disabled={$busy}
     />
+
+    {#if needsBg && transparent}
+      <Segmented
+        label={$t("Fondo")}
+        info={$t("A imaxe ten transparencia e este formato non a admite: hai que escoller un fondo sobre o que compoñela.")}
+        options={[{ value: "white", label: $t("Branco") }, { value: "black", label: $t("Negro") }, { value: "gray", label: $t("Gris neutro") }]}
+        bind:value={$form.bg}
+      />
+    {/if}
 
     {#if canLossless}
       <Toggle label={$t("Sen perdas")} bind:checked={$form.lossless} hint={$t("Conserva exactamente a calidade do orixinal, sen compresión con perdas. O ficheiro resultante pesa moito máis e o proceso tarda máis.")} />

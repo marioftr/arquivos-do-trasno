@@ -19,6 +19,8 @@ pub struct ImageConvertOptions {
     pub resize: Option<(u32, u32)>,
     /// Sen perdas (só JPEG XL e JPEG 2000, que se escriben con FFmpeg).
     pub lossless: bool,
+    /// Fondo (RGB) sobre o que se compón a transparencia se o formato de destino non a admite (JPG, BMP, PNM). Por defecto, branco.
+    pub background: Option<[u8; 3]>,
 }
 
 /// Le só as dimensións dunha imaxe (cabeceira, sen decodificar os píxeles),
@@ -99,7 +101,7 @@ pub fn convert_image(
         return Err(EngineError::EmptyOrCorruptOutput);
     }
 
-    let img = adapt_for(img, dst_format);
+    let img = adapt_for(img, dst_format, options.background);
     let mut out = AtomicOutput::new(output, overwrite)?;
 
     match (dst_format, options.quality) {
@@ -127,8 +129,11 @@ pub fn convert_image(
     }
 }
 
-/// Compón unha imaxe con transparencia sobre fondo branco (en vez de deixar saír o que haxa nos píxeles transparentes, que adoita ser negro).
-pub(crate) fn flatten_on_white(img: &image::DynamicImage) -> image::RgbImage {
+/// Branco: o fondo por defecto cando hai que quitar a transparencia.
+pub const WHITE: [u8; 3] = [255, 255, 255];
+
+/// Compón unha imaxe con transparencia sobre un fondo (en vez de deixar saír o que haxa nos píxeles transparentes, que adoita ser negro).
+pub(crate) fn flatten_on(img: &image::DynamicImage, bg: [u8; 3]) -> image::RgbImage {
     if !img.color().has_alpha() {
         return img.to_rgb8();
     }
@@ -136,18 +141,30 @@ pub(crate) fn flatten_on_white(img: &image::DynamicImage) -> image::RgbImage {
     let mut out = image::RgbImage::new(rgba.width(), rgba.height());
     for (x, y, p) in rgba.enumerate_pixels() {
         let a = p[3] as u32;
-        let mix = |c: u8| ((c as u32 * a + 255 * (255 - a)) / 255) as u8;
-        out.put_pixel(x, y, image::Rgb([mix(p[0]), mix(p[1]), mix(p[2])]));
+        let mix = |c: u8, b: u8| ((c as u32 * a + b as u32 * (255 - a)) / 255) as u8;
+        out.put_pixel(x, y, image::Rgb([mix(p[0], bg[0]), mix(p[1], bg[1]), mix(p[2], bg[2])]));
     }
     out
 }
 
+/// Formatos de imaxe que non gardan transparencia: ao pasar a eles hai que escoller un fondo.
+pub const NO_ALPHA: &[&str] = &["jpg", "jpeg", "bmp", "pnm", "pbm", "pgm", "ppm"];
+
+/// Ten a imaxe algún píxel transparente (ou semitransparente)? Só mira se a imaxe leva canle alfa e, se si, busca un píxel non opaco.
+pub fn has_transparency(path: &Path) -> Result<bool> {
+    let img = image::open(crate::image_ffmpeg::readable(path)?)?;
+    if !img.color().has_alpha() {
+        return Ok(false);
+    }
+    Ok(img.to_rgba8().pixels().any(|p| p[3] < 255))
+}
+
 /// Deixa a imaxe nun tipo de cor que o codificador do formato de destino acepta:
 /// JPEG non ten transparencia (compónse sobre branco); ICO leva PNG en RGBA e non pasa de 256 px; GIF e QOI só levan 8 bits por canle.
-fn adapt_for(img: image::DynamicImage, format: ImageFormat) -> image::DynamicImage {
+fn adapt_for(img: image::DynamicImage, format: ImageFormat, background: Option<[u8; 3]>) -> image::DynamicImage {
     use image::DynamicImage as D;
     match format {
-        ImageFormat::Jpeg if img.color().has_alpha() => D::ImageRgb8(flatten_on_white(&img)),
+        ImageFormat::Jpeg | ImageFormat::Bmp | ImageFormat::Pnm if img.color().has_alpha() => D::ImageRgb8(flatten_on(&img, background.unwrap_or(WHITE))),
         ImageFormat::Ico => {
             let i = if img.width() > 256 || img.height() > 256 { img.resize(256, 256, image::imageops::FilterType::Lanczos3) } else { img };
             D::ImageRgba8(i.to_rgba8())
@@ -183,6 +200,8 @@ pub struct ImageEdits {
     pub crop: Option<(u32, u32, u32, u32)>,
     pub quality: Option<u8>,
     pub resize: Option<(u32, u32)>,
+    /// Fondo para a transparencia se o formato de destino non a admite (por defecto, branco).
+    pub background: Option<[u8; 3]>,
 }
 
 /// Aplica as edicións en orde fixa (recorte, xiro/volteo, cor, desenfoque,
@@ -260,7 +279,7 @@ pub fn edit_image(
         let _ = std::fs::remove_file(&tmp);
         return result;
     }
-    write_verified(&img, output, overwrite, dst_format, edits.quality)
+    write_verified(&img, output, overwrite, dst_format, edits.quality, edits.background)
 }
 
 /// Garda `img` de forma atómica e comproba que se pode reabrir.
@@ -270,8 +289,9 @@ fn write_verified(
     overwrite: bool,
     format: ImageFormat,
     quality: Option<u8>,
+    background: Option<[u8; 3]>,
 ) -> Result<PathBuf> {
-    let img = adapt_for(img.clone(), format);
+    let img = adapt_for(img.clone(), format, background);
     let mut out = AtomicOutput::new(output, overwrite)?;
     match (format, quality) {
         (ImageFormat::Jpeg, Some(q)) => {
@@ -304,7 +324,7 @@ mod tests {
         image::DynamicImage::ImageRgb8(img).save(&input).unwrap();
 
         let output = dir.path().join("destino.jpg");
-        let opts = ImageConvertOptions { quality: Some(85), resize: None, lossless: false };
+        let opts = ImageConvertOptions { quality: Some(85), resize: None, lossless: false, background: None };
         let result = convert_image(&input, &output, false, &opts).unwrap();
 
         assert!(result.exists());
@@ -336,7 +356,7 @@ mod tests {
             .save(&input)
             .unwrap();
         let output = dir.path().join("destino.png");
-        let opts = ImageConvertOptions { quality: None, resize: Some((20, 10)), lossless: false };
+        let opts = ImageConvertOptions { quality: None, resize: Some((20, 10)), lossless: false, background: None };
         let result = convert_image(&input, &output, false, &opts).unwrap();
 
         let decoded = image::open(&result).unwrap();

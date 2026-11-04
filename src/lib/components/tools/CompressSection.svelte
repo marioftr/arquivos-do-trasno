@@ -1,5 +1,7 @@
 <script lang="ts">
   import GroupNote from "../ui/GroupNote.svelte";
+  import InfoTip from "../ui/InfoTip.svelte";
+  import { BACKGROUNDS, anyTransparent, type Bg } from "../../transparency";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
@@ -57,6 +59,7 @@
 
   const form = createForm({
     mode: "quality" as "quality" | "bitrate" | "size",
+    bg: "white" as Bg,
     quality: 75,
     maxSide: null as number | null,
     profile: initialProfile,
@@ -85,7 +88,7 @@
 
   $: v = $form;
   $: targetBytes = Math.max(1, Math.round((v.sizeValue || 1) * (UNITS.find((u) => u.id === v.unit)?.mult ?? 1)));
-  $: paramsKey = `${v.mode}|${v.quality}|${v.maxSide}|${v.crf}|${v.maxHeight}|${v.audioKbps}|${v.videoKbps}|${v.deinterlace}|${v.compat}|${v.dar}`;
+  $: paramsKey = `${v.mode}|${v.quality}|${v.maxSide}|${v.crf}|${v.maxHeight}|${v.audioKbps}|${v.videoKbps}|${v.deinterlace}|${v.compat}|${v.dar}|${v.bg}|${transparent}`;
   $: invalidate(paramsKey);
   $: if (isImage && !multi && v.mode === "quality") scheduleImageEstimate(paramsKey);
 
@@ -145,7 +148,7 @@
     clearTimeout(timer);
     timer = setTimeout(async () => {
       try {
-        const bytes = await engine.estimateImage(first.path, engine.compressExt(first.ext), v.quality, v.maxSide || undefined);
+        const bytes = await engine.estimateImage(first.path, engine.compressExt(first.ext), v.quality, v.maxSide || undefined, transparent ? BACKGROUNDS[v.bg] : undefined);
         if (key === paramsKey) estimate = bytes;
       } catch {
         estimate = null;
@@ -174,7 +177,7 @@
       const r = await engine.compressImage(
         f.path,
         out,
-        { quality: v.mode === "quality" ? v.quality : undefined, targetBytes: v.mode === "size" ? targetBytes : undefined, maxSide: v.maxSide || undefined },
+        { quality: v.mode === "quality" ? v.quality : undefined, targetBytes: v.mode === "size" ? targetBytes : undefined, maxSide: v.maxSide || undefined, background: transparent ? BACKGROUNDS[v.bg] : undefined },
         overwrite,
       );
       return r.bytes_written;
@@ -198,7 +201,15 @@
   }
 
   /** O resultado mantén o formato do orixinal (se se pode comprimir nel); para cambiar de formato está Converter. */
-  $: sameFormat = isImage && engine.COMPRESS_KEEP.includes(first.ext.toLowerCase());
+  // Os formatos sen compresión propia saen en JPG; se ademais teñen transparencia, hai que escoller o fondo.
+  $: jpgFiles = isImage ? selection.filter((f) => engine.compressExt(f.ext) === "jpg" && !["jpg", "jpeg"].includes(f.ext.toLowerCase())) : [];
+  let transparent = false;
+  $: checkTransparency(jpgFiles);
+  async function checkTransparency(list: FileEntry[]) {
+    transparent = false;
+    const r = list.length ? await anyTransparent(list.map((f) => f.path)) : false;
+    if (list === jpgFiles) transparent = r;
+  }
   const outExt = (f: FileEntry) => (isImage ? engine.compressExt(f.ext) : "mp4");
 
   async function runSingle() {
@@ -325,7 +336,19 @@
       />
       <Slider label={$t("Bitrate de audio")} unit="kbps" min={48} max={256} step={8} bind:value={$form.audioKbps} def={form.defaults.audioKbps} />
     {/if}
-    <p class="group-note">{isImage ? (sameFormat ? $t("A imaxe gárdase no mesmo formato ({ext}). Para cambiar de formato está Converter.", { ext: engine.compressExt(first.ext).toUpperCase() }) : $t("Este formato non se pode comprimir mantendo o formato: a imaxe gárdase como JPG. Para outro formato está Converter.")) : $t("Os vídeos gárdanse como MP4 (H.264).")}</p>
+    {#if !isImage}
+      <p class="group-note">{$t("Os vídeos gárdanse como MP4 (H.264).")}</p>
+    {:else if jpgFiles.length}
+      <p class="outfmt">{$t("Gardarase como JPG")}<InfoTip text={$t("Este formato non admite compresión propia, así que a imaxe gárdase como JPG.")} /></p>
+    {/if}
+    {#if isImage && transparent}
+      <Segmented
+        label={$t("Fondo")}
+        info={$t("A imaxe ten transparencia e JPG non a admite: hai que escoller un fondo sobre o que compoñela.")}
+        options={[{ value: "white", label: $t("Branco") }, { value: "black", label: $t("Negro") }, { value: "gray", label: $t("Gris neutro") }]}
+        bind:value={$form.bg}
+      />
+    {/if}
   </div>
 
   {#if !multi}
@@ -390,6 +413,7 @@
 </div>
 
 <style>
+  .outfmt { display: inline-flex; align-items: center; margin: 0; font-size: 0.8rem; color: var(--text-muted); }
   .warn { margin: 0; font-size: 0.8rem; color: var(--accent-pdf); }
   .savewrap { display: flex; flex-direction: column; }
   .savebox { display: flex; gap: 0.4rem; align-items: center; }

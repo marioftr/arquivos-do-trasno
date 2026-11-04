@@ -1475,7 +1475,13 @@
   "Ler en {lang}": "Leer en {lang}",
   "Descargar e ler": "Descargar y leer",
   "Máis alto = mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL)": "Más alto = mejor imagen y más peso (JPG, WebP, AVIF y JPEG XL)",
-  "A imaxe gárdase no mesmo formato ({ext}). Para cambiar de formato está Converter.": "La imagen se guarda en el mismo formato ({ext}). Para cambiar de formato está Convertir.",
-  "Este formato non se pode comprimir mantendo o formato: a imaxe gárdase como JPG. Para outro formato está Converter.": "Este formato no se puede comprimir manteniendo el formato: la imagen se guarda como JPG. Para otro formato está Convertir.",
-  "O PNG comprímese sen perdas: non hai calidade que axustar. Para pesar menos, redúcese o lado máximo ou fíxase un tamaño máximo.": "El PNG se comprime sin pérdidas: no hay calidad que ajustar. Para pesar menos, se reduce el lado máximo o se fija un tamaño máximo."
+  "O PNG comprímese sen perdas: non hai calidade que axustar. Para pesar menos, redúcese o lado máximo ou fíxase un tamaño máximo.": "El PNG se comprime sin pérdidas: no hay calidad que ajustar. Para pesar menos, se reduce el lado máximo o se fija un tamaño máximo.",
+  "Fondo": "Fondo",
+  "Branco": "Blanco",
+  "Negro": "Negro",
+  "Gris neutro": "Gris neutro",
+  "A imaxe ten transparencia e este formato non a admite: hai que escoller un fondo sobre o que compoñela.": "La imagen tiene transparencia y este formato no la admite: hay que elegir un fondo sobre el que componerla.",
+  "A imaxe ten transparencia e JPG non a admite: hai que escoller un fondo sobre o que compoñela.": "La imagen tiene transparencia y JPG no la admite: hay que elegir un fondo sobre el que componerla.",
+  "Gardarase como JPG": "Se guardará como JPG",
+  "Este formato non admite compresión propia, así que a imaxe gárdase como JPG.": "Este formato no admite compresión propia, así que la imagen se guarda como JPG."
 }

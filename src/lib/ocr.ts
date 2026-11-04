@@ -150,28 +150,39 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
   pOff = 0;
   pSpan = 0.4;
   let primary = collect((await worker.recognize(imageUrl)).data, 1);
-  // 2) Pasos extra: ampliada (as letras pequenas melloran moito) e, se a primeira lectura é pobre (texto pequeno sobre fondos
-  //    cheos, como un visor 3D ou unha captura), tamén só o claro e só o escuro. Faise unha lectura de cada e xúntase o que
-  //    cada unha achegue de novo; se unha binarizada gaña con claridade, pasa a ser a principal.
+  // 2) Pasos extra. Ampliada (as letras pequenas melloran moito) se a imaxe non é grande. E se a primeira lectura é pobre
+  //    (logotipos, texto solto, letras pequenas sobre fondos cheos como un visor 3D ou unha captura) a imaxe lese tamén co
+  //    modo de «texto disperso» de Tesseract (que busca palabras soltas en vez de páxinas) e preparada de varios xeitos:
+  //    ampliada, só o claro e só o escuro. Faise unha lectura de cada e xúntase o que cada unha achegue de novo; a que máis
+  //    texto fiable dea pasa a ser a principal.
   const weak = primary.score < WEAK;
-  const modes: PrepMode[] = [...(loaded && loaded.bmp.width * loaded.bmp.height <= 1_600_000 ? (["up"] as PrepMode[]) : []), ...(weak ? (["bright", "dark"] as PrepMode[]) : [])];
-  const extras: Pass[] = [];
+  const small = !!loaded && loaded.bmp.width * loaded.bmp.height <= 1_600_000;
+  const plan: { mode: PrepMode | "raw"; sparse: boolean }[] = weak
+    ? [{ mode: "raw", sparse: true }, ...(small ? [{ mode: "up" as const, sparse: true }] : []), { mode: "bright", sparse: true }, { mode: "dark", sparse: true }]
+    : small
+      ? [{ mode: "up", sparse: false }]
+      : [];
+  const passes: Pass[] = [primary];
   let step = 0;
-  for (const mode of modes) {
-    const prepared = loaded ? await prepare(loaded, mode) : null;
+  for (const p of plan) {
+    const prepared = p.mode === "raw" ? { blob: null as Blob | null, scale: 1 } : loaded ? await prepare(loaded, p.mode) : null;
     if (!prepared) continue;
-    pOff = 0.4 + (0.5 * step) / modes.length;
-    pSpan = 0.5 / modes.length;
+    pOff = 0.4 + (0.5 * step) / plan.length;
+    pSpan = 0.5 / plan.length;
     step++;
-    const r = collect((await worker.recognize(prepared.blob)).data, prepared.scale);
-    if (mode !== "up" && r.score > Math.max(MIN_GAIN, primary.score * 1.3)) {
-      extras.push(primary);
-      primary = r;
-    } else extras.push(r);
+    await worker.setParameters({ tessedit_pageseg_mode: p.sparse ? "11" : "3" });
+    passes.push(collect((await worker.recognize(prepared.blob ?? imageUrl)).data, prepared.scale));
   }
+  if (plan.some((p) => p.sparse)) await worker.setParameters({ tessedit_pageseg_mode: "3" });
   loaded?.bmp.close();
   ocrProgress.set(1);
-  return merge(primary, extras);
+  // A principal é a de máis texto fiable (a primeira, se empatan); as demais achegan o que a ela lle falta.
+  let best = 0;
+  passes.forEach((q, i) => {
+    if (q.score > passes[best].score) best = i;
+  });
+  const [main] = passes.splice(best, 1);
+  return merge(main, passes);
 }
 
 /** Palabras fiables que se esperan dunha lectura boa: por baixo diso proban os pasos extra. */

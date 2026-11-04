@@ -7,6 +7,7 @@ import { forgetOcr } from "./ocr";
 import { forgetAnno } from "./annot";
 import { forgetFile } from "./forms";
 import { forgetPdf } from "./pdfState";
+import { forgetTransparency } from "./transparency";
 import type { FontSpec } from "./fonts";
 import { writable, get } from "svelte/store";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -419,6 +420,7 @@ export async function reimportFile(path: string) {
   forgetAnno(path);
   forgetFile(path);
   forgetPdf(path);
+  forgetTransparency(path);
   await engine.forgetPreviews(path).catch(() => {});
   let category: Category | null = null;
   try {

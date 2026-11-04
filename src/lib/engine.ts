@@ -18,6 +18,8 @@ export interface ConvertOptions {
   resize?: [number, number];
   bitrateKbps?: number;
   lossless?: boolean;
+  /** Fondo [r, g, b] para a transparencia ao pasar a un formato que non a admite. */
+  background?: [number, number, number];
 }
 
 export async function detectCategory(path: string): Promise<Category> {
@@ -49,6 +51,7 @@ export async function convertFile(
     resize: options.resize ?? null,
     bitrateKbps: options.bitrateKbps ?? null,
     lossless: options.lossless ?? null,
+    background: options.background ?? null,
   });
 }
 
@@ -115,6 +118,7 @@ export interface ImageEdits {
   crop?: [number, number, number, number];
   quality?: number;
   resize?: [number, number];
+  background?: [number, number, number];
 }
 
 export async function editImage(input: string, output: string, edits: ImageEdits, overwrite = false): Promise<string> {
@@ -222,7 +226,7 @@ export interface ImageCompressReport {
 export async function compressImage(
   input: string,
   output: string,
-  opts: { quality?: number; targetBytes?: number; maxSide?: number },
+  opts: { quality?: number; targetBytes?: number; maxSide?: number; background?: [number, number, number] },
   overwrite = false,
 ): Promise<ImageCompressReport> {
   return call("compress_image", {
@@ -232,6 +236,7 @@ export async function compressImage(
     quality: opts.quality ?? null,
     targetBytes: opts.targetBytes ?? null,
     maxSide: opts.maxSide ?? null,
+    background: opts.background ?? null,
   });
 }
 
@@ -239,8 +244,8 @@ export async function compressImage(
 export const COMPRESS_KEEP = ["jpg", "jpeg", "png", "webp", "avif", "jxl", "jp2"];
 export const compressExt = (ext: string) => (COMPRESS_KEEP.includes(ext.toLowerCase()) ? ext.toLowerCase() : "jpg");
 
-export async function estimateImage(input: string, ext: string, quality: number, maxSide?: number): Promise<number> {
-  return call("estimate_image", { input, ext, quality, maxSide: maxSide ?? null });
+export async function estimateImage(input: string, ext: string, quality: number, maxSide?: number, background?: [number, number, number]): Promise<number> {
+  return call("estimate_image", { input, ext, quality, maxSide: maxSide ?? null, background: background ?? null });
 }
 
 /** Troca os cartafoles polos ficheiros que levan dentro. */

@@ -466,3 +466,9 @@ dd {
   transition-delay: 0s !important;
   scroll-behavior: auto !important;
 }
+
+/* Sen pinza de pantalla táctil sobre toda a xanela: só o visor de imaxe a xestiona (o seu `touch-action` propio) */
+html, body { touch-action: pan-x pan-y; }
+
+/* Sin o xesto de «volver atrás» do navegador (desprazar a páxina enteira cara á dereita cun deslizamento horizontal do touchpad) */
+html, body { overscroll-behavior: none; }

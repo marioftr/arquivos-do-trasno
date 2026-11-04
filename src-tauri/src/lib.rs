@@ -68,6 +68,7 @@ pub fn run() {
             commands::allow_view,
             commands::startup_files,
             commands::edit_image,
+            commands::image_has_transparency,
             commands::images_to_pdf,
             commands::media_edit,
             commands::probe_media,

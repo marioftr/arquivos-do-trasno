@@ -17,7 +17,7 @@
   export let onCancel: (p: Proc) => void;
 
   let ask = false;
-  /** Se foi o «cancelar» quen o puxo en pausa, «seguir» retómao. */
+  /** Se o «cancelar» foi quen o puxo en pausa (e non o botón de pausa). */
   let autoPaused = false;
   $: paused = $pausedId === proc.id;
   $: pausable = proc.source === "app";
@@ -39,10 +39,11 @@
       autoPaused = true;
     }
   }
+  // «Seguir» significa seguir: o proceso retómase aínda que o puxese en pausa o botón de pausa antes de premer cancelar.
   async function keepGoing() {
     ask = false;
-    if (autoPaused) {
-      autoPaused = false;
+    autoPaused = false;
+    if (paused) {
       await pauseJob(false).catch(() => false);
       pausedId.set(null);
     }

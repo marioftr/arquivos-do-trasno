@@ -240,8 +240,20 @@
     stage.scrollLeft = box.l + fx * box.w - px;
     stage.scrollTop = box.t + fy * box.h - py;
   }
-  /** Rolda de rato (pasos grandes e enteiros) ou touchpad (valores pequenos, fraccionarios ou con desprazamento lateral)? */
-  const isPad = (ev: WheelEvent) => ev.deltaMode === 0 && (ev.deltaX !== 0 || Math.abs(ev.deltaY) < 50 || !Number.isInteger(ev.deltaY));
+  // Rato ou touchpad? A roda dá sempre pasos idénticos de 100 ou 120 (ou liñas enteiras); os dedos dan unha chea de valores
+  // distintos en poucos milisegundos e a miúdo con compoñente lateral. A decisión mantense durante todo o xesto (ata un
+  // silencio de 180 ms), así un xesto de touchpad non se parte entre desprazar e facer zoom.
+  let burst = { t: 0, pad: false, mags: new Set<number>() };
+  function isPad(ev: WheelEvent): boolean {
+    if (ev.deltaMode !== 0) return false; // por liñas ou páxinas: só a roda
+    if (ev.timeStamp - burst.t > 180) burst = { t: ev.timeStamp, pad: false, mags: new Set() };
+    burst.t = ev.timeStamp;
+    const dy = Math.abs(ev.deltaY);
+    burst.mags.add(Math.round(dy));
+    const notch = ev.deltaX === 0 && dy >= 100 && (dy % 100 === 0 || dy % 120 === 0);
+    if (!notch && (ev.deltaX !== 0 || dy < 100 || !Number.isInteger(ev.deltaY) || burst.mags.size >= 3)) burst.pad = true;
+    return burst.pad;
+  }
   function wheel(ev: WheelEvent) {
     if (!viewEl || failed) return;
     ev.preventDefault();

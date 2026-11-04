@@ -148,6 +148,7 @@ pub async fn convert_file(
     resize: Option<(u32, u32)>,
     bitrate_kbps: Option<u32>,
     lossless: Option<bool>,
+    background: Option<[u8; 3]>,
 ) -> Result<ConvertResult, String> {
     let options = ConvertOptions {
         overwrite,
@@ -155,6 +156,7 @@ pub async fn convert_file(
         resize,
         bitrate_kbps,
         lossless: lossless.unwrap_or(false),
+        background,
     };
     blocking(move || {
         trasno_engine::convert_file(&PathBuf::from(input), &PathBuf::from(output), &options)
@@ -256,6 +258,7 @@ pub struct ImageEditsDto {
     pub crop: Option<(u32, u32, u32, u32)>,
     pub quality: Option<u8>,
     pub resize: Option<(u32, u32)>,
+    pub background: Option<[u8; 3]>,
 }
 
 #[tauri::command]
@@ -278,12 +281,19 @@ pub async fn edit_image(
             crop: edits.crop,
             quality: edits.quality,
             resize: edits.resize,
+            background: edits.background,
         };
         trasno_engine::image_convert::edit_image(&PathBuf::from(input), &PathBuf::from(output), overwrite, &e)
             .map(|p| p.to_string_lossy().to_string())
             .map_err(to_err)
     })
     .await
+}
+
+/// Ten a imaxe algún píxel transparente? (Para ofrecer a elección de fondo ao pasar a JPG e similares.)
+#[tauri::command]
+pub async fn image_has_transparency(path: String) -> Result<bool, String> {
+    blocking_bg(move || trasno_engine::image_convert::has_transparency(&PathBuf::from(path)).map_err(to_err)).await
 }
 
 #[tauri::command]
@@ -744,9 +754,10 @@ pub async fn compress_image(
     quality: Option<u8>,
     target_bytes: Option<u64>,
     max_side: Option<u32>,
+    background: Option<[u8; 3]>,
 ) -> Result<trasno_engine::compress::ImageCompressReport, String> {
     blocking(move || {
-        let o = trasno_engine::compress::ImageCompress { quality, target_bytes, max_side };
+        let o = trasno_engine::compress::ImageCompress { quality, target_bytes, max_side, background };
         trasno_engine::compress::compress_image(&PathBuf::from(input), &PathBuf::from(output), overwrite, &o)
             .map_err(to_err)
     })
@@ -754,9 +765,9 @@ pub async fn compress_image(
 }
 
 #[tauri::command]
-pub async fn estimate_image(input: String, ext: Option<String>, quality: u8, max_side: Option<u32>) -> Result<u64, String> {
+pub async fn estimate_image(input: String, ext: Option<String>, quality: u8, max_side: Option<u32>, background: Option<[u8; 3]>) -> Result<u64, String> {
     blocking(move || {
-        trasno_engine::compress::estimate_image_bytes(&PathBuf::from(input), ext.as_deref().unwrap_or("jpg"), quality, max_side).map_err(to_err)
+        trasno_engine::compress::estimate_image_bytes(&PathBuf::from(input), ext.as_deref().unwrap_or("jpg"), quality, max_side, background).map_err(to_err)
     })
     .await
 }
