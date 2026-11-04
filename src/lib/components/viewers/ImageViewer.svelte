@@ -446,7 +446,10 @@
   <div class="bar" class:tinybar={tiny} bind:clientWidth={barW}>
     <button class="btn" class:on={fit} on:click={() => (fit = true)}>{$t("Axustar")}</button>
     <button class="btn" class:on={!fit && zoom === 100} on:click={() => zoomAt(100, stage.clientWidth / 2, stage.clientHeight / 2)}>100%</button>
-    {#if !tiny}<span class="muted pct">{shown} %</span>{/if}
+    {#if !tiny}
+      <input class="zs" type="range" min="0" max="100" step="1" value={Math.round((Math.log(Math.max(ZMIN, shown) / ZMIN) / Math.log(ZMAX / ZMIN)) * 100)} on:input={(e) => zoomAt(ZMIN * Math.pow(ZMAX / ZMIN, Number(e.currentTarget.value) / 100), stage.clientWidth / 2, stage.clientHeight / 2)} aria-label={$t("Ampliación")} title={$t("Ampliación")} />
+      <span class="muted pct">{shown} %</span>
+    {/if}
     <span class="grow"></span>
     {#if ocrOn}
       <select class="lg" bind:value={ocrLang} on:change={changeLang} aria-label={$t("Idioma do texto")} disabled={ocrBusy}>
@@ -485,6 +488,7 @@
   /* Barra de abaixo: unha soa fila fixa; nada cambia de sitio nin de tamaño ao usar o OCR. */
   .bar { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; overflow: hidden; }
   .bar > * { flex: none; white-space: nowrap; }
+  .bar .zs { width: 120px; accent-color: var(--accent); }
   .bar.tinybar { flex-wrap: wrap; row-gap: 0.4rem; }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .grow { flex: 1 1 auto; min-width: 0; }

@@ -532,10 +532,13 @@
 
   /* Co espazo xusto, os paneis ocupan o seu sitio de sempre e as divisorias agóchanse. */
   @media (max-width: 1050px) {
+    /* A lista de ficheiros ocupa sempre a columna esquerda enteira (o trasno vive aí); as ferramentas van debaixo do visor. */
     .work { grid-template-columns: minmax(190px, 230px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 42%); }
     .work > :global(.split) { display: none; }
     .left.off, .right.off { visibility: visible; }
-    .right { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-bottom: 56px; box-sizing: border-box; }
+    .left { grid-column: 1; grid-row: 1 / 3; border-right: 1px solid var(--border); }
+    .center { grid-column: 2; grid-row: 1; }
+    .right { grid-column: 2; grid-row: 2; border-top: 1px solid var(--border); }
   }
 
   .veil {

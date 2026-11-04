@@ -89,6 +89,10 @@ async function langPathUrl(lang: string): Promise<string> {
   return origin + dir.split(/[\\/]/).map(encodeURIComponent).join("/");
 }
 
+// A barra de progreso cobre todas as lecturas dunha imaxe: a primeira ocupa o 70 % e as extra, o resto.
+let pOff = 0;
+let pSpan = 1;
+
 let queue: Promise<unknown> = Promise.resolve();
 // Lecturas en curso e feitas, por imaxe e idioma: ao cambiar de ficheiro e volver non se perde nin se repite nada.
 const inflight = new Map<string, Promise<OcrResult>>();
@@ -134,22 +138,31 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
       cacheMethod: "none",
       workerBlobURL: false,
       logger: (m: { status: string; progress: number }) => {
-        if (m.status === "recognizing text") ocrProgress.set(m.progress);
+        // Nunca retrocede: as lecturas extra non fan saltar a barra de volta ao principio.
+        if (m.status === "recognizing text") ocrProgress.update((p) => Math.max(p, pOff + m.progress * pSpan));
       },
     });
     workerLang = lang;
   }
   // Primeira lectura coa imaxe tal cal; se fica pobre (texto pequeno sobre fondos cheos, como un visor 3D ou unha captura),
   // préparase a imaxe de dous xeitos máis (só o claro e só o escuro, ampliada) e queda a lectura que máis texto fiable dea.
+  ocrProgress.set(0);
+  pOff = 0;
+  pSpan = 0.7;
   let best = shape((await worker.recognize(imageUrl)).data, 1);
   if (best.score < WEAK) {
+    let step = 0;
     for (const mode of ["bright", "dark"] as const) {
       const prepared = await prepare(imageUrl, mode);
       if (!prepared) break;
+      pOff = 0.7 + step * 0.15;
+      pSpan = 0.15;
+      step++;
       const r = shape((await worker.recognize(prepared.blob)).data, prepared.scale);
       if (r.score > Math.max(MIN_GAIN, best.score * 1.3)) best = r;
     }
   }
+  ocrProgress.set(1);
   return best.result;
 }
 

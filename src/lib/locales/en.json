@@ -1470,5 +1470,6 @@
   "O tamaño da interface amplía o texto e os controis por igual, como o zoom do navegador. A xanela non pode ser máis pequena que o necesario para que nada se solape.": "Interface size enlarges text and controls equally, like browser zoom. The window cannot be smaller than needed for nothing to overlap.",
   "Hai procesos en marcha. Se pechas agora, cancelaranse e non quedará ningún ficheiro a medias.": "There are running processes. If you close now they will be cancelled and no half-written file will be left.",
   "Pechar a aplicación?": "Close the application?",
-  "Pechar igualmente": "Close anyway"
+  "Pechar igualmente": "Close anyway",
+  "Ampliación": "Zoom"
 }

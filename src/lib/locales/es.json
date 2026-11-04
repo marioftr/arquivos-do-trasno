@@ -1470,5 +1470,6 @@
   "O tamaño da interface amplía o texto e os controis por igual, como o zoom do navegador. A xanela non pode ser máis pequena que o necesario para que nada se solape.": "El tamaño de la interfaz amplía el texto y los controles por igual, como el zoom del navegador. La ventana no puede ser más pequeña de lo necesario para que nada se solape.",
   "Hai procesos en marcha. Se pechas agora, cancelaranse e non quedará ningún ficheiro a medias.": "Hay procesos en marcha. Si cierras ahora, se cancelarán y no quedará ningún archivo a medias.",
   "Pechar a aplicación?": "¿Cerrar la aplicación?",
-  "Pechar igualmente": "Cerrar igualmente"
+  "Pechar igualmente": "Cerrar igualmente",
+  "Ampliación": "Ampliación"
 }

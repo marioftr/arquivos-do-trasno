@@ -17,6 +17,8 @@
   export let onCancel: (p: Proc) => void;
 
   let ask = false;
+  /** Se foi o «cancelar» quen o puxo en pausa, «seguir» retómao. */
+  let autoPaused = false;
   $: paused = $pausedId === proc.id;
   $: pausable = proc.source === "app";
   $: percent = Math.round(Math.max(0, Math.min(1, pct)) * 100);
@@ -29,8 +31,25 @@
       pausedId.set(proc.id);
     }
   }
+  // Premer ✕ para o proceso mentres se decide (se se pode); «seguir» retómao e o ✓ cancélao.
+  async function askCancel() {
+    ask = true;
+    if (pausable && !paused && (await pauseJob(true).catch(() => false))) {
+      pausedId.set(proc.id);
+      autoPaused = true;
+    }
+  }
+  async function keepGoing() {
+    ask = false;
+    if (autoPaused) {
+      autoPaused = false;
+      await pauseJob(false).catch(() => false);
+      pausedId.set(null);
+    }
+  }
   function confirm() {
     ask = false;
+    autoPaused = false;
     onCancel(proc);
   }
 
@@ -49,9 +68,9 @@
 <div class="jb" class:large class:paused class:ask role="group" aria-label={proc.title}>
   <span class="jfill" style={`width:${Math.max(3, percent)}%`} aria-hidden="true"></span>
   {#if ask}
-    <span class="jtext"><Icon name="warning" size={large ? 18 : 14} /> <span class="q">{$t("Cancelar este proceso?")}</span><span class="pct">{percent} %</span></span>
+    <span class="jtext"><Icon name={paused ? "pause" : "warning"} size={large ? 18 : 14} /> <span class="q">{$t("Cancelar este proceso?")}</span><span class="pct">{percent} %</span></span>
     <button class="jx stop" on:click={confirm} title={$t("Si, cancelar")} aria-label={$t("Si, cancelar")}><Icon name="check" size={large ? 18 : 14} /></button>
-    <button class="jx" on:click={() => (ask = false)} title={$t("Seguir")} aria-label={$t("Seguir")}><Icon name="undo" size={large ? 18 : 14} /></button>
+    <button class="jx" on:click={keepGoing} title={$t("Seguir")} aria-label={$t("Seguir")}><Icon name="undo" size={large ? 18 : 14} /></button>
   {:else}
     {#if onOpen}
       <button class="jmain" on:click={onOpen} title={`${proc.title} — ${$t("Procesos")}`} aria-label={$t("Procesos")}>
@@ -70,7 +89,7 @@
     {#if pausable}
       <button class="jx" on:click={togglePause} title={paused ? $t("Continuar") : $t("Pausar")} aria-label={paused ? $t("Continuar") : $t("Pausar")}><Icon name={paused ? "play" : "pause"} size={large ? 18 : 14} /></button>
     {/if}
-    <button class="jx stop" on:click={() => (ask = true)} title={$t("Cancelar")} aria-label={$t("Cancelar")}><Icon name="close" size={large ? 18 : 14} /></button>
+    <button class="jx stop" on:click={askCancel} title={$t("Cancelar")} aria-label={$t("Cancelar")}><Icon name="close" size={large ? 18 : 14} /></button>
   {/if}
 </div>
 
