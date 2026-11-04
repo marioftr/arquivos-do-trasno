@@ -92,5 +92,5 @@
   h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
   .x { display: grid; place-items: center; width: 26px; height: 26px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-faint); }
   .x:hover { background: var(--bg-hover); color: var(--text); }
-  .body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+  .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; display: flex; flex-direction: column; }
 </style>

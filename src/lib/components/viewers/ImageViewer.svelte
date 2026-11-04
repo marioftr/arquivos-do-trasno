@@ -7,12 +7,14 @@
   import { t } from "../../i18n";
   import AnnotLayer from "../ui/AnnotLayer.svelte";
   import OcrLayer from "../ui/OcrLayer.svelte";
+  import ZoomRuler from "../ui/ZoomRuler.svelte";
   import Icon from "../Icon.svelte";
   import { lang as appLang } from "../../i18n";
   import { toast } from "../../toasts";
   import { tr } from "../../i18n";
   import { errText } from "../../errors";
-  import { OCR_LANGS, OCR_SIZE, ocrInstalled, ocrDownload, ocrProgress, ocrActive, savedLang, rememberLang, refreshOcr, downloadLang, recognize, ocrPeek, type OcrResult } from "../../ocr";
+  import { OCR_LANGS, OCR_SIZE, ocrInstalled, ocrDownload, ocrProgress, ocrActive, savedLang, rememberLang, refreshOcr, downloadLang, recognize, ocrPeek, detectLang, type OcrResult } from "../../ocr";
+  import { trasnoSay } from "../../agent";
   import { annoActive } from "../../annot";
   import { actionFor } from "../../keymap";
 
@@ -107,13 +109,45 @@
     ocrBusy = true;
     try {
       const res = await recognize(path, url, lang);
-      if (ocrOn && file.path === path && ocrLang === lang) ocrRes = res;
+      if (ocrOn && file.path === path && ocrLang === lang) {
+        ocrRes = res;
+        offerLang(path, lang, res);
+      }
       if (!res.lines.length) toast(tr("O trasno mirou ben a imaxe e non viu letras. Proba con outro idioma ou cunha imaxe máis nítida."));
     } catch (e) {
       ocrErr = errText(e);
     } finally {
       ocrBusy = false;
     }
+  }
+  // Se o texto lido parece doutro idioma, o trasno ofrécese a lelo de novo nel (descargando o paquete se fai falta).
+  const offered = new Set<string>();
+  function offerLang(path: string, cur: string, res: OcrResult) {
+    const g = res.lines.length ? detectLang(res.text) : null;
+    if (!g || g === cur || offered.has(`${path}|${g}`)) return;
+    offered.add(`${path}|${g}`);
+    const name = OCR_LANGS.find((l) => l.id === g)?.label.toLowerCase();
+    const curName = OCR_LANGS.find((l) => l.id === cur)?.label.toLowerCase() ?? cur;
+    if (!name) return;
+    const installed = $ocrInstalled.includes(g);
+    trasnoSay(
+      installed
+        ? tr("Este texto parece estar en {lang}, pero o lin como {cur}. Queres que o lea de novo en {lang}?", { lang: name, cur: curName })
+        : tr("Este texto parece estar en {lang}. Queres que descargue o paquete de idioma (uns {size}) e o lea de novo?", { lang: name, size: OCR_SIZE }),
+      "info",
+      30000,
+      {
+        label: installed ? tr("Ler en {lang}", { lang: name }) : tr("Descargar e ler"),
+        run: async () => {
+          if (!ocrOn || file.path !== path) return;
+          ocrLang = g;
+          rememberLang(g);
+          ocrRes = null;
+          if (installed) await runOcr();
+          else await acceptDownload();
+        },
+      },
+    );
   }
   async function acceptDownload() {
     try {
@@ -206,11 +240,24 @@
     stage.scrollLeft = box.l + fx * box.w - px;
     stage.scrollTop = box.t + fy * box.h - py;
   }
+  /** Rolda de rato (pasos grandes e enteiros) ou touchpad (valores pequenos, fraccionarios ou con desprazamento lateral)? */
+  const isPad = (ev: WheelEvent) => ev.deltaMode === 0 && (ev.deltaX !== 0 || Math.abs(ev.deltaY) < 50 || !Number.isInteger(ev.deltaY));
   function wheel(ev: WheelEvent) {
     if (!viewEl || failed) return;
     ev.preventDefault();
     const r = stage.getBoundingClientRect();
-    zoomAt(eff * 100 * (ev.deltaY < 0 ? 1.15 : 1 / 1.15), ev.clientX - r.left, ev.clientY - r.top);
+    const px = ev.clientX - r.left;
+    const py = ev.clientY - r.top;
+    if (ev.ctrlKey) {
+      // Pinza do touchpad (e Ctrl + roda): zoom suave, centrado no punteiro.
+      zoomAt(eff * 100 * Math.exp(-ev.deltaY * (ev.deltaMode === 0 ? 0.01 : 0.33)), px, py);
+    } else if (isPad(ev)) {
+      // Dous dedos no touchpad: desprazar a imaxe.
+      stage.scrollLeft += ev.deltaX;
+      stage.scrollTop += ev.deltaY;
+    } else {
+      zoomAt(eff * 100 * (ev.deltaY < 0 ? 1.15 : 1 / 1.15), px, py);
+    }
   }
 
   type Drag = { handle: string; sx: number; sy: number; c: { x: number; y: number; w: number; h: number } };
@@ -447,7 +494,7 @@
     <button class="btn" class:on={fit} on:click={() => (fit = true)}>{$t("Axustar")}</button>
     <button class="btn" class:on={!fit && zoom === 100} on:click={() => zoomAt(100, stage.clientWidth / 2, stage.clientHeight / 2)}>100%</button>
     {#if !tiny}
-      <input class="zs" type="range" min="0" max="100" step="1" value={Math.round((Math.log(Math.max(ZMIN, shown) / ZMIN) / Math.log(ZMAX / ZMIN)) * 100)} on:input={(e) => zoomAt(ZMIN * Math.pow(ZMAX / ZMIN, Number(e.currentTarget.value) / 100), stage.clientWidth / 2, stage.clientHeight / 2)} aria-label={$t("Ampliación")} title={$t("Ampliación")} />
+      <ZoomRuler value={shown} onChange={(z) => zoomAt(z, stage.clientWidth / 2, stage.clientHeight / 2)} label={$t("Ampliación")} />
       <span class="muted pct">{shown} %</span>
     {/if}
     <span class="grow"></span>
@@ -488,7 +535,7 @@
   /* Barra de abaixo: unha soa fila fixa; nada cambia de sitio nin de tamaño ao usar o OCR. */
   .bar { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; overflow: hidden; }
   .bar > * { flex: none; white-space: nowrap; }
-  .bar .zs { width: 120px; accent-color: var(--accent); }
+  .bar:has(.ocrc) :global(.zr) { width: 170px; }
   .bar.tinybar { flex-wrap: wrap; row-gap: 0.4rem; }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .grow { flex: 1 1 auto; min-width: 0; }

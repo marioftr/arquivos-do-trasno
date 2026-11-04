@@ -158,7 +158,6 @@
   "Calidade (CRF)": "Calidad (CRF)",
   "Menos CRF = máis calidade e máis peso": "Menos CRF = más calidad y más peso",
   "Altura máxima": "Altura máxima",
-  "As imaxes gárdanse como JPG.": "Las imágenes se guardan como JPG.",
   "Os vídeos gárdanse como MP4 (H.264).": "Los vídeos se guardan como MP4 (H.264).",
   "Estimación por mostra: pode variar un pouco.": "Estimación por muestra: puede variar un poco.",
   "Estimando…": "Estimando…",
@@ -175,7 +174,6 @@
   "orixinal {orig}, {pct}": "original {orig}, {pct}",
   "Estimar o tamaño": "Estimar el tamaño",
   "Formato de saída": "Formato de salida",
-  "Máis alto = mellor imaxe e máis peso (só JPG)": "Más alto = mejor imagen y más peso (solo JPG)",
   "Ancho": "Ancho",
   "Alto": "Alto",
   "Máis alto = máis calidade e máis tamaño": "Más alto = más calidad y más tamaño",
@@ -1471,5 +1469,13 @@
   "Hai procesos en marcha. Se pechas agora, cancelaranse e non quedará ningún ficheiro a medias.": "Hay procesos en marcha. Si cierras ahora, se cancelarán y no quedará ningún archivo a medias.",
   "Pechar a aplicación?": "¿Cerrar la aplicación?",
   "Pechar igualmente": "Cerrar igualmente",
-  "Ampliación": "Ampliación"
+  "Ampliación": "Ampliación",
+  "Este texto parece estar en {lang}, pero o lin como {cur}. Queres que o lea de novo en {lang}?": "Este texto parece estar en {lang}, pero lo leí como {cur}. ¿Quieres que lo lea de nuevo en {lang}?",
+  "Este texto parece estar en {lang}. Queres que descargue o paquete de idioma (uns {size}) e o lea de novo?": "Este texto parece estar en {lang}. ¿Quieres que descargue el paquete de idioma (unos {size}) y lo lea de nuevo?",
+  "Ler en {lang}": "Leer en {lang}",
+  "Descargar e ler": "Descargar y leer",
+  "Máis alto = mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL)": "Más alto = mejor imagen y más peso (JPG, WebP, AVIF y JPEG XL)",
+  "A imaxe gárdase no mesmo formato ({ext}). Para cambiar de formato está Converter.": "La imagen se guarda en el mismo formato ({ext}). Para cambiar de formato está Convertir.",
+  "Este formato non se pode comprimir mantendo o formato: a imaxe gárdase como JPG. Para outro formato está Converter.": "Este formato no se puede comprimir manteniendo el formato: la imagen se guarda como JPG. Para otro formato está Convertir.",
+  "O PNG comprímese sen perdas: non hai calidade que axustar. Para pesar menos, redúcese o lado máximo ou fíxase un tamaño máximo.": "El PNG se comprime sin pérdidas: no hay calidad que ajustar. Para pesar menos, se reduce el lado máximo o se fija un tamaño máximo."
 }

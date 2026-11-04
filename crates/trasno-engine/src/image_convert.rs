@@ -65,7 +65,9 @@ pub fn convert_image(
         }
     })?;
     // AVIF, JPEG 2000 e JPEG XL escríbense con FFmpeg a partir dun PNG temporal (que xa leva o redimensionado).
-    if crate::image_ffmpeg::is_encode_ext(&dst_ext) {
+    // WebP con calidade por debaixo de 100: con perdas (libwebp), que é o que se espera dun WebP lixeiro; o motor propio só o fai sen perdas.
+    let lossy_webp = dst_ext == "webp" && options.quality.map(|q| q < 100).unwrap_or(false) && crate::ffmpeg::is_available();
+    if crate::image_ffmpeg::is_encode_ext(&dst_ext) || lossy_webp {
         let tmp = tempfile::Builder::new().suffix(".png").tempfile()?.into_temp_path();
         let tmp_path = tmp.to_path_buf();
         convert_image(input, &tmp_path, true, options)?;
@@ -97,6 +99,7 @@ pub fn convert_image(
         return Err(EngineError::EmptyOrCorruptOutput);
     }
 
+    let img = adapt_for(img, dst_format);
     let mut out = AtomicOutput::new(output, overwrite)?;
 
     match (dst_format, options.quality) {
@@ -121,6 +124,43 @@ pub fn convert_image(
             let _ = std::fs::remove_file(&final_path);
             Err(EngineError::EmptyOrCorruptOutput)
         }
+    }
+}
+
+/// Compón unha imaxe con transparencia sobre fondo branco (en vez de deixar saír o que haxa nos píxeles transparentes, que adoita ser negro).
+pub(crate) fn flatten_on_white(img: &image::DynamicImage) -> image::RgbImage {
+    if !img.color().has_alpha() {
+        return img.to_rgb8();
+    }
+    let rgba = img.to_rgba8();
+    let mut out = image::RgbImage::new(rgba.width(), rgba.height());
+    for (x, y, p) in rgba.enumerate_pixels() {
+        let a = p[3] as u32;
+        let mix = |c: u8| ((c as u32 * a + 255 * (255 - a)) / 255) as u8;
+        out.put_pixel(x, y, image::Rgb([mix(p[0]), mix(p[1]), mix(p[2])]));
+    }
+    out
+}
+
+/// Deixa a imaxe nun tipo de cor que o codificador do formato de destino acepta:
+/// JPEG non ten transparencia (compónse sobre branco); ICO leva PNG en RGBA e non pasa de 256 px; GIF e QOI só levan 8 bits por canle.
+fn adapt_for(img: image::DynamicImage, format: ImageFormat) -> image::DynamicImage {
+    use image::DynamicImage as D;
+    match format {
+        ImageFormat::Jpeg if img.color().has_alpha() => D::ImageRgb8(flatten_on_white(&img)),
+        ImageFormat::Ico => {
+            let i = if img.width() > 256 || img.height() > 256 { img.resize(256, 256, image::imageops::FilterType::Lanczos3) } else { img };
+            D::ImageRgba8(i.to_rgba8())
+        }
+        ImageFormat::Gif => D::ImageRgba8(img.to_rgba8()),
+        ImageFormat::Qoi => {
+            if img.color().has_alpha() {
+                D::ImageRgba8(img.to_rgba8())
+            } else {
+                D::ImageRgb8(img.to_rgb8())
+            }
+        }
+        _ => img,
     }
 }
 
@@ -231,12 +271,7 @@ fn write_verified(
     format: ImageFormat,
     quality: Option<u8>,
 ) -> Result<PathBuf> {
-    // JPEG non admite canle alfa.
-    let img = if format == ImageFormat::Jpeg && img.color().has_alpha() {
-        image::DynamicImage::ImageRgb8(img.to_rgb8())
-    } else {
-        img.clone()
-    };
+    let img = adapt_for(img.clone(), format);
     let mut out = AtomicOutput::new(output, overwrite)?;
     match (format, quality) {
         (ImageFormat::Jpeg, Some(q)) => {

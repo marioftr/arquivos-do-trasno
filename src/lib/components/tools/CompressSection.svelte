@@ -145,7 +145,7 @@
     clearTimeout(timer);
     timer = setTimeout(async () => {
       try {
-        const bytes = await engine.estimateImage(first.path, v.quality, v.maxSide || undefined);
+        const bytes = await engine.estimateImage(first.path, engine.compressExt(first.ext), v.quality, v.maxSide || undefined);
         if (key === paramsKey) estimate = bytes;
       } catch {
         estimate = null;
@@ -197,11 +197,13 @@
     return await engine.fileSize(done);
   }
 
-  const outExt = () => (isImage ? "jpg" : "mp4");
+  /** O resultado mantén o formato do orixinal (se se pode comprimir nel); para cambiar de formato está Converter. */
+  $: sameFormat = isImage && engine.COMPRESS_KEEP.includes(first.ext.toLowerCase());
+  const outExt = (f: FileEntry) => (isImage ? engine.compressExt(f.ext) : "mp4");
 
   async function runSingle() {
     const stem = first.path.replace(/\.[^.\\/]+$/, "");
-    const out = await askPath(withExtension(`${stem}${tr("-comprimido")}`, outExt()));
+    const out = await askPath(withExtension(`${stem}${tr("-comprimido")}`, outExt(first)));
     if (!out) return;
     if (samePath(out, first.path)) {
       job.say(false, tr("Non vou sobrescribir o ficheiro orixinal. Escolle outro nome."));
@@ -232,7 +234,7 @@
         try {
           const dot = f.name.lastIndexOf(".");
           const base = dot > 0 ? f.name.slice(0, dot) : f.name;
-          const out = await join(dir, `${base}${tr("-comprimido")}.${outExt()}`);
+          const out = await join(dir, `${base}${tr("-comprimido")}.${outExt(f)}`);
           if (samePath(out, f.path)) throw new Error(tr("Coincidiría co ficheiro orixinal."));
           const bytes = await compressOne(f, out, false);
           before += f.size ?? 0;
@@ -303,6 +305,8 @@
       {#if tooSmall}<p class="warn">{$t("Aviso: con este tamaño o vídeo quedará con moi pouca calidade.")}</p>{/if}
     {:else if v.mode === "bitrate" && !isImage}
       <Slider label={$t("Bitrate de vídeo")} unit="kbps" min={200} max={12000} step={100} bind:value={$form.videoKbps} def={form.defaults.videoKbps} hint={$t("Cantidade de datos por segundo da imaxe: máis alto = máis calidade e máis peso")} />
+    {:else if isImage && first.ext.toLowerCase() === "png"}
+      <GroupNote text={$t("O PNG comprímese sen perdas: non hai calidade que axustar. Para pesar menos, redúcese o lado máximo ou fíxase un tamaño máximo.")} />
     {:else if isImage}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} />
     {:else}
@@ -321,7 +325,7 @@
       />
       <Slider label={$t("Bitrate de audio")} unit="kbps" min={48} max={256} step={8} bind:value={$form.audioKbps} def={form.defaults.audioKbps} />
     {/if}
-    <p class="group-note">{isImage ? $t("As imaxes gárdanse como JPG.") : $t("Os vídeos gárdanse como MP4 (H.264).")}</p>
+    <p class="group-note">{isImage ? (sameFormat ? $t("A imaxe gárdase no mesmo formato ({ext}). Para cambiar de formato está Converter.", { ext: engine.compressExt(first.ext).toUpperCase() }) : $t("Este formato non se pode comprimir mantendo o formato: a imaxe gárdase como JPG. Para outro formato está Converter.")) : $t("Os vídeos gárdanse como MP4 (H.264).")}</p>
   </div>
 
   {#if !multi}

@@ -173,7 +173,7 @@
     {#if category === "imaxe" && $form.targetExt === "pdf"}
       <GroupNote text={$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")} />
     {:else if category === "imaxe"}
-      <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto = mellor imaxe e máis peso (só JPG)")} />
+      <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto = mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL)")} />
       <Segmented options={PRESETS.map((p) => ({ value: p.value, label: $t(p.label), hint: $t(p.hint) }))} bind:value={$form.quality} />
       {#if multi}
         <NumberField label={$t("Lado máximo")} unit="px" min={1} placeholder={$t("orixinal")} bind:value={$form.maxSide} def={null} />

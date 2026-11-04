@@ -73,7 +73,6 @@ export const shapes = writable<Shape[]>([]);
 export const selected = writable<number | null>(null);
 /** Imaxe á que pertence o debuxado actual: ao cambiar de imaxe, empeza de cero. */
 export const annoPath = writable("");
-export const setAnnoPath = (p: string) => annoPath.set(p);
 /** O debuxado de cada imaxe lémbrase ao cambiar de ficheiro (mentres a app siga aberta). */
 const stash = new Map<string, { shapes: Shape[]; past: Shape[][]; future: Shape[][] }>();
 /** Pasa ao debuxado da imaxe `path`: garda o da anterior e recupera o desta (ou empeza baleiro). */

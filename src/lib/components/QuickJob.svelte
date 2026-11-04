@@ -338,7 +338,7 @@
   @keyframes vaivén { from { margin-left: 0; } to { margin-left: 70%; } }
   .count { margin: -0.25rem 0 0; font-size: 0.75rem; text-align: right; font-variant-numeric: tabular-nums; min-height: 1.1em; }
 
-  ul { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.15rem; }
+  ul { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; display: flex; flex-direction: column; gap: 0.15rem; }
   li { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.4rem; border-radius: var(--radius-sm); min-width: 0; }
   li.traballa { background: color-mix(in srgb, var(--accent) 10%, transparent); }
   .st { flex: 0 0 18px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); }

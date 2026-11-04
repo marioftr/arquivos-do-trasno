@@ -69,7 +69,7 @@
   <span class="jfill" style={`width:${Math.max(3, percent)}%`} aria-hidden="true"></span>
   {#if ask}
     <span class="jtext"><Icon name={paused ? "pause" : "warning"} size={large ? 18 : 14} /> <span class="q">{$t("Cancelar este proceso?")}</span><span class="pct">{percent} %</span></span>
-    <button class="jx stop" on:click={confirm} title={$t("Si, cancelar")} aria-label={$t("Si, cancelar")}><Icon name="check" size={large ? 18 : 14} /></button>
+    <button class="jx stop" on:click={confirm} title={$t("Si, cancelar")} aria-label={$t("Si, cancelar")}><Icon name="stop" size={large ? 18 : 14} /></button>
     <button class="jx" on:click={keepGoing} title={$t("Seguir")} aria-label={$t("Seguir")}><Icon name="undo" size={large ? 18 : 14} /></button>
   {:else}
     {#if onOpen}

@@ -194,6 +194,8 @@
     <circle cx="12" cy="12" r="9" />
     <line x1="12" y1="11" x2="12" y2="16.5" />
     <line x1="12" y1="7.6" x2="12" y2="7.7" />
+  {:else if name === "stop"}
+    <rect x="6" y="6" width="12" height="12" rx="2" />
   {:else if name === "play"}
     <polygon points="7 4.5 19 12 7 19.5 7 4.5" />
   {:else if name === "pause"}

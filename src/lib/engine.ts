@@ -24,10 +24,6 @@ export async function detectCategory(path: string): Promise<Category> {
   return call("detect_category", { path });
 }
 
-export async function suggestedTargets(path: string): Promise<string[]> {
-  return call("suggested_targets", { path });
-}
-
 export async function ffmpegAvailable(): Promise<boolean> {
   return call("ffmpeg_available");
 }
@@ -239,8 +235,12 @@ export async function compressImage(
   });
 }
 
-export async function estimateImage(input: string, quality: number, maxSide?: number): Promise<number> {
-  return call("estimate_image", { input, quality, maxSide: maxSide ?? null });
+/** Extensión en que se comprime unha imaxe: a mesma se o motor sabe (JPG, PNG, WebP, AVIF, JPEG XL, JPEG 2000), se non JPG. */
+export const COMPRESS_KEEP = ["jpg", "jpeg", "png", "webp", "avif", "jxl", "jp2"];
+export const compressExt = (ext: string) => (COMPRESS_KEEP.includes(ext.toLowerCase()) ? ext.toLowerCase() : "jpg");
+
+export async function estimateImage(input: string, ext: string, quality: number, maxSide?: number): Promise<number> {
+  return call("estimate_image", { input, ext, quality, maxSide: maxSide ?? null });
 }
 
 /** Troca os cartafoles polos ficheiros que levan dentro. */
@@ -300,10 +300,6 @@ export async function pdfWatermarkText(input: string, output: string, o: { text:
 
 export async function pdfPageNumbers(input: string, output: string, o: { position: string; format: string; start: number; size: number; margin: number; color: string; font?: string }, pages: Pages, overwrite = false): Promise<string> {
   return call("pdf_page_numbers", { input, output, overwrite, ...o, pages });
-}
-
-export async function pdfAddText(input: string, output: string, o: { text: string; xPct: number; yPct: number; size: number; color: string; font?: string }, pages: Pages, overwrite = false): Promise<string> {
-  return call("pdf_add_text", { input, output, overwrite, ...o, pages });
 }
 
 export async function pdfStampImage(input: string, output: string, o: { image: string; xPct: number; yPct: number; widthPct: number; opacity: number }, pages: Pages, overwrite = false): Promise<string> {

@@ -56,8 +56,7 @@
 <div class="doc">
   <div class="docbar">
     <span class="kind" aria-hidden="true"><Icon name={ICONS[file.category] ?? "document"} size={16} /></span>
-    <span class="chip" title={file.path}>{file.ext.toUpperCase()}</span>
-    <span class="meta muted">{meta}</span>
+    <span class="meta" title={file.path}><b class="ftype">{file.ext.toUpperCase()}</b><span class="muted">{meta ? ` · ${meta}` : ""}</span></span>
     <span class="grow"></span>
     <button class="ib" on:click={() => reimportFile(file.path)} title={$t("Actualizar: volver importar o ficheiro e deixalo todo como ao principio")} aria-label={$t("Actualizar o ficheiro")}><Icon name="reset" size={15} /></button>
     <button class="ib" on:click={() => revealInFolder(file.path).catch(() => {})} title={$t("Amosar no cartafol")} aria-label={$t("Amosar no cartafol")}><Icon name="folder" size={15} /></button>
@@ -80,7 +79,7 @@
   .vbody > :global(*) { flex: 1 1 auto; min-height: 0; }
   .docbar { flex: none; display: flex; align-items: center; gap: 0.55rem; min-height: 2.6rem; padding: 0 0.6rem 0 0.9rem; background: var(--bg-rail); border-bottom: 1px solid var(--border); font-size: 0.84rem; }
   .kind { display: inline-flex; color: var(--text-muted); }
-  .chip { flex: none; padding: 0.05rem 0.45rem; border-radius: 99px; background: var(--bg-hover); color: var(--text-muted); font-size: 0.68rem; font-weight: 650; letter-spacing: 0.04em; }
+  .ftype { font-weight: 650; letter-spacing: 0.05em; color: var(--text); }
   .meta { white-space: nowrap; font-size: 0.78rem; }
   .grow { flex: 1; }
   .ib { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-muted); }

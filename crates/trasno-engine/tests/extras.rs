@@ -227,13 +227,47 @@ fn comprimir_imaxe_a_un_tamano_maximo() {
     assert!(r.bytes_written <= target, "{} > {}", r.bytes_written, target);
     assert_eq!(std::fs::metadata(&out).unwrap().len(), r.bytes_written);
     assert_eq!(std::fs::read(&src).unwrap(), before);
-    // Só JPG como saída, e nunca pisa nada.
-    assert!(compress::compress_image(&src, &dir.path().join("a.png2.png"), false, &Default::default()).is_err());
+    // Formatos sen compresión propia (BMP...) non valen como saída, e nunca pisa nada.
+    assert!(compress::compress_image(&src, &dir.path().join("a.bmp"), false, &Default::default()).is_err());
     assert!(compress::compress_image(&src, &out, false, &Default::default()).is_err());
     // A estimación vai en liña co resultado real á mesma calidade.
-    let est = compress::estimate_image_bytes(&src, 80, None).unwrap();
+    let est = compress::estimate_image_bytes(&src, "jpg", 80, None).unwrap();
     let real = compress::compress_image(&src, &dir.path().join("b.jpg"), false, &compress::ImageCompress { quality: Some(80), ..Default::default() }).unwrap();
     assert_eq!(est, real.bytes_written);
+}
+
+/// Comprimir mantén o formato: PNG sen perdas (reabre igual), e WebP/AVIF/JPEG XL se hai FFmpeg.
+#[test]
+fn comprimir_imaxe_no_mesmo_formato() {
+    assert_eq!(compress::output_ext_for("PNG"), "png");
+    assert_eq!(compress::output_ext_for("webp"), "webp");
+    assert_eq!(compress::output_ext_for("bmp"), "jpg");
+    assert_eq!(compress::output_ext_for("gif"), "jpg");
+    let dir = tempfile::tempdir().unwrap();
+    let src = dir.path().join("a.png");
+    image::RgbImage::from_fn(300, 200, |x, y| image::Rgb([(x / 4) as u8, (y / 4) as u8, 120])).save(&src).unwrap();
+    let out = dir.path().join("a-c.png");
+    let r = compress::compress_image(&src, &out, false, &Default::default()).unwrap();
+    assert_eq!(image::open(&out).unwrap().to_rgb8(), image::open(&src).unwrap().to_rgb8(), "PNG sen perdas");
+    assert_eq!(r.bytes_written, std::fs::metadata(&out).unwrap().len());
+    // Con tamaño obxectivo en PNG só se reducen as dimensións.
+    let small = dir.path().join("a-s.png");
+    let target = r.bytes_written / 3;
+    let r2 = compress::compress_image(&src, &small, false, &compress::ImageCompress { target_bytes: Some(target), ..Default::default() }).unwrap();
+    assert!(r2.bytes_written <= target && r2.scale_percent < 100);
+    if ffmpeg::is_available() {
+        for ext in ["webp", "avif", "jxl"] {
+            let o = dir.path().join(format!("a-c.{ext}"));
+            match compress::compress_image(&src, &o, false, &compress::ImageCompress { quality: Some(60), ..Default::default() }) {
+                Ok(rep) => assert!(rep.bytes_written > 0 && image_dimensions_ok(&o), "{ext}"),
+                Err(e) => eprintln!("{ext}: {e}"),
+            }
+        }
+    }
+}
+
+fn image_dimensions_ok(p: &std::path::Path) -> bool {
+    trasno_engine::image_convert::image_dimensions(p).map(|d| d == (300, 200)).unwrap_or(false)
 }
 
 #[test]

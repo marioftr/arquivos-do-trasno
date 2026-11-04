@@ -30,38 +30,69 @@ pub struct ImageCompressReport {
     pub scale_percent: u32,
 }
 
-/// JPEG non ten transparencia: compónse sobre fondo branco (en vez de negro).
-fn flatten(img: DynamicImage) -> image::RgbImage {
-    if !img.color().has_alpha() {
-        return img.to_rgb8();
+/// Formatos de imaxe que se comprimen mantendo o formato. Os demais (BMP, TIFF, GIF...) saen en JPG.
+pub const COMPRESSIBLE: &[&str] = &["jpg", "jpeg", "png", "webp", "avif", "jxl", "jp2"];
+
+/// Extensión do resultado ao comprimir un ficheiro con esta extensión: a mesma se se pode, se non `jpg`.
+pub fn output_ext_for(ext: &str) -> String {
+    let e = ext.to_ascii_lowercase();
+    if COMPRESSIBLE.contains(&e.as_str()) {
+        e
+    } else {
+        "jpg".to_string()
     }
-    let rgba = img.to_rgba8();
-    let mut out = image::RgbImage::new(rgba.width(), rgba.height());
-    for (x, y, p) in rgba.enumerate_pixels() {
-        let a = p[3] as u32;
-        let mix = |c: u8| ((c as u32 * a + 255 * (255 - a)) / 255) as u8;
-        out.put_pixel(x, y, image::Rgb([mix(p[0]), mix(p[1]), mix(p[2])]));
-    }
-    out
 }
 
-fn jpeg_bytes(img: &image::RgbImage, quality: u8) -> Result<Vec<u8>> {
+/// JPEG non ten transparencia: compónse sobre fondo branco (en vez de negro).
+fn flatten(img: &DynamicImage) -> image::RgbImage {
+    crate::image_convert::flatten_on_white(img)
+}
+
+fn jpeg_bytes(img: &DynamicImage, quality: u8) -> Result<Vec<u8>> {
+    let rgb = flatten(img);
     let mut buf = Vec::new();
     let mut enc = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, quality.clamp(1, 100));
-    enc.encode_image(img)?;
+    enc.encode_image(&rgb)?;
     Ok(buf)
 }
 
-fn scaled(base: &image::RgbImage, percent: u32) -> image::RgbImage {
+/// PNG sen perdas co mellor nivel de compresión e filtro adaptativo.
+fn png_bytes(img: &DynamicImage) -> Result<Vec<u8>> {
+    use image::codecs::png::{CompressionType, FilterType, PngEncoder};
+    let mut buf = Vec::new();
+    img.write_with_encoder(PngEncoder::new_with_quality(&mut buf, CompressionType::Best, FilterType::Adaptive))?;
+    Ok(buf)
+}
+
+/// WebP, AVIF, JPEG XL e JPEG 2000 escríbense con FFmpeg a partir dun PNG temporal.
+fn ffmpeg_bytes(img: &DynamicImage, ext: &str, quality: u8) -> Result<Vec<u8>> {
+    let dir = tempfile::tempdir()?;
+    let src = dir.path().join("in.png");
+    img.save(&src)?;
+    let dst = dir.path().join(format!("out.{ext}"));
+    crate::image_ffmpeg::encode(&src, &dst, true, Some(quality), false)?;
+    Ok(std::fs::read(&dst)?)
+}
+
+/// Os bytes que daría a imaxe nese formato con esa calidade (a calidade non conta en PNG, que é sen perdas).
+fn encode_bytes(img: &DynamicImage, ext: &str, quality: u8) -> Result<Vec<u8>> {
+    match ext {
+        "jpg" | "jpeg" => jpeg_bytes(img, quality),
+        "png" => png_bytes(img),
+        _ => ffmpeg_bytes(img, ext, quality),
+    }
+}
+
+fn scaled(base: &DynamicImage, percent: u32) -> DynamicImage {
     if percent >= 100 {
         return base.clone();
     }
     let w = (base.width() * percent / 100).max(1);
     let h = (base.height() * percent / 100).max(1);
-    image::imageops::resize(base, w, h, image::imageops::FilterType::Lanczos3)
+    base.resize_exact(w, h, image::imageops::FilterType::Lanczos3)
 }
 
-fn load_for_jpeg(input: &Path, max_side: Option<u32>) -> Result<image::RgbImage> {
+fn load_base(input: &Path, max_side: Option<u32>) -> Result<DynamicImage> {
     if !input.is_file() {
         return Err(EngineError::InputNotFound(input.to_path_buf()));
     }
@@ -71,13 +102,16 @@ fn load_for_jpeg(input: &Path, max_side: Option<u32>) -> Result<image::RgbImage>
             img = img.resize(m, m, image::imageops::FilterType::Lanczos3);
         }
     }
-    Ok(flatten(img))
+    Ok(img)
 }
 
-/// Tamaño aproximado (bytes) do JPEG que saería con esta calidade.
-pub fn estimate_image_bytes(input: &Path, quality: u8, max_side: Option<u32>) -> Result<u64> {
-    let img = load_for_jpeg(input, max_side)?;
-    Ok(jpeg_bytes(&img, quality)?.len() as u64)
+/// Tamaño aproximado (bytes) do resultado en `ext` con esta calidade.
+pub fn estimate_image_bytes(input: &Path, ext: &str, quality: u8, max_side: Option<u32>) -> Result<u64> {
+    let ext = output_ext_for(ext);
+    let img = load_base(input, max_side)?;
+    // A estimación non é un traballo do usuario: non lle afecta «Cancelar».
+    let bytes = ffmpeg::background(|| encode_bytes(&img, &ext, quality))?;
+    Ok(bytes.len() as u64)
 }
 
 pub fn compress_image(
@@ -88,7 +122,7 @@ pub fn compress_image(
 ) -> Result<ImageCompressReport> {
     ensure_distinct(&[input], output)?;
     let ext = crate::formats::extension_of(output).unwrap_or_default();
-    if ext != "jpg" && ext != "jpeg" {
+    if !COMPRESSIBLE.contains(&ext.as_str()) {
         return Err(EngineError::UnsupportedConversion {
             from: "imaxe".into(),
             to: ext,
@@ -97,37 +131,47 @@ pub fn compress_image(
     if output.exists() && !overwrite {
         return Err(EngineError::DestinationExists(output.to_path_buf()));
     }
-    let base = load_for_jpeg(input, o.max_side)?;
+    let base = load_base(input, o.max_side)?;
+    // En PNG non hai calidade que buscar: só se reducen as dimensións se hai un tamaño obxectivo.
+    let lossy = ext != "png";
 
     let (bytes, quality, scale) = match o.target_bytes {
         None => {
             let q = o.quality.unwrap_or(80).clamp(1, 100);
-            (jpeg_bytes(&base, q)?, q, 100)
+            (encode_bytes(&base, &ext, q)?, if lossy { q } else { 100 }, 100)
         }
         Some(target) => {
             let mut found = None;
             let mut percent = 100u32;
             for _ in 0..10 {
                 let img = scaled(&base, percent);
-                // Busca binaria da mellor calidade que cabe no tamaño obxectivo.
-                let (mut lo, mut hi) = (5u8, 95u8);
-                let mut best: Option<(Vec<u8>, u8)> = None;
-                while lo <= hi {
-                    let mid = lo + (hi - lo) / 2;
-                    let b = jpeg_bytes(&img, mid)?;
-                    if b.len() as u64 <= target {
-                        best = Some((b, mid));
-                        lo = mid + 1;
-                    } else {
-                        if mid == 0 {
-                            break;
+                if lossy {
+                    // Busca binaria da mellor calidade que cabe no tamaño obxectivo.
+                    let (mut lo, mut hi) = (5u8, 95u8);
+                    let mut best: Option<(Vec<u8>, u8)> = None;
+                    while lo <= hi {
+                        let mid = lo + (hi - lo) / 2;
+                        let b = encode_bytes(&img, &ext, mid)?;
+                        if b.len() as u64 <= target {
+                            best = Some((b, mid));
+                            lo = mid + 1;
+                        } else {
+                            if mid == 0 {
+                                break;
+                            }
+                            hi = mid - 1;
                         }
-                        hi = mid - 1;
                     }
-                }
-                if let Some((b, q)) = best {
-                    found = Some((b, q, percent));
-                    break;
+                    if let Some((b, q)) = best {
+                        found = Some((b, q, percent));
+                        break;
+                    }
+                } else {
+                    let b = png_bytes(&img)?;
+                    if b.len() as u64 <= target {
+                        found = Some((b, 100, percent));
+                        break;
+                    }
                 }
                 percent = percent * 85 / 100;
                 if percent < 5 {
@@ -143,8 +187,8 @@ pub fn compress_image(
     let mut out = AtomicOutput::new(output, overwrite)?;
     out.write_all(&bytes)?;
     let path = out.commit()?;
-    // Comprobación: ten que reabrirse.
-    if image::open(&path).is_err() {
+    // Comprobación: ten que reabrirse (os formatos que só le FFmpeg xa os comprobou el ao escribilos).
+    if matches!(ext.as_str(), "jpg" | "jpeg" | "png") && image::open(&path).is_err() {
         let _ = std::fs::remove_file(&path);
         return Err(EngineError::EmptyOrCorruptOutput);
     }

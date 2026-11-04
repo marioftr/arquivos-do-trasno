@@ -268,7 +268,7 @@
   .sub { margin: 0.1rem 0 0; font-size: 0.76rem; }
   .ocrnote { margin: 0; padding: 0.5rem 1.1rem; font-size: 0.8rem; color: var(--accent-pdf); border-bottom: 1px solid var(--border); }
   .body.off { opacity: 0.45; }
-  .body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.9rem 1.1rem 1.5rem; }
+  .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; padding: 0.9rem 1.1rem 1.5rem; }
   .locked { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; text-align: center; padding: 2rem 1rem; color: var(--accent-pdf); }
   .locked p { margin: 0; color: var(--text); }
   .locked .muted { color: var(--text-muted); }

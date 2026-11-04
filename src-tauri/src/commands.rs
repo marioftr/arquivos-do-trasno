@@ -49,11 +49,6 @@ pub fn detect_category(path: String) -> Category {
 }
 
 #[tauri::command]
-pub fn suggested_targets(path: String) -> Vec<&'static str> {
-    trasno_engine::suggested_targets(&PathBuf::from(path))
-}
-
-#[tauri::command]
 pub fn begin_job() {
     trasno_engine::ffmpeg::begin_job();
 }
@@ -759,9 +754,9 @@ pub async fn compress_image(
 }
 
 #[tauri::command]
-pub async fn estimate_image(input: String, quality: u8, max_side: Option<u32>) -> Result<u64, String> {
+pub async fn estimate_image(input: String, ext: Option<String>, quality: u8, max_side: Option<u32>) -> Result<u64, String> {
     blocking(move || {
-        trasno_engine::compress::estimate_image_bytes(&PathBuf::from(input), quality, max_side).map_err(to_err)
+        trasno_engine::compress::estimate_image_bytes(&PathBuf::from(input), ext.as_deref().unwrap_or("jpg"), quality, max_side).map_err(to_err)
     })
     .await
 }
@@ -855,19 +850,6 @@ pub async fn pdf_page_numbers(
         let (i, o) = paths(input, output);
         let n = trasno_engine::pdf_tools::PageNumbers { position, format, start, size, margin, color, font };
         done(trasno_engine::pdf_tools::page_numbers(&i, &o, overwrite, &n, &pages))
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn pdf_add_text(
-    input: String, output: String, overwrite: bool,
-    text: String, x_pct: f32, y_pct: f32, size: f32, color: String, font: Option<String>, pages: Option<Vec<u32>>,
-) -> Result<String, String> {
-    blocking(move || {
-        let (i, o) = paths(input, output);
-        let t = trasno_engine::pdf_tools::AddText { text, x_pct, y_pct, size, color, font };
-        done(trasno_engine::pdf_tools::add_text(&i, &o, overwrite, &t, &pages))
     })
     .await
 }

@@ -41,7 +41,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::detect_category,
             commands::forget_previews,
-            commands::suggested_targets,
             commands::ffmpeg_available,
             commands::tools_status,
             commands::install_tool,
@@ -96,7 +95,6 @@ pub fn run() {
             commands::estimate_video,
             commands::pdf_watermark_text,
             commands::pdf_page_numbers,
-            commands::pdf_add_text,
             commands::pdf_stamp_image,
             commands::pdf_crop,
             commands::pdf_compress,

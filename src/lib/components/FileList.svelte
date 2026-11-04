@@ -204,7 +204,7 @@
   .head { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); }
   .titulo { font-weight: 650; font-size: 0.72rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
   .cnt { font-weight: 500; }
-  ul { list-style: none; margin: 0; padding: 0.3rem 0; flex: 1; min-height: 0; overflow-y: auto; outline: none; }
+  ul { list-style: none; margin: 0; padding: 0.3rem 0; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; outline: none; }
   ul:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
   li.spacer { padding: 0; border: none; background: none; pointer-events: none; }
   li:not(.spacer) { height: 54px; box-sizing: border-box; overflow: hidden; }

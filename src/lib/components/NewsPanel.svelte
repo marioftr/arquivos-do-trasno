@@ -91,7 +91,7 @@
   .box { display: flex; flex-direction: column; gap: 0.7rem; padding: 0.8rem 0.9rem; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-card); }
   .box p { margin: 0; }
   .what { font-size: 0.8rem; }
-  .notes { list-style: disc; padding-left: 1.2rem; display: block; font-size: 0.85rem; max-height: 12rem; overflow: auto; }
+  .notes { list-style: disc; padding-left: 1.2rem; display: block; font-size: 0.85rem; max-height: 12rem; overflow-y: auto; overflow-x: hidden; }
   .notes li { display: list-item; margin-bottom: 0.3rem; }
   .row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
   .bar { height: 7px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }

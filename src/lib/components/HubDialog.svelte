@@ -89,7 +89,7 @@
 
 <style>
   .split { display: flex; gap: 1rem; min-height: 0; flex: 1; }
-  .side { flex: 0 0 clamp(9.5rem, 24%, 12.5rem); display: flex; flex-direction: column; gap: 0.7rem; overflow-y: auto; padding: 3px 0.4rem 3px 3px; }
+  .side { flex: 0 0 clamp(9.5rem, 24%, 12.5rem); display: flex; flex-direction: column; gap: 0.7rem; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; padding: 3px 0.4rem 3px 3px; }
   .side button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .grp { display: flex; flex-direction: column; gap: 0.1rem; }
   .gh { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.6rem; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-faint); }
@@ -99,7 +99,7 @@
   .side button.on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); font-weight: 600; }
   .badge { background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.68rem; font-weight: 700; padding: 0 0.45em; min-width: 1.3em; text-align: center; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-  .pane { flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.3rem; padding-bottom: 0.4rem; }
+  .pane { flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.3rem; padding-bottom: 0.4rem; }
   .pane > :global(*) { flex-shrink: 0; }
   h2 { margin: 0; font-size: 1rem; font-weight: 600; }
   .sep::before { content: "·"; margin: 0 0.55em; }

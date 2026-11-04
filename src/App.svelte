@@ -136,29 +136,37 @@
   $: if (!lastRun) pausedId.set(null);
   // Ao rematar un traballo: a barra enchese e muda de cor un instante, e se foi ben o trasno bota un salto.
   let endFlash: { kind: "done" | "cancelled" | "error"; title: string } | null = null;
+  let endFill = 0;
+  let lastPct = 0;
+  $: if (lastRun) lastPct = pct;
   let endLeaving = false;
   let celebrate = false;
   let shrug = false;
   let endTimer: ReturnType<typeof setTimeout>;
   let endTimer2: ReturnType<typeof setTimeout>;
   let celebTimer: ReturnType<typeof setTimeout>;
-  $: if ($jobEnd) {
-    endFlash = { kind: $jobEnd.kind, title: $jobEnd.title };
+  /** O recadro de remate nace no mesmo sitio e co mesmo avance que a barra que deixa: sen desaparecer e volver aparecer. */
+  function showEnd(kind: "done" | "cancelled" | "error", title: string) {
+    const same = endFlash?.kind === kind && endFlash.title === title;
+    endFlash = { kind, title };
+    if (!same) endFill = Math.round(Math.max(0.03, lastPct) * 100);
     endLeaving = false;
     clearTimeout(endTimer);
     clearTimeout(endTimer2);
+    if (kind === "done") setTimeout(() => (endFill = 100), 40);
     endTimer = setTimeout(() => (endLeaving = true), 2000);
     endTimer2 = setTimeout(() => (endFlash = null), 2350);
-    if ($jobEnd.kind === "cancelled") {
+    if (kind === "cancelled") {
       shrug = true;
       setTimeout(() => (shrug = false), 700);
     }
-    if ($jobEnd.kind === "done") {
+    if (kind === "done") {
       celebrate = true;
       clearTimeout(celebTimer);
       celebTimer = setTimeout(() => (celebrate = false), 2400);
     }
   }
+  $: if ($jobEnd) showEnd($jobEnd.kind, $jobEnd.title);
   // Ao confirmar, o proceso sae da barra ao instante (se non, quedaba «cargando» ata que a lista se refrescaba).
   let cancelling = new Set<string>();
   $: {
@@ -167,6 +175,8 @@
   }
   async function doCancel(r: Proc) {
     pausedId.set(null);
+    // A barra pasa ao recadro de «cancelado» no mesmo sitio, sen deixar un oco mentres o motor remata.
+    if (r.source === "app") showEnd("cancelled", r.title);
     cancelling = new Set(cancelling).add(r.id);
     setTimeout(() => {
       cancelling.delete(r.id);
@@ -416,7 +426,7 @@
         {/if}
       {:else if endFlash}
         <div class={`jobs end ${endFlash.kind}`} class:leaving={endLeaving} role="status">
-          <span class="jfill" style="width:100%" aria-hidden="true"></span>
+          <span class="jfill" style={`width:${endFill}%`} aria-hidden="true"></span>
           <span class="jtext"><Icon name={endFlash.kind === "done" ? "check" : endFlash.kind === "error" ? "exclamation" : "close"} size={14} /> {endFlash.kind === "done" ? $t("Feito") : endFlash.kind === "error" ? $t("Con erro") : $t("Cancelado")}<span class="jt2">{endFlash.title}</span></span>
         </div>
       {:else}
@@ -484,7 +494,7 @@
   .bt { min-width: 0; align-self: center; }
   .voice { justify-self: start; margin-left: 108px; max-width: calc(100% - 108px); min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 28px; padding: 0 0.6rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text); text-align: left; font-size: 0.8rem; }
   .voice:hover, .voice.on { background: var(--bg-hover); }
-  .hist { position: absolute; left: 118px; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); max-height: 50vh; overflow: auto; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }
+  .hist { position: absolute; left: 118px; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); max-height: 50vh; overflow-y: auto; overflow-x: hidden; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }
   .hhead { display: flex; align-items: center; justify-content: space-between; padding: 0 0.5rem 0.2rem 0.8rem; }
   .hhead h4 { margin: 0; font-size: 0.72rem; font-weight: 650; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
   .hclock { display: grid; place-items: center; width: 28px; height: 28px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-muted); }
@@ -492,15 +502,14 @@
   .vt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .vh { flex: none; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
   .jobs { --jc: var(--accent); position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; height: 32px; transform-origin: left center; animation: grow 0.4s cubic-bezier(0.2, 0.8, 0.3, 1); }
-  .jobs.end { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); overflow: hidden; animation: grow 0.3s ease-out; }
+  .jobs.end { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); overflow: hidden; animation: none; }
   @keyframes grow { from { opacity: 0; transform: scaleX(0.15); } }
   .jfill { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0; background: color-mix(in srgb, var(--jc) 30%, transparent); border-right: 2px solid var(--jc); box-sizing: border-box; }
   .jobs.end.cancelled { --jc: var(--accent-pdf); }
   .jobs.end.error { --jc: var(--accent-video); }
-  .jobs.end .jfill { animation: endFill 0.5s ease-out; }
+  .jobs.end .jfill { transition: width 0.45s ease-out, background 0.25s; }
   .jobs.end.leaving { animation: leave 0.32s ease-in forwards; transform-origin: right center; }
   @keyframes leave { to { opacity: 0; transform: scaleX(0.2); } }
-  @keyframes endFill { from { width: 0; } }
   .jtext { position: relative; z-index: 1; flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; padding: 0 0.7rem; color: var(--text); font-size: 0.78rem; white-space: nowrap; overflow: hidden; }
   .jt2 { margin-left: 0.5rem; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); }
   .mid { display: flex; align-items: center; gap: 0.6rem; }

@@ -17,8 +17,6 @@ import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { PLYExporter } from "three/examples/jsm/exporters/PLYExporter.js";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 
-export const MODEL_EXPORT_TARGETS = ["glb", "obj", "stl", "ply"];
-
 export const fallbackMaterial = () =>
   new THREE.MeshStandardMaterial({ color: 0xb8bcc6, roughness: 0.6, metalness: 0.1, side: THREE.DoubleSide });
 

@@ -89,7 +89,7 @@ async function langPathUrl(lang: string): Promise<string> {
   return origin + dir.split(/[\\/]/).map(encodeURIComponent).join("/");
 }
 
-// A barra de progreso cobre todas as lecturas dunha imaxe: a primeira ocupa o 70 % e as extra, o resto.
+// A barra de progreso cobre todas as lecturas dunha imaxe: avanza sempre e chega ao 90 % co traballo feito; o resto é o remate.
 let pOff = 0;
 let pSpan = 1;
 
@@ -144,35 +144,50 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
     });
     workerLang = lang;
   }
-  // Primeira lectura coa imaxe tal cal; se fica pobre (texto pequeno sobre fondos cheos, como un visor 3D ou unha captura),
-  // préparase a imaxe de dous xeitos máis (só o claro e só o escuro, ampliada) e queda a lectura que máis texto fiable dea.
   ocrProgress.set(0);
+  const loaded = await loadBitmap(imageUrl);
+  // 1) A imaxe tal cal.
   pOff = 0;
-  pSpan = 0.7;
-  let best = shape((await worker.recognize(imageUrl)).data, 1);
-  if (best.score < WEAK) {
-    let step = 0;
-    for (const mode of ["bright", "dark"] as const) {
-      const prepared = await prepare(imageUrl, mode);
-      if (!prepared) break;
-      pOff = 0.7 + step * 0.15;
-      pSpan = 0.15;
-      step++;
-      const r = shape((await worker.recognize(prepared.blob)).data, prepared.scale);
-      if (r.score > Math.max(MIN_GAIN, best.score * 1.3)) best = r;
-    }
+  pSpan = 0.4;
+  let primary = collect((await worker.recognize(imageUrl)).data, 1);
+  // 2) Pasos extra: ampliada (as letras pequenas melloran moito) e, se a primeira lectura é pobre (texto pequeno sobre fondos
+  //    cheos, como un visor 3D ou unha captura), tamén só o claro e só o escuro. Faise unha lectura de cada e xúntase o que
+  //    cada unha achegue de novo; se unha binarizada gaña con claridade, pasa a ser a principal.
+  const weak = primary.score < WEAK;
+  const modes: PrepMode[] = [...(loaded && loaded.bmp.width * loaded.bmp.height <= 1_600_000 ? (["up"] as PrepMode[]) : []), ...(weak ? (["bright", "dark"] as PrepMode[]) : [])];
+  const extras: Pass[] = [];
+  let step = 0;
+  for (const mode of modes) {
+    const prepared = loaded ? await prepare(loaded, mode) : null;
+    if (!prepared) continue;
+    pOff = 0.4 + (0.5 * step) / modes.length;
+    pSpan = 0.5 / modes.length;
+    step++;
+    const r = collect((await worker.recognize(prepared.blob)).data, prepared.scale);
+    if (mode !== "up" && r.score > Math.max(MIN_GAIN, primary.score * 1.3)) {
+      extras.push(primary);
+      primary = r;
+    } else extras.push(r);
   }
+  loaded?.bmp.close();
   ocrProgress.set(1);
-  return best.result;
+  return merge(primary, extras);
 }
 
 /** Palabras fiables que se esperan dunha lectura boa: por baixo diso proban os pasos extra. */
 const WEAK = 12;
 const MIN_GAIN = 6;
+/** Confianza mínima das palabras que unha lectura extra pode engadir á principal. */
+const EXTRA_CONF = 75;
 
-/** Colle o resultado de Tesseract (a `scale` veces o tamaño orixinal), descarta o ruído e devolve as caixas en coordenadas da imaxe. */
-function shape(data: any, scale: number): { result: OcrResult; score: number } {
-  // Descártanse as palabras que o motor le con pouca confianza (ruído de fotos, texturas...) e os símbolos soltos.
+interface Pass {
+  /** Liñas tal como as deu Tesseract (en coordenadas da imaxe orixinal) e a confianza de cada palabra. */
+  lines: { w: OcrWord; conf: number }[][];
+  score: number;
+}
+
+/** Colle o resultado de Tesseract (a `scale` veces o tamaño orixinal) e descarta o ruído: palabras de pouca confianza e símbolos soltos. */
+function collect(data: any, scale: number): Pass {
   const keep = (w: any) => {
     const t = String(w.text ?? "").trim();
     if (!t) return false;
@@ -184,7 +199,7 @@ function shape(data: any, scale: number): { result: OcrResult; score: number } {
   // Se o filtro deixase todo en branco, mellor amosar o que se leu que nada.
   const anyKept = (data.lines ?? []).some((l: any) => (l.words ?? []).some(keep));
   let score = 0;
-  const lines: OcrWord[][] = (data.lines ?? [])
+  const lines = (data.lines ?? [])
     .map((l: any) => {
       const ws = (l.words ?? []).filter((w: any) => (anyKept ? keep(w) : String(w.text ?? "").trim()));
       if (!ws.length) return [];
@@ -192,40 +207,130 @@ function shape(data: any, scale: number): { result: OcrResult; score: number } {
       // Todas as palabras dunha liña comparten altura (as letras sen ascendentes non encollen a caixa).
       const y0 = Math.min(...ws.map((w: any) => w.bbox.y0)) / scale;
       const y1 = Math.max(...ws.map((w: any) => w.bbox.y1)) / scale;
-      return ws.map((w: any) => ({ text: String(w.text).trim(), x0: w.bbox.x0 / scale, y0, x1: w.bbox.x1 / scale, y1 }));
+      return ws.map((w: any) => ({ w: { text: String(w.text).trim(), x0: w.bbox.x0 / scale, y0, x1: w.bbox.x1 / scale, y1 }, conf: Number(w.confidence ?? 0) }));
     })
-    .filter((l: OcrWord[]) => l.length);
-  return { result: { text: lines.map((l) => l.map((w) => w.text).join(" ")).join("\n"), lines }, score };
+    .filter((l: unknown[]) => l.length);
+  return { lines, score };
 }
 
-/** Imaxe preparada para ler: ampliada (as letras pequenas melloran moito) e en branco e negro, quedando só o claro («bright», texto claro
- *  sobre fondo medio) ou só o escuro («dark»). Devolve tamén a ampliación usada para volver ás coordenadas orixinais. */
-async function prepare(imageUrl: string, mode: "bright" | "dark"): Promise<{ blob: Blob; scale: number } | null> {
+/** A lectura principal máis o que as outras ven e ela non: palabras fiables que non se solapan con ningunha xa lida. */
+function merge(primary: Pass, others: Pass[]): OcrResult {
+  const have: OcrWord[] = primary.lines.flat().map((x) => x.w);
+  const overlaps = (w: OcrWord) =>
+    have.some((h) => {
+      const ix = Math.min(w.x1, h.x1) - Math.max(w.x0, h.x0);
+      const iy = Math.min(w.y1, h.y1) - Math.max(w.y0, h.y0);
+      if (ix <= 0 || iy <= 0) return false;
+      const inter = ix * iy;
+      const small = Math.min((w.x1 - w.x0) * (w.y1 - w.y0), (h.x1 - h.x0) * (h.y1 - h.y0));
+      return inter / Math.max(1, small) > 0.3;
+    });
+  const added: OcrWord[] = [];
+  for (const o of others) {
+    for (const w of o.lines.flat()) {
+      if (w.conf < EXTRA_CONF || !/[\p{L}\p{N}]{2,}/u.test(w.w.text) || overlaps(w.w)) continue;
+      have.push(w.w);
+      added.push(w.w);
+    }
+  }
+  // As palabras novas agrúpanse en liñas (mesma altura, xuntas) e van despois do resto.
+  added.sort((p, q) => (p.y0 + p.y1) / 2 - (q.y0 + q.y1) / 2 || p.x0 - q.x0);
+  const extraLines: OcrWord[][] = [];
+  for (const w of added) {
+    const h = w.y1 - w.y0;
+    const last = extraLines[extraLines.length - 1];
+    const prev = last?.[last.length - 1];
+    if (prev && Math.abs((prev.y0 + prev.y1) / 2 - (w.y0 + w.y1) / 2) < h * 0.5 && w.x0 - prev.x1 < h * 1.2 && w.x0 >= prev.x0) last.push(w);
+    else extraLines.push([w]);
+  }
+  const lines = [...primary.lines.map((l) => l.map((x) => x.w)), ...extraLines];
+  return { text: lines.map((l) => l.map((w) => w.text).join(" ")).join("\n"), lines };
+}
+
+type PrepMode = "up" | "bright" | "dark";
+interface Loaded {
+  bmp: ImageBitmap;
+}
+async function loadBitmap(imageUrl: string): Promise<Loaded | null> {
   try {
-    const bmp = await createImageBitmap(await (await fetch(imageUrl)).blob());
+    return { bmp: await createImageBitmap(await (await fetch(imageUrl)).blob()) };
+  } catch {
+    return null;
+  }
+}
+
+/** Imaxe preparada para ler: ampliada (as letras pequenas melloran moito) e, segundo o modo, só en escala de grises co contraste
+ *  estirado («up»), ou en branco e negro quedando só o claro («bright») ou só o escuro («dark»). Devolve tamén a ampliación usada. */
+async function prepare(src: Loaded, mode: PrepMode): Promise<{ blob: Blob; scale: number } | null> {
+  try {
+    const { bmp } = src;
     const side = Math.max(bmp.width, bmp.height);
     // Non se amplían as imaxes grandes: o texto xa ten tamaño de sobra e custaría memoria e tempo.
-    const scale = side <= 900 ? 3 : side <= 1800 ? 2 : 1;
+    const scale = side <= 900 ? 3 : side <= 2200 ? 2 : 1;
     const cv = new OffscreenCanvas(bmp.width * scale, bmp.height * scale);
     const ctx = cv.getContext("2d", { willReadFrequently: true });
     if (!ctx) return null;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(bmp, 0, 0, cv.width, cv.height);
-    bmp.close();
     const img = ctx.getImageData(0, 0, cv.width, cv.height);
     const d = img.data;
-    for (let i = 0; i < d.length; i += 4) {
-      const y = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
-      const ink = mode === "bright" ? y > 185 : y < 75;
-      const v = ink ? 0 : 255;
-      d[i] = d[i + 1] = d[i + 2] = v;
-      d[i + 3] = 255;
+    if (mode === "up") {
+      // Escala de grises e contraste estirado entre o 1 % e o 99 % dos tons.
+      const hist = new Uint32Array(256);
+      for (let i = 0; i < d.length; i += 4) hist[(d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) | 0]++;
+      const total = d.length / 4;
+      let lo = 0;
+      let hi = 255;
+      for (let c = 0; lo < 255 && c + hist[lo] < total * 0.01; lo++) c += hist[lo];
+      for (let c = 0; hi > 0 && c + hist[hi] < total * 0.01; hi--) c += hist[hi];
+      const range = Math.max(1, hi - lo);
+      for (let i = 0; i < d.length; i += 4) {
+        const y = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+        const v = Math.max(0, Math.min(255, ((y - lo) * 255) / range));
+        d[i] = d[i + 1] = d[i + 2] = v;
+        d[i + 3] = 255;
+      }
+    } else {
+      for (let i = 0; i < d.length; i += 4) {
+        const y = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+        const ink = mode === "bright" ? y > 185 : y < 75;
+        d[i] = d[i + 1] = d[i + 2] = ink ? 0 : 255;
+        d[i + 3] = 255;
+      }
     }
     ctx.putImageData(img, 0, 0);
     return { blob: await cv.convertToBlob({ type: "image/png" }), scale };
   } catch {
     return null;
   }
+}
+
+// ---- idioma do texto lido: palabras moi comúns de cada idioma (as propias valen máis)
+const STOP: Record<string, { own: string[]; common: string[] }> = {
+  glg: { own: ["non", "unha", "unhas", "dun", "dunha", "tamén", "cando", "coa", "cos", "nin", "vostede", "moi", "ás", "aos", "máis", "hai", "está", "están"], common: ["que", "da", "do", "das", "dos", "ao", "é", "para", "por", "con", "sen", "pero", "como", "os", "as", "un", "uns", "se", "no", "na", "nos", "nas", "foi"] },
+  spa: { own: ["el", "los", "las", "también", "más", "está", "están", "hay", "muy", "sin", "del", "unos", "unas", "pero", "una", "cuando", "porque"], common: ["que", "de", "la", "en", "un", "y", "a", "con", "para", "por", "es", "se", "su", "sus", "al", "lo", "como", "fue"] },
+  eng: { own: ["the", "and", "of", "is", "that", "this", "with", "was", "are", "you", "have", "from", "not", "they", "will", "would", "there", "their"], common: ["to", "in", "it", "for", "as", "on", "be", "by", "an", "or", "at", "we", "his", "her"] },
+  por: { own: ["não", "uma", "você", "também", "são", "mais", "muito", "tem", "com", "mas", "dos", "das", "pelo", "pela", "está", "foi"], common: ["que", "de", "o", "os", "as", "um", "em", "para", "por", "se", "ao", "do", "da", "no", "na", "e", "é"] },
+  cat: { own: ["els", "les", "amb", "això", "però", "també", "és", "són", "molt", "hi", "dels", "una", "perquè", "quan", "aquest", "aquesta"], common: ["que", "de", "la", "el", "i", "en", "un", "per", "al", "als", "del", "no", "es", "se", "com"] },
+  fra: { own: ["le", "les", "des", "est", "une", "pour", "dans", "qui", "pas", "avec", "sur", "aux", "du", "ne", "vous", "nous", "sont", "mais", "cette", "être"], common: ["la", "de", "et", "en", "un", "que", "au", "ce", "se", "il", "elle", "ou", "plus"] },
+  deu: { own: ["der", "die", "das", "und", "ist", "nicht", "ein", "eine", "mit", "für", "auf", "den", "dem", "zu", "von", "auch", "sich", "im", "ich", "sie", "wir"], common: ["es", "in", "an", "als", "wie", "bei", "nach", "aus", "oder", "wird"] },
+  ita: { own: ["il", "che", "non", "per", "una", "sono", "con", "della", "del", "gli", "più", "anche", "questo", "come", "nel", "nella", "dei", "delle", "è"], common: ["di", "e", "la", "le", "un", "in", "si", "da", "lo", "ma", "ha", "al"] },
+};
+/** Idioma máis probable do texto (id de Tesseract), ou `null` se non hai texto abondo ou non se distingue con claridade. */
+export function detectLang(text: string): string | null {
+  const words = text.toLowerCase().match(/\p{L}+/gu) ?? [];
+  if (words.length < 15) return null;
+  const counts = new Map<string, number>();
+  for (const w of words) counts.set(w, (counts.get(w) ?? 0) + 1);
+  const scores = Object.entries(STOP).map(([id, t]) => {
+    let sc = 0;
+    for (const w of t.own) sc += (counts.get(w) ?? 0) * 3;
+    for (const w of t.common) sc += counts.get(w) ?? 0;
+    return [id, sc] as const;
+  });
+  scores.sort((x, y) => y[1] - x[1]);
+  const [top, second] = scores;
+  return top[1] >= 9 && top[1] >= second[1] * 1.4 ? top[0] : null;
 }
 
 /** Esquece os textos lidos dunha imaxe (para reimportala desde cero). */

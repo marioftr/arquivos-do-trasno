@@ -139,6 +139,7 @@ pub fn encode(source: &Path, output: &Path, overwrite: bool, quality: Option<u8>
     let s = |v: &str| v.to_string();
     let args: Vec<String> = match ext.as_str() {
         "avif" => avif_args(source, q, lossless),
+        "webp" => vec![s("-frames:v"), s("1"), s("-c:v"), s("libwebp"), s("-quality"), format!("{}", q as u32), s("-compression_level"), s("4")],
         "jxl" => vec![s("-frames:v"), s("1"), s("-c:v"), s("libjxl"), s("-distance"), if lossless { s("0") } else { format!("{:.2}", (100.0 - q) / 10.0) }],
         // «-pred 1»: transformada reversible 5/3, sen perdas.
         "jp2" if lossless => vec![s("-frames:v"), s("1"), s("-c:v"), s("jpeg2000"), s("-pred"), s("1")],

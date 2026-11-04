@@ -350,7 +350,7 @@
 </div>
 
 <style>
-  .list { display: flex; flex-direction: column; gap: 2px; max-height: 11rem; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
+  .list { display: flex; flex-direction: column; gap: 2px; max-height: 11rem; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
   .li { display: flex; align-items: center; border-radius: 5px; }
   .li.on { background: color-mix(in srgb, var(--accent) 18%, transparent); }
   .pick { flex: 1; min-width: 0; display: flex; gap: 0.6rem; align-items: baseline; text-align: left; background: none; border: none; color: var(--text); padding: 0.35rem 0.5rem; font-size: 0.84rem; border-radius: 5px; }
