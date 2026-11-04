@@ -1,7 +1,7 @@
 <script lang="ts">
   import GroupNote from "../ui/GroupNote.svelte";
   import { errText } from "../../errors";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { open, save } from "@tauri-apps/plugin-dialog";
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
@@ -18,7 +18,7 @@
   import SelectField from "../ui/SelectField.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
-  import { NO_ALPHA, BACKGROUNDS, anyTransparent, type Bg } from "../../transparency";
+  import { NO_ALPHA, BACKGROUNDS, anyTransparent, backdrop, cssOf, type Bg } from "../../transparency";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let selection: FileEntry[];
@@ -65,6 +65,9 @@
     const r = await anyTransparent(sel.map((f) => f.path));
     if (on === needsBg && sel === selection) transparent = r;
   }
+
+  $: backdrop.set(needsBg && transparent && selection.length === 1 ? cssOf($form.bg) : null);
+  onDestroy(() => backdrop.set(null));
 
   // Con «sen perdas» o resultado é o orixinal tal cal: calidade, bitrate e tamaño deixan de ter sentido.
   $: exact = canLossless && $form.lossless;

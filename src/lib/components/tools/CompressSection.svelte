@@ -1,7 +1,7 @@
 <script lang="ts">
   import GroupNote from "../ui/GroupNote.svelte";
   import InfoTip from "../ui/InfoTip.svelte";
-  import { BACKGROUNDS, anyTransparent, type Bg } from "../../transparency";
+  import { BACKGROUNDS, anyTransparent, backdrop, cssOf, type Bg } from "../../transparency";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
@@ -205,6 +205,8 @@
   $: jpgFiles = isImage ? selection.filter((f) => engine.compressExt(f.ext) === "jpg" && !["jpg", "jpeg"].includes(f.ext.toLowerCase())) : [];
   let transparent = false;
   $: checkTransparency(jpgFiles);
+  $: backdrop.set(isImage && transparent && selection.length === 1 ? cssOf($form.bg) : null);
+  onDestroy(() => backdrop.set(null));
   async function checkTransparency(list: FileEntry[]) {
     transparent = false;
     const r = list.length ? await anyTransparent(list.map((f) => f.path)) : false;

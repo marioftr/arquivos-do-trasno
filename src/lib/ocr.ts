@@ -146,10 +146,12 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
   }
   ocrProgress.set(0);
   const loaded = await loadBitmap(imageUrl);
-  // 1) A imaxe tal cal.
+  // 1) A imaxe tal cal, pero decodificada polo navegador e pasada a PNG: Tesseract non le AVIF, HEIC nin WebP e, ademais, ignora a orientación
+  //    EXIF, polo que unha foto xirada daría caixas fóra do sitio. O navegador amósaa ben, así que así coincide co que se ve.
   pOff = 0;
   pSpan = 0.4;
-  let primary = collect((await worker.recognize(imageUrl)).data, 1);
+  const plain = loaded ? await prepare(loaded, "plain") : null;
+  let primary = collect((await worker.recognize(plain?.blob ?? imageUrl)).data, 1);
   // 2) Pasos extra. Ampliada (as letras pequenas melloran moito) se a imaxe non é grande. E se a primeira lectura é pobre
   //    (logotipos, texto solto, letras pequenas sobre fondos cheos como un visor 3D ou unha captura) a imaxe lese tamén co
   //    modo de «texto disperso» de Tesseract (que busca palabras soltas en vez de páxinas) e preparada de varios xeitos:
@@ -165,13 +167,13 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
   const passes: Pass[] = [primary];
   let step = 0;
   for (const p of plan) {
-    const prepared = p.mode === "raw" ? { blob: null as Blob | null, scale: 1 } : loaded ? await prepare(loaded, p.mode) : null;
+    const prepared = p.mode === "raw" ? { blob: plain?.blob ?? null, scale: 1 } : loaded ? await prepare(loaded, p.mode) : null;
     if (!prepared) continue;
     pOff = 0.4 + (0.5 * step) / plan.length;
     pSpan = 0.5 / plan.length;
     step++;
     await worker.setParameters({ tessedit_pageseg_mode: p.sparse ? "11" : "3" });
-    passes.push(collect((await worker.recognize(prepared.blob ?? imageUrl)).data, prepared.scale));
+    passes.push(collect((await worker.recognize(prepared.blob ?? imageUrl)).data, prepared.scale, true));
   }
   if (plan.some((p) => p.sparse)) await worker.setParameters({ tessedit_pageseg_mode: "3" });
   loaded?.bmp.close();
@@ -189,16 +191,30 @@ async function recognizeNow(imageUrl: string, lang: string): Promise<OcrResult> 
 const WEAK = 12;
 const MIN_GAIN = 6;
 /** Confianza mínima das palabras que unha lectura extra pode engadir á principal. */
-const EXTRA_CONF = 75;
+const EXTRA_CONF = 80;
 
 interface Pass {
-  /** Liñas tal como as deu Tesseract (en coordenadas da imaxe orixinal) e a confianza de cada palabra. */
-  lines: { w: OcrWord; conf: number }[][];
+  /** Liñas tal como as deu Tesseract (en coordenadas da imaxe orixinal), a confianza de cada palabra e se é «fiable». */
+  lines: { w: OcrWord; conf: number; good: boolean }[][];
+  /** Número de palabras fiables. Con 0 non hai texto: o que Tesseract «le» nunha foto ou nunha textura é ruído. */
   score: number;
 }
 
-/** Colle o resultado de Tesseract (a `scale` veces o tamaño orixinal) e descarta o ruído: palabras de pouca confianza e símbolos soltos. */
-function collect(data: any, scale: number): Pass {
+const alnumCount = (t: string) => (t.match(/[\p{L}\p{N}]/gu) ?? []).length;
+/** Palabra fiable: ten letras ou cifras de verdade (non símbolos) e a confianza esixida segundo o seu tamaño. Nas lecturas extra
+ *  (imaxes preparadas) esíxese máis, porque deixan moito máis ruído. */
+function isGood(text: string, conf: number, strict: boolean): boolean {
+  const t = text.trim();
+  const a = alnumCount(t);
+  if (a < 2 || a / t.length < 0.6) return false;
+  if (a >= 4) return conf >= (strict ? 85 : 75);
+  if (a === 3) return conf >= (strict ? 88 : 78);
+  return conf >= 90;
+}
+
+/** Colle o resultado de Tesseract (a `scale` veces o tamaño orixinal) e descarta o ruído. Se non hai nin unha palabra fiable,
+ *  a lectura queda baleira (en vez de amosar lixo); se si, consérvanse tamén as palabras de menos confianza que a acompañan. */
+function collect(data: any, scale: number, strict = false): Pass {
   const keep = (w: any) => {
     const t = String(w.text ?? "").trim();
     if (!t) return false;
@@ -207,21 +223,24 @@ function collect(data: any, scale: number): Pass {
     if (t.length === 1 && !/[\p{L}\p{N}]/u.test(t) && c < 85) return false;
     return true;
   };
-  // Se o filtro deixase todo en branco, mellor amosar o que se leu que nada.
-  const anyKept = (data.lines ?? []).some((l: any) => (l.words ?? []).some(keep));
   let score = 0;
   const lines = (data.lines ?? [])
     .map((l: any) => {
-      const ws = (l.words ?? []).filter((w: any) => (anyKept ? keep(w) : String(w.text ?? "").trim()));
+      const ws = (l.words ?? []).filter(keep);
       if (!ws.length) return [];
-      for (const w of ws) if (Number(w.confidence ?? 0) >= 60 && /[\p{L}\p{N}]{2,}/u.test(String(w.text))) score++;
       // Todas as palabras dunha liña comparten altura (as letras sen ascendentes non encollen a caixa).
       const y0 = Math.min(...ws.map((w: any) => w.bbox.y0)) / scale;
       const y1 = Math.max(...ws.map((w: any) => w.bbox.y1)) / scale;
-      return ws.map((w: any) => ({ w: { text: String(w.text).trim(), x0: w.bbox.x0 / scale, y0, x1: w.bbox.x1 / scale, y1 }, conf: Number(w.confidence ?? 0) }));
+      return ws.map((w: any) => {
+        const text = String(w.text).trim();
+        const conf = Number(w.confidence ?? 0);
+        const good = isGood(text, conf, strict);
+        if (good) score++;
+        return { w: { text, x0: w.bbox.x0 / scale, y0, x1: w.bbox.x1 / scale, y1 }, conf, good };
+      });
     })
     .filter((l: unknown[]) => l.length);
-  return { lines, score };
+  return score ? { lines, score } : { lines: [], score: 0 };
 }
 
 /** A lectura principal máis o que as outras ven e ela non: palabras fiables que non se solapan con ningunha xa lida. */
@@ -239,7 +258,10 @@ function merge(primary: Pass, others: Pass[]): OcrResult {
   const added: OcrWord[] = [];
   for (const o of others) {
     for (const w of o.lines.flat()) {
-      if (w.conf < EXTRA_CONF || !/[\p{L}\p{N}]{2,}/u.test(w.w.text) || overlaps(w.w)) continue;
+      // Só entra o que a lectura extra ve con seguridade; unha letra solta, só se vai acompañada doutras palabras (o «A» dun logotipo).
+      const single = alnumCount(w.w.text) === 1 && w.conf >= 92 && o.score >= 2;
+      if (!(w.good && w.conf >= EXTRA_CONF) && !single) continue;
+      if (overlaps(w.w)) continue;
       have.push(w.w);
       added.push(w.w);
     }
@@ -258,7 +280,7 @@ function merge(primary: Pass, others: Pass[]): OcrResult {
   return { text: lines.map((l) => l.map((w) => w.text).join(" ")).join("\n"), lines };
 }
 
-type PrepMode = "up" | "bright" | "dark";
+type PrepMode = "plain" | "up" | "bright" | "dark";
 interface Loaded {
   bmp: ImageBitmap;
 }
@@ -277,12 +299,13 @@ async function prepare(src: Loaded, mode: PrepMode): Promise<{ blob: Blob; scale
     const { bmp } = src;
     const side = Math.max(bmp.width, bmp.height);
     // Non se amplían as imaxes grandes: o texto xa ten tamaño de sobra e custaría memoria e tempo.
-    const scale = side <= 900 ? 3 : side <= 2200 ? 2 : 1;
+    const scale = mode === "plain" ? 1 : side <= 900 ? 3 : side <= 2200 ? 2 : 1;
     const cv = new OffscreenCanvas(bmp.width * scale, bmp.height * scale);
     const ctx = cv.getContext("2d", { willReadFrequently: true });
     if (!ctx) return null;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(bmp, 0, 0, cv.width, cv.height);
+    if (mode === "plain") return { blob: await cv.convertToBlob({ type: "image/png" }), scale: 1 };
     const img = ctx.getImageData(0, 0, cv.width, cv.height);
     const d = img.data;
     if (mode === "up") {

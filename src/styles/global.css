@@ -95,8 +95,16 @@ body {
   flex-direction: row;
 }
 
-button {
+button,
+input,
+select,
+textarea {
   font-family: inherit;
+  /* Sen isto os controis tomaban 13,33 px do navegador en vez dos 13 px da aplicación */
+  font-size: inherit;
+}
+
+button {
   cursor: pointer;
 }
 

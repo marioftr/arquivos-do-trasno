@@ -9,7 +9,7 @@
   import { fileNameOf, TRASNO, fallo, listo, IMAGE_TARGETS } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
-  import { NO_ALPHA, BACKGROUNDS, hasTransparency, type Bg } from "../../transparency";
+  import { NO_ALPHA, BACKGROUNDS, hasTransparency, backdrop, cssOf, type Bg } from "../../transparency";
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
   import Slider from "../ui/Slider.svelte";
@@ -44,6 +44,9 @@
 
   let transparent = false;
   $: void hasTransparency(file.path).then((r) => (transparent = r));
+
+  $: backdrop.set(NO_ALPHA.includes($form.ext) && transparent ? cssOf($form.bg) : null);
+  onDestroy(() => backdrop.set(null));
 
   const job = createJob();
   const busy = job.busy;

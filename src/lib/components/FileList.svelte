@@ -55,7 +55,7 @@
   // ---- teclado (cando a lista ten o foco)
   function key(e: KeyboardEvent) {
     const n = $files.length;
-    if (!n || (e.target as HTMLElement).closest("input, button.mini")) return;
+    if (!n || (e.target as HTMLElement | null)?.closest?.("input, button.mini")) return;
     const go = (i: number) => {
       const j = Math.max(0, Math.min(n - 1, i));
       activePath.set($files[j].path);
@@ -126,7 +126,7 @@
   }
 </script>
 
-<svelte:window on:pointerdown={(e) => { if (menu && !(e.target as HTMLElement).closest(".ctxmenu")) closeMenu(); }} on:keydown={(e) => e.key === "Escape" && closeMenu()} />
+<svelte:window on:pointerdown={(e) => { if (menu && !(e.target as HTMLElement | null)?.closest?.(".ctxmenu")) closeMenu(); }} on:keydown={(e) => e.key === "Escape" && closeMenu()} />
 
 <div class="list" data-filelist>
   <div class="head">

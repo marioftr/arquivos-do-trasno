@@ -133,6 +133,9 @@
     }
   }
   let histOpen = false;
+  // O globo do historial nunca desprázase: cabe toda a lista (ata 10 liñas) por riba da barra e, se a xanela é baixa, menos liñas.
+  let winH = typeof innerHeight === "number" ? innerHeight : 800;
+  $: histLimit = Math.max(4, Math.min(10, Math.floor((winH - 200) / 46)));
   $: if (!lastRun) pausedId.set(null);
   // Ao rematar un traballo: a barra enchese e muda de cor un instante, e se foi ben o trasno bota un salto.
   let endFlash: { kind: "done" | "cancelled" | "error"; title: string } | null = null;
@@ -330,7 +333,7 @@
   $: needsFfmpeg = selection.some((f) => f.category === "audio" || f.category === "video");
 </script>
 
-<svelte:window on:keydown={onKey} on:pointermove={dockTrack} on:blur={dockClose} on:pointerdown={(e) => { if (histOpen && !(e.target as HTMLElement).closest(".hist, .voice")) histOpen = false; }} on:keydown={(e) => e.key === "Escape" && (histOpen = false)} />
+<svelte:window bind:innerHeight={winH} on:keydown={onKey} on:pointermove={dockTrack} on:blur={dockClose} on:pointerdown={(e) => { if (histOpen && !(e.target as HTMLElement | null)?.closest?.(".hist, .voice")) histOpen = false; }} on:keydown={(e) => e.key === "Escape" && (histOpen = false)} />
 <svelte:document on:mouseleave={dockClose} />
 
 {#if quickJob === undefined}
@@ -413,12 +416,12 @@
       {#if !lastRun && lastAct}<span class="muted vh">{hhmm(lastAct.at)}</span>{/if}
     </button>
     {#if histOpen}
-      <div class="hist scrolls" role="dialog" aria-label={$t("Últimas accións")}>
+      <div class="hist" role="dialog" aria-label={$t("Últimas accións")}>
         <div class="hhead">
           <h4>{$t("Últimas accións")}</h4>
           <button class="hclock" on:click={() => { histOpen = false; openHub("procs.history"); }} title={$t("Ver o historial completo")} aria-label={$t("Ver o historial completo")}><Icon name="clock" size={15} /></button>
         </div>
-        <ActionList limit={12} stick />
+        <ActionList limit={histLimit} />
       </div>
     {/if}
     <div class="mid">
@@ -498,7 +501,7 @@
   .bt { min-width: 0; align-self: center; }
   .voice { justify-self: start; margin-left: 108px; max-width: calc(100% - 108px); min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 28px; padding: 0 0.6rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text); text-align: left; font-size: 0.8rem; }
   .voice:hover, .voice.on { background: var(--bg-hover); }
-  .hist { position: absolute; left: 118px; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); max-height: 50vh; overflow-y: auto; overflow-x: hidden; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }
+  .hist { position: absolute; left: 118px; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); overflow: visible; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }
   .hhead { display: flex; align-items: center; justify-content: space-between; padding: 0 0.5rem 0.2rem 0.8rem; }
   .hhead h4 { margin: 0; font-size: 0.72rem; font-weight: 650; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
   .hclock { display: grid; place-items: center; width: 28px; height: 28px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-muted); }

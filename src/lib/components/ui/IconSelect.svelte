@@ -50,7 +50,7 @@
   }
 </script>
 
-<svelte:window on:pointerdown={(e) => { if (open && !btn?.contains(e.target as Node) && !(e.target as HTMLElement).closest(".isl")) open = false; }} on:resize={() => (open = false)} />
+<svelte:window on:pointerdown={(e) => { if (open && !btn?.contains(e.target as Node) && !(e.target as HTMLElement | null)?.closest?.(".isl")) open = false; }} on:resize={() => (open = false)} />
 
 <button bind:this={btn} class="trig" type="button" aria-haspopup="listbox" aria-expanded={open} aria-label={label} on:click={() => (open ? (open = false) : show())} on:keydown={key}>
   <Icon name={current.icon} size={15} />

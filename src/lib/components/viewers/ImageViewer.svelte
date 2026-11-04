@@ -8,6 +8,7 @@
   import AnnotLayer from "../ui/AnnotLayer.svelte";
   import OcrLayer from "../ui/OcrLayer.svelte";
   import ZoomRuler from "../ui/ZoomRuler.svelte";
+  import { backdrop } from "../../transparency";
   import Icon from "../Icon.svelte";
   import { lang as appLang } from "../../i18n";
   import { toast } from "../../toasts";
@@ -449,7 +450,7 @@
         </div>
       {:else if url}
         <div class="canvas">
-          <div class="view" bind:this={viewEl} style={nw ? `width:${vw}px;height:${vh}px` : "width:1px;height:1px"}>
+          <div class="view" bind:this={viewEl} style={(nw ? `width:${vw}px;height:${vh}px` : "width:1px;height:1px") + ($backdrop ? `;background:${$backdrop}` : "")}>
             <img bind:this={imgEl} src={url} alt={file.name} style={nw ? imgStyle : "opacity:0"} on:error={onError} on:load={loaded} draggable="false" />
           </div>
         </div>

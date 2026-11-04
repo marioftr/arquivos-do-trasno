@@ -114,7 +114,12 @@ pub fn sha256_file(path: &Path) -> Result<String> {
 /// Comproba que un ficheiro existe e non está baleiro; é a validación mínima
 /// que se aplica sempre antes de dar por boa calquera conversión.
 pub fn assert_non_empty_file(path: &Path) -> Result<u64> {
-    let metadata = std::fs::metadata(path).map_err(EngineError::Io)?;
+    // Se o programa externo remata «ben» sen escribir nada (p. ex. un fotograma pedido despois do final), é un resultado baleiro, non un erro do sistema.
+    let metadata = match std::fs::metadata(path) {
+        Ok(m) => m,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Err(EngineError::EmptyOrCorruptOutput),
+        Err(e) => return Err(EngineError::Io(e)),
+    };
     if metadata.len() == 0 {
         return Err(EngineError::EmptyOrCorruptOutput);
     }

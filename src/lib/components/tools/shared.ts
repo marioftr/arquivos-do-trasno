@@ -23,8 +23,12 @@ export async function askPath(defaultPath: string): Promise<string | null> {
     const ext = /\.([^.\\/]+)$/.exec(defaultPath)?.[1];
     const picked = await save({ defaultPath, filters: ext ? [{ name: ext.toUpperCase(), extensions: [ext] }] : undefined });
     if (!picked) return null;
-    // Se se escribiu o nome sen extensión, ponse a que levaba o nome proposto.
-    return ext && !/\.[^.\\/]+$/.test(picked) ? `${picked}.${ext}` : picked;
+    // O resultado leva sempre a extensión do formato proposto: se se escribiu o nome sen ela, ou con outra cousa («foto.v2»), engádese.
+    // (Os sinónimos jpg/jpeg, tif/tiff e mpg/mpeg valen.)
+    if (!ext) return picked;
+    const got = /\.([^.\\/]+)$/.exec(picked)?.[1]?.toLowerCase();
+    const same = (x: string, y: string) => x === y || [["jpg", "jpeg"], ["tif", "tiff"], ["mpg", "mpeg"]].some(([p, q]) => (x === p && y === q) || (x === q && y === p));
+    return got && same(got, ext.toLowerCase()) ? picked : `${picked}.${ext}`;
   }
   const target = mode === "folder" ? await join(folder, baseName(defaultPath)) : defaultPath;
   return engine.uniquePath(target);

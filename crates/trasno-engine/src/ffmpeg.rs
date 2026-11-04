@@ -57,7 +57,11 @@ fn hide_console(cmd: &mut Command) {
 }
 
 static CANCELLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-static CHILD_PID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+/// Procesos ffmpeg en marcha dos traballos do usuario (un lote pode ter varios á vez): a pausa e o cancelar aplícanse a todos.
+static CHILDREN: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(Vec::new());
+fn children() -> Vec<u32> {
+    CHILDREN.lock().unwrap_or_else(|e| e.into_inner()).clone()
+}
 
 thread_local! {
     static BACKGROUND: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -89,12 +93,12 @@ pub fn begin_job() {
 /// Pon en pausa (ou retoma) o ffmpeg que estea a correr. Devolve `true` se había un ffmpeg ao que facerllo.
 /// En Windows suspende o proceso; noutros sistemas envía SIGSTOP / SIGCONT.
 pub fn set_paused(paused: bool) -> bool {
-    let pid = CHILD_PID.load(std::sync::atomic::Ordering::SeqCst);
-    if pid == 0 {
+    let pids = children();
+    if pids.is_empty() {
         PAUSED.store(false, std::sync::atomic::Ordering::SeqCst);
         return false;
     }
-    let ok = suspend_process(pid, paused);
+    let ok = pids.into_iter().fold(false, |any, pid| suspend_process(pid, paused) || any);
     if ok {
         PAUSED.store(paused, std::sync::atomic::Ordering::SeqCst);
     }
@@ -137,29 +141,32 @@ fn suspend_process(pid: u32, suspend: bool) -> bool {
 pub fn cancel_current() -> bool {
     CANCELLED.store(true, std::sync::atomic::Ordering::SeqCst);
     // Un proceso suspendido tamén se mata, pero deixámolo seguir antes para que remate limpo.
+    let pids = children();
     if PAUSED.swap(false, std::sync::atomic::Ordering::SeqCst) {
-        let pid = CHILD_PID.load(std::sync::atomic::Ordering::SeqCst);
-        if pid != 0 {
-            suspend_process(pid, false);
+        for pid in &pids {
+            suspend_process(*pid, false);
         }
     }
-    let pid = CHILD_PID.load(std::sync::atomic::Ordering::SeqCst);
-    if pid == 0 {
+    if pids.is_empty() {
         return false;
     }
-    let mut cmd;
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd = Command::new("taskkill");
-        cmd.args(["/PID", &pid.to_string(), "/T", "/F"]).creation_flags(0x0800_0000);
+    let mut any = false;
+    for pid in pids {
+        let mut cmd;
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd = Command::new("taskkill");
+            cmd.args(["/PID", &pid.to_string(), "/T", "/F"]).creation_flags(0x0800_0000);
+        }
+        #[cfg(not(windows))]
+        {
+            cmd = Command::new("kill");
+            cmd.args(["-9", &pid.to_string()]);
+        }
+        any |= cmd.output().is_ok();
     }
-    #[cfg(not(windows))]
-    {
-        cmd = Command::new("kill");
-        cmd.args(["-9", &pid.to_string()]);
-    }
-    cmd.output().is_ok()
+    any
 }
 
 /// Quen recibe o avance (0 a 1) do ffmpeg que estea a traballar.
@@ -202,8 +209,13 @@ fn run_ffmpeg_with_progress(bin: PathBuf, args: &[std::ffi::OsString], sink: Opt
         .stderr(Stdio::piped())
         .spawn()
         .map_err(EngineError::Io)?;
+    let child_id = child.id();
     if !bg {
-        CHILD_PID.store(child.id(), std::sync::atomic::Ordering::SeqCst);
+        CHILDREN.lock().unwrap_or_else(|e| e.into_inner()).push(child_id);
+        // Se se pausou o traballo mentres un lote arranca outro ficheiro, este nace en pausa.
+        if PAUSED.load(std::sync::atomic::Ordering::SeqCst) {
+            suspend_process(child_id, true);
+        }
     }
     let duration = std::sync::Arc::new(std::sync::Mutex::new(0.0f64));
     let mut stderr = child.stderr.take().expect("stderr");
@@ -243,7 +255,8 @@ fn run_ffmpeg_with_progress(bin: PathBuf, args: &[std::ffi::OsString], sink: Opt
     let status = child.wait().map_err(EngineError::Io)?;
     let stderr = err_thread.join().unwrap_or_default();
     if !bg {
-        CHILD_PID.store(0, std::sync::atomic::Ordering::SeqCst);
+        let id = child_id;
+        CHILDREN.lock().unwrap_or_else(|e| e.into_inner()).retain(|p| *p != id);
     }
     if !bg && CANCELLED.load(std::sync::atomic::Ordering::SeqCst) {
         return Err(EngineError::Cancelled);

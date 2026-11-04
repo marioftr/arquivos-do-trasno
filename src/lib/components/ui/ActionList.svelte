@@ -111,7 +111,7 @@
       <li>
         <button class="hrow" disabled={!r.undo} on:click={() => (revertIdx = r.idx)} title={r.undo ? $t("Desfacer este cambio e os posteriores") : ""}>
           <time class="muted">{hhmm(r.at)}{#if dayOf(r.at)}<small>{dayOf(r.at)}</small>{/if}</time>
-          <span class="ht">{r.text}</span>
+          <span class="ht" title={r.text}>{r.text}</span>
           {#if r.undo}<span class="hu"><Icon name="undo" size={14} /></span>{/if}
         </button>
         {#if r.outputs?.length || r.copy}
@@ -138,7 +138,7 @@
   .hrow:hover:not(:disabled) { background: var(--bg-hover); }
   time { font-variant-numeric: tabular-nums; display: flex; flex-direction: column; line-height: 1.2; }
   time small { font-size: 0.68rem; color: var(--text-faint); }
-  .ht { min-width: 0; overflow-wrap: anywhere; }
+  .ht { min-width: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .hu { color: var(--text-faint); display: inline-flex; }
   .hrow:hover .hu { color: var(--accent-video); }
   .ract { flex: none; display: flex; align-items: center; gap: 1px; padding-right: 0.5rem; }
