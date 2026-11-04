@@ -14,7 +14,7 @@
   const SEQ: Record<string, Step[]> = {
     idle: [[F.base, 0, 2800], [F.half, 0, 90], [F.shut, 0, 110], [F.half, 0, 90]],
     working: [[F.base, 0, 260], [F.half, 0, 90], [F.base, -1, 260]],
-    done: [[F.base, -2, 260], [F.base, 0, 260]],
+    done: [[F.base, -4, 150], [F.half, 0, 100], [F.base, -4, 150], [F.half, 0, 100]],
     // Un aviso: pestanexa, o fotograma de transición e queda sorprendido (milisegundos 0 = quedar nese fotograma).
     notice: [[F.base, 0, 140], [F.half, 0, 80], [F.shut, 0, 100], [F.half, 0, 80], [F.mid, 0, 110], [F.wow, 0, 0]],
   };

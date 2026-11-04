@@ -32,12 +32,18 @@ export interface Action {
   undo?: () => void;
   /** Texto completo para copiar (os erros). */
   copy?: string;
+  /** Ficheiros que deixou o traballo (para abrilos ou amosalos no cartafol desde o historial). */
+  outputs?: string[];
 }
+/** Cando arrancou esta sesión: os procesos anteriores só se len do historial gardado. */
+export const sessionStart = Date.now();
+/** Como acabou o último traballo da app: serve para unha pequena animación na barra e no trasno. */
+export const jobEnd = writable<{ kind: "done" | "cancelled" | "error"; title: string; at: number } | null>(null);
 /** Últimas accións, a máis recente primeiro. Sempre en terceira persoa: o programa conta o que fixo o trasno. */
 export const actions = writable<Action[]>([]);
-export function noteAction(gl: string, vars?: Record<string, string | number>, undo?: () => void, copy?: string) {
+export function noteAction(gl: string, vars?: Record<string, string | number>, undo?: () => void, copy?: string, outputs?: string[]) {
   const text = tr(gl, vars);
-  actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now(), undo: l[0].undo ?? undo, copy: copy ?? l[0].copy }, ...l.slice(1)] : [{ text, at: Date.now(), undo, copy }, ...l].slice(0, 300)));
+  actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now(), undo: l[0].undo ?? undo, copy: copy ?? l[0].copy, outputs: outputs ?? l[0].outputs }, ...l.slice(1)] : [{ text, at: Date.now(), undo, copy, outputs }, ...l].slice(0, 300)));
 }
 
 /** Número de cambios que se desfán ao premer a acción `idx` (0 é a máis recente): ela e todas as posteriores. */
@@ -124,6 +130,24 @@ export function releaseBubble(ms = 5000) {
 export function hideBubble() {
   clearTimeout(bubbleTimer);
   bubble.set(null);
+}
+
+const DONE_LINES = [
+  "Feito! «{name}» xa está listo.",
+  "Rematado. «{name}» saíu sen un rabuñón.",
+  "Listo: «{name}» está no seu sitio.",
+  "Todo en orde con «{name}».",
+  "Traballo feito. Xa podes revisar «{name}».",
+  "Outro menos: «{name}» rematado.",
+];
+let lastDone = -1;
+/** Un comentario curto cando un traballo remata ben (sen repetir o anterior). */
+export function trasnoDone(name: string) {
+  if (get(bubble)?.kind === "warn") return;
+  let i = Math.floor(Math.random() * DONE_LINES.length);
+  if (i === lastDone) i = (i + 1) % DONE_LINES.length;
+  lastDone = i;
+  trasnoSay(tr(DONE_LINES[i], { name }), "info", 7000);
 }
 
 /** O trasno non pode estar en dous sitios: mentres voa ata o botón de empezar, o da barra agóchase. */

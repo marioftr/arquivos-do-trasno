@@ -20,12 +20,13 @@
   import QuickJob from "./lib/components/QuickJob.svelte";
   import HubDialog from "./lib/components/HubDialog.svelte";
   import { procs, refreshProcs, requestCancel } from "./lib/procs";
-  import { actions, tipsOn, liveProgress, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, CLICK_ITEMS, holdBubble, releaseBubble, type ClickAction } from "./lib/agent";
+  import { actions, tipsOn, liveProgress, jobEnd, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, CLICK_ITEMS, holdBubble, releaseBubble, type ClickAction } from "./lib/agent";
   import { reportProgress } from "./lib/job";
   import { requestTool } from "./lib/toolinstall";
   import ToolNeedDialog from "./lib/components/ToolNeedDialog.svelte";
   import { actionFor, custom, slotsOf } from "./lib/keymap";
   import ActionList from "./lib/components/ui/ActionList.svelte";
+  import AlertMark from "./lib/components/ui/AlertMark.svelte";
   import Splitter from "./lib/components/ui/Splitter.svelte";
   import CommandPalette from "./lib/components/CommandPalette.svelte";
 
@@ -40,7 +41,7 @@
   // O trasno-axente: avisa do importante (sempre) e, de cando en vez, comenta algo sobre o que hai á vista.
   $: important = ffmpegOk === false && needsFfmpeg ? { kind: "ffmpeg", icon: "warning", tone: "var(--accent-pdf)", text: $t("Falta FFmpeg: sen el non podo traballar con audio nin vídeo. Prémeme para instalalo."), run: () => requestTool("ffmpeg") } : $updateAvailable ? { kind: "update", icon: "download", tone: "var(--accent)", text: $t("Hai unha versión nova. Prémeme para ver as novidades."), run: () => openHub("news.updates") } : null;
   // Sobre o trasno aparece un instante un símbolo só cando hai un aviso: sinal de erro nos erros e triángulo nos avisos do programa.
-  $: alertIcon = $bubble?.kind === "warn" ? { name: "exclamation", tone: "var(--accent-video)" } : !$bubble && important ? { name: important.icon, tone: important.tone } : null;
+  $: alertIcon = $bubble?.kind === "warn" ? ("error" as const) : !$bubble && important ? (important.kind === "ffmpeg" ? ("warn" as const) : ("update" as const)) : null;
   let tipTimer: ReturnType<typeof setTimeout>;
   function sayNow() {
     if (dockOpen) return;
@@ -61,7 +62,7 @@
   const ITEMS = CLICK_ITEMS;
   const HALF = 48; // metade do trasno (96 px)
   const BTN = 52;
-  const RINGS = [82, 52, 22, -8].map((a) => ({ r: 118, a }));
+  const RINGS = [91.5, 61.5, 31.5, 1.5].map((a) => ({ r: 118, a }));
   const pos = RINGS.map((q) => ({ x: q.r * Math.cos((q.a * Math.PI) / 180), y: q.r * Math.sin((q.a * Math.PI) / 180) }));
   function runItem(id: ClickAction) {
     if (id === "palette") dialog.set("palette");
@@ -130,7 +131,37 @@
   }
   let histOpen = false;
   let askCancel = false;
-  $: if (!lastRun) askCancel = false;
+  /** O ffmpeg está parado de verdade (se non se puido parar, só se pregunta). */
+  let paused = false;
+  $: if (!lastRun) {
+    askCancel = false;
+    paused = false;
+  }
+  async function askStop() {
+    askCancel = true;
+    paused = lastRun?.source === "app" ? await engine.pauseJob(true).catch(() => false) : false;
+  }
+  async function resumeJob() {
+    const was = paused;
+    askCancel = false;
+    paused = false;
+    if (was) await engine.pauseJob(false).catch(() => false);
+  }
+  // Ao rematar un traballo: a barra enchese e muda de cor un instante, e se foi ben o trasno bota un salto.
+  let endFlash: { kind: "done" | "cancelled" | "error"; title: string } | null = null;
+  let celebrate = false;
+  let endTimer: ReturnType<typeof setTimeout>;
+  let celebTimer: ReturnType<typeof setTimeout>;
+  $: if ($jobEnd) {
+    endFlash = { kind: $jobEnd.kind, title: $jobEnd.title };
+    clearTimeout(endTimer);
+    endTimer = setTimeout(() => (endFlash = null), 2200);
+    if ($jobEnd.kind === "done") {
+      celebrate = true;
+      clearTimeout(celebTimer);
+      celebTimer = setTimeout(() => (celebrate = false), 2400);
+    }
+  }
   // Ao confirmar, o proceso sae da barra ao instante (se non, quedaba «cargando» ata que a lista se refrescaba).
   let cancelling = new Set<string>();
   $: {
@@ -139,6 +170,7 @@
   }
   async function doCancel() {
     askCancel = false;
+    paused = false;
     const r = lastRun;
     if (!r) return;
     cancelling = new Set(cancelling).add(r.id);
@@ -350,9 +382,9 @@
         </button>
       {/each}
       <button class="trasno" class:away={$trasnoAway} on:click={clickTrasno} on:focus={(e) => e.currentTarget.matches(":focus-visible") && dockShow()} aria-label={$t("Procesos")}>
-        <TrasnoSprite state={important || $bubble?.kind === "warn" || $bubble?.notify ? "notice" : lastRun ? "working" : "idle"} size={96} />
+        <TrasnoSprite state={important || $bubble?.kind === "warn" || $bubble?.notify ? "notice" : celebrate ? "done" : lastRun ? "working" : "idle"} size={96} />
         {#key `${$bubble?.id ?? 0}|${important?.kind ?? ""}`}
-          {#if alertIcon}<span class="alert" style={`--a:${alertIcon.tone}`} aria-hidden="true"><Icon name={alertIcon.name} size={22} strokeWidth={2.2} /></span>{/if}
+          {#if alertIcon}<span class="alert" aria-hidden="true"><AlertMark kind={alertIcon} /></span>{/if}
         {/key}
       </button>
     </div>
@@ -372,24 +404,26 @@
     <div class="mid">
       {#if lastRun}
         {#if !$trasnoAway}
-          <div class="jobs" class:ask={askCancel}>
+          <div class="jobs" class:ask={askCancel && !paused} class:paused>
+            <span class="jfill" style={`width:${Math.round(Math.max(0.03, pct) * 100)}%`} aria-hidden="true"></span>
             {#if askCancel}
-              <span class="q"><Icon name="warning" size={14} /> {$t("Cancelar este proceso?")}<span class="muted pct">{Math.round(pct * 100)} %</span></span>
-              <span class="acts">
-                <button class="btn danger" on:click={doCancel}>{$t("Si, cancelar")}</button>
-                <button class="btn ghost" on:click={() => (askCancel = false)}>{$t("Seguir")}</button>
-              </span>
-              <span class="askbar" aria-hidden="true"><span class="fill" style={`width:${Math.round(Math.max(0.03, pct) * 100)}%`}></span></span>
+              <span class="jtext"><Icon name={paused ? "pause" : "warning"} size={14} /> {paused ? $t("En pausa") : $t("Cancelar este proceso?")}<span class="pct">{Math.round(pct * 100)} %</span></span>
+              <button class="jx" on:click={resumeJob} title={paused ? $t("Continuar") : $t("Seguir")} aria-label={paused ? $t("Continuar") : $t("Seguir")}><Icon name="play" size={14} /></button>
+              <button class="jx stop" on:click={doCancel} title={$t("Cancelar o proceso")} aria-label={$t("Cancelar o proceso")}><Icon name="close" size={14} /></button>
             {:else}
               <button class="jmain" on:click={() => openHub("procs.running")} title={`${lastRun.title} — ${$t("Procesos")}`} aria-label={$t("Procesos")}>
                 <span class="jt">{lastRun.title}</span>
-                <span class="track"><span class="fill" style={`width:${Math.round(Math.max(0.03, pct) * 100)}%`}></span></span>
-                <span class="muted pct">{Math.round(pct * 100)} %{running.length > 1 ? ` · +${running.length - 1} ${$t("máis en marcha")}` : ""}</span>
+                <span class="pct">{Math.round(pct * 100)} %{running.length > 1 ? ` · +${running.length - 1} ${$t("máis en marcha")}` : ""}</span>
               </button>
-              <button class="jx" on:click={() => (askCancel = true)} title={$t("Cancelar")} aria-label={$t("Cancelar")}><Icon name="close" size={14} /></button>
+              <button class="jx" on:click={askStop} title={$t("Cancelar")} aria-label={$t("Cancelar")}><Icon name="close" size={14} /></button>
             {/if}
           </div>
         {/if}
+      {:else if endFlash}
+        <div class={`jobs end ${endFlash.kind}`} role="status">
+          <span class="jfill" style="width:100%" aria-hidden="true"></span>
+          <span class="jtext"><Icon name={endFlash.kind === "done" ? "check" : endFlash.kind === "error" ? "exclamation" : "close"} size={14} /> {endFlash.kind === "done" ? $t("Feito") : endFlash.kind === "error" ? $t("Con erro") : $t("Cancelado")}<span class="jt2">{endFlash.title}</span></span>
+        </div>
       {:else}
         <button class="idle" on:click={() => openHub("procs.running")} title={$t("Ver os procesos activos")}>
           <Icon name="layers" size={16} /><span>{$t("Sen procesos activos")}</span>
@@ -437,8 +471,7 @@
   .rd.hot .rl { opacity: 1; transform: translate(0, -50%); }
   .rl kbd { margin-left: 0.55rem; padding: 0 5px; font: inherit; font-size: 0.7rem; color: var(--text-muted); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: 4px; }
   .badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: 700; padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
-  .alert { position: absolute; top: -4px; right: -2px; z-index: 5; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; background: var(--a); box-shadow: 0 0 0 3px var(--bg-rail), var(--shadow-pop); pointer-events: none; animation: alertPop 3.2s ease-out forwards; }
-  @keyframes alertPop { 0% { transform: scale(0.2) translateY(6px); opacity: 0; } 10% { transform: scale(1.15) translateY(-6px); opacity: 1; } 18% { transform: scale(1) translateY(0); } 80% { transform: scale(1) translateY(-2px); opacity: 1; } 100% { transform: scale(0.8) translateY(-8px); opacity: 0; } }
+  .alert { position: absolute; top: -30px; right: -22px; z-index: 5; pointer-events: none; }
   @keyframes hop { 50% { transform: translateY(-3px); } }
   .bubble { --c: var(--accent-conversor); position: absolute; left: 116px; bottom: calc(100% + 0.5rem); display: flex; align-items: flex-start; gap: 0.65rem; max-width: min(30rem, calc(100vw - 7rem)); padding: 0.6rem 0.85rem 0.6rem 0.6rem; text-align: left; color: var(--text); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: 0.82rem; line-height: 1.4; animation: rise 0.25s ease-out; }
   .bubble.tipb { --c: var(--accent); }
@@ -446,7 +479,7 @@
   button.bubble:hover { border-color: var(--c); }
   .bact { background: none; border: none; padding: 0; font: inherit; font-weight: 600; color: var(--c); text-decoration: underline; text-underline-offset: 3px; }
   .bact:hover { color: var(--text); }
-  .bclose { flex: none; align-self: flex-start; display: grid; place-items: center; width: 22px; height: 22px; margin: 0 -0.3rem 0 0; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-faint); }
+  .bclose { flex: none; align-self: flex-start; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; margin: 0 -0.45rem 0 -0.15rem; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-faint); }
   .bclose:hover { background: var(--bg-hover); color: var(--text); }
   .bubble::before { content: ""; position: absolute; left: -6px; bottom: 0.75rem; width: 10px; height: 10px; background: var(--bg-elevated); border-left: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); transform: rotate(45deg); }
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
@@ -461,22 +494,28 @@
   .hclock:hover { background: var(--bg-hover); color: var(--text); }
   .vt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .vh { flex: none; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
-  .jobs { flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); overflow: hidden; transform-origin: left center; animation: grow 0.4s cubic-bezier(0.2, 0.8, 0.3, 1); }
+  .jobs { --jc: var(--accent); position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); overflow: hidden; transform-origin: left center; animation: grow 0.4s cubic-bezier(0.2, 0.8, 0.3, 1); transition: border-color 0.25s; }
   @keyframes grow { from { opacity: 0; transform: scaleX(0.15); } }
-  .jobs.ask { position: relative; border-color: color-mix(in srgb, var(--accent-video) 55%, var(--border)); background: color-mix(in srgb, var(--accent-video) 8%, var(--bg-input)); --control-h: 24px; }
-  .jmain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; padding: 0 0.7rem; background: none; border: none; color: var(--text); font-size: 0.78rem; }
-  .jmain:hover { background: var(--bg-hover); }
-  .jx { flex: none; display: grid; place-items: center; width: 32px; background: none; border: none; border-left: 1px solid var(--border); color: var(--text-muted); }
-  .jx:hover { background: color-mix(in srgb, var(--accent-video) 16%, transparent); color: var(--accent-video); }
-  .q { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; padding: 0 0.7rem; font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
-  .askbar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--border-strong); }
-  .askbar .fill { border-radius: 0; }
-  .acts { flex: none; display: flex; align-items: center; gap: 0.25rem; padding: 0 0.25rem; }
-  .acts :global(.btn) { font-size: 0.76rem; padding: 0 0.7em; }
-  .jt { flex: 0 1 9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
-  .track { flex: 1 1 4rem; min-width: 2.5rem; height: 5px; border-radius: 5px; background: var(--border-strong); overflow: hidden; }
-  .fill { display: block; height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.3s; }
-  .pct { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* O rectángulo enteiro vai enchéndose de esquerda a dereita; o texto vai por riba */
+  .jfill { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0; background: color-mix(in srgb, var(--jc) 30%, transparent); border-right: 2px solid var(--jc); box-sizing: border-box; transition: width 0.3s, background 0.25s, border-color 0.25s; }
+  .jobs.paused, .jobs.ask { --jc: var(--accent-pdf); border-color: color-mix(in srgb, var(--jc) 55%, var(--border)); }
+  .jobs.paused .jfill { animation: pausePulse 1.6s ease-in-out infinite; }
+  @keyframes pausePulse { 50% { opacity: 0.55; } }
+  .jobs.end { animation: grow 0.3s ease-out; }
+  .jobs.end.cancelled { --jc: var(--accent-pdf); }
+  .jobs.end.error { --jc: var(--accent-video); }
+  .jobs.end .jfill { animation: endFill 0.5s ease-out; }
+  @keyframes endFill { from { width: 0; } }
+  .jmain, .jtext { position: relative; z-index: 1; flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; padding: 0 0.7rem; background: none; border: none; color: var(--text); font-size: 0.78rem; text-align: left; }
+  .jmain:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+  .jtext { gap: 0.5rem; white-space: nowrap; overflow: hidden; }
+  .jtext .pct { margin-left: auto; }
+  .jt2 { margin-left: 0.5rem; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); }
+  .jt { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
+  .jx { position: relative; z-index: 1; flex: none; display: grid; place-items: center; width: 32px; padding: 0; background: none; border: none; border-left: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 0; color: var(--text-muted); }
+  .jx:hover { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text); }
+  .jx.stop:hover { background: color-mix(in srgb, var(--accent-video) 20%, transparent); color: var(--accent-video); }
+  .pct { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-muted); }
   .mid { display: flex; align-items: center; gap: 0.6rem; }
   .mid:has(.jobs) { width: min(32rem, 44vw); }
   .idle { display: inline-flex; align-items: center; gap: 0.5rem; height: 32px; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 0.78rem; }

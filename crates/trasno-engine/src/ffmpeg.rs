@@ -76,15 +76,73 @@ fn is_background() -> bool {
     BACKGROUND.with(|b| b.get())
 }
 
-/// Empeza un traballo novo: esquece calquera cancelación anterior.
+static PAUSED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Empeza un traballo novo: esquece calquera cancelación anterior (e deixa seguir un ffmpeg que quedase en pausa).
 pub fn begin_job() {
+    if PAUSED.load(std::sync::atomic::Ordering::SeqCst) {
+        set_paused(false);
+    }
     CANCELLED.store(false, std::sync::atomic::Ordering::SeqCst);
+}
+
+/// Pon en pausa (ou retoma) o ffmpeg que estea a correr. Devolve `true` se había un ffmpeg ao que facerllo.
+/// En Windows suspende o proceso; noutros sistemas envía SIGSTOP / SIGCONT.
+pub fn set_paused(paused: bool) -> bool {
+    let pid = CHILD_PID.load(std::sync::atomic::Ordering::SeqCst);
+    if pid == 0 {
+        PAUSED.store(false, std::sync::atomic::Ordering::SeqCst);
+        return false;
+    }
+    let ok = suspend_process(pid, paused);
+    if ok {
+        PAUSED.store(paused, std::sync::atomic::Ordering::SeqCst);
+    }
+    ok
+}
+
+#[cfg(windows)]
+fn suspend_process(pid: u32, suspend: bool) -> bool {
+    use std::ffi::c_void;
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn OpenProcess(access: u32, inherit: i32, pid: u32) -> *mut c_void;
+        fn CloseHandle(handle: *mut c_void) -> i32;
+    }
+    #[link(name = "ntdll")]
+    extern "system" {
+        fn NtSuspendProcess(handle: *mut c_void) -> i32;
+        fn NtResumeProcess(handle: *mut c_void) -> i32;
+    }
+    const PROCESS_SUSPEND_RESUME: u32 = 0x0800;
+    // SAFETY: chamadas simples á API de Windows con un identificador que se abre e se pecha aquí mesmo.
+    unsafe {
+        let h = OpenProcess(PROCESS_SUSPEND_RESUME, 0, pid);
+        if h.is_null() {
+            return false;
+        }
+        let status = if suspend { NtSuspendProcess(h) } else { NtResumeProcess(h) };
+        CloseHandle(h);
+        status >= 0
+    }
+}
+
+#[cfg(not(windows))]
+fn suspend_process(pid: u32, suspend: bool) -> bool {
+    Command::new("kill").args([if suspend { "-STOP" } else { "-CONT" }, &pid.to_string()]).output().map(|o| o.status.success()).unwrap_or(false)
 }
 
 /// Cancela o traballo: marca a cancelación e mata o ffmpeg que estea a correr (se hai). Devolve se había algo en marcha.
 /// Os temporais bórranos cada operación ao ver o erro `Cancelled`; o ficheiro de destino nunca chega a existir.
 pub fn cancel_current() -> bool {
     CANCELLED.store(true, std::sync::atomic::Ordering::SeqCst);
+    // Un proceso suspendido tamén se mata, pero deixámolo seguir antes para que remate limpo.
+    if PAUSED.swap(false, std::sync::atomic::Ordering::SeqCst) {
+        let pid = CHILD_PID.load(std::sync::atomic::Ordering::SeqCst);
+        if pid != 0 {
+            suspend_process(pid, false);
+        }
+    }
     let pid = CHILD_PID.load(std::sync::atomic::Ordering::SeqCst);
     if pid == 0 {
         return false;
@@ -547,6 +605,22 @@ pub fn probe(path: &Path) -> Result<serde_json::Value> {
     hide_console(&mut cmd);
     let out = cmd
         .args(["-v", "error", "-print_format", "json", "-show_format", "-show_streams", "-show_chapters"])
+        .arg(path)
+        .output()
+        .map_err(EngineError::Io)?;
+    check_success(&out)?;
+    serde_json::from_slice(&out.stdout).map_err(|e| EngineError::IntegrityCheck(e.to_string()))
+}
+
+/// Como `probe`, pero tamén cos grupos de fluxos (teselas dunha cuadrícula HEIF/AVIF).
+pub fn probe_with_groups(path: &Path) -> Result<serde_json::Value> {
+    if !path.is_file() {
+        return Err(EngineError::InputNotFound(path.to_path_buf()));
+    }
+    let mut cmd = Command::new(ffprobe_path()?);
+    hide_console(&mut cmd);
+    let out = cmd
+        .args(["-v", "error", "-print_format", "json", "-show_streams", "-show_stream_groups"])
         .arg(path)
         .output()
         .map_err(EngineError::Io)?;

@@ -1411,6 +1411,7 @@
   "Lectura de tipos de letra do sistema": "Reading system fonts",
   "Descargas (actualizacións, programas e paquetes de idioma)": "Downloads (updates, programs and language packs)",
   "Descompresión dos programas descargados": "Unpacking downloaded programs",
+  "Sen perdas: o resultado conserva o orixinal tal cal, así que non hai calidade, bitrate nin tamaño que axustar.": "Lossless: the result keeps the original as is, so there is no quality, bitrate or size to adjust.",
   "Sen perdas": "Lossless",
   "Conserva exactamente a calidade do orixinal, sen compresión con perdas. O ficheiro resultante pesa moito máis e o proceso tarda máis.": "Keeps the original quality exactly, with no lossy compression. The resulting file is much larger and the process takes longer.",
   "o modo sen perdas": "lossless mode",
@@ -1419,5 +1420,17 @@
   "bitrate": "bitrate",
   "tamaño máximo": "maximum size",
   "Ver o historial completo": "See the full history",
-  "Accións do trasno": "Trasno actions"
+  "Accións do trasno": "Trasno actions",
+  "En pausa": "Paused",
+  "Continuar": "Resume",
+  "Cancelar o proceso": "Cancel the process",
+  "Feito": "Done",
+  "«{name}» xa non está onde o deixou o trasno: puido moverse ou borrarse.": "“{name}” is no longer where the trasno left it: it may have been moved or deleted.",
+  "Só se desfán cambios da lista e das anotacións: os ficheiros do disco non se tocan.": "Only changes to the list and annotations are undone: files on disk are not touched.",
+  "Feito! «{name}» xa está listo.": "Done! “{name}” is ready.",
+  "Rematado. «{name}» saíu sen un rabuñón.": "Finished. “{name}” came out without a scratch.",
+  "Listo: «{name}» está no seu sitio.": "Ready: “{name}” is in its place.",
+  "Todo en orde con «{name}».": "All in order with “{name}”.",
+  "Traballo feito. Xa podes revisar «{name}».": "Job done. You can now check “{name}”.",
+  "Outro menos: «{name}» rematado.": "One less: “{name}” finished."
 }

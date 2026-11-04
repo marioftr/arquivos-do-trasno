@@ -1,12 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { t } from "../i18n";
-  import { dialog } from "../settings";
+  import { actions, sessionStart } from "../agent";
   export let part: "running" | "history" = "running";
   import { procs, refreshProcs, requestCancel, clearFinished, type Proc } from "../procs";
-  import { cancelJob, revealInFolder } from "../engine";
-  import { fileNameOf } from "../formats";
-  import { addPaths } from "../files";
+  import { cancelJob } from "../engine";
   import Icon from "./Icon.svelte";
   import ActionList from "./ui/ActionList.svelte";
 
@@ -19,7 +17,12 @@
   onDestroy(() => clearInterval(timer));
 
   $: running = $procs.filter((p) => p.state === "running");
-  $: history = $procs.filter((p) => p.state !== "running");
+  $: histCount = $actions.length + $procs.filter((p) => p.state !== "running" && !(p.source === "app" && p.started >= sessionStart)).length;
+  /** Baleira a lista e o historial gardado. Os ficheiros que deixaron os procesos non se tocan. */
+  function clearHistory() {
+    actions.set([]);
+    clearFinished();
+  }
 
   async function cancel(p: Proc) {
     asking = null;
@@ -29,13 +32,10 @@
     refreshProcs();
   }
 
-  const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const length = (p: Proc) => {
     const s = Math.max(0, Math.round(((p.ended ?? Date.now()) - p.started) / 1000));
     return s >= 60 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${s} s`;
   };
-  const label = (s: Proc["state"]) =>
-    s === "done" ? $t("Rematado") : s === "error" ? $t("Con erro") : s === "cancelled" ? $t("Cancelado") : s === "interrupted" ? $t("Interrompido") : $t("En marcha");
 </script>
 
 {#if part === "running"}
@@ -67,32 +67,11 @@
 
 {:else}
   <section>
-    <h3>{$t("Accións do trasno")}</h3>
-    <div class="alist"><ActionList /></div>
-  </section>
-
-  <section>
     <div class="hh">
-      <h3>{$t("Historial")}<span class="muted cnt">&nbsp;·&nbsp;{history.length}</span></h3>
-      {#if history.length}<button class="btn ghost" on:click={clearFinished}>{$t("Borrar historial")}</button>{/if}
+      <h3>{$t("Historial")}<span class="muted cnt">&nbsp;·&nbsp;{histCount}</span></h3>
+      {#if histCount}<button class="btn ghost" on:click={clearHistory}>{$t("Borrar historial")}</button>{/if}
     </div>
-    {#if !history.length}<p class="muted note">{$t("Aínda non hai nada no historial.")}</p>{/if}
-    {#each history as p (p.id)}
-      <div class="hrow">
-        <span class={`dotc ${p.state}`} aria-hidden="true"></span>
-        <div class="txt">
-          <span class="n" title={p.title}>{p.title}</span>
-          <span class="muted sub">
-            {p.subtitle ?? ""} · {label(p.state)} · {clock(p.started)} · {length(p)}{#if p.detail}&nbsp;·&nbsp;{p.detail}{/if}
-          </span>
-          {#if p.outputs?.length}<span class="muted sub">→ {p.outputs.map(fileNameOf).join(", ")}</span>{/if}
-        </div>
-        {#if p.outputs?.length}
-          <button class="btn ghost icon" on:click={() => { addPaths(p.outputs ?? []); dialog.set(null); }} title={$t("Abrir co programa completo")} aria-label={$t("Abrir co programa completo")}><Icon name="load" size={15} /></button>
-          <button class="btn ghost icon" on:click={() => revealInFolder(p.outputs![0])} title={$t("Amosar no cartafol")} aria-label={$t("Amosar no cartafol")}><Icon name="folder" size={15} /></button>
-        {/if}
-      </div>
-    {/each}
+    <div class="alist"><ActionList /></div>
   </section>
 {/if}
 
@@ -112,10 +91,5 @@
   .fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.3s ease; }
   .pct { font-size: 0.74rem; text-align: right; font-variant-numeric: tabular-nums; }
   .ask { font-size: 0.8rem; }
-  .row :global(.btn), .hrow :global(.btn) { height: var(--control-h); min-height: var(--control-h); padding-block: 0; box-sizing: border-box; }
-  .hrow { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.2rem; border-top: 1px solid var(--border); }
-  .dotc { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; background: var(--text-faint); }
-  .dotc.done { background: var(--accent); }
-  .dotc.error { background: var(--accent-video); }
-  .dotc.cancelled, .dotc.interrupted { background: var(--accent-pdf); }
+  .row :global(.btn) { height: var(--control-h); min-height: var(--control-h); padding-block: 0; box-sizing: border-box; }
 </style>

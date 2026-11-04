@@ -50,6 +50,7 @@ pub fn run() {
             commands::enable_progress,
             commands::begin_job,
             commands::cancel_job,
+            commands::pause_job,
             commands::discard_output,
             procs::proc_upsert,
             procs::proc_list,

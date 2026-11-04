@@ -64,6 +64,12 @@ pub fn cancel_job() -> bool {
     trasno_engine::ffmpeg::cancel_current()
 }
 
+/// Pon en pausa (ou retoma) o traballo en marcha. Devolve `true` se había un ffmpeg ao que facerllo.
+#[tauri::command]
+pub fn pause_job(paused: bool) -> bool {
+    trasno_engine::ffmpeg::set_paused(paused)
+}
+
 /// Borra un ficheiro que acaba de crear o propio traballo cancelado. Por seguridade só vale para ficheiros
 /// creados desde que arrancou esta aplicación (nunca un orixinal) e que non sexan cartafoles.
 #[tauri::command]

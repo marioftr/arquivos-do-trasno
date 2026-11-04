@@ -49,7 +49,10 @@
   onMount(() => useForm(form));
 
   // Sen perdas: só onde o formato de destino o permite.
-  $: canLossless = (category === "imaxe" && ($form.targetExt === "jxl" || $form.targetExt === "jp2")) || (category === "video" && ["mp4", "mkv", "mov"].includes($form.targetExt));
+  $: canLossless = (category === "imaxe" && ["jxl", "jp2", "avif"].includes($form.targetExt)) || (category === "video" && ["mp4", "mkv", "mov"].includes($form.targetExt));
+
+  // Con «sen perdas» o resultado é o orixinal tal cal: calidade, bitrate e tamaño deixan de ter sentido.
+  $: exact = canLossless && $form.lossless;
 
   const job = createJob();
   const busy = job.busy;
@@ -96,7 +99,7 @@
     return engine.convertFile(f.path, out, {
       overwrite,
       quality: f.category === "imaxe" ? v.quality : undefined,
-      resize: f.category === "imaxe" ? resizeFor(f) : undefined,
+      resize: f.category === "imaxe" && !exact ? resizeFor(f) : undefined,
       bitrateKbps: canLossless && v.lossless ? undefined : toAudio ? v.audioBitrate : isMedia && v.bitrate ? v.bitrate : undefined,
       lossless: canLossless && v.lossless,
     });
@@ -166,7 +169,9 @@
       <Toggle label={$t("Sen perdas")} bind:checked={$form.lossless} hint={$t("Conserva exactamente a calidade do orixinal, sen compresión con perdas. O ficheiro resultante pesa moito máis e o proceso tarda máis.")} />
     {/if}
 
-    {#if category === "imaxe" && $form.targetExt === "pdf"}
+    {#if exact}
+      <GroupNote text={$t("Sen perdas: o resultado conserva o orixinal tal cal, así que non hai calidade, bitrate nin tamaño que axustar.")} />
+    {:else if category === "imaxe" && $form.targetExt === "pdf"}
       <GroupNote text={$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")} />
     {:else if category === "imaxe"}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto = mellor imaxe e máis peso (só JPG)")} />

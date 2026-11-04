@@ -339,6 +339,7 @@ export async function pdfRepair(input: string, output: string, overwrite = false
 }
 
 export const beginJob = (): Promise<void> => call("begin_job");
+export const pauseJob = (paused: boolean): Promise<boolean> => call("pause_job", { paused });
 export const cancelJob = (): Promise<boolean> => call("cancel_job");
 export const discardOutput = (path: string): Promise<boolean> => call("discard_output", { path });
 export const enableProgress = (): Promise<void> => call("enable_progress");

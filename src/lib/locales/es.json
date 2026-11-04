@@ -1411,6 +1411,7 @@
   "Lectura de tipos de letra do sistema": "Lectura de fuentes del sistema",
   "Descargas (actualizacións, programas e paquetes de idioma)": "Descargas (actualizaciones, programas y paquetes de idioma)",
   "Descompresión dos programas descargados": "Descompresión de los programas descargados",
+  "Sen perdas: o resultado conserva o orixinal tal cal, así que non hai calidade, bitrate nin tamaño que axustar.": "Sin pérdidas: el resultado conserva el original tal cual, así que no hay calidad, bitrate ni tamaño que ajustar.",
   "Sen perdas": "Sin pérdidas",
   "Conserva exactamente a calidade do orixinal, sen compresión con perdas. O ficheiro resultante pesa moito máis e o proceso tarda máis.": "Conserva exactamente la calidad del original, sin compresión con pérdidas. El archivo resultante pesa mucho más y el proceso tarda más.",
   "o modo sen perdas": "el modo sin pérdidas",
@@ -1419,5 +1420,17 @@
   "bitrate": "bitrate",
   "tamaño máximo": "tamaño máximo",
   "Ver o historial completo": "Ver el historial completo",
-  "Accións do trasno": "Acciones del trasno"
+  "Accións do trasno": "Acciones del trasno",
+  "En pausa": "En pausa",
+  "Continuar": "Continuar",
+  "Cancelar o proceso": "Cancelar el proceso",
+  "Feito": "Hecho",
+  "«{name}» xa non está onde o deixou o trasno: puido moverse ou borrarse.": "«{name}» ya no está donde lo dejó el trasno: pudo moverse o borrarse.",
+  "Só se desfán cambios da lista e das anotacións: os ficheiros do disco non se tocan.": "Solo se deshacen cambios de la lista y de las anotaciones: los archivos del disco no se tocan.",
+  "Feito! «{name}» xa está listo.": "¡Hecho! «{name}» ya está listo.",
+  "Rematado. «{name}» saíu sen un rabuñón.": "Terminado. «{name}» salió sin un rasguño.",
+  "Listo: «{name}» está no seu sitio.": "Listo: «{name}» está en su sitio.",
+  "Todo en orde con «{name}».": "Todo en orden con «{name}».",
+  "Traballo feito. Xa podes revisar «{name}».": "Trabajo hecho. Ya puedes revisar «{name}».",
+  "Outro menos: «{name}» rematado.": "Uno menos: «{name}» terminado."
 }

@@ -9,7 +9,7 @@ import { requestTool } from "./toolinstall";
 import { beginJob } from "./engine";
 import { track, refreshProcs, type Tracker } from "./procs";
 import { files, activePath } from "./files";
-import { noteAction, liveProgress, trasnoSay } from "./agent";
+import { noteAction, liveProgress, trasnoSay, jobEnd, trasnoDone } from "./agent";
 
 export interface JobMessage {
   ok: boolean;
@@ -68,14 +68,17 @@ export function createJob(): Job {
       try {
         const done = await job();
         if (done) message.set({ ok: true, text: done });
-        noteAction("O trasno rematou o traballo de «{name}»", { name: current?.name ?? "" });
+        noteAction("O trasno rematou o traballo de «{name}»", { name: current?.name ?? "" }, undefined, undefined, outs.length ? [...outs] : undefined);
         tracker.finish("done", { detail: done ? String(done).slice(0, 200) : undefined });
+        jobEnd.set({ kind: "done", title: current?.name ?? tr("Traballo"), at: Date.now() });
+        trasnoDone(current?.name ?? tr("Traballo"));
       } catch (e) {
         // Cancelar non é un fallo: sen frase de «tropezou».
         if (isCancelled(e)) {
           trasnoSay(tr("Traballo cancelado. Deixei todo ordenado, sen ficheiros a medias."), "info", 8000);
           noteAction("O trasno cancelou o traballo de «{name}»", { name: current?.name ?? "" });
           tracker.finish("cancelled");
+          jobEnd.set({ kind: "cancelled", title: current?.name ?? tr("Traballo"), at: Date.now() });
         } else {
           const missing = missingToolOf(e);
           if (missing) requestTool(missing, undefined, () => void this.run(working, fail, job));
@@ -83,6 +86,7 @@ export function createJob(): Job {
           trasnoSay(full, "warn", 45000, undefined, { copy: full, notify: true });
           noteAction("O trasno tropezou co traballo de «{name}»", { name: current?.name ?? "" }, undefined, `${tr(fail)}\n${errText(e)}`);
           tracker.finish("error", { detail: errText(e).slice(0, 200) });
+          jobEnd.set({ kind: "error", title: current?.name ?? tr("Traballo"), at: Date.now() });
         }
       } finally {
         active = null;
