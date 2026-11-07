@@ -88,8 +88,10 @@ fn recortes_imposibles_dan_erro_limpo() {
 fn compresion_de_imaxes_sobre_todas_as_mostras() {
     let dir = tempfile::tempdir().unwrap();
     let mut failures = Vec::new();
+    // WebP con perdas escríbese con FFmpeg: sen el (p. ex. na integración continua) só se proban JPG e PNG.
+    let exts: &[&str] = if ffmpeg::is_available() { &["jpg", "png", "webp"] } else { &["jpg", "png"] };
     for (name, src) in image_samples(dir.path()) {
-        for ext in ["jpg", "png", "webp"] {
+        for &ext in exts {
             for o in [
                 ImageCompress { quality: Some(10), ..Default::default() },
                 ImageCompress { quality: Some(100), max_side: Some(20), ..Default::default() },
