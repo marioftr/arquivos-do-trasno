@@ -82,7 +82,7 @@
 
 <style>
   .wrap { position: relative; height: 100%; }
-  pre { margin: 0; height: 100%; overflow: auto; padding: 1rem 1.25rem; font-size: 0.85rem; white-space: pre-wrap; }
+  pre { margin: 0; height: 100%; overflow: auto; padding: 1rem 1.25rem; font-size: var(--fs-md); white-space: pre-wrap; }
   mark { background: color-mix(in srgb, var(--accent-pdf) 45%, transparent); color: inherit; border-radius: 2px; }
   mark.cur { background: var(--accent-pdf); color: #fff; }
 </style>

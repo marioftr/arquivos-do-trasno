@@ -214,7 +214,7 @@ const EXT_CTX: Record<string, string[]> = {
   mp4: ["O MP4 H.264 abre case en calquera sitio."],
   mov: ["Os MOV do móbil adoitan pesar moito: convertelos a MP4 ou baixar a altura máxima axuda."],
   gif: ["Un GIF pesa moito máis que o mesmo vídeo en MP4 ou WebM.", "O GIF só ten 256 cores; ao convertelo a PNG ou JPG non se gaña calidade."],
-  png: ["O PNG non perde calidade ao gardarse; o JPG e o WebP si, aínda que pesan moito menos.", "Un PNG con moita foto dentro pesa moito: en JPG ou WebP aforra bastante."],
+  png: ["O PNG non perde calidade ao gardarse (salvo que se comprima con perdas); o JPG e o WebP si, aínda que pesan moito menos.", "Un PNG con moita foto dentro pesa moito: en JPG ou WebP aforra bastante."],
   jpg: ["O JPG perde un chisco de calidade cada vez que se garda: convén traballar sobre unha copia."],
   jpeg: ["O JPEG perde un chisco de calidade cada vez que se garda: convén traballar sobre unha copia."],
   webp: ["O WebP pesa menos que o JPG coa mesma calidade, pero algúns programas vellos non o abren."],

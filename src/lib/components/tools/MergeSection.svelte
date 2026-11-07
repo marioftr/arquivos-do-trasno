@@ -107,12 +107,12 @@
 </div>
 
 <style>
-  .order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; font-size: 0.85rem; }
+  .order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; font-size: var(--fs-md); }
   .order li { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.2rem; border-bottom: 1px solid var(--border); background: var(--bg); }
   .order li.lifted { position: relative; z-index: 5; pointer-events: none; opacity: 0.9; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); background: var(--bg-elevated); }
   .order li.target { background: color-mix(in srgb, var(--accent) 16%, var(--bg)); }
-  .grip { cursor: grab; touch-action: none; user-select: none; color: var(--text-faint); padding: 0 0.2rem; font-size: 1rem; line-height: 1; }
-  .pos { width: 3rem; height: 1.7rem; text-align: center; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: 4px; font: inherit; font-size: 0.8rem; }
+  .grip { cursor: grab; touch-action: none; user-select: none; color: var(--text-faint); padding: 0 0.2rem; font-size: var(--fs-lg); line-height: 1; }
+  .pos { width: 3rem; height: 1.7rem; text-align: center; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: 4px; font: inherit; font-size: var(--fs-sm); }
   .pos:focus { outline: none; border-color: var(--accent); }
   .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
   .mini { display: flex; background: none; border: none; color: var(--text-muted); padding: 0.25rem; border-radius: 4px; }

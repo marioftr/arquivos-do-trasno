@@ -44,12 +44,12 @@
 
 <style>
   section { display: flex; flex-direction: column; gap: 0.7rem; }
-  .note, .empty { margin: 0; font-size: 0.82rem; }
+  .note, .empty { margin: 0; font-size: var(--fs-sm); }
   .card { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.6rem 0.7rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); }
   .top { display: flex; align-items: center; gap: 0.5rem; }
-  .name { flex: 1; min-width: 0; height: var(--control-h); background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.6rem; font: inherit; font-size: 0.88rem; font-weight: 550; }
+  .name { flex: 1; min-width: 0; height: var(--control-h); background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.6rem; font: inherit; font-size: var(--fs-md); font-weight: 550; }
   .name:focus { outline: none; border-color: var(--accent); }
-  .sum { margin: 0; font-size: 0.78rem; }
-  .ask { font-size: 0.82rem; }
+  .sum { margin: 0; font-size: var(--fs-sm); }
+  .ask { font-size: var(--fs-sm); }
   .top :global(.btn) { height: var(--control-h); min-height: var(--control-h); padding-block: 0; }
 </style>

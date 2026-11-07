@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { openLink, cancelToolInstall, type ToolId } from "../engine";
+  import { openLink, cancelToolInstall, officeStatus, type OfficeStatus, type ToolId } from "../engine";
   import { t } from "../i18n";
   import { tools, refreshTools } from "../settings";
   import { ocrInstalled, refreshOcr, OCR_LANGS } from "../ocr";
@@ -14,6 +14,7 @@
     checking = true;
     const before = $tools;
     try {
+      void refreshOffice();
       const s = await refreshTools();
       const found = [!before?.ffmpeg && s.ffmpeg ? "FFmpeg" : "", !before?.mkvmerge && s.mkvmerge ? "MKVToolNix" : ""].filter(Boolean);
       if (found.length) toast(tr("O trasno atopou {list}. Xa non fai falta descargalo.", { list: found.join(" e ") }));
@@ -26,10 +27,22 @@
     }
   }
 
+  let office: OfficeStatus | null = null;
+  const refreshOffice = () => officeStatus().then((s) => (office = s)).catch(() => (office = null));
   onMount(() => {
     refreshOcr().catch(() => {});
     refreshTools();
+    refreshOffice();
   });
+  $: officeProgs = office
+    ? [
+        { name: "Microsoft Word", ok: office.word },
+        { name: "Microsoft Excel", ok: office.excel },
+        { name: "Microsoft PowerPoint", ok: office.powerpoint },
+        { name: "LibreOffice", ok: office.libreoffice },
+      ]
+    : [];
+  $: officeAny = !!office && (office.word || office.excel || office.powerpoint || office.libreoffice);
 
   const keys: ToolId[] = ["ffmpeg", "mkvmerge"];
   // O que vai dentro da aplicación: non hai que instalar nada.
@@ -53,6 +66,9 @@
   <p class="muted lead">
     {$t("Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: o trasno pode descargalos por ti ou podes instalalos ti e a app detectaos soa.")}
   </p>
+  <p class="muted lead">
+    {$t("Para os documentos de Office usa Microsoft Office ou LibreOffice, se algún dos dous está instalado.")}
+  </p>
 
   <section class="card ok">
     <div class="head"><strong>{$t("Incluído coa aplicación")}</strong><span class="state ok"><Icon name="check" size={13} /> {$t("Sempre dispoñible")}</span></div>
@@ -60,6 +76,31 @@
       <p><strong>{b.name}</strong> · <span class="muted">{$t(b.what)}</span> <span class="muted small">({b.license})</span></p>
     {/each}
     <p class="muted small">{$t("Idiomas de OCR descargados:")} {ocrNames.length ? ocrNames.join(", ") : $t("ningún")}</p>
+  </section>
+
+  <section class="card" class:ok={officeAny}>
+    <div class="head">
+      <strong>Microsoft Office · LibreOffice</strong>
+      <span class="state" class:ok={officeAny}>
+        <Icon name={officeAny ? "check" : "warning"} size={13} />
+        {office === null ? $t("Comprobando…") : officeAny ? $t("Instalado") : $t("Non atopado")}
+      </span>
+    </div>
+    <p class="muted">{$t("Para converter documentos de Office (DOCX, XLSX, PPTX, ODT…) a PDF e entre si, o trasno usa Microsoft Office ou LibreOffice, o que haxa instalado. Non van incluídos nin se descargan desde a app, e o trasno non lles envía nada á rede.")}</p>
+    <p><span class="muted">{$t("Desbloquea:")}</span> {$t("Converter documentos de Office a PDF e a outros formatos, e velos no visor.")}</p>
+    {#if office}
+      <p class="progs">
+        {#each officeProgs as p}
+          <span class="prog-item" class:off={!p.ok}><Icon name={p.ok ? "check" : "close"} size={12} /> {p.name}</span>
+        {/each}
+      </p>
+    {/if}
+    {#if !officeAny}
+      <div class="acts">
+        <button class="btn ghost" on:click={() => openLink("libreoffice")}>{$t("Abrir a páxina de descarga de LibreOffice")}</button>
+      </div>
+      <p class="muted small">{$t("ou, en Windows, no terminal:")} <code class="selectable">winget install TheDocumentFoundation.LibreOffice</code></p>
+    {/if}
   </section>
 
   {#each keys as key}
@@ -119,17 +160,20 @@
   .card { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-card); }
   .card p { margin: 0; }
   .head { display: flex; align-items: center; justify-content: space-between; }
-  .state { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: var(--accent-pdf); }
+  .state { display: inline-flex; align-items: center; gap: 0.3rem; font-size: var(--fs-sm); color: var(--accent-pdf); }
   .state.ok { color: var(--accent-imaxe); }
-  .small { font-size: 0.8rem; }
-  .fail { color: var(--accent-video); font-size: 0.84rem; }
+  .small { font-size: var(--fs-sm); }
+  .fail { color: var(--accent-video); font-size: var(--fs-md); }
   .prog { display: flex; flex-direction: column; gap: 0.4rem; }
-  .line { display: flex; justify-content: space-between; font-size: 0.84rem; }
+  .line { display: flex; justify-content: space-between; font-size: var(--fs-md); }
   .pct { font-variant-numeric: tabular-nums; }
   .bar { height: 7px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
   .fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.2s ease; }
   .ask p { margin: 0 0 0.5rem; }
   .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem; }
-  code { background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 0.82rem; }
-  .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; font-size: 0.82rem; }
+  .progs { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; font-size: var(--fs-sm); }
+  .prog-item { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--accent-imaxe); }
+  .prog-item.off { color: var(--text-faint); }
+  code { background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: var(--fs-sm); }
+  .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; font-size: var(--fs-sm); }
 </style>

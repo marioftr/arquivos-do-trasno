@@ -35,11 +35,11 @@
   /* O contedor é unha columna con scroll: sen «flex: none» o texto encollería e o último botón quedaría cortado. */
   .doc { display: flex; flex-direction: column; gap: 1rem; flex: none; padding-bottom: 0.6rem; }
   header { display: flex; flex-direction: column; gap: 0.15rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem; }
-  h3 { margin: 0; font-size: 1rem; font-weight: 600; }
-  .when { font-size: 0.78rem; }
+  h3 { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
+  .when { font-size: var(--fs-sm); }
   section { display: flex; flex-direction: column; gap: 0.45rem; }
-  h4 { margin: 0; font-size: 0.86rem; font-weight: 650; }
-  p { margin: 0; font-size: 0.86rem; line-height: 1.5; color: var(--text); }
-  p.mono { font-size: 0.8rem; color: var(--text-muted); }
+  h4 { margin: 0; font-size: var(--fs-md); font-weight: 650; }
+  p { margin: 0; font-size: var(--fs-md); line-height: 1.5; color: var(--text); }
+  p.mono { font-size: var(--fs-sm); color: var(--text-muted); }
   footer { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.4rem; }
 </style>

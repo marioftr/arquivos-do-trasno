@@ -63,8 +63,8 @@
 <style>
   .alist { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); padding: 0.3rem 0; }
   section { display: flex; flex-direction: column; gap: 0.5rem; }
-  h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
+  h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; }
   .cnt { font-weight: 500; }
   .hh { display: flex; align-items: center; justify-content: space-between; }
-  .note { margin: 0; font-size: 0.82rem; }
+  .note { margin: 0; font-size: var(--fs-sm); }
 </style>

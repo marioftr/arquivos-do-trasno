@@ -10,7 +10,8 @@
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
-  import { targetsForCategory, withExtension, fileNameOf, formatBytes, AUDIO_TARGETS, TRASNO, fallo, listo } from "../../formats";
+  import { targetsForCategory, OFFICE_EXTS, PDF_TO_DOC, withExtension, fileNameOf, formatBytes, AUDIO_TARGETS, TRASNO, fallo, listo, firstFrameNotice } from "../../formats";
+  import LockNote from "../ui/LockNote.svelte";
   import { samePath, askPath, askDir } from "./shared";
   import Icon from "../Icon.svelte";
   import Slider from "../ui/Slider.svelte";
@@ -33,7 +34,22 @@
 
   const first = selection[0];
   const multi = selection.length > 1;
-  const targets = targetsForCategory(category, first.ext);
+  let targets = targetsForCategory(category, first.ext);
+  // Documentos de Office (e PDF → documento): as saídas dependen do que haxa instalado (Microsoft Office / LibreOffice).
+  const viaOffice = (ext: string, to: string) => OFFICE_EXTS.includes(ext) || (ext === "pdf" && PDF_TO_DOC.includes(to));
+  const hasOffice = category === "documento" && selection.some((f) => OFFICE_EXTS.includes(f.ext) || f.ext === "pdf");
+  onMount(async () => {
+    if (!hasOffice) return;
+    try {
+      const lists = await Promise.all(selection.map((f) => engine.officeTargets(f.ext)));
+      const common = lists.reduce((a, l) => a.filter((x) => l.includes(x)));
+      const base = targetsForCategory(category, first.ext);
+      targets = [...base.filter((x) => selection.every((f) => targetsForCategory(category, f.ext).includes(x))), ...common.filter((x) => !base.includes(x))];
+      if (!targets.includes($form.targetExt)) form.update((f) => ({ ...f, targetExt: targets.find((x) => x !== first.ext) ?? targets[0] ?? "" }));
+    } catch {
+      /* sen Office: só as saídas de sempre */
+    }
+  });
   const isMedia = category === "audio" || category === "video";
 
   const form = createForm({
@@ -65,6 +81,20 @@
     const r = await anyTransparent(sel.map((f) => f.path));
     if (on === needsBg && sel === selection) transparent = r;
   }
+
+  // Unha imaxe animada só mantén a animación ao pasar a GIF ou WebP (desde GIF ou PNG animado); a calquera outro formato
+  // só se garda o primeiro fotograma, e iso avísase antes de converter.
+  let animatedFiles: FileEntry[] = [];
+  $: void findAnimated(category === "imaxe" ? selection : []);
+  async function findAnimated(list: FileEntry[]) {
+    const out: FileEntry[] = [];
+    await Promise.all(
+      list.filter((f) => ["gif", "webp", "png", "apng"].includes(f.ext.toLowerCase())).map((f) => engine.imageIsAnimated(f.path).then((a) => a && out.push(f)).catch(() => {})),
+    );
+    if (list === selection || category !== "imaxe") animatedFiles = out;
+  }
+  const keepsAnimation = (f: FileEntry, to: string) => ["gif", "png", "apng"].includes(f.ext.toLowerCase()) && ["gif", "webp"].includes(to) && f.ext.toLowerCase() !== to;
+  $: losing = category === "imaxe" ? animatedFiles.filter((f) => !keepsAnimation(f, $form.targetExt)) : [];
 
   $: backdrop.set(needsBg && transparent && selection.length === 1 ? cssOf($form.bg) : null);
   onDestroy(() => backdrop.set(null));
@@ -105,6 +135,10 @@
 
   async function convertOne(f: FileEntry, out: string, overwrite: boolean) {
     const v = $form;
+    if (f.category === "documento" && viaOffice(f.ext, v.targetExt)) {
+      const done = await engine.convertOffice(f.path, out, overwrite);
+      return { output_path: done, bytes_written: await engine.fileSize(done) };
+    }
     if (f.category === "modelo3d" && !(ENGINE_3D.includes(f.ext) && ENGINE_3D.includes(v.targetExt))) {
       return { output_path: out, bytes_written: await (await import("../../model3d")).convertModel(f.path, f.ext, out, v.targetExt, overwrite) };
     }
@@ -183,6 +217,13 @@
       def={form.defaults.targetExt}
       disabled={$busy}
     />
+
+    {#if losing.length}
+      <LockNote
+        label={losing.length === 1 ? $t("Só o primeiro fotograma") : $t("{n} perden a animación", { n: losing.length })}
+        text={firstFrameNotice(losing[0].ext, $form.targetExt) + (losing.length > 1 ? " " + tr("Afecta a {n} ficheiros.", { n: losing.length }) : "")}
+      />
+    {/if}
 
     {#if needsBg && transparent}
       <Segmented

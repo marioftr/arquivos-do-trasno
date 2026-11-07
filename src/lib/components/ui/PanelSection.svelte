@@ -22,7 +22,7 @@
   .head { width: 100%; display: flex; align-items: center; gap: 0.45rem; padding: 0.6rem 0.9rem; background: none; border: none; color: var(--text); text-align: left; }
   .head:hover { background: var(--bg-hover); }
   .chev { color: var(--text-faint); display: inline-flex; }
-  .tt { flex: 1; font-size: 0.78rem; font-weight: 650; letter-spacing: 0.02em; }
-  .meta { font-size: 0.74rem; color: var(--text-faint); }
+  .tt { flex: 1; font-size: var(--fs-sm); font-weight: 650; letter-spacing: 0.02em; }
+  .meta { font-size: var(--fs-xs); color: var(--text-faint); }
   .in { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.2rem 0.9rem 0.9rem; }
 </style>

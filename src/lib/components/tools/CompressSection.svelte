@@ -1,8 +1,7 @@
 <script lang="ts">
   import GroupNote from "../ui/GroupNote.svelte";
   import InfoTip from "../ui/InfoTip.svelte";
-  import { BACKGROUNDS, anyTransparent, backdrop, cssOf, type Bg } from "../../transparency";
-  import { errText } from "../../errors";
+    import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import { open, save } from "@tauri-apps/plugin-dialog";
@@ -10,7 +9,8 @@
   import * as engine from "../../engine";
   import { claim } from "../../claim";
   import { videoDar, type FileEntry } from "../../files";
-  import { fileNameOf, formatBytes, withExtension, TRASNO, fallo } from "../../formats";
+  import { fileNameOf, formatBytes, withExtension, TRASNO, fallo, sameFormat, cannotSaveNotice, noCompressionNotice, animatedNotice, readOnlyLabel } from "../../formats";
+  import LockNote from "../ui/LockNote.svelte";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
@@ -59,8 +59,8 @@
 
   const form = createForm({
     mode: "quality" as "quality" | "bitrate" | "size",
-    bg: "white" as Bg,
     quality: 75,
+    pngQuality: 100,
     maxSide: null as number | null,
     profile: initialProfile,
     deinterlace: PROFILES[initialProfile].v.deinterlace,
@@ -87,10 +87,39 @@
   let results: { name: string; state: "agarda" | "feito" | "erro"; text?: string }[] = [];
 
   $: v = $form;
+  // Cada formato ten a súa calidade: en PNG, 100 é sen perdas (por defecto) e menos reduce a paleta de cores.
+  const isPngExt = (ext: string) => engine.compressExt(ext) === "png";
+  // O resultado mantén sempre o formato do orixinal (para cambiar de formato está Converter). Hai ficheiros que non se poden
+  // comprimir así: formatos sen compresión propia (BMP, TIFF…), que só se saben ler (HEIC…) e imaxes animadas que non son GIF.
+  let animatedPaths = new Set<string>();
+  $: void checkAnimated(isImage ? selection : []);
+  async function checkAnimated(list: FileEntry[]) {
+    const found = new Set<string>();
+    await Promise.all(
+      list
+        .filter((f) => ["webp", "png", "apng", "gif"].includes(f.ext.toLowerCase()))
+        .map((f) => engine.imageIsAnimated(f.path).then((a) => a && found.add(f.path)).catch(() => {})),
+    );
+    if (list === selection || !isImage) animatedPaths = found;
+  }
+  const keepsFormat = (f: FileEntry) => engine.COMPRESS_KEEP.includes(f.ext.toLowerCase());
+  const isBlocked = (f: FileEntry, anim: Set<string>) => isImage && (!keepsFormat(f) || (anim.has(f.path) && f.ext.toLowerCase() !== "gif"));
+  $: blocked = selection.filter((f) => isBlocked(f, animatedPaths));
+  $: usable = selection.filter((f) => !isBlocked(f, animatedPaths));
+  $: allBlocked = isImage && usable.length === 0;
+  function whyBlocked(f: FileEntry): string {
+    if (!sameFormat(f.ext)) return cannotSaveNotice(f.ext, "comprimir");
+    if (!keepsFormat(f)) return noCompressionNotice(f.ext);
+    return animatedNotice(f.ext, "comprimir");
+  }
+  $: blockedText = blocked.length === 1 ? whyBlocked(blocked[0]) : tr("{n} ficheiros non se comprimen: ou o seu formato non ten compresión propia, ou só se saben ler, ou son imaxes animadas que non son GIF. Convérteos antes a PNG ou JPG na pestana Converter.", { n: blocked.length }) + " " + [...new Set(blocked.map((f) => f.ext.toUpperCase()))].join(", ");
+  $: hasPng = isImage && usable.some((f) => isPngExt(f.ext));
+  $: hasLossy = isImage && usable.some((f) => !isPngExt(f.ext));
+  $: hasGif = isImage && usable.some((f) => f.ext.toLowerCase() === "gif");
   $: targetBytes = Math.max(1, Math.round((v.sizeValue || 1) * (UNITS.find((u) => u.id === v.unit)?.mult ?? 1)));
-  $: paramsKey = `${v.mode}|${v.quality}|${v.maxSide}|${v.crf}|${v.maxHeight}|${v.audioKbps}|${v.videoKbps}|${v.deinterlace}|${v.compat}|${v.dar}|${v.bg}|${transparent}`;
+  $: paramsKey = `${v.mode}|${v.quality}|${v.pngQuality}|${v.maxSide}|${v.crf}|${v.maxHeight}|${v.audioKbps}|${v.videoKbps}|${v.deinterlace}|${v.compat}|${v.dar}`;
   $: invalidate(paramsKey);
-  $: if (isImage && !multi && v.mode === "quality") scheduleImageEstimate(paramsKey);
+  $: if (isImage && !multi && !allBlocked && v.mode === "quality") scheduleImageEstimate(paramsKey);
 
   // Ao escoller un perfil aplícanse os seus valores; despois pódese seguir afinando.
   // Os valores que definen un perfil. Se non coinciden cos do perfil elixido, o perfil pasa a «Personalizado».
@@ -148,7 +177,7 @@
     clearTimeout(timer);
     timer = setTimeout(async () => {
       try {
-        const bytes = await engine.estimateImage(first.path, engine.compressExt(first.ext), v.quality, v.maxSide || undefined, transparent ? BACKGROUNDS[v.bg] : undefined);
+        const bytes = await engine.estimateImage(first.path, first.ext.toLowerCase(), isPngExt(first.ext) ? v.pngQuality : v.quality, v.maxSide || undefined);
         if (key === paramsKey) estimate = bytes;
       } catch {
         estimate = null;
@@ -177,7 +206,7 @@
       const r = await engine.compressImage(
         f.path,
         out,
-        { quality: v.mode === "quality" ? v.quality : undefined, targetBytes: v.mode === "size" ? targetBytes : undefined, maxSide: v.maxSide || undefined, background: transparent ? BACKGROUNDS[v.bg] : undefined },
+        { quality: v.mode === "quality" ? (isPngExt(f.ext) ? v.pngQuality : v.quality) : undefined, targetBytes: v.mode === "size" ? targetBytes : undefined, maxSide: v.maxSide || undefined },
         overwrite,
       );
       return r.bytes_written;
@@ -200,19 +229,7 @@
     return await engine.fileSize(done);
   }
 
-  /** O resultado mantén o formato do orixinal (se se pode comprimir nel); para cambiar de formato está Converter. */
-  // Os formatos sen compresión propia saen en JPG; se ademais teñen transparencia, hai que escoller o fondo.
-  $: jpgFiles = isImage ? selection.filter((f) => engine.compressExt(f.ext) === "jpg" && !["jpg", "jpeg"].includes(f.ext.toLowerCase())) : [];
-  let transparent = false;
-  $: checkTransparency(jpgFiles);
-  $: backdrop.set(isImage && transparent && selection.length === 1 ? cssOf($form.bg) : null);
-  onDestroy(() => backdrop.set(null));
-  async function checkTransparency(list: FileEntry[]) {
-    transparent = false;
-    const r = list.length ? await anyTransparent(list.map((f) => f.path)) : false;
-    if (list === jpgFiles) transparent = r;
-  }
-  const outExt = (f: FileEntry) => (isImage ? engine.compressExt(f.ext) : "mp4");
+  const outExt = (f: FileEntry) => (isImage ? f.ext.toLowerCase() : "mp4");
 
   async function runSingle() {
     const stem = first.path.replace(/\.[^.\\/]+$/, "");
@@ -231,9 +248,11 @@
   }
 
   async function runBatch() {
-    const dir = await askDir(selection[0].path);
+    // As imaxes que non se poden comprimir mantendo o formato quedan fóra do lote (avísase arriba).
+    const files = isImage ? usable : selection;
+    const dir = await askDir(files[0].path);
     if (!dir) return;
-    results = selection.map((f) => ({ name: f.name, state: "agarda" }));
+    results = files.map((f) => ({ name: f.name, state: "agarda" }));
     job.busy.set(true);
     job.text.set(tr(TRASNO.comprimindo));
     job.clear();
@@ -241,9 +260,9 @@
     let after = 0;
     let cursor = 0;
     const worker = async () => {
-      while (cursor < selection.length) {
+      while (cursor < files.length) {
         const i = cursor++;
-        const f = selection[i];
+        const f = files[i];
         try {
           const dot = f.name.lastIndexOf(".");
           const base = dot > 0 ? f.name.slice(0, dot) : f.name;
@@ -260,16 +279,18 @@
       }
     };
     // As imaxes van de tres en tres; o vídeo codifica de un en un (xa usa todos os núcleos).
-    await Promise.all(Array.from({ length: Math.min(isImage ? 3 : 1, selection.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(isImage ? 3 : 1, files.length) }, worker));
     const bad = results.filter((r) => r.state === "erro").length;
     job.say(!bad, bad
-      ? tr("Vaites! {bad} de {total} ficheiros escapáronlle ao trasno.", { bad, total: selection.length })
-      : tr("Feito! O trasno comprimiu {n} ficheiros en {dir}: de {from} a {to}.", { n: selection.length, dir: fileNameOf(dir), from: formatBytes(before), to: formatBytes(after) }));
+      ? tr("Vaites! {bad} de {total} ficheiros escapáronlle ao trasno.", { bad, total: files.length })
+      : tr("Feito! O trasno comprimiu {n} ficheiros en {dir}: de {from} a {to}.", { n: files.length, dir: fileNameOf(dir), from: formatBytes(before), to: formatBytes(after) }));
     job.busy.set(false);
   }
 </script>
 
 <div class="stack">
+  {#if isImage && blocked.length}<LockNote label={allBlocked ? readOnlyLabel() : tr("{n} sen comprimir", { n: blocked.length })} text={blockedText} />{/if}
+  <div class="locked-tools" class:on={allBlocked} inert={allBlocked}>
 
   {#if !isImage}
     <div class="group">
@@ -318,10 +339,13 @@
       {#if tooSmall}<p class="warn">{$t("Aviso: con este tamaño o vídeo quedará con moi pouca calidade.")}</p>{/if}
     {:else if v.mode === "bitrate" && !isImage}
       <Slider label={$t("Bitrate de vídeo")} unit="kbps" min={200} max={12000} step={100} bind:value={$form.videoKbps} def={form.defaults.videoKbps} hint={$t("Cantidade de datos por segundo da imaxe: máis alto = máis calidade e máis peso")} />
-    {:else if isImage && first.ext.toLowerCase() === "png"}
-      <GroupNote text={$t("O PNG comprímese sen perdas: non hai calidade que axustar. Para pesar menos, redúcese o lado máximo ou fíxase un tamaño máximo.")} />
     {:else if isImage}
-      <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} />
+      {#if hasLossy}
+        <Slider label={hasPng ? $t("Calidade (JPG, WebP…)") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={hasGif ? $t("Nos GIF, menos calidade significa menos cores na paleta; os fotogramas e os seus tempos non se tocan.") : undefined} />
+      {/if}
+      {#if hasPng}
+        <Slider label={hasLossy ? $t("Calidade do PNG") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.pngQuality} def={form.defaults.pngQuality} hint={$t("100 % non cambia ningún píxel: o ficheiro pode pesar menos porque se volve gardar coa máxima compresión e sen metadatos (EXIF, perfil de cor). Por baixo, o PNG reduce o número de cores (paleta) para pesar menos, sen perder a transparencia.")} />
+      {/if}
     {:else}
       <Segmented options={LEVELS.map((l) => ({ value: l.crf, label: $t(l.label), hint: $t(l.hint) }))} bind:value={$form.crf} />
       <Slider label={$t("Calidade (CRF)")} min={18} max={40} bind:value={$form.crf} def={form.defaults.crf} hint={$t("Menos CRF = máis calidade e máis peso")} />
@@ -340,20 +364,10 @@
     {/if}
     {#if !isImage}
       <p class="group-note">{$t("Os vídeos gárdanse como MP4 (H.264).")}</p>
-    {:else if jpgFiles.length}
-      <p class="outfmt">{$t("Gardarase como JPG")}<InfoTip text={$t("Este formato non admite compresión propia, así que a imaxe gárdase como JPG.")} /></p>
-    {/if}
-    {#if isImage && transparent}
-      <Segmented
-        label={$t("Fondo")}
-        info={$t("A imaxe ten transparencia e JPG non a admite: hai que escoller un fondo sobre o que compoñela.")}
-        options={[{ value: "white", label: $t("Branco") }, { value: "black", label: $t("Negro") }, { value: "gray", label: $t("Gris neutro") }]}
-        bind:value={$form.bg}
-      />
     {/if}
   </div>
 
-  {#if !multi}
+  {#if !multi && !allBlocked}
     <div class="estimate">
       {#if v.mode === "size"}
         <span class="est-main">≤ {v.sizeValue} {v.unit}</span>
@@ -391,14 +405,16 @@
   {/if}
 
   {#if multi}
-    <button class="btn primary block" on:click={runBatch} disabled={$busy}>
-      {isImage ? $t("Comprimir {n} imaxes", { n: selection.length }) : $t("Converter {n} vídeos a MP4", { n: selection.length })}
+    <button class="btn primary block" on:click={runBatch} disabled={$busy || allBlocked}>
+      {isImage ? $t("Comprimir {n} imaxes", { n: usable.length }) : $t("Converter {n} vídeos a MP4", { n: selection.length })}
     </button>
   {:else}
-    <button class="btn primary block" on:click={runSingle} disabled={$busy}>
+    <button class="btn primary block" on:click={runSingle} disabled={$busy || allBlocked}>
       {isImage ? $t("Comprimir imaxe") : $t("Converter a MP4")}
     </button>
   {/if}
+
+  </div>
 
   {#if results.length}
     <ul class="results">
@@ -415,13 +431,12 @@
 </div>
 
 <style>
-  .outfmt { display: inline-flex; align-items: center; margin: 0; font-size: 0.8rem; color: var(--text-muted); }
-  .warn { margin: 0; font-size: 0.8rem; color: var(--accent-pdf); }
+  .warn { margin: 0; font-size: var(--fs-sm); color: var(--accent-pdf); }
   .savewrap { display: flex; flex-direction: column; }
   .savebox { display: flex; gap: 0.4rem; align-items: center; }
   .nameinp { flex: 1; min-width: 0; height: var(--control-h); background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.6rem; font: inherit; }
   .nameinp:focus { outline: none; border-color: var(--accent); }
-  .tiny { font-size: 0.76rem; }
+  .tiny { font-size: var(--fs-xs); }
   .estimate { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.7rem; min-height: var(--control-h); align-content: center; }
-  .est-main { font-size: 1.05rem; font-weight: 600; }
+  .est-main { font-size: var(--fs-lg); font-weight: 600; }
 </style>

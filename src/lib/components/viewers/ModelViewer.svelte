@@ -450,7 +450,7 @@
   .canvas :global(canvas) { display: block; }
   .status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 2rem; text-align: center; pointer-events: none; }
   .chan { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-  .ch { background: transparent; border: 1px solid var(--border-strong); color: var(--text-muted); border-radius: var(--radius-sm); padding: 0.28em 0.6em; font-size: 0.78rem; }
+  .ch { background: transparent; border: 1px solid var(--border-strong); color: var(--text-muted); border-radius: var(--radius-sm); padding: 0.28em 0.6em; font-size: var(--fs-sm); }
   .ch:hover { color: var(--text); }
   .ch.on { border-color: var(--accent); color: var(--accent); }
   .mats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
@@ -460,14 +460,14 @@
   .mname { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
   .mn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sw { width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--border-strong); flex-shrink: 0; }
-  .slots { display: flex; flex-direction: column; font-size: 0.74rem; color: var(--text-muted); padding-left: 1.05rem; }
+  .slots { display: flex; flex-direction: column; font-size: var(--fs-xs); color: var(--text-muted); padding-left: 1.05rem; }
   .slots .bad { color: var(--accent-video); }
   .imps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
   .imps li { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; border-bottom: 1px solid var(--border); }
-  .in { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; }
-  .warn { color: var(--accent-pdf); font-size: 0.78rem; margin: 0; word-break: break-word; }
-  .tiny { margin: 0; font-size: 0.78rem; }
-  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
+  .in { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); }
+  .warn { color: var(--accent-pdf); font-size: var(--fs-sm); margin: 0; word-break: break-word; }
+  .tiny { margin: 0; font-size: var(--fs-sm); }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem; padding: 0.5rem 0.9rem 0.5rem max(0.9rem, var(--dock-gap, 0px)); border-top: 1px solid var(--border); font-size: var(--fs-md); }
   .chk { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--text-muted); }
   .stats { margin-left: auto; }
 </style>

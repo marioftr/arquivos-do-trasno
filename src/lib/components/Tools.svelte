@@ -2,7 +2,7 @@
   import type { Category } from "../engine";
   import type { FileEntry } from "../files";
   import { t } from "../i18n";
-  import { formatBytes, CATEGORY_LABELS, PLAIN_TEXT } from "../formats";
+  import { formatBytes, CATEGORY_LABELS, PLAIN_TEXT, OFFICE_EXTS } from "../formats";
   import ToolStrip from "./ui/ToolStrip.svelte";
   import FormBar from "./ui/FormBar.svelte";
   import { activeForm } from "../forms";
@@ -81,7 +81,7 @@
               tab("security", "Seguridade"),
               tab("info", "Información"),
             ]
-          : PLAIN_TEXT.includes(first?.ext ?? "")
+          : PLAIN_TEXT.includes(first?.ext ?? "") || OFFICE_EXTS.includes(first?.ext ?? "")
             ? [tab("convert", "Converter"), tab("info", "Información")]
             : [tab("info", "Información")];
       default:
@@ -264,14 +264,14 @@
   @media (max-width: 1050px) { .shell { flex-direction: column; } }
   header { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.8rem 0.45rem 1.1rem; min-height: 3rem; }
   .ttl { flex: 1; min-width: 0; }
-  header h2 { margin: 0; font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sub { margin: 0.1rem 0 0; font-size: 0.76rem; }
-  .ocrnote { margin: 0; padding: 0.5rem 1.1rem; font-size: 0.8rem; color: var(--accent-pdf); border-bottom: 1px solid var(--border); }
+  header h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sub { margin: 0.1rem 0 0; font-size: var(--fs-xs); }
+  .ocrnote { margin: 0; padding: 0.5rem 1.1rem; font-size: var(--fs-sm); color: var(--accent-pdf); border-bottom: 1px solid var(--border); }
   .body.off { opacity: 0.45; }
   .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; padding: 0.9rem 1.1rem 1.5rem; }
   .locked { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; text-align: center; padding: 2rem 1rem; color: var(--accent-pdf); }
   .locked p { margin: 0; color: var(--text); }
   .locked .muted { color: var(--text-muted); }
   .modes { margin-bottom: 0.9rem; }
-  .hint { padding: 1.2rem 1.1rem; font-size: 0.9rem; }
+  .hint { padding: 1.2rem 1.1rem; font-size: var(--fs-md); }
 </style>

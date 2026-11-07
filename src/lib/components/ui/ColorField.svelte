@@ -170,12 +170,12 @@
 
 <style>
   .field { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
-  .lab { display: inline-flex; align-items: center; font-size: 0.82rem; color: var(--text-muted); }
+  .lab { display: inline-flex; align-items: center; font-size: var(--fs-sm); color: var(--text-muted); }
   .row { display: flex; align-items: center; gap: 0.4rem; }
   .sw { display: grid; place-items: center; width: var(--control-h); height: var(--control-h); padding: 0; background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); cursor: pointer; }
   .sw:hover { border-color: var(--text-faint); }
   .chip { width: 20px; height: 20px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(128, 128, 128, 0.55); }
-  .hex { flex: 1; min-width: 0; width: 5.6rem; height: var(--control-h); background: var(--bg-input); color: var(--text-muted); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.6em; font-family: Consolas, monospace; font-size: 0.82rem; text-transform: uppercase; }
+  .hex { flex: 1; min-width: 0; width: 5.6rem; height: var(--control-h); background: var(--bg-input); color: var(--text-muted); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.6em; font-family: Consolas, monospace; font-size: var(--fs-sm); text-transform: uppercase; }
   .hex:focus { outline: none; border-color: var(--accent); color: var(--text); }
   .drop { display: grid; place-items: center; width: var(--control-h); height: var(--control-h); padding: 0; background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-muted); cursor: pointer; }
   .drop:hover, .drop.on { color: var(--accent); border-color: var(--accent); }

@@ -41,6 +41,12 @@ pub enum EngineError {
     #[error("traballo cancelado")]
     Cancelled,
 
+    #[error("non hai Microsoft Office nin LibreOffice para facer esta conversión: {0}")]
+    OfficeMissing(String),
+
+    #[error("o programa de Office non puido facer a conversión: {0}")]
+    OfficeFailed(String),
+
     #[error("ffmpeg rematou con erro (código {code:?}): {stderr}")]
     FfmpegFailed { code: Option<i32>, stderr: String },
 
@@ -78,6 +84,9 @@ impl EngineError {
                 json!({ "formats": formats, "from": from, "to": to }),
             ),
             Self::Cancelled => ("Cancelouse o traballo.", json!({})),
+            Self::OfficeMissing(m) if !m.is_empty() => ("{detail}", json!({ "detail": m, "dk": true })),
+            Self::OfficeMissing(_) => ("Para converter documentos de Office fai falta Microsoft Office ou LibreOffice, e o trasno non atopa ningún dos dous neste equipo.", json!({})),
+            Self::OfficeFailed(m) => ("O programa de Office non puido facer a conversión: {detail}", json!({ "detail": m })),
             Self::FfmpegNotFound => ("Non atopo ffmpeg neste equipo. Instálao (por exemplo con «winget install ffmpeg») ou pon ffmpeg.exe e ffprobe.exe ao carón da app.", json!({})),
             Self::FfmpegFailed { code, stderr } => (
                 "ffmpeg non puido rematar (código {code}). Detalle técnico: {stderr}",

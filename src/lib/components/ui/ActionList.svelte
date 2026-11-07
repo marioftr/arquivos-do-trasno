@@ -133,20 +133,20 @@
 <style>
   ul { margin: 0; padding: 0; list-style: none; }
   li { display: flex; align-items: center; }
-  .hrow { flex: 1; min-width: 0; display: grid; grid-template-columns: 3.4rem 1fr auto; align-items: center; gap: 0.6rem; padding: 0.55rem 0.5rem 0.55rem 0.9rem; background: none; border: none; border-radius: 0; color: var(--text); text-align: left; font-size: 0.8rem; }
+  .hrow { flex: 1; min-width: 0; display: grid; grid-template-columns: 3.4rem 1fr auto; align-items: center; gap: 0.6rem; padding: 0.55rem 0.5rem 0.55rem 0.9rem; background: none; border: none; border-radius: 0; color: var(--text); text-align: left; font-size: var(--fs-sm); }
   .hrow:disabled { cursor: default; }
   .hrow:hover:not(:disabled) { background: var(--bg-hover); }
   time { font-variant-numeric: tabular-nums; display: flex; flex-direction: column; line-height: 1.2; }
-  time small { font-size: 0.68rem; color: var(--text-faint); }
+  time small { font-size: var(--fs-xs); color: var(--text-faint); }
   .ht { min-width: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .hu { color: var(--text-faint); display: inline-flex; }
   .hrow:hover .hu { color: var(--accent-video); }
   .ract { flex: none; display: flex; align-items: center; gap: 1px; padding-right: 0.5rem; }
   .ib { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-muted); }
   .ib:hover { background: var(--bg-hover); color: var(--text); }
-  .conf { padding: 0.3rem 0.9rem 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.82rem; }
+  .conf { padding: 0.3rem 0.9rem 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; font-size: var(--fs-sm); }
   .conf p { margin: 0; }
   .cqt { padding: 0.35rem 0.6rem; background: var(--bg-input); border-radius: var(--radius-sm); }
   .cacts { display: flex; gap: 0.4rem; margin-top: 0.3rem; }
-  .none { margin: 0; padding: 0.3rem 0.8rem; font-size: 0.8rem; }
+  .none { margin: 0; padding: 0.3rem 0.8rem; font-size: var(--fs-sm); }
 </style>

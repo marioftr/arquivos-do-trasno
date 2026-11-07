@@ -66,6 +66,10 @@ pub fn convert_image(
             to: "(sen extensión)".to_string(),
         }
     })?;
+    // GIF ou PNG animado a GIF ou WebP: pasa por FFmpeg fotograma a fotograma para non perder a animación.
+    if crate::animated::can_keep_animation(input, &dst_ext) {
+        return crate::animated::convert_animated(input, output, overwrite, options.quality, options.resize);
+    }
     // AVIF, JPEG 2000 e JPEG XL escríbense con FFmpeg a partir dun PNG temporal (que xa leva o redimensionado).
     // WebP con calidade por debaixo de 100: con perdas (libwebp), que é o que se espera dun WebP lixeiro; o motor propio só o fai sen perdas.
     let lossy_webp = dst_ext == "webp" && options.quality.map(|q| q < 100).unwrap_or(false) && crate::ffmpeg::is_available();
@@ -217,12 +221,18 @@ pub fn edit_image(
         return Err(EngineError::InputNotFound(input.to_path_buf()));
     }
     crate::integrity::ensure_distinct(&[input], output)?;
+    // Unha imaxe animada só se leria polo primeiro fotograma: non se edita para non deixala fixa sen avisar.
+    if crate::animated::is_animated(input) {
+        return Err(EngineError::IntegrityCheck("Esta imaxe é animada e editala só gardaría un fotograma: non se fai para non perder a animación.".into()));
+    }
     let dst_ext = formats::extension_of(output).ok_or_else(|| EngineError::UnsupportedConversion {
         from: "imaxe".into(),
         to: "(sen extensión)".into(),
     })?;
     let to_pdf = dst_ext == "pdf";
-    let dst_format = if to_pdf { ImageFormat::Png } else { format_from_ext(&dst_ext)? };
+    // AVIF, JPEG XL e JPEG 2000 escríbense con FFmpeg a partir dun PNG temporal (a crate `image` non os escribe).
+    let via_ffmpeg = crate::image_ffmpeg::is_encode_ext(&dst_ext);
+    let dst_format = if to_pdf || via_ffmpeg { ImageFormat::Png } else { format_from_ext(&dst_ext)? };
     let mut img = image::open(crate::image_ffmpeg::readable(input)?)?;
 
     img = match edits.rotate % 360 {
@@ -276,6 +286,16 @@ pub fn edit_image(
         let tmp = std::env::temp_dir().join(format!("arquivos-do-trasno-{}.png", uuid::Uuid::new_v4()));
         img.save_with_format(&tmp, ImageFormat::Png)?;
         let result = crate::pdf::images_to_pdf(&[tmp.clone()], output, overwrite);
+        let _ = std::fs::remove_file(&tmp);
+        return result;
+    }
+    if via_ffmpeg {
+        if output.exists() && !overwrite {
+            return Err(EngineError::DestinationExists(output.to_path_buf()));
+        }
+        let tmp = std::env::temp_dir().join(format!("arquivos-do-trasno-{}.png", uuid::Uuid::new_v4()));
+        img.save_with_format(&tmp, ImageFormat::Png)?;
+        let result = crate::image_ffmpeg::encode(&tmp, output, overwrite, edits.quality, false);
         let _ = std::fs::remove_file(&tmp);
         return result;
     }

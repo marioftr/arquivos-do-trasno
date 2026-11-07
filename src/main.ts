@@ -1,4 +1,5 @@
 import { mount } from "svelte";
+import "@fontsource-variable/atkinson-hyperlegible-next";
 import "./styles/global.css";
 import App from "./App.svelte";
 

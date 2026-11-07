@@ -195,8 +195,8 @@
   .tile.removed { opacity: 0.3; }
   .thumb { width: 100%; height: 96px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .thumb img { max-width: 100%; max-height: 100%; background: #fff; transition: transform 0.15s ease; }
-  .num { font-size: 0.74rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem; }
-  .pos { width: 3.2rem; height: 1.7rem; text-align: center; background: var(--bg); color: var(--text); border: 1px solid var(--border-strong); border-radius: 4px; font: inherit; font-size: 0.8rem; }
+  .num { font-size: var(--fs-xs); color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem; }
+  .pos { width: 3.2rem; height: 1.7rem; text-align: center; background: var(--bg); color: var(--text); border: 1px solid var(--border-strong); border-radius: 4px; font: inherit; font-size: var(--fs-sm); }
   .pos:focus { outline: none; border-color: var(--accent); }
   .thumb { cursor: grab; touch-action: none; user-select: none; }
   .thumb img { -webkit-user-drag: none; pointer-events: none; }

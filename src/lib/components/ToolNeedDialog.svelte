@@ -63,12 +63,12 @@
   .body { display: flex; flex-direction: column; gap: 0.7rem; }
   .body p { margin: 0; }
   .reason { font-weight: 550; }
-  .small { font-size: 0.82rem; }
-  .fail { color: var(--accent-video); font-size: 0.84rem; }
+  .small { font-size: var(--fs-sm); }
+  .fail { color: var(--accent-video); font-size: var(--fs-md); }
   .done { display: flex; align-items: center; gap: 0.4rem; color: var(--accent-imaxe); }
   .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
   .prog { display: flex; flex-direction: column; gap: 0.4rem; }
-  .line { display: flex; justify-content: space-between; font-size: 0.84rem; }
+  .line { display: flex; justify-content: space-between; font-size: var(--fs-md); }
   .pct { font-variant-numeric: tabular-nums; }
   .bar { height: 7px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
   .fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.2s ease; }

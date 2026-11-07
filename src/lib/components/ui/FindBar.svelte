@@ -32,9 +32,9 @@
 
 <style>
   .find { position: absolute; top: 0.6rem; right: 1rem; z-index: 5; display: flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
-  input { width: 12rem; height: 28px; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: 5px; padding: 0 0.5em; font: inherit; font-size: 0.85rem; }
+  input { width: 12rem; height: 28px; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: 5px; padding: 0 0.5em; font: inherit; font-size: var(--fs-md); }
   input:focus { outline: none; border-color: var(--accent); }
-  .n { font-size: 0.78rem; min-width: 4.5rem; text-align: center; font-variant-numeric: tabular-nums; }
+  .n { font-size: var(--fs-sm); min-width: 4.5rem; text-align: center; font-variant-numeric: tabular-nums; }
   .find :global(.btn) { height: 28px; min-height: 28px; padding-block: 0; }
   .find :global(.btn.icon) { width: 28px; }
 </style>

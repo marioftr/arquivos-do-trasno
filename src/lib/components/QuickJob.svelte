@@ -323,9 +323,9 @@
   main { flex: 1; width: 100%; min-width: 0; height: 100vh; display: flex; flex-direction: column; gap: 0.55rem; padding: 1rem 1.2rem 0.9rem; background: var(--bg); }
   header { display: flex; align-items: center; gap: 0.7rem; }
   .titles { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
-  .titles strong { font-size: 0.9rem; }
-  .what { font-size: 0.8rem; }
-  .head { margin: 0.2rem 0 0; font-size: 1.02rem; font-weight: 600; color: var(--text); }
+  .titles strong { font-size: var(--fs-md); }
+  .what { font-size: var(--fs-sm); }
+  .head { margin: 0.2rem 0 0; font-size: var(--fs-lg); font-weight: 600; color: var(--text); }
   .head.bad { color: var(--accent-video); }
   .head.cancel { color: var(--accent-pdf); }
 
@@ -336,7 +336,7 @@
   /* Sen avance medible (imaxes, PDF ou o ffmpeg aínda sen dato): unha franxa que vai e vén, sen porcentaxe inventada. */
   .bar.indet .fill { width: 30% !important; transition: none; animation: vaivén 1.1s ease-in-out infinite alternate; }
   @keyframes vaivén { from { margin-left: 0; } to { margin-left: 70%; } }
-  .count { margin: -0.25rem 0 0; font-size: 0.75rem; text-align: right; font-variant-numeric: tabular-nums; min-height: 1.1em; }
+  .count { margin: -0.25rem 0 0; font-size: var(--fs-xs); text-align: right; font-variant-numeric: tabular-nums; min-height: 1.1em; }
 
   ul { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; display: flex; flex-direction: column; gap: 0.15rem; }
   li { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.4rem; border-radius: var(--radius-sm); min-width: 0; }
@@ -348,17 +348,17 @@
   .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: turn 0.8s linear infinite; }
   @keyframes turn { to { transform: rotate(360deg); } }
   .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
-  .n { font-size: 0.86rem; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sub { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .n { font-size: var(--fs-md); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sub { font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .note { color: var(--accent); font-weight: 600; }
-  .err { font-size: 0.78rem; color: var(--accent-video); word-break: break-word; }
-  footer { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .err { font-size: var(--fs-sm); color: var(--accent-video); word-break: break-word; }
+  footer { display: flex; align-items: center; gap: 0.6rem; font-size: var(--fs-sm); padding-top: 0.5rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
   .grow { flex: 1; }
-  .ask { font-size: 0.8rem; color: var(--text); }
+  .ask { font-size: var(--fs-sm); color: var(--text); }
   /* Todos os botóns do pé miden o mesmo. */
   .need { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.7rem 0.8rem; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-card); }
-  .need p { margin: 0; font-size: 0.84rem; }
-  .need .count2 { font-size: 0.78rem; }
+  .need p { margin: 0; font-size: var(--fs-md); }
+  .need .count2 { font-size: var(--fs-sm); }
   .acts { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
   .acts :global(.btn) { height: var(--control-h); min-height: var(--control-h); padding-block: 0; box-sizing: border-box; }
 </style>

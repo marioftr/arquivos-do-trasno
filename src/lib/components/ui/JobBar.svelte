@@ -101,18 +101,18 @@
   .jfill { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0; background: color-mix(in srgb, var(--jc) 30%, transparent); border-right: 2px solid var(--jc); box-sizing: border-box; transition: width 0.3s, background 0.25s, border-color 0.25s; }
   .paused .jfill { animation: pausePulse 1.6s ease-in-out infinite; }
   @keyframes pausePulse { 50% { opacity: 0.55; } }
-  .jmain, .jtext { position: relative; z-index: 1; flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; padding: 0 0.7rem; background: none; border: none; color: var(--text); font-size: 0.78rem; text-align: left; }
-  .large .jmain, .large .jtext { padding: 0 1rem; font-size: 0.9rem; gap: 0.8rem; }
+  .jmain, .jtext { position: relative; z-index: 1; flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; padding: 0 0.7rem; background: none; border: none; color: var(--text); font-size: var(--fs-sm); text-align: left; }
+  .large .jmain, .large .jtext { padding: 0 1rem; font-size: var(--fs-md); gap: 0.8rem; }
   button.jmain:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
   .jtext { gap: 0.5rem; white-space: nowrap; overflow: hidden; }
   .jtext .pct { margin-left: auto; }
   .q { overflow: hidden; text-overflow: ellipsis; }
   .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
   .jt { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
-  .col .jt { flex: none; font-size: 0.95rem; }
-  .sub { font-size: 0.76rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .col .jt { flex: none; font-size: var(--fs-lg); }
+  .sub { font-size: var(--fs-xs); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pct { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-muted); }
-  .pct.big { font-size: 1.25rem; font-weight: 600; color: var(--text); }
+  .pct.big { font-size: var(--fs-xl); font-weight: 600; color: var(--text); }
   .jx { position: relative; z-index: 1; flex: none; display: grid; place-items: center; width: 32px; padding: 0; background: none; border: none; border-left: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 0; color: var(--text-muted); }
   .large .jx { width: 52px; }
   .jx:hover { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text); }

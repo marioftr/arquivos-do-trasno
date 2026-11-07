@@ -43,16 +43,50 @@
   // Relación de aspecto elixida na conversión: o visor amósaa antes de converter (só se mostra, o ficheiro non cambia).
   let sw = 0;
   let sh = 0;
+  // Posición da pantalla na xanela e escala (píxeles físicos por píxel CSS): co zoom da interface ou unha pantalla ao 125 %, o hueco do
+  // vídeo cae en medio píxel físico e o WebView2, que pinta o vídeo nunha capa á parte, deixa unha fila sen pintar (a liña fina
+  // pola que se ve o que hai debaixo da ventá). Por iso o vídeo mídese e colócase en píxeles físicos enteiros.
+  let sx = 0;
+  let sy = 0;
+  let sd = 1;
+  let natAr = 0;
   function size(node: HTMLElement) {
-    const ro = new ResizeObserver(() => ((sw = node.clientWidth), (sh = node.clientHeight)));
+    const measure = () => {
+      sw = node.clientWidth;
+      sh = node.clientHeight;
+      const r = node.getBoundingClientRect();
+      sx = r.left;
+      sy = r.top;
+      sd = window.devicePixelRatio || 1;
+    };
+    const ro = new ResizeObserver(measure);
     ro.observe(node);
-    return { destroy: () => ro.disconnect() };
+    window.addEventListener("resize", measure);
+    return {
+      destroy: () => {
+        ro.disconnect();
+        window.removeEventListener("resize", measure);
+      },
+    };
   }
   $: darNum = (() => {
     const [a, b] = ($videoDar || "").split("/").map(Number);
     return a && b ? a / b : 0;
   })();
-  $: vstyle = darNum && sw && sh ? `flex:none;margin:auto;object-fit:fill;width:${Math.min(sw, sh * darNum)}px;height:${Math.min(sw, sh * darNum) / darNum}px;` : "";
+  $: vstyle = (() => {
+    const ar = darNum || natAr;
+    if (!ar || !sw || !sh) return "";
+    const w = Math.min(sw, sh * ar);
+    const h = w / ar;
+    // Sempre cara a dentro (ceil no comezo, floor no fin): a capa do vídeo non pode pasar da pantalla nin sequera un píxel,
+    // porque se non pinta puntos por riba da barra de controis.
+    const e = 1e-6;
+    const x0 = Math.ceil((sx + (sw - w) / 2) * sd - e);
+    const x1 = Math.floor((sx + (sw + w) / 2) * sd + e);
+    const y0 = Math.ceil((sy + (sh - h) / 2) * sd - e);
+    const y1 = Math.floor((sy + (sh + h) / 2) * sd + e);
+    return `position:absolute;flex:none;object-fit:${darNum ? "fill" : "contain"};left:${x0 / sd - sx}px;top:${y0 / sd - sy}px;width:${(x1 - x0) / sd}px;height:${(y1 - y0) / sd}px;`;
+  })();
   function fullscreen() {
     if (document.fullscreenElement) document.exitFullscreen();
     else stage?.requestFullscreen?.();
@@ -296,6 +330,7 @@
   /** Cando o tramo novo está listo: vai ao punto pedido e segue reproducindo se se estaba. */
   function onMeta() {
     ready = true;
+    natAr = el && "videoHeight" in el && (el as HTMLVideoElement).videoHeight ? (el as HTMLVideoElement).videoWidth / (el as HTMLVideoElement).videoHeight : 0;
     if (restoredFor !== file.path && !afterLoad) {
       restoredFor = file.path;
       const p = playPos.get(file.path);
@@ -623,28 +658,32 @@
         <button class="btn icon ghost" on:click={() => (muted = !muted)} aria-label={$t("Silenciar")} title={`${$t("Silenciar")} (M)`}><Icon name={muted || vol === 0 ? "mute" : "volume"} size={15} /></button>
         <input class="vol" type="range" min="0" max="1" step="0.01" bind:value={vol} on:input={() => (muted = false)} aria-label={$t("Volume")} title={`${$t("Volume")}: ${Math.round(vol * 100)} %`} />
       </div>
+      {#if converted}
+        <p class="note audionote" role="note">{$t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
+      {/if}
       <audio bind:this={el} src={url} on:error={() => prepare()} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></audio>
     </div>
   {/if}
 </div>
 
 <style>
-  .wrap { height: 100%; display: flex; align-items: center; justify-content: center; background: var(--viewer-bg); }
+  .wrap { position: relative; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--viewer-bg); }
+  .note.audionote { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; padding: 0.5rem 1rem 0.5rem max(1rem, var(--dock-gap, 0px)); background: var(--bg-rail); border-top: 1px solid var(--border); }
   .vrow { display: flex; width: 100%; height: 100%; min-height: 0; }
   .vid { position: relative; display: flex; flex-direction: column; flex: 1; min-width: 0; height: 100%; min-height: 0; }
   .screen { position: relative; flex: 1; min-height: 0; display: flex; }
   .subs { position: absolute; left: 6%; right: 6%; bottom: 7%; text-align: center; white-space: pre-line; pointer-events: none; color: #fff; font-size: clamp(0.9rem, 2.2vw, 1.5rem); line-height: 1.3; text-shadow: 0 0 3px #000, 0 0 6px #000, 1px 1px 2px #000; }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   video { flex: 1; min-height: 0; width: 100%; object-fit: contain; cursor: pointer; background: transparent; }
-  .segload { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.6rem 0.9rem; background: color-mix(in srgb, var(--bg-elevated) 92%, transparent); border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: 0.82rem; pointer-events: none; }
+  .segload { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.6rem 0.9rem; background: color-mix(in srgb, var(--bg-elevated) 92%, transparent); border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: var(--fs-sm); pointer-events: none; }
   .loading { display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
   .loading p { margin: 0; }
-  .tiny { font-size: 0.78rem; }
+  .tiny { font-size: var(--fs-sm); }
   .indet { width: min(280px, 70%); height: 5px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; position: relative; }
   .indet span { position: absolute; inset: 0 auto 0 0; width: 40%; border-radius: 99px; background: var(--accent); animation: vai 1.2s ease-in-out infinite alternate; }
   @keyframes vai { from { transform: translateX(0); } to { transform: translateX(150%); } }
-  .note { display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.45rem; font-size: 0.76rem; color: var(--text-muted); }
-  .under { padding: 0.7rem 1rem 0.6rem; background: var(--bg-rail); border-top: 1px solid var(--border); }
+  .note { display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.45rem; font-size: var(--fs-xs); color: var(--text-muted); }
+  .under { padding: 0.7rem 1rem 0.6rem max(1rem, var(--dock-gap, 0px)); background: var(--bg-rail); border-top: 1px solid var(--border); }
   .audio { display: flex; flex-direction: column; gap: 0.9rem; align-items: stretch; padding: 2rem; width: min(820px, 100%); }
   .nome { color: var(--text-muted); text-align: center; }
   .ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.7rem; }
@@ -654,7 +693,7 @@
   .vid { background: var(--viewer-bg); }
   /* Pantalla completa: o fondo do vídeo é negro en calquera tema; a barra e o panel seguen o tema da app. */
   .vrow:fullscreen, .vrow::backdrop { background: #000; }
-  .vrow.fs { background: #000; position: relative; }
+  .vrow.fs { background: #000; position: relative; --dock-gap: 0px; }
   .vrow.fs .vid, .vrow.fs .screen { background: #000; }
   .vrow.fs .note { display: none; }
   .vrow.fs .screen { position: absolute; inset: 0; }
@@ -664,7 +703,7 @@
   .vrow.fs :global(aside.sp) { position: absolute; right: 0; top: 0; bottom: var(--bar-h, 0px); z-index: 4; height: auto; transition: opacity 0.2s ease; }
   .vrow.fs.idle .under, .vrow.fs.idle :global(aside.sp) { opacity: 0; pointer-events: none; }
   .vrow.fs.idle video { cursor: none; }
-  .time { font-variant-numeric: tabular-nums; font-size: 0.85rem; }
-  .ph { text-align: center; font-size: 0.82rem; }
+  .time { font-variant-numeric: tabular-nums; font-size: var(--fs-md); }
+  .ph { text-align: center; font-size: var(--fs-sm); }
   .msg { padding: 2rem; text-align: center; }
 </style>

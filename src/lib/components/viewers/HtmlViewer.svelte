@@ -46,8 +46,8 @@
   .wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .top { display: flex; align-items: center; gap: 1rem; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); }
   .top :global(.seg) { width: 200px; }
-  .note { margin: 0; font-size: 0.8rem; }
+  .note { margin: 0; font-size: var(--fs-sm); }
   iframe { flex: 1; min-height: 0; border: none; background: #fff; width: 100%; }
-  pre { flex: 1; margin: 0; overflow: auto; padding: 1rem 1.25rem; font-size: 0.82rem; white-space: pre-wrap; word-break: break-word; font-family: Consolas, monospace; }
+  pre { flex: 1; margin: 0; overflow: auto; padding: 1rem 1.25rem; font-size: var(--fs-sm); white-space: pre-wrap; word-break: break-word; font-family: Consolas, monospace; }
   .msg { padding: 2rem; }
 </style>

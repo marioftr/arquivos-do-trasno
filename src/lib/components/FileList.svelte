@@ -202,7 +202,7 @@
 <style>
   .list { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .head { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); }
-  .titulo { font-weight: 650; font-size: 0.72rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
+  .titulo { font-weight: 650; font-size: var(--fs-xs); letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
   .cnt { font-weight: 500; }
   ul { list-style: none; margin: 0; padding: 0.3rem 0; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; outline: none; }
   ul:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
@@ -218,8 +218,8 @@
   .row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6rem; background: none; border: none; color: var(--text-muted); padding: 0.55rem 0; text-align: left; }
   li.active .row { color: var(--text); }
   .info { display: flex; flex-direction: column; min-width: 0; }
-  .nome { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.86rem; }
-  .meta { font-size: 0.74rem; }
+  .nome { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-md); }
+  .meta { font-size: var(--fs-xs); }
   /* As accións flotan sobre o final da fila: o texto non se reordena ao pasar o rato. */
   .acc { display: none; position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%); align-items: center; padding-left: 1.6rem; background: linear-gradient(90deg, transparent, var(--rowbg) 1.6rem); }
   li:hover .acc { display: flex; }
@@ -230,7 +230,7 @@
   .mini:hover:not(:disabled) { color: var(--text); background: var(--bg-card); }
   .mini:disabled { opacity: 0.25; cursor: default; }
   .hact { display: flex; align-items: center; gap: 0.35rem; }
-  .sel { display: flex; align-items: center; justify-content: space-between; padding: 0.25rem 0.9rem; background: color-mix(in srgb, var(--accent) 8%, var(--bg-rail)); border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+  .sel { display: flex; align-items: center; justify-content: space-between; padding: 0.25rem 0.9rem; background: color-mix(in srgb, var(--accent) 8%, var(--bg-rail)); border-bottom: 1px solid var(--border); font-size: var(--fs-sm); }
   .sc { font-weight: 600; }
   .ib { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-muted); }
   .ib:hover:not(:disabled) { background: var(--bg-hover); color: var(--text); }
@@ -238,7 +238,7 @@
   .ib:disabled { opacity: 0.35; cursor: default; }
   input[type="checkbox"] { flex-shrink: 0; }
   .ctxmenu { position: fixed; z-index: 70; min-width: 12.5rem; padding: 0.25rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; }
-  .ctxmenu button { display: flex; align-items: center; gap: 0.6rem; background: none; border: none; color: var(--text); text-align: left; padding: 0.45rem 0.6rem; border-radius: 5px; font-size: 0.86rem; }
+  .ctxmenu button { display: flex; align-items: center; gap: 0.6rem; background: none; border: none; color: var(--text); text-align: left; padding: 0.45rem 0.6rem; border-radius: 5px; font-size: var(--fs-md); }
   .ctxmenu button:hover { background: var(--bg-hover); }
   .ctxmenu hr { border: none; border-top: 1px solid var(--border); margin: 0.25rem 0; }
 </style>

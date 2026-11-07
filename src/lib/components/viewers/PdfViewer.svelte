@@ -11,7 +11,7 @@
   import { pdfOverlay, type FileEntry, type PdfOverlay } from "../../files";
   import { fontCss, type FontSpec } from "../../fonts";
   import { t } from "../../i18n";
-  import Slider from "../ui/Slider.svelte";
+  import ZoomRuler from "../ui/ZoomRuler.svelte";
   import FindBar from "../ui/FindBar.svelte";
   import { tick, onMount } from "svelte";
   import "pdfjs-dist/web/pdf_viewer.css";
@@ -23,21 +23,31 @@
     n: number;
     wrap: HTMLDivElement;
     canvas: HTMLCanvasElement;
-    w: number; // píxeles CSS
+    ptW: number; // tamaño da páxina en puntos (sen zoom)
+    ptH: number;
+    w: number; // píxeles CSS co zoom actual
     h: number;
     view: number[]; // caixa da páxina en puntos [x0, y0, x1, y1]
     s: number; // píxeles CSS por punto
-    done: boolean; // xa ten a súa imaxe debuxada
+    renderedS: number; // escala á que está debuxada a imaxe (0 = aínda sen debuxar)
+    task: pdfjs.RenderTask | null;
   }
 
   let container: HTMLDivElement;
   let doc: pdfjs.PDFDocumentProxy | null = null;
+  // Zoom en %: 100 % = tamaño real (96 ppp). A regra e os atallos móvense entre estes límites.
+  const ZMIN = 25;
+  const ZMAX = 400;
   let scale = 80;
   let error = "";
   let encrypted = false;
   let token = 0;
   let pages: PageInfo[] = [];
   let current = 1; // páxina que se está vendo
+  // Barra de abaixo: con pouco ancho encolle o texto dos botóns e despois agóchase a regra.
+  let barW = 9999;
+  $: compact = barW < 840;
+  $: tiny = barW < 540;
 
   // ---- axustar ao espazo dispoñible (ancho ou páxina enteira); segue o tamaño da xanela
   let fitMode: "none" | "width" | "page" = "width";
@@ -55,7 +65,7 @@
     const availW = container.offsetWidth - 17 - 36;
     const availH = container.offsetHeight - 36;
     const pct = fitMode === "width" ? (availW / w) * 100 : Math.min(availW / w, availH / h) * 100;
-    return Math.max(20, Math.min(250, Math.floor(pct)));
+    return Math.max(ZMIN, Math.min(ZMAX, Math.floor(pct)));
   }
   async function applyFit() {
     if (!doc) return;
@@ -198,8 +208,8 @@
     else if (id === "p.prev") goto(current - 1);
     else if (id === "p.first") goto(1);
     else if (id === "p.last" && doc) goto(doc.numPages);
-    else if (id === "p.zoomIn") ((fitMode = "none"), (scale = Math.min(250, scale + 10)));
-    else if (id === "p.zoomOut") ((fitMode = "none"), (scale = Math.max(20, scale - 10)));
+    else if (id === "p.zoomIn") ((fitMode = "none"), (scale = Math.min(ZMAX, scale + 10)));
+    else if (id === "p.zoomOut") ((fitMode = "none"), (scale = Math.max(ZMIN, scale - 10)));
     else if (id === "p.fitWidth") setFit("width");
     else if (id === "p.fitPage") setFit("page");
     else return;
@@ -208,7 +218,7 @@
 
   $: filePath = file.path;
   $: open(filePath);
-  $: if (doc && container) render(scale);
+  $: if (doc && container) syncDoc(doc, scale);
   $: paint($pdfOverlay, pages);
 
   async function open(path: string) {
@@ -236,58 +246,95 @@
     }
   }
 
-  // ---- debuxo preguiceiro: primeiro as páxinas que o usuario ten diante, o resto cando se achegan
+  // ---- debuxo preguiceiro. O zoom non refai as páxinas: estira a imaxe que xa hai (e a capa de texto) ao momento e, cando o
+  // zoom se detén, debuxa de novo só as páxinas que se ven, nun lenzo á parte que se troca de golpe. Así nunca hai un
+  // fotograma en branco nin parpadeo, e a cola de debuxo non pode quedar parada.
   const DPR = () => window.devicePixelRatio || 1;
+  const scaleOf = (pct: number) => (pct / 100) * 1.333;
   let io: IntersectionObserver | null = null;
-  const pending: PageInfo[] = [];
-  let painting = false;
+  const visible = new Set<PageInfo>();
+  const queue: PageInfo[] = [];
+  let pumping = false;
+  let builtFor: pdfjs.PDFDocumentProxy | null = null;
+  let buildToken = 0;
+  let curS = scaleOf(80);
+  let repaintTimer: ReturnType<typeof setTimeout> | undefined;
   const proxies = new Map<number, pdfjs.PDFPageProxy>();
-
-  function observePage(p: PageInfo) {
-    (p.wrap as any).__p = p;
-    io?.observe(p.wrap);
+  async function proxy(d: pdfjs.PDFDocumentProxy, n: number) {
+    let pg = proxies.get(n);
+    if (!pg) {
+      pg = await d.getPage(n);
+      proxies.set(n, pg);
+    }
+    return pg;
   }
+  const topOf = (p: PageInfo) => p.wrap.offsetTop - container.offsetTop;
+
   function enqueue(p: PageInfo) {
-    if (p.done || pending.includes(p)) return;
-    pending.push(p);
-    pump();
+    if (p.renderedS === curS || queue.includes(p)) return;
+    queue.push(p);
+    void pump();
   }
   async function pump() {
-    if (painting) return;
-    painting = true;
-    const mine = token;
-    while (pending.length && mine === token) {
-      // a que está máis preto do que se está vendo, primeiro
-      const mid = container.scrollTop + container.clientHeight / 2;
-      pending.sort((x, y) => Math.abs(x.wrap.offsetTop - container.offsetTop + x.h / 2 - mid) - Math.abs(y.wrap.offsetTop - container.offsetTop + y.h / 2 - mid));
-      const pg = pending.shift()!;
-      if (pg.done) continue;
-      await paintPage(pg, mine);
-      await new Promise((r) => setTimeout(r, 0));
-    }
-    painting = false;
-  }
-  async function paintPage(pg: PageInfo, mine: number) {
-    if (!doc) return;
-    const page = proxies.get(pg.n) ?? (await doc.getPage(pg.n));
-    proxies.set(pg.n, page);
-    if (mine !== token || !pg.wrap.isConnected) return;
-    const viewport = page.getViewport({ scale: pg.s });
-    const dpr = DPR();
-    pg.canvas.width = viewport.width * dpr;
-    pg.canvas.height = viewport.height * dpr;
-    pg.done = true;
+    if (pumping) return;
+    pumping = true;
     try {
-      await page.render({ canvasContext: pg.canvas.getContext("2d")!, viewport, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined }).promise;
+      while (queue.length) {
+        // a que está máis preto do que se está vendo, primeiro
+        const mid = container.scrollTop + container.clientHeight / 2;
+        queue.sort((x, y) => Math.abs(topOf(x) + x.h / 2 - mid) - Math.abs(topOf(y) + y.h / 2 - mid));
+        const pg = queue.shift()!;
+        if (pg.renderedS === curS || !visible.has(pg) || !pg.wrap.isConnected) continue;
+        await paintPage(pg);
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    } finally {
+      pumping = false;
+    }
+    // Se entrou algo mentres se pechaba o bucle, segue.
+    if (queue.length) void pump();
+  }
+  async function paintPage(pg: PageInfo) {
+    const d = doc;
+    if (!d || d !== builtFor) return;
+    const s = curS;
+    const mine = buildToken;
+    const page = await proxy(d, pg.n);
+    if (mine !== buildToken || s !== curS || !pg.wrap.isConnected) return;
+    const viewport = page.getViewport({ scale: s });
+    const dpr = DPR();
+    // Debúxase nun lenzo novo e só se troca polo vello cando está listo: o que se ve non se apaga nin un instante.
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.floor(viewport.width * dpr));
+    c.height = Math.max(1, Math.floor(viewport.height * dpr));
+    c.style.width = `${viewport.width}px`;
+    c.style.height = `${viewport.height}px`;
+    const task = page.render({ canvasContext: c.getContext("2d")!, viewport, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined });
+    pg.task = task;
+    try {
+      await task.promise;
+    } catch {
+      // cancelado por un zoom novo (ou debuxo cortado): a páxina volve á cola cando o zoom se detén
+      return;
+    } finally {
+      if (pg.task === task) pg.task = null;
+    }
+    if (mine !== buildToken || s !== curS || !pg.wrap.isConnected) return;
+    pg.wrap.replaceChild(c, pg.canvas);
+    pg.canvas = c;
+    pg.renderedS = s;
+    try {
       // Capa de texto invisible por riba: permite seleccionar e copiar.
-      pg.wrap.querySelector(".textLayer")?.remove();
       const layer = document.createElement("div");
       layer.className = "textLayer";
-      layer.style.setProperty("--scale-factor", String(pg.s));
-      pg.wrap.appendChild(layer);
+      layer.style.setProperty("--scale-factor", String(s));
       await new pdfjs.TextLayer({ textContentSource: page.streamTextContent(), container: layer, viewport }).render();
+      if (mine === buildToken && s === curS && pg.wrap.isConnected) {
+        pg.wrap.querySelector(".textLayer")?.remove();
+        pg.wrap.appendChild(layer);
+      }
     } catch {
-      // sen capa de texto ou debuxo cortado: o resto do PDF segue vendose
+      // sen capa de texto: o resto do PDF segue vendose
     }
     try {
       await drawLinks(pg, page, viewport);
@@ -341,86 +388,130 @@
   }
   /** Páxinas que quedan lonxe da pantalla liberan a súa imaxe (un PDF longo non enche a memoria). */
   function release(pg: PageInfo) {
-    if (!pg.done) return;
-    pg.done = false;
+    pg.task?.cancel();
+    if (pg.renderedS === 0) return;
+    pg.renderedS = 0;
     pg.canvas.width = 1;
     pg.canvas.height = 1;
     pg.wrap.querySelector(".textLayer")?.remove();
     pg.wrap.querySelector(".linkLayer")?.remove();
   }
+  function onIntersect(entries: IntersectionObserverEntry[]) {
+    for (const e of entries) {
+      const pg = (e.target as any).__p as PageInfo;
+      if (e.isIntersecting) {
+        visible.add(pg);
+        enqueue(pg);
+      } else {
+        visible.delete(pg);
+        release(pg);
+      }
+    }
+  }
+  /** Tamaño dunha páxina co zoom dado (a imaxe que xa ten estírase ata o novo debuxo). */
+  function sizePage(p: PageInfo, s: number) {
+    p.s = s;
+    p.w = p.ptW * s;
+    p.h = p.ptH * s;
+    p.wrap.style.width = `${p.w}px`;
+    p.wrap.style.height = `${p.h}px`;
+    p.canvas.style.width = `${p.w}px`;
+    p.canvas.style.height = `${p.h}px`;
+  }
 
-  async function render(percent: number) {
-    const mine = ++token;
-    const d = doc;
-    if (!d) return;
-    const keep = current;
+  /** Abre o documento: crea unha soa vez os ocos de todas as páxinas. O zoom só cambia o seu tamaño. */
+  async function build(d: pdfjs.PDFDocumentProxy) {
+    const mine = ++buildToken;
+    builtFor = d;
     io?.disconnect();
-    pending.length = 0;
+    io = null;
+    for (const p of pages) p.task?.cancel();
+    queue.length = 0;
+    visible.clear();
+    proxies.clear();
     pages = [];
-    const s = (percent / 100) * 1.333;
-    const first = proxies.get(1) ?? (await d.getPage(1));
-    proxies.set(1, first);
-    if (mine !== token) return;
-    io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          const pg = (e.target as any).__p as PageInfo;
-          if (e.isIntersecting) enqueue(pg);
-          else release(pg);
-        }
-      },
-      { root: container, rootMargin: "900px 0px" },
-    );
-    // Todos os ocos ao tamaño da primeira páxina (a pantalla non agarda); os tamaños reais corrixense axiña.
-    const vp1 = first.getViewport({ scale: s });
+    const first = await proxy(d, 1);
+    if (mine !== buildToken) return;
+    const vp1 = first.getViewport({ scale: 1 });
+    const observer = new IntersectionObserver(onIntersect, { root: container, rootMargin: "900px 0px" });
+    io = observer;
     const built: PageInfo[] = [];
     const frag = document.createDocumentFragment();
     for (let n = 1; n <= d.numPages; n++) {
       const wrap = document.createElement("div");
       wrap.className = "pg";
-      wrap.style.width = `${vp1.width}px`;
-      wrap.style.height = `${vp1.height}px`;
       const canvas = document.createElement("canvas");
-      canvas.style.width = `${vp1.width}px`;
-      canvas.style.height = `${vp1.height}px`;
       canvas.width = 1;
       canvas.height = 1;
       wrap.appendChild(canvas);
       frag.appendChild(wrap);
-      const info: PageInfo = { n, wrap, canvas, w: vp1.width, h: vp1.height, view: first.view, s, done: false };
+      const info: PageInfo = { n, wrap, canvas, ptW: vp1.width, ptH: vp1.height, w: 0, h: 0, view: first.view, s: curS, renderedS: 0, task: null };
+      sizePage(info, curS);
       built.push(info);
     }
-    // Cámbiase todo dunha vez: o contido vello vese ata o último momento.
     container.replaceChildren(frag);
-    for (const b of built) observePage(b);
+    for (const b of built) {
+      (b.wrap as any).__p = b;
+      observer.observe(b.wrap);
+    }
     pages = built;
-    goto(keep);
+    goto(current);
     onScroll();
     // Tamaños reais das páxinas, en segundo plano (hai PDFs con páxinas de tamaños distintos).
     for (let n = 2; n <= d.numPages; n++) {
-      if (mine !== token) return;
-      const page = proxies.get(n) ?? (await d.getPage(n));
-      proxies.set(n, page);
-      const vp = page.getViewport({ scale: s });
+      if (mine !== buildToken) return;
+      const page = await proxy(d, n);
+      const vp = page.getViewport({ scale: 1 });
       const pg = built[n - 1];
-      if (Math.abs(vp.width - pg.w) > 0.5 || Math.abs(vp.height - pg.h) > 0.5) {
-        pg.w = vp.width;
-        pg.h = vp.height;
+      if (Math.abs(vp.width - pg.ptW) > 0.5 || Math.abs(vp.height - pg.ptH) > 0.5) {
+        pg.ptW = vp.width;
+        pg.ptH = vp.height;
         pg.view = page.view;
-        pg.wrap.style.width = `${vp.width}px`;
-        pg.wrap.style.height = `${vp.height}px`;
-        pg.canvas.style.width = `${vp.width}px`;
-        pg.canvas.style.height = `${vp.height}px`;
+        sizePage(pg, curS);
       }
       if (n % 25 === 0) await new Promise((r) => setTimeout(r, 0));
     }
-    if (mine === token) {
+    if (mine === buildToken) {
       pages = pages;
       if (find && query.trim() && hits.length) {
         await tick();
         drawHits();
       }
     }
+  }
+
+  function syncDoc(d: pdfjs.PDFDocumentProxy, pct: number) {
+    if (builtFor !== d) {
+      curS = scaleOf(pct);
+      void build(d);
+    } else setScale(pct);
+  }
+
+  /** Cambia o zoom ao momento: o que se ve estírase e, cando o zoom para un chisco, repíntase nítido. */
+  function setScale(pct: number) {
+    const s = scaleOf(pct);
+    if (Math.abs(s - curS) < 1e-6) return;
+    // Mantense o punto que se está vendo (o centro da pantalla) no mesmo sitio da páxina.
+    let anchor: { p: PageInfo; f: number } | null = null;
+    if (container && pages.length) {
+      const mid = container.scrollTop + container.clientHeight / 2;
+      for (const p of pages) {
+        if (topOf(p) <= mid) anchor = { p, f: p.h ? Math.min(1, (mid - topOf(p)) / p.h) : 0 };
+        else break;
+      }
+    }
+    curS = s;
+    for (const p of pages) {
+      p.task?.cancel();
+      sizePage(p, s);
+      p.wrap.querySelector<HTMLElement>(".textLayer")?.style.setProperty("--scale-factor", String(s));
+      p.wrap.querySelector(".linkLayer")?.remove();
+    }
+    paint(get(pdfOverlay), pages);
+    if (anchor && container) container.scrollTop = topOf(anchor.p) + anchor.f * anchor.p.h - container.clientHeight / 2;
+    if (find && hits.length) void drawHits();
+    clearTimeout(repaintTimer);
+    repaintTimer = setTimeout(() => visible.forEach(enqueue), 150);
   }
 
   /** Textos editables: clic para escoller, arrastrar para mover, esquina para escalar e dobre clic para escribir. */
@@ -655,6 +746,9 @@
 
   onDestroy(() => {
     token++;
+    buildToken++;
+    clearTimeout(repaintTimer);
+    for (const p of pages) p.task?.cancel();
     io?.disconnect();
     if (doc) viewState.set(file.path, { page: current, scale, fit: fitMode });
   });
@@ -676,10 +770,14 @@
   {:else}
     <div class="pages scrollbar-thin" class:fitting={fitMode !== "none"} bind:this={container} on:scroll={onScroll}></div>
   {/if}
-  <div class="bar">
+  <div class="bar" class:compact bind:clientWidth={barW}>
     <button class="btn" class:on={fitMode === "width"} on:click={() => setFit("width")} title={$t("Axustar ao ancho (0)")}>{$t("Ancho")}</button>
-    <button class="btn" class:on={fitMode === "page"} on:click={() => setFit("page")} title={$t("Páxina enteira (9)")}>{$t("Páxina enteira")}</button>
-    <Slider compact label={$t("Zoom")} unit="%" min={20} max={250} bind:value={scale} on:input={() => (fitMode = "none")} />
+    <button class="btn" class:on={fitMode === "page"} on:click={() => setFit("page")} title={$t("Páxina enteira (9)")}>{compact ? $t("Páxina") : $t("Páxina enteira")}</button>
+    <button class="btn" class:on={fitMode === "none" && Math.round(scale) === 100} on:click={() => ((fitMode = "none"), (scale = 100))}>100%</button>
+    {#if !tiny}
+      <ZoomRuler value={scale} min={ZMIN} max={ZMAX} ticks={[25, 50, 100, 200, 400]} labeled={[25, 50, 100, 200, 400]} label={$t("Ampliación")} onChange={(z) => ((fitMode = "none"), (scale = Math.max(ZMIN, Math.min(ZMAX, Math.round(z)))))} />
+      <span class="muted pct">{Math.round(scale)} %</span>
+    {/if}
     {#if doc}
       <span class="pag pgbox">
         <button class="btn ghost icon" on:click={() => goto(current - 1)} disabled={current <= 1} aria-label={$t("Páxina anterior")} title={$t("Páxina anterior")}><Icon name="back" size={14} /></button>
@@ -704,10 +802,13 @@
   .pages :global(.pg.sel) { outline: 3px solid var(--accent); outline-offset: 0; }
   .pages :global(.pg.dim) { opacity: 0.35; }
   .pages :global(canvas) { display: block; background: #fff; }
-  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
+  .pct { min-width: 3.2rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bar { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.5rem; overflow: hidden; padding: 0.5rem 0.9rem 0.5rem max(0.9rem, var(--dock-gap, 0px)); border-top: 1px solid var(--border); font-size: var(--fs-md); }
+  .bar > * { flex: none; white-space: nowrap; }
+  .bar.compact :global(.zr) { width: 150px; }
   .pag { margin-left: auto; flex-shrink: 0; }
   .pgbox { display: flex; align-items: center; gap: 0.35rem; white-space: nowrap; }
-  .pgbox input { width: 3.4rem; height: 26px; text-align: center; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: 5px; font: inherit; font-size: 0.82rem; }
+  .pgbox input { width: 3.4rem; height: 26px; text-align: center; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: 5px; font: inherit; font-size: var(--fs-sm); }
   .pgbox input:focus { outline: none; border-color: var(--accent); }
   .pages :global(.hl) { position: absolute; background: color-mix(in srgb, #ffd54a 55%, transparent); mix-blend-mode: multiply; pointer-events: none; border-radius: 2px; }
   .pages :global(.hl.cur) { background: color-mix(in srgb, #ff9f1a 70%, transparent); outline: 2px solid #ff9f1a; }

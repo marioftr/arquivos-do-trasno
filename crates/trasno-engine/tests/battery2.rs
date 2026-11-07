@@ -47,7 +47,11 @@ fn edicion_de_imaxes_en_todos_os_formatos() {
         ("todo", ImageEdits { rotate: 90, flip_h: true, grayscale: true, brightness: 10, contrast: 10.0, blur: 1.0, crop: Some((0, 0, 2, 2)), resize: Some((9, 9)), quality: Some(50), ..Default::default() }),
     ];
     for (name, src) in image_samples(dir.path()) {
-        for ext in ["png", "jpg", "webp", "bmp", "tiff", "gif", "ico", "tga", "qoi"] {
+        for ext in ["png", "jpg", "webp", "bmp", "tiff", "gif", "ico", "tga", "qoi", "avif", "jxl", "jp2"] {
+            // Os formatos que escribe FFmpeg só se proban se está instalado.
+            if matches!(ext, "avif" | "jxl" | "jp2") && ffmpeg::ffmpeg_path().is_err() {
+                continue;
+            }
             for (vn, e) in &variants {
                 let out = dir.path().join(format!("e-{}-{}.{ext}", name.replace(' ', "_"), vn.replace(' ', "_")));
                 let r = edit_image(&src, &out, true, e).map_err(|e| e.to_string()).and_then(|_| open_ok(&out).map(|_| ()));

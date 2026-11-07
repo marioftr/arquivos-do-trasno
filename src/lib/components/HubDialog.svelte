@@ -92,16 +92,16 @@
   .side { flex: 0 0 clamp(9.5rem, 24%, 12.5rem); display: flex; flex-direction: column; gap: 0.7rem; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; padding: 3px 0.4rem 3px 3px; }
   .side button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .grp { display: flex; flex-direction: column; gap: 0.1rem; }
-  .gh { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.6rem; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-faint); }
+  .gh { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.6rem; font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-faint); }
   .gh.on { color: var(--accent); }
-  .side button { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; text-align: left; background: none; border: none; color: var(--text-muted); padding: 0.45rem 0.7rem 0.45rem 1.9rem; border-radius: var(--radius-sm); font-size: 0.87rem; font-weight: 500; }
+  .side button { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; text-align: left; background: none; border: none; color: var(--text-muted); padding: 0.45rem 0.7rem 0.45rem 1.9rem; border-radius: var(--radius-sm); font-size: var(--fs-md); font-weight: 500; }
   .side button:hover { background: var(--bg-hover); color: var(--text); }
   .side button.on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); font-weight: 600; }
-  .badge { background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.68rem; font-weight: 700; padding: 0 0.45em; min-width: 1.3em; text-align: center; }
+  .badge { background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: var(--fs-xs); font-weight: 700; padding: 0 0.45em; min-width: 1.3em; text-align: center; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
   .pane { flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.3rem; padding-bottom: 0.4rem; }
   .pane > :global(*) { flex-shrink: 0; }
-  h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+  h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
   .sep::before { content: "·"; margin: 0 0.55em; }
   @media (max-width: 640px) { .split { flex-direction: column; } .side { flex-basis: auto; flex-direction: row; flex-wrap: wrap; } }
 </style>

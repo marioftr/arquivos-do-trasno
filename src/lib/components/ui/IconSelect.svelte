@@ -72,11 +72,11 @@
 {/if}
 
 <style>
-  .trig { display: inline-flex; align-items: center; gap: 0.5rem; height: var(--control-h); padding: 0 0.6rem; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 0.86rem; }
+  .trig { display: inline-flex; align-items: center; gap: 0.5rem; height: var(--control-h); padding: 0 0.6rem; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: var(--fs-md); }
   .trig:hover { border-color: var(--accent); }
   .cur { white-space: nowrap; }
   .isl { position: fixed; z-index: 120; margin: 0; padding: 0.25rem; list-style: none; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); }
-  li { display: flex; align-items: center; gap: 0.55rem; height: 32px; padding: 0 0.6rem; border-radius: 3px; color: var(--text-muted); font-size: 0.86rem; cursor: pointer; }
+  li { display: flex; align-items: center; gap: 0.55rem; height: 32px; padding: 0 0.6rem; border-radius: 3px; color: var(--text-muted); font-size: var(--fs-md); cursor: pointer; }
   li.act { background: var(--bg-hover); color: var(--text); }
   li.sel { color: var(--text); }
   .ck { margin-left: auto; color: var(--accent); display: inline-flex; }

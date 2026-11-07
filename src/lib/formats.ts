@@ -3,10 +3,58 @@
 // man por agora; se medra moito pasarase a xerar dende Rust.
 
 import type { Category } from "./engine";
+import { tr } from "./i18n";
 
 export const IMAGE_TARGETS = [
   "png", "jpg", "webp", "bmp", "gif", "ico", "tiff", "ppm", "pbm", "pgm", "tga", "qoi", "avif", "jp2", "jxl",
 ];
+
+const IMAGE_ALIAS: Record<string, string> = { jpeg: "jpg", jpe: "jpg", jfif: "jpg", tif: "tiff", pnm: "ppm" };
+
+/** A extensión na que se gardan as edicións dunha imaxe: a mesma que a do orixinal (o trasno só cambia de formato en Converter).
+ *  Devolve null se o formato só se sabe ler (HEIC, DDS, EXR…): entón a edición queda bloqueada con aviso. */
+export function sameFormat(ext: string): string | null {
+  const e = ext.toLowerCase();
+  return IMAGE_TARGETS.includes(IMAGE_ALIAS[e] ?? e) ? e : null;
+}
+
+/** Ferramentas que gardan no formato do orixinal e poden quedar bloqueadas para un ficheiro. */
+export type LockTool = "editar" | "anotar" | "comprimir";
+const VERB: Record<LockTool, string> = { editar: "editar", anotar: "anotar", comprimir: "comprimir" };
+const VERB_LO: Record<LockTool, string> = { editar: "Editalo", anotar: "Anotalo", comprimir: "Comprimilo" };
+
+/** Texto curto que se ve cando unha ferramenta está bloqueada; a explicación vai no «i». */
+export const readOnlyLabel = () => tr("Só modo lectura");
+
+/** Explicación de que un formato só se sabe ler (HEIC, DDS, EXR…) e non gardar: a ferramenta queda bloqueada. */
+export function cannotSaveNotice(ext: string, tool: LockTool): string {
+  const fmt = ext.toUpperCase();
+  const verb = tr(VERB[tool]);
+  return tr("O trasno só sabe ler o formato {fmt}, non gardalo, así que non se pode {verb} directamente. Convérteo antes a PNG ou JPG na pestana Converter.", { fmt, verb });
+}
+
+/** Formatos que se poden gardar pero non teñen compresión propia (BMP, TIFF…): comprimir mantendo o formato non ten sentido. */
+export function noCompressionNotice(ext: string): string {
+  return tr("O formato {fmt} non ten compresión propia, así que non se pode comprimir mantendo o formato. Convérteo antes a PNG ou JPG na pestana Converter.", { fmt: ext.toUpperCase() });
+}
+
+/** Imaxe animada que a ferramenta non sabe tratar sen perder os fotogramas (só se garda un). */
+export function animatedNotice(ext: string, tool: LockTool): string {
+  const fmt = ext.toUpperCase();
+  const verb = tr(VERB[tool]);
+  const gifOnly = tool === "editar" ? "" : " " + tr("O trasno só sabe {verb} sen perder a animación os GIF.", { verb });
+  return tr("Este {fmt} é animado: {verbLo} só gardaría un fotograma e perderíase a animación, así que non se pode {verb} directamente.", { fmt, verb, verbLo: tr(VERB_LO[tool]).toLowerCase() }) + gifOnly;
+}
+
+/** Aviso de que unha imaxe animada pasa a un formato que só garda un fotograma. */
+export function firstFrameNotice(from: string, to: string): string {
+  return tr("Esta imaxe {from} é animada, pero {to} só garda unha imaxe fixa: gardarase só o primeiro fotograma. Para conservar a animación, escolle GIF ou WebP.", { from: from.toUpperCase(), to: to.toUpperCase() });
+}
+
+/** Documentos de Office que o trasno convirte con Microsoft Office ou LibreOffice (ver `office.rs` no motor). */
+export const OFFICE_EXTS = ["docx", "doc", "docm", "odt", "rtf", "xlsx", "xls", "xlsm", "ods", "pptx", "ppt", "pptm", "ppsx", "pps", "odp"];
+/** Saídas de documento que un PDF só dá con Word. */
+export const PDF_TO_DOC = ["docx", "doc", "odt", "rtf"];
 
 export const AUDIO_TARGETS = ["mp3", "wav", "flac", "ogg", "opus", "m4a", "aac", "aiff"];
 
@@ -46,8 +94,6 @@ export function targetsForCategory(category: Category, sourceExt?: string): stri
       return [];
   }
 }
-
-import { tr } from "./i18n";
 
 /** Frases de éxito: ao azar, para que non soen sempre igual. */
 export const TRASNO_LISTO = [

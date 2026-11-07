@@ -1,11 +1,21 @@
 // Traballos rápidos do clic dereito: o que se fai con cada ficheiro (convertir, comprimir, cambiar tamaño, xirar).
 import * as engine from "./engine";
-import { withExtension } from "./formats";
+import { withExtension, sameFormat, cannotSaveNotice, noCompressionNotice, animatedNotice } from "./formats";
 import { tr } from "./i18n";
 
 const extOf = (p: string) => (p.match(/\.([^.\\/]+)$/)?.[1] ?? "").toLowerCase();
 
 const pctLess = (before: number, after: number) => (before > 0 ? Math.round((1 - after / before) * 100) : 0);
+
+/** Comproba que unha ferramenta que garda no formato do orixinal pode tratar esta imaxe sen perder nada (formato que só se sabe ler,
+ *  sen compresión propia ou animación que se perdería). Se non, falla co motivo en vez de gardar algo distinto do esperado. */
+async function guardImage(path: string, ext: string, tool: "editar" | "comprimir") {
+  if (!sameFormat(ext)) throw new Error(cannotSaveNotice(ext, tool));
+  if (tool === "comprimir" && !engine.COMPRESS_KEEP.includes(ext)) throw new Error(noCompressionNotice(ext));
+  if (ext !== "gif" || tool === "editar") {
+    if (["gif", "webp", "png", "apng"].includes(ext) && (await engine.imageIsAnimated(path))) throw new Error(animatedNotice(ext, tool));
+  }
+}
 
 /** Fai o traballo cun ficheiro e devolve a ruta de saída e, se vén ao caso, unha nota (p. ex. «62 % menos»). */
 export async function runOne(job: engine.StartupJob, path: string): Promise<{ out: string; note?: string }> {
@@ -28,7 +38,8 @@ export async function runOne(job: engine.StartupJob, path: string): Promise<{ ou
     const before = await engine.fileSize(it.path);
     let out: string;
     if (cat === "imaxe") {
-      out = await engine.uniquePath(withExtension(`${stem}${tr("-comprimido")}`, ext === "png" ? "jpg" : ext));
+      await guardImage(it.path, ext, "comprimir");
+      out = await engine.uniquePath(withExtension(`${stem}${tr("-comprimido")}`, ext));
       await engine.compressImage(it.path, out, { quality: level }, false);
     } else if (cat === "video") {
       out = await engine.uniquePath(withExtension(`${stem}${tr("-comprimido")}`, "mp4"));
@@ -47,6 +58,7 @@ export async function runOne(job: engine.StartupJob, path: string): Promise<{ ou
   if (job.action === "resize") {
     const before = await engine.fileSize(it.path);
     if (cat === "imaxe") {
+      await guardImage(it.path, ext, "editar");
       const p = Number(arg.slice(1)) || 50;
       const [w, h] = await engine.imageDimensions(it.path);
       const out = await engine.uniquePath(withExtension(`${stem}-${p}pc`, ext));
@@ -63,8 +75,10 @@ export async function runOne(job: engine.StartupJob, path: string): Promise<{ ou
   // rotate
   const deg = Number(arg) || 90;
   const out = await engine.uniquePath(withExtension(`${stem}${tr("-xirado")}`, ext));
-  if (cat === "imaxe") await engine.editImage(it.path, out, { rotate: deg }, false);
-  else await engine.pdfRotate(it.path, null, deg, out, false);
+  if (cat === "imaxe") {
+    await guardImage(it.path, ext, "editar");
+    await engine.editImage(it.path, out, { rotate: deg }, false);
+  } else await engine.pdfRotate(it.path, null, deg, out, false);
   return { out };
 }
 

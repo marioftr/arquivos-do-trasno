@@ -54,6 +54,6 @@
   .opt.on .dot { border-color: var(--accent); }
   .opt.on .dot::after { content: ""; position: absolute; inset: 2px; border-radius: 50%; background: var(--accent); }
   .txt { display: flex; flex-direction: column; min-width: 0; }
-  .l { font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; }
-  .d { font-size: 0.74rem; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; }
+  .l { font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; }
+  .d { font-size: var(--fs-xs); color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; }
 </style>

@@ -428,7 +428,7 @@ export function drawShape(ctx: CanvasRenderingContext2D, s: Shape) {
 }
 
 /** A imaxe co debuxado queimado enriba, no seu tamaño orixinal. */
-export async function renderAnnotated(src: string, list: Shape[], mime: string, quality: number): Promise<Blob> {
+export async function renderAnnotated(src: string, list: Shape[], mime: string, quality: number, overlayOnly = false): Promise<Blob> {
   // Descárgase como datos (non como <img> de outra orixe) para que o canvas poida exportarse.
   const img = await createImageBitmap(await (await fetch(src)).blob());
   const c = document.createElement("canvas");
@@ -439,7 +439,8 @@ export async function renderAnnotated(src: string, list: Shape[], mime: string, 
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, c.width, c.height);
   }
-  ctx.drawImage(img, 0, 0);
+  // `overlayOnly`: só o debuxado sobre fondo transparente (para superpoñelo a todos os fotogramas dun GIF).
+  if (!overlayOnly) ctx.drawImage(img, 0, 0);
   for (const s of list) drawShape(ctx, s);
   return await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("toBlob"))), mime, quality));
 }

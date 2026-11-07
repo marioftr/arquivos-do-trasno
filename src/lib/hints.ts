@@ -30,7 +30,6 @@ export const HINTS: Record<string, string> = {
   "Desenfoque": "Suaviza a imaxe. Valores baixos quitan algo de ruído; altos deixan todo borroso.",
   "Branco e negro": "Quita a cor e deixa só tons de gris.",
   "Inverter cores": "Troca cada cor pola súa contraria, como un negativo fotográfico.",
-  "Gardar como": "Formato do ficheiro novo. PNG non perde calidade; JPG pesa menos; PDF mete a imaxe nunha páxina.",
   "Os catro márxenes iguais": "Un só valor para os catro lados, en vez de axustar cada un.",
   "Esquerda": "Canto se corta do bordo esquerdo de cada páxina.",
   "Dereita": "Canto se corta do bordo dereito de cada páxina.",

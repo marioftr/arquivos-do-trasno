@@ -32,8 +32,9 @@ pub struct ImageCompressReport {
     pub scale_percent: u32,
 }
 
-/// Formatos de imaxe que se comprimen mantendo o formato. Os demais (BMP, TIFF, GIF...) saen en JPG.
-pub const COMPRESSIBLE: &[&str] = &["jpg", "jpeg", "png", "webp", "avif", "jxl", "jp2"];
+/// Formatos de imaxe que se comprimen mantendo o formato. Os demais (BMP, TIFF, HEIC...) non teñen compresión propia
+/// ou o trasno non os sabe escribir: a interface bloquea a compresión e di que hai que convertelos antes.
+pub const COMPRESSIBLE: &[&str] = &["jpg", "jpeg", "png", "webp", "avif", "jxl", "jp2", "gif"];
 
 /// Extensión do resultado ao comprimir un ficheiro con esta extensión: a mesma se se pode, se non `jpg`.
 pub fn output_ext_for(ext: &str) -> String {
@@ -66,6 +67,81 @@ fn png_bytes(img: &DynamicImage) -> Result<Vec<u8>> {
     Ok(buf)
 }
 
+/// Número de cores da paleta para esta calidade (10 → 8 cores, 95 → 256).
+pub(crate) fn palette_colors(quality: u8) -> usize {
+    let q = quality.clamp(10, 95) as f32;
+    (8.0 + (q - 10.0) * (248.0 / 85.0)).round().clamp(8.0, 256.0) as usize
+}
+
+/// PNG con perdas: reduce a imaxe a unha paleta de cores (NeuQuant) con tramado Floyd–Steinberg e garda un PNG indexado
+/// (conserva a transparencia). É o que fan ferramentas como pngquant ou TinyPNG; se non dá un ficheiro máis pequeno que o sen
+/// perdas, devólvese este último.
+fn png_quantized(img: &DynamicImage, quality: u8) -> Result<Vec<u8>> {
+    let rgba = img.to_rgba8();
+    let (w, h) = (rgba.width() as usize, rgba.height() as usize);
+    let colors = palette_colors(quality);
+    let pixels = w * h;
+    let samplefac = match pixels {
+        0..=1_000_000 => 1,
+        1_000_001..=4_000_000 => 4,
+        4_000_001..=16_000_000 => 12,
+        _ => 25,
+    };
+    let nq = color_quant::NeuQuant::new(samplefac, colors, rgba.as_raw());
+    let map = nq.color_map_rgba();
+    let mut idx = vec![0u8; pixels];
+    let mut cur = vec![[0f32; 3]; w + 2];
+    let mut next = vec![[0f32; 3]; w + 2];
+    for y in 0..h {
+        for x in 0..w {
+            let i = y * w + x;
+            let p = &rgba.as_raw()[i * 4..i * 4 + 4];
+            let e = cur[x + 1];
+            let mut adj = [0f32; 3];
+            for c in 0..3 {
+                adj[c] = (p[c] as f32 + e[c]).clamp(0.0, 255.0);
+            }
+            let k = nq.index_of(&[adj[0] as u8, adj[1] as u8, adj[2] as u8, p[3]]);
+            idx[i] = k as u8;
+            if p[3] == 0 {
+                continue;
+            }
+            let pal = &map[k * 4..k * 4 + 3];
+            for c in 0..3 {
+                let d = (adj[c] - pal[c] as f32) * 0.85;
+                cur[x + 2][c] += d * 7.0 / 16.0;
+                next[x][c] += d * 3.0 / 16.0;
+                next[x + 1][c] += d * 5.0 / 16.0;
+                next[x + 2][c] += d / 16.0;
+            }
+        }
+        std::mem::swap(&mut cur, &mut next);
+        next.iter_mut().for_each(|e| *e = [0.0; 3]);
+    }
+    let n = map.len() / 4;
+    let mut palette = Vec::with_capacity(n * 3);
+    let mut alpha = Vec::with_capacity(n);
+    for c in map.chunks_exact(4) {
+        palette.extend_from_slice(&c[..3]);
+        alpha.push(c[3]);
+    }
+    let mut buf = Vec::new();
+    {
+        let mut enc = png::Encoder::new(&mut buf, w as u32, h as u32);
+        enc.set_color(png::ColorType::Indexed);
+        enc.set_depth(png::BitDepth::Eight);
+        enc.set_palette(palette);
+        if alpha.iter().any(|a| *a != 255) {
+            enc.set_trns(alpha);
+        }
+        enc.set_compression(png::Compression::High);
+        let mut wr = enc.write_header().map_err(|e| std::io::Error::other(e.to_string()))?;
+        wr.write_image_data(&idx).map_err(|e| std::io::Error::other(e.to_string()))?;
+    }
+    let lossless = png_bytes(img)?;
+    Ok(if buf.len() < lossless.len() { buf } else { lossless })
+}
+
 /// WebP, AVIF, JPEG XL e JPEG 2000 escríbense con FFmpeg a partir dun PNG temporal.
 fn ffmpeg_bytes(img: &DynamicImage, ext: &str, quality: u8) -> Result<Vec<u8>> {
     let dir = tempfile::tempdir()?;
@@ -76,11 +152,12 @@ fn ffmpeg_bytes(img: &DynamicImage, ext: &str, quality: u8) -> Result<Vec<u8>> {
     Ok(std::fs::read(&dst)?)
 }
 
-/// Os bytes que daría a imaxe nese formato con esa calidade (a calidade non conta en PNG, que é sen perdas).
+/// Os bytes que daría a imaxe nese formato con esa calidade (en PNG, 100 é sen perdas e menos reduce a paleta de cores).
 fn encode_bytes(img: &DynamicImage, ext: &str, quality: u8, bg: Option<[u8; 3]>) -> Result<Vec<u8>> {
     match ext {
         "jpg" | "jpeg" => jpeg_bytes(img, quality, bg),
-        "png" => png_bytes(img),
+        "png" if quality >= 100 => png_bytes(img),
+        "png" => png_quantized(img, quality),
         _ => ffmpeg_bytes(img, ext, quality),
     }
 }
@@ -110,6 +187,13 @@ fn load_base(input: &Path, max_side: Option<u32>) -> Result<DynamicImage> {
 /// Tamaño aproximado (bytes) do resultado en `ext` con esta calidade.
 pub fn estimate_image_bytes(input: &Path, ext: &str, quality: u8, max_side: Option<u32>, bg: Option<[u8; 3]>) -> Result<u64> {
     let ext = output_ext_for(ext);
+    if ext == "gif" {
+        // Un GIF (sobre todo se é animado) non se pode estimar cunha soa imaxe: faise de verdade nun temporal.
+        let tmp = tempfile::Builder::new().suffix(".gif").tempfile()?.into_temp_path();
+        let path = tmp.to_path_buf();
+        ffmpeg::background(|| crate::animated::compress_gif(input, &path, true, quality, max_side))?;
+        return Ok(std::fs::metadata(&path)?.len());
+    }
     let img = load_base(input, max_side)?;
     // A estimación non é un traballo do usuario: non lle afecta «Cancelar».
     let bytes = ffmpeg::background(|| encode_bytes(&img, &ext, quality, bg))?;
@@ -133,20 +217,34 @@ pub fn compress_image(
     if output.exists() && !overwrite {
         return Err(EngineError::DestinationExists(output.to_path_buf()));
     }
+    if ext == "gif" {
+        return compress_gif_file(input, output, overwrite, o);
+    }
+    if crate::animated::is_animated(input) {
+        return Err(EngineError::IntegrityCheck("Esta imaxe é animada e comprimila só gardaría un fotograma: o trasno só sabe comprimir sen perder a animación os GIF.".into()));
+    }
     let base = load_base(input, o.max_side)?;
-    // En PNG non hai calidade que buscar: só se reducen as dimensións se hai un tamaño obxectivo.
-    let lossy = ext != "png";
+    // En PNG, calidade 100 (a de por defecto) é sen perdas; por baixo reduce a paleta de cores (como pngquant).
+    let lossy = true;
 
     let (bytes, quality, scale) = match o.target_bytes {
         None => {
-            let q = o.quality.unwrap_or(80).clamp(1, 100);
-            (encode_bytes(&base, &ext, q, o.background)?, if lossy { q } else { 100 }, 100)
+            let q = o.quality.unwrap_or(if ext == "png" { 100 } else { 80 }).clamp(1, 100);
+            (encode_bytes(&base, &ext, q, o.background)?, q, 100)
         }
         Some(target) => {
             let mut found = None;
             let mut percent = 100u32;
             for _ in 0..10 {
                 let img = scaled(&base, percent);
+                if ext == "png" {
+                    // Primeiro sen perdas: se xa cabe, non se toca nin unha cor.
+                    let b = png_bytes(&img)?;
+                    if b.len() as u64 <= target {
+                        found = Some((b, 100, percent));
+                        break;
+                    }
+                }
                 if lossy {
                     // Busca binaria da mellor calidade que cabe no tamaño obxectivo.
                     let (mut lo, mut hi) = (5u8, 95u8);
@@ -200,6 +298,49 @@ pub fn compress_image(
         quality,
         scale_percent: scale,
     })
+}
+
+/// GIF (animado ou non): ffmpeg reduce a paleta de cores e, se hai que cumprir un tamaño, tamén as dimensións, sen tocar os fotogramas.
+fn compress_gif_file(input: &Path, output: &Path, overwrite: bool, o: &ImageCompress) -> Result<ImageCompressReport> {
+    let size_of = |p: &Path| std::fs::metadata(p).map(|m| m.len()).unwrap_or(0);
+    let done = |path: PathBuf, colors: u32, percent: u32| ImageCompressReport {
+        bytes_written: size_of(&path),
+        output_path: path,
+        quality: (colors * 100 / 256).clamp(1, 100) as u8,
+        scale_percent: percent,
+    };
+    let side = |percent: u32| -> Option<u32> {
+        let (w, h) = crate::image_convert::image_dimensions(input).ok()?;
+        let base = w.max(h);
+        let base = o.max_side.map(|m| m.min(base)).unwrap_or(base);
+        (percent < 100 || o.max_side.is_some()).then(|| (base * percent / 100).max(1))
+    };
+    let Some(target) = o.target_bytes else {
+        let q = o.quality.unwrap_or(100).clamp(1, 100);
+        let out = crate::animated::compress_gif(input, output, overwrite, q, o.max_side)?;
+        return Ok(done(out, crate::compress::palette_colors(q) as u32, 100));
+    };
+    if output.exists() && !overwrite {
+        return Err(EngineError::DestinationExists(output.to_path_buf()));
+    }
+    // Primeiro a paleta completa; despois menos cores; se aínda non chega, redúcese o tamaño.
+    let mut percent = 100u32;
+    for _ in 0..10 {
+        for colors in [256u32, 128, 64, 32] {
+            let tmp = tempfile::Builder::new().suffix(".gif").tempfile()?.into_temp_path();
+            let path = tmp.to_path_buf();
+            crate::animated::gif_with_colors(input, &path, true, colors, side(percent))?;
+            if size_of(&path) <= target {
+                let out = crate::animated::gif_with_colors(input, output, overwrite, colors, side(percent))?;
+                return Ok(done(out, colors, percent));
+            }
+        }
+        percent = percent * 80 / 100;
+        if percent < 5 {
+            break;
+        }
+    }
+    Err(EngineError::IntegrityCheck("Non hai maneira de que a imaxe caiba en tan pouco espazo; proba cun tamaño maior.".into()))
 }
 
 // ----------------------------------------------------------------- vídeo

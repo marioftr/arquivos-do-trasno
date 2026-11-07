@@ -37,8 +37,17 @@
   /* Todos os controis (botóns, campos, selectores) miden o mesmo. */
   --control-h: 30px;
 
-  font-family: "Inter Variable", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-  font-feature-settings: "cv11", "ss01", "tnum";
+  /* Escala de tipografía única (a base é 13 px): etiquetas pequenas e insignias, texto secundario, texto de controis e títulos,
+     título de panel e cabeceiras grandes. Non se escriben tamaños soltos: úsase sempre un destes. */
+  --fs-xs: 0.74rem;
+  --fs-sm: 0.82rem;
+  --fs-md: 0.88rem;
+  --fs-lg: 1rem;
+  --fs-xl: 1.2rem;
+
+  /* Atkinson Hyperlegible Next vai incluída no programa (non depende de que a persoa a teña instalada). */
+  font-family: "Atkinson Hyperlegible Next Variable", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-feature-settings: "tnum";
 }
 
 :root[data-theme="light"] {
@@ -121,7 +130,7 @@ input[type="number"],
 .num-input {
   height: var(--control-h);
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
 }
 
 .btn {
@@ -366,6 +375,8 @@ textarea,
 .ok,
 .status,
 .results,
+.group-note,
+.lock-note,
 dd {
   user-select: text;
 }
@@ -409,12 +420,12 @@ dd {
 .group:first-of-type:not(:has(> .group-title)) > .gn:has(+ .btn) { top: calc(0.25rem + 6px); }
 
 .group-title { padding-right: 1.8rem; }
-.group:has(> .gn):not(:has(> .group-title)) { padding-top: 2.1rem; }
-.group:first-of-type:has(> .gn):not(:has(> .group-title)) { padding-top: 1.7rem; }
+.group:has(> .gn.inbtn):not(:has(> .group-title)) { padding-top: 2.1rem; }
+.group:first-of-type:has(> .gn.inbtn):not(:has(> .group-title)) { padding-top: 1.7rem; }
 
 .group-title {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 650;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -423,9 +434,23 @@ dd {
 
 .group-note {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
 }
+
+/* Aviso de que unha función non está dispoñible (p. ex. formato que só se sabe ler). */
+.lock-note {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--accent-pdf) 55%, var(--border-strong));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent-pdf) 10%, transparent);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.locked-tools { display: flex; flex-direction: column; gap: inherit; transition: opacity 0.2s, filter 0.2s; }
+.locked-tools.on { opacity: 0.4; filter: grayscale(1); pointer-events: none; user-select: none; }
 
 .btn.block {
   width: 100%;
@@ -435,7 +460,7 @@ dd {
   list-style: none;
   margin: 0;
   padding: 0;
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
 }
 
 .results li {

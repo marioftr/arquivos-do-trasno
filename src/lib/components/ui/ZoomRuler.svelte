@@ -1,17 +1,17 @@
 <script lang="ts">
   /** Regra de ampliación: escala logarítmica de 12,5 % a 800 %, co 100 % xusto no medio. Marcas visibles nos
-   *  valores habituais; ao arrastrar pégase a elas se está preto. Teclado: frechas, Inicio (100 %) e Fin (800 %). */
+   *  valores habituais; ao arrastrar pégase a elas se está preto. Teclado: frechas, Inicio (100 %) e Fin (o máximo). */
   export let value = 100;
   export let onChange: (percent: number) => void;
   export let label = "";
+  /** Límites e marcas da regra. Por defecto, os das imaxes; cada visor pode pasar os seus. */
+  export let min = 12.5;
+  export let max = 800;
+  export let ticks: number[] = [12.5, 25, 50, 100, 200, 400, 800];
+  export let labeled: number[] = [25, 50, 100, 200, 400, 800];
 
-  const MIN = 12.5;
-  const MAX = 800;
-  const SPAN = Math.log(MAX / MIN);
-  const TICKS = [12.5, 25, 50, 100, 200, 400, 800];
-  const LABELED = new Set([25, 50, 100, 200, 400, 800]);
-  const pos = (z: number) => Math.max(0, Math.min(1, Math.log(Math.max(MIN, z) / MIN) / SPAN));
-  const zoomAt = (p: number) => MIN * Math.exp(Math.max(0, Math.min(1, p)) * SPAN);
+  const pos = (z: number) => Math.max(0, Math.min(1, Math.log(Math.max(min, z) / min) / Math.log(max / min)));
+  const zoomAt = (p: number) => min * Math.exp(Math.max(0, Math.min(1, p)) * Math.log(max / min));
   $: at = pos(value) * 100;
 
   let rail: HTMLDivElement;
@@ -20,7 +20,7 @@
     const r = rail.getBoundingClientRect();
     let p = (ev.clientX - r.left) / r.width;
     // Pégase ás marcas se se solta a menos dun 2,5 % do longo da regra.
-    for (const t of TICKS) if (Math.abs(pos(t) - p) < 0.025) p = pos(t);
+    for (const t of ticks) if (Math.abs(pos(t) - p) < 0.025) p = pos(t);
     onChange(zoomAt(p));
   }
   function down(ev: PointerEvent) {
@@ -40,20 +40,20 @@
     if (ev.key === "ArrowRight" || ev.key === "ArrowUp") onChange(zoomAt(pos(value) + step));
     else if (ev.key === "ArrowLeft" || ev.key === "ArrowDown") onChange(zoomAt(pos(value) - step));
     else if (ev.key === "Home") onChange(100);
-    else if (ev.key === "End") onChange(MAX);
+    else if (ev.key === "End") onChange(max);
     else return;
     ev.preventDefault();
   }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div class="zr" role="slider" tabindex="0" aria-label={label} aria-valuemin={MIN} aria-valuemax={MAX} aria-valuenow={Math.round(value)} aria-valuetext={`${Math.round(value)} %`} title={label} on:pointerdown={down} on:pointermove={move} on:pointerup={up} on:pointercancel={up} on:keydown={key}>
+<div class="zr" role="slider" tabindex="0" aria-label={label} aria-valuemin={min} aria-valuemax={max} aria-valuenow={Math.round(value)} aria-valuetext={`${Math.round(value)} %`} title={label} on:pointerdown={down} on:pointermove={move} on:pointerup={up} on:pointercancel={up} on:keydown={key}>
   <div class="rail" bind:this={rail}>
     <div class="line"></div>
     <div class="fill" style={`width:${at}%`}></div>
-    {#each TICKS as t}
-      <span class="tick" class:major={LABELED.has(t)} class:on={t === 100} style={`left:${pos(t) * 100}%`}>
-        {#if LABELED.has(t)}<span class="tl">{t}</span>{/if}
+    {#each ticks as t}
+      <span class="tick" class:major={labeled.includes(t)} class:on={t === 100} style={`left:${pos(t) * 100}%`}>
+        {#if labeled.includes(t)}<span class="tl">{t}</span>{/if}
       </span>
     {/each}
     <span class="thumb" class:drag={dragging} style={`left:${at}%`}></span>

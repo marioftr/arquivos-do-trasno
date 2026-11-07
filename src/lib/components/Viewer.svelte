@@ -3,7 +3,7 @@
   import { t, tr } from "../i18n";
   import { removeFile, reimportFile, reloadTick } from "../files";
   import { revealInFolder } from "../engine";
-  import { formatBytes } from "../formats";
+  import { formatBytes, OFFICE_EXTS } from "../formats";
   import Icon from "./Icon.svelte";
 
   export let file: FileEntry;
@@ -16,12 +16,14 @@
     html: () => import("./viewers/HtmlViewer.svelte"),
     text: () => import("./viewers/TextViewer.svelte"),
     model: () => import("./viewers/ModelViewer.svelte"),
+    office: () => import("./viewers/OfficeViewer.svelte"),
   };
 
   function kindOf(f: FileEntry): string | null {
     if (f.category === "imaxe") return "imaxe";
     if (f.category === "audio" || f.category === "video") return "media";
     if (f.category === "documento" && f.ext === "pdf") return "pdf";
+    if (f.category === "documento" && OFFICE_EXTS.includes(f.ext)) return "office";
     if (f.category === "documento" && (f.ext === "html" || f.ext === "htm" || f.ext === "svg")) return "html";
     if (f.category === "documento") return "text";
     if (f.category === "modelo3d") return "model";
@@ -77,10 +79,10 @@
   .doc { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .vbody { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; position: relative; }
   .vbody > :global(*) { flex: 1 1 auto; min-height: 0; }
-  .docbar { flex: none; display: flex; align-items: center; gap: 0.55rem; min-height: 2.6rem; padding: 0 0.6rem 0 0.9rem; background: var(--bg-rail); border-bottom: 1px solid var(--border); font-size: 0.84rem; }
+  .docbar { flex: none; display: flex; align-items: center; gap: 0.55rem; min-height: 2.6rem; padding: 0 0.6rem 0 0.9rem; background: var(--bg-rail); border-bottom: 1px solid var(--border); font-size: var(--fs-md); }
   .kind { display: inline-flex; color: var(--text-muted); }
   .ftype { font-weight: 650; letter-spacing: 0.05em; color: var(--text); }
-  .meta { white-space: nowrap; font-size: 0.78rem; }
+  .meta { white-space: nowrap; font-size: var(--fs-sm); }
   .grow { flex: 1; }
   .ib { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-muted); }
   .ib:hover { background: var(--bg-hover); color: var(--text); }

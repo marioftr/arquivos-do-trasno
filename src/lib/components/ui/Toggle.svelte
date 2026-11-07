@@ -18,7 +18,7 @@
 <style>
   .toggle { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; min-height: var(--control-h); cursor: pointer; }
   .toggle.disabled { opacity: 0.4; cursor: not-allowed; }
-  .lab { display: inline-flex; align-items: center; font-size: 0.88rem; }
+  .lab { display: inline-flex; align-items: center; font-size: var(--fs-md); }
   input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
   .toggle.disabled input { cursor: not-allowed; }
   .track { position: relative; width: 34px; height: 20px; border-radius: 10px; background: var(--border-strong); transition: background 0.12s ease; flex-shrink: 0; }

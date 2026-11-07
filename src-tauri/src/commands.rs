@@ -561,6 +561,16 @@ pub async fn make_preview(path: String, video: Option<u32>, audio: Option<u32>) 
                 }
                 out
             }
+            Category::Documento if trasno_engine::office::is_office_ext(&trasno_engine::formats::extension_of(&input).unwrap_or_default()) => {
+                // Un documento de Office vese como PDF: cada cambio no ficheiro (tamaño ou data) dá unha copia nova.
+                let meta = std::fs::metadata(&input).map_err(|e| e.to_string())?;
+                let stamp = meta.modified().ok().and_then(|m| m.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_secs()).unwrap_or(0);
+                let out = dir.join(format!("{stem}-{}-{stamp}.pdf", meta.len()));
+                if !out.exists() {
+                    trasno_engine::office::convert(&input, &out, true).map_err(to_err)?;
+                }
+                out
+            }
             _ => return Err(msg("Para este tipo de ficheiro non hai vista previa alternativa.", serde_json::json!({}))),
         };
         Ok(out.to_string_lossy().to_string())
@@ -672,6 +682,67 @@ pub async fn save_bytes(request: tauri::ipc::Request<'_>) -> Result<String, Stri
             e.to_string()
         })?;
         Ok(path)
+    })
+    .await
+}
+
+/// Garda unha imaxe que chega como PNG (o debuxo do navegador) no formato da extensión de destino, calquera que sexa
+/// (BMP, TIFF, GIF, AVIF, JPEG XL…): o navegador só sabe escribir PNG, JPG e WebP.
+#[tauri::command]
+pub async fn save_image_bytes(request: tauri::ipc::Request<'_>) -> Result<String, String> {
+    let tauri::ipc::InvokeBody::Raw(data) = request.body() else {
+        return Err(msg("Non chegaron datos para gardar.", serde_json::json!({})));
+    };
+    let data = data.clone();
+    let path = request
+        .headers()
+        .get("x-path")
+        .and_then(|v| v.to_str().ok())
+        .map(percent_decode)
+        .ok_or_else(|| msg("Falta a ruta de destino.", serde_json::json!({})))?;
+    blocking(move || {
+        if data.is_empty() {
+            return Err(msg("Non hai nada que gardar.", serde_json::json!({})));
+        }
+        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+        let tmp = std::env::temp_dir().join(format!("arquivos-do-trasno-{}-{stamp}.png", std::process::id()));
+        std::fs::write(&tmp, &data).map_err(|e| e.to_string())?;
+        let e = trasno_engine::image_convert::ImageEdits { quality: Some(92), ..Default::default() };
+        let r = trasno_engine::image_convert::edit_image(&tmp, &PathBuf::from(&path), true, &e);
+        let _ = std::fs::remove_file(&tmp);
+        r.map(|p| p.to_string_lossy().to_string()).map_err(to_err)
+    })
+    .await
+}
+
+/// A imaxe é animada (GIF, WebP ou PNG con varios fotogramas)? As ferramentas que pasan por un só fotograma bloquéanse con aviso.
+#[tauri::command]
+pub async fn image_is_animated(path: String) -> Result<bool, String> {
+    blocking_bg(move || Ok(trasno_engine::animated::is_animated(&PathBuf::from(path)))).await
+}
+
+/// Anota un GIF animado: o corpo é unha capa PNG transparente (só o debuxado, co tamaño do GIF) que se superpón en todos os
+/// fotogramas. Cabeceiras: `x-input` (o GIF) e `x-path` (o resultado).
+#[tauri::command]
+pub async fn annotate_animated(request: tauri::ipc::Request<'_>) -> Result<String, String> {
+    let tauri::ipc::InvokeBody::Raw(data) = request.body() else {
+        return Err(msg("Non chegaron datos para gardar.", serde_json::json!({})));
+    };
+    let data = data.clone();
+    let header = |k: &str| request.headers().get(k).and_then(|v| v.to_str().ok()).map(percent_decode);
+    let (Some(input), Some(path)) = (header("x-input"), header("x-path")) else {
+        return Err(msg("Falta a ruta de destino.", serde_json::json!({})));
+    };
+    blocking(move || {
+        if data.is_empty() {
+            return Err(msg("Non hai nada que gardar.", serde_json::json!({})));
+        }
+        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+        let tmp = std::env::temp_dir().join(format!("arquivos-do-trasno-capa-{}-{stamp}.png", std::process::id()));
+        std::fs::write(&tmp, &data).map_err(|e| e.to_string())?;
+        let r = trasno_engine::animated::annotate_gif(&PathBuf::from(&input), &tmp, &PathBuf::from(&path), true);
+        let _ = std::fs::remove_file(&tmp);
+        r.map(|p| p.to_string_lossy().to_string()).map_err(to_err)
     })
     .await
 }
@@ -1215,6 +1286,30 @@ pub fn open_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Que hai instalado para converter documentos de Office (Microsoft Office e/ou LibreOffice).
+#[tauri::command]
+pub async fn office_status() -> Result<trasno_engine::office::OfficeStatus, String> {
+    blocking_bg(|| Ok(trasno_engine::office::status())).await
+}
+
+/// Formatos de saída posibles para un documento de Office (ou un PDF), do máis común ao menos, segundo o que haxa instalado.
+#[tauri::command]
+pub async fn office_targets(ext: String) -> Result<Vec<String>, String> {
+    blocking_bg(move || Ok(trasno_engine::office::targets_for(&ext).into_iter().map(String::from).collect())).await
+}
+
+/// Converte un documento de Office (ou un PDF a documento) co programa que haxa instalado.
+#[tauri::command]
+pub async fn convert_office(input: String, output: String, overwrite: bool) -> Result<String, String> {
+    blocking(move || {
+        trasno_engine::ffmpeg::begin_job();
+        trasno_engine::office::convert(&PathBuf::from(input), &PathBuf::from(output), overwrite)
+            .map(|p| p.to_string_lossy().to_string())
+            .map_err(to_err)
+    })
+    .await
+}
+
 #[tauri::command]
 pub fn open_link(id: String) -> Result<(), String> {
     let url = match id.as_str() {
@@ -1224,6 +1319,8 @@ pub fn open_link(id: String) -> Result<(), String> {
         "mkvtoolnix-license" => "https://mkvtoolnix.download/doc/COPYING",
         "iso639-2" => "https://www.loc.gov/standards/iso639-2/php/code_list.php",
         "mkvmerge-doc" => "https://mkvtoolnix.download/doc/mkvmerge.html",
+        "libreoffice" => "https://www.libreoffice.org/download/download-libreoffice/",
+        "libreoffice-license" => "https://www.libreoffice.org/about-us/licenses/",
         _ => return Err(msg("Non coñezo esa ligazón.", serde_json::json!({}))),
     };
     #[cfg(windows)]

@@ -78,12 +78,12 @@
   .veil { position: fixed; inset: 0; z-index: 55; background: rgba(0, 0, 0, 0.45); display: flex; justify-content: center; align-items: flex-start; padding-top: 14vh; }
   .box { width: min(520px, 92vw); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5); overflow: hidden; }
   .q { display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--border); color: var(--text-muted); }
-  input { flex: 1; background: none; border: none; outline: none; color: var(--text); font: inherit; font-size: 0.95rem; }
+  input { flex: 1; background: none; border: none; outline: none; color: var(--text); font: inherit; font-size: var(--fs-lg); }
   ul { list-style: none; margin: 0; padding: 0.3rem; max-height: min(340px, 50vh); overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; }
-  li button { width: 100%; display: flex; align-items: center; gap: 0.65rem; background: none; border: none; color: var(--text); text-align: left; padding: 0.5rem 0.65rem; border-radius: 6px; font-size: 0.88rem; }
+  li button { width: 100%; display: flex; align-items: center; gap: 0.65rem; background: none; border: none; color: var(--text); text-align: left; padding: 0.5rem 0.65rem; border-radius: 6px; font-size: var(--fs-md); }
   li.on button { background: color-mix(in srgb, var(--accent) 18%, transparent); }
   .l { flex: 1; }
-  .h { font-size: 0.74rem; }
+  .h { font-size: var(--fs-xs); }
   .none { padding: 0.8rem; text-align: center; }
-  .foot { margin: 0; padding: 0.4rem 0.9rem; border-top: 1px solid var(--border); font-size: 0.72rem; }
+  .foot { margin: 0; padding: 0.4rem 0.9rem; border-top: 1px solid var(--border); font-size: var(--fs-xs); }
 </style>

@@ -17,7 +17,7 @@
 
 <style>
   .field { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
-  .lab { display: inline-flex; align-items: center; font-size: 0.82rem; color: var(--text-muted); }
+  .lab { display: inline-flex; align-items: center; font-size: var(--fs-sm); color: var(--text-muted); }
   input { width: 100%; text-align: left; }
-  .hint { font-size: 0.76rem; color: var(--text-faint); }
+  .hint { font-size: var(--fs-xs); color: var(--text-faint); }
 </style>

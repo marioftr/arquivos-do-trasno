@@ -242,7 +242,8 @@ fn comprimir_imaxe_no_mesmo_formato() {
     assert_eq!(compress::output_ext_for("PNG"), "png");
     assert_eq!(compress::output_ext_for("webp"), "webp");
     assert_eq!(compress::output_ext_for("bmp"), "jpg");
-    assert_eq!(compress::output_ext_for("gif"), "jpg");
+    assert_eq!(compress::output_ext_for("gif"), "gif");
+    assert_eq!(compress::output_ext_for("heic"), "jpg");
     let dir = tempfile::tempdir().unwrap();
     let src = dir.path().join("a.png");
     image::RgbImage::from_fn(300, 200, |x, y| image::Rgb([(x / 4) as u8, (y / 4) as u8, 120])).save(&src).unwrap();
@@ -455,4 +456,40 @@ fn un_avi_dv_de_cinta_con_dous_audios_pasase_a_mp4_co_perfil_minidv() {
     let info = ffmpeg::probe(&out).unwrap();
     assert_eq!(info["streams"][0]["codec_name"], "h264");
     assert!(std::fs::metadata(&out).unwrap().len() > 1000);
+}
+
+#[test]
+fn png_comprime_con_perdas_e_conserva_a_transparencia() {
+    let dir = tempfile::tempdir().unwrap();
+    // Degradado con ruído: moitas cores, para que a paleta reducida pese claramente menos.
+    let src = dir.path().join("grad.png");
+    image::RgbaImage::from_fn(300, 200, |x, y| {
+        // Ruído determinista (como o gran dunha foto): a imaxe non se deixa comprimir sen perdas.
+        let h = (x.wrapping_mul(73856093) ^ y.wrapping_mul(19349663)).wrapping_mul(2654435761);
+        let n = (h >> 24) as u8 / 8;
+        image::Rgba([(x as u8).wrapping_add(n), (y as u8).wrapping_add(n), ((x + y) / 3) as u8 ^ (n & 3), if y < 20 { 0 } else { 255 }])
+    })
+    .save(&src)
+    .unwrap();
+    let sen_perdas = compress::compress_image(&src, &dir.path().join("a.png"), false, &Default::default()).unwrap();
+    assert_eq!(sen_perdas.quality, 100, "sen calidade indicada, PNG queda sen perdas");
+    let orixinal = image::open(&src).unwrap().to_rgba8();
+    assert_eq!(image::open(&sen_perdas.output_path).unwrap().to_rgba8(), orixinal, "sen perdas: píxeles idénticos");
+
+    let con_perdas = compress::compress_image(&src, &dir.path().join("b.png"), false, &compress::ImageCompress { quality: Some(50), ..Default::default() }).unwrap();
+    assert!(con_perdas.bytes_written < sen_perdas.bytes_written, "con perdas ten que pesar menos: {} < {}", con_perdas.bytes_written, sen_perdas.bytes_written);
+    let lida = image::open(&con_perdas.output_path).unwrap().to_rgba8();
+    assert_eq!(lida.dimensions(), orixinal.dimensions());
+    assert_eq!(lida.get_pixel(5, 5)[3], 0, "a transparencia consérvase");
+    assert_eq!(lida.get_pixel(5, 100)[3], 255);
+
+    // Menos calidade, menos peso (ou igual).
+    let moi_baixa = compress::compress_image(&src, &dir.path().join("c.png"), false, &compress::ImageCompress { quality: Some(10), ..Default::default() }).unwrap();
+    assert!(moi_baixa.bytes_written <= con_perdas.bytes_written);
+
+    // Tamaño obxectivo: primeiro sen perdas, despois baixando a calidade antes de reducir as dimensións.
+    let target = sen_perdas.bytes_written * 6 / 10;
+    let t = compress::compress_image(&src, &dir.path().join("d.png"), false, &compress::ImageCompress { target_bytes: Some(target), ..Default::default() }).unwrap();
+    assert!(t.bytes_written <= target);
+    assert_eq!(t.scale_percent, 100, "cabe baixando a calidade: non hai que reducir as dimensións");
 }

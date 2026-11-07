@@ -200,7 +200,7 @@
 
 <style>
   .help { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-  .legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.8rem; }
+  .legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; font-size: var(--fs-sm); }
   .legend li { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
   .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
   .fn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -213,12 +213,12 @@
   .l1, .l2 { display: flex; align-items: center; gap: 0.35rem; }
   .l2 { padding-left: 1.5rem; }
   .grip { cursor: grab; touch-action: none; user-select: none; color: var(--text-faint); padding: 0 0.15rem; line-height: 1; }
-  .kind { flex: 0 0 auto; font-size: 0.78rem; font-weight: 650; }
+  .kind { flex: 0 0 auto; font-size: var(--fs-sm); font-weight: 650; }
   .kind.video { color: var(--accent-video); }
   .kind.audio { color: var(--accent-audio); }
   .kind.subtitles { color: var(--accent-pdf); }
-  .detail { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; }
-  .txt { flex: 1; min-width: 0; height: 26px; background: var(--bg); color: var(--text); border: 1px solid var(--border-strong); border-radius: 4px; padding: 0 0.4em; font: inherit; font-size: 0.8rem; }
+  .detail { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-xs); }
+  .txt { flex: 1; min-width: 0; height: 26px; background: var(--bg); color: var(--text); border: 1px solid var(--border-strong); border-radius: 4px; padding: 0 0.4em; font: inherit; font-size: var(--fs-sm); }
   .txt.lang { flex: 0 0 3.6rem; text-align: center; }
   .txt:focus { outline: none; border-color: var(--accent); }
   .mini { flex: 0 0 auto; display: flex; width: 22px; height: 22px; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); border-radius: 4px; padding: 0; }

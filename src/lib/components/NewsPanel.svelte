@@ -79,24 +79,24 @@
   section { display: flex; flex-direction: column; gap: 1rem; }
   .rel { display: flex; flex-direction: column; gap: 0.5rem; }
   header { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
-  h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
+  h3 { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
   .sep::before { content: "·"; margin: 0 0.55em; }
-  .date { font-size: 0.78rem; }
+  .date { font-size: var(--fs-sm); }
   ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
-  li { display: flex; gap: 0.6rem; align-items: baseline; font-size: 0.86rem; line-height: 1.4; }
-  .tag { flex: 0 0 5.4rem; text-align: left; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-faint); }
+  li { display: flex; gap: 0.6rem; align-items: baseline; font-size: var(--fs-md); line-height: 1.4; }
+  .tag { flex: 0 0 5.4rem; text-align: left; font-size: var(--fs-xs); font-weight: 500; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-faint); }
   .tag.fixed { color: var(--accent-pdf); }
   .tx { flex: 1; min-width: 0; }
-  .cur { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.9rem; }
+  .cur { display: flex; align-items: baseline; gap: 0.6rem; font-size: var(--fs-md); }
   .box { display: flex; flex-direction: column; gap: 0.7rem; padding: 0.8rem 0.9rem; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-card); }
   .box p { margin: 0; }
-  .what { font-size: 0.8rem; }
-  .notes { list-style: disc; padding-left: 1.2rem; display: block; font-size: 0.85rem; max-height: 12rem; overflow-y: auto; overflow-x: hidden; }
+  .what { font-size: var(--fs-sm); }
+  .notes { list-style: disc; padding-left: 1.2rem; display: block; font-size: var(--fs-md); max-height: 12rem; overflow-y: auto; overflow-x: hidden; }
   .notes li { display: list-item; margin-bottom: 0.3rem; }
   .row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
   .bar { height: 7px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
   .fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
-  .pct { font-size: 0.78rem; text-align: right; }
-  .note { margin: 0; font-size: 0.78rem; }
-  .warn { margin: 0; font-size: 0.82rem; color: var(--accent-pdf); }
+  .pct { font-size: var(--fs-sm); text-align: right; }
+  .note { margin: 0; font-size: var(--fs-sm); }
+  .warn { margin: 0; font-size: var(--fs-sm); color: var(--accent-pdf); }
 </style>

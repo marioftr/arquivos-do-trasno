@@ -91,5 +91,5 @@
   .head { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text); box-shadow: 0 0 0 1px var(--bg); pointer-events: none; }
   .handle { position: absolute; top: -4px; bottom: -4px; width: 14px; margin-left: -7px; cursor: ew-resize; display: flex; justify-content: center; }
   .handle::before { content: ""; width: 4px; height: 100%; border-radius: 2px; background: var(--accent); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45); }
-  .tag { position: absolute; bottom: calc(100% + 2px); font-size: 0.68rem; background: rgba(0, 0, 0, 0.75); color: #fff; padding: 1px 5px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
+  .tag { position: absolute; bottom: calc(100% + 2px); font-size: var(--fs-xs); background: rgba(0, 0, 0, 0.75); color: #fff; padding: 1px 5px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
 </style>

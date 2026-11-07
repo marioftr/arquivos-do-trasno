@@ -4539,7 +4539,7 @@ dependencies = [
 
 [[package]]
 name = "trasno"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "serde",
  "serde_json",
@@ -4554,11 +4554,13 @@ dependencies = [
 
 [[package]]
 name = "trasno-engine"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
+ "color_quant",
  "image",
  "kamadak-exif",
  "lopdf",
+ "png",
  "serde",
  "serde_json",
  "sevenz-rust",

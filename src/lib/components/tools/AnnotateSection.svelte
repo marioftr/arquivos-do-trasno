@@ -6,14 +6,14 @@
   import { errText } from "../../errors";
   import * as engine from "../../engine";
   import { imageUrl, type FileEntry } from "../../files";
-  import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
+  import { fileNameOf, TRASNO, fallo, listo, sameFormat, cannotSaveNotice, animatedNotice, readOnlyLabel } from "../../formats";
+  import LockNote from "../ui/LockNote.svelte";
   import { t, tr } from "../../i18n";
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
   import { annoActive, annoTool, annoStyle, shapes, selected, canUndo, canRedo, undo, redo, clearAll, resetAnnotations, renderAnnotated, liveEdit, toolPrefs, type Tool } from "../../annot";
   import { activateAnno } from "../../annot";
   import Slider from "../ui/Slider.svelte";
-  import SelectField from "../ui/SelectField.svelte";
   import FontPicker from "../ui/FontPicker.svelte";
   import ColorField from "../ui/ColorField.svelte";
   import Toggle from "../ui/Toggle.svelte";
@@ -24,9 +24,17 @@
 
   const job = createJob();
   const busy = job.busy;
-  let ext = file.ext === "jpg" || file.ext === "webp" ? file.ext : "png";
+  // Gárdase sempre no formato do orixinal. Se só se sabe ler (HEIC…), as anotacións quedan bloqueadas con aviso.
+  const fmt = sameFormat(file.ext);
+  // Un GIF animado anótase fotograma a fotograma (o debuxado superpónse a todos); outra imaxe animada quedaría fixa, así que se bloquea.
+  let animated = false;
+  $: void engine.imageIsAnimated(file.path).then((r) => (animated = r)).catch(() => (animated = false));
+  $: gifAnim = animated && file.ext.toLowerCase() === "gif";
+  $: outExt = animated && !gifAnim ? null : fmt;
+  $: lockText = !fmt ? cannotSaveNotice(file.ext, "anotar") : animatedNotice(file.ext, "anotar");
 
   onMount(() => {
+    if (!outExt) return;
     activateAnno(file.path);
     annoActive.set(true);
   });
@@ -39,7 +47,9 @@
   );
   // Outra imaxe: gárdase o debuxado desta e recupérase o da nova.
   $: filePath = file.path;
-  $: activateAnno(filePath);
+  $: if (outExt) activateAnno(filePath);
+  // Se resulta ser unha imaxe animada que non se pode anotar, as ferramentas de debuxo desactívanse.
+  $: if (!outExt) annoActive.set(false);
 
   const TOOLS: { id: Tool; label: string; icon: string; hint: string }[] = [
     { id: "select", label: "Seleccionar", icon: "cursor", hint: "Move as figuras. Dobre clic nun texto para editalo; Supr borra a seleccionada." },
@@ -119,13 +129,21 @@
 
   async function save() {
     try {
-      const out = await askOutput(file, `-${tr("anotada")}`, ext);
+      if (!outExt) return;
+      const out = await askOutput(file, `-${tr("anotada")}`, outExt);
       if (!out) return;
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
-        const mime = ext === "jpg" ? "image/jpeg" : ext === "webp" ? "image/webp" : "image/png";
+        // O navegador só escribe PNG, JPG e WebP; os demais formatos pasan por PNG e escríbeos o motor.
         const src = get(imageUrl) || "";
-        const blob = await renderAnnotated(src, get(shapes), mime, 0.92);
-        const done = await engine.saveBytes(out, new Uint8Array(await blob.arrayBuffer()));
+        if (gifAnim) {
+          const layer = await renderAnnotated(src, get(shapes), "image/png", 1, true);
+          const done = await engine.annotateAnimated(file.path, out, new Uint8Array(await layer.arrayBuffer()));
+          return `${listo()} ${fileNameOf(done)}`;
+        }
+        const native = outExt === "png" ? "image/png" : outExt === "jpg" || outExt === "jpeg" ? "image/jpeg" : outExt === "webp" ? "image/webp" : null;
+        const blob = await renderAnnotated(src, get(shapes), native ?? "image/png", 0.92);
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        const done = native ? await engine.saveBytes(out, bytes) : await engine.saveImageBytes(out, bytes);
         return `${listo()} ${fileNameOf(done)}`;
       });
     } catch (e) {
@@ -135,6 +153,8 @@
 </script>
 
 <div class="stack">
+  {#if !outExt}<LockNote label={readOnlyLabel()} text={lockText} />{/if}
+  <div class="locked-tools" class:on={!outExt} inert={!outExt}>
   <div class="group">
     <h4 class="group-title">{$t("Ferramentas")}</h4>
     <div class="tools" role="radiogroup" aria-label={$t("Ferramentas")}>
@@ -177,10 +197,11 @@
   </div>
 
   <div class="group">
-    <SelectField label={$t("Gardar como")} bind:value={ext} options={["png", "jpg", "webp"].map((x) => ({ value: x, label: x.toUpperCase() }))} def="png" />
-    <button class="btn primary block" on:click={save} disabled={!$shapes.length || $busy}>
+    <button class="btn primary block" on:click={save} disabled={!$shapes.length || $busy || !outExt}>
       {$t("Gardar copia anotada")}
     </button>
+  </div>
+
   </div>
 
   <JobStatus {job} />
@@ -188,9 +209,9 @@
 
 <style>
   .tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; }
-  .tl { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; min-height: 3.1rem; padding: 0.3rem 0.2rem; background: var(--bg-input); color: var(--text-muted); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 0.78rem; }
+  .tl { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; min-height: 3.1rem; padding: 0.3rem 0.2rem; background: var(--bg-input); color: var(--text-muted); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: var(--fs-sm); }
   .tl:hover { color: var(--text); background: var(--bg-hover); }
   .tl.on { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
-  .ic { font-size: 1.15rem; line-height: 1; }
+  .ic { font-size: var(--fs-xl); line-height: 1; }
   .nm { white-space: nowrap; }
 </style>

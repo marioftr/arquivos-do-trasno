@@ -267,6 +267,114 @@ fn run_ffmpeg_with_progress(bin: PathBuf, args: &[std::ffi::OsString], sink: Opt
     Ok(Output { status, stdout: Vec::new(), stderr: stderr.into_bytes() })
 }
 
+/// Resultado dun programa externo lanzado con `run_external`.
+pub(crate) struct External {
+    pub code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+}
+
+/// Executa un programa externo (LibreOffice, Microsoft Office…) como un traballo máis: Pausa e Cancelar chéganlle (a el e aos
+/// procesos que declare coa liña `PID <n>` na súa saída) e acaba matado se pasa de `timeout`.
+pub(crate) fn run_external(mut cmd: Command, timeout: std::time::Duration) -> Result<External> {
+    use std::io::{BufRead, BufReader, Read};
+    use std::process::Stdio;
+    let bg = is_background();
+    if !bg && CANCELLED.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err(EngineError::Cancelled);
+    }
+    hide_console(&mut cmd);
+    let mut child = cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().map_err(EngineError::Io)?;
+    let id = child.id();
+    let tracked = std::sync::Arc::new(std::sync::Mutex::new(vec![id]));
+    if !bg {
+        CHILDREN.lock().unwrap_or_else(|e| e.into_inner()).push(id);
+        if PAUSED.load(std::sync::atomic::Ordering::SeqCst) {
+            suspend_process(id, true);
+        }
+    }
+    let stdout = child.stdout.take().expect("stdout");
+    let mut stderr = child.stderr.take().expect("stderr");
+    let t2 = tracked.clone();
+    let out_thread = std::thread::spawn(move || {
+        let mut text = String::new();
+        for line in BufReader::new(stdout).lines().map_while(|l| l.ok()) {
+            if let Some(n) = line.strip_prefix("PID ").and_then(|v| v.trim().parse::<u32>().ok()).filter(|n| *n > 0) {
+                t2.lock().unwrap_or_else(|e| e.into_inner()).push(n);
+                if !bg {
+                    CHILDREN.lock().unwrap_or_else(|e| e.into_inner()).push(n);
+                    if PAUSED.load(std::sync::atomic::Ordering::SeqCst) {
+                        suspend_process(n, true);
+                    }
+                }
+                continue;
+            }
+            text.push_str(&line);
+            text.push('\n');
+        }
+        text
+    });
+    let err_thread = std::thread::spawn(move || {
+        let mut text = String::new();
+        let _ = stderr.read_to_string(&mut text);
+        text
+    });
+    let started = std::time::Instant::now();
+    let mut timed_out = false;
+    let status = loop {
+        match child.try_wait().map_err(EngineError::Io)? {
+            Some(st) => break st,
+            None => {
+                if started.elapsed() > timeout {
+                    timed_out = true;
+                    for pid in tracked.lock().unwrap_or_else(|e| e.into_inner()).clone() {
+                        suspend_process(pid, false);
+                        let mut k;
+                        #[cfg(windows)]
+                        {
+                            use std::os::windows::process::CommandExt;
+                            k = Command::new("taskkill");
+                            k.args(["/PID", &pid.to_string(), "/T", "/F"]).creation_flags(0x0800_0000);
+                        }
+                        #[cfg(not(windows))]
+                        {
+                            k = Command::new("kill");
+                            k.args(["-9", &pid.to_string()]);
+                        }
+                        let _ = k.output();
+                    }
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+        }
+    };
+    let stdout = out_thread.join().unwrap_or_default();
+    let stderr = err_thread.join().unwrap_or_default();
+    // Os procesos que declarou o programa (p. ex. o Word que manexou) non deben quedar vivos cando el remata.
+    for pid in tracked.lock().unwrap_or_else(|e| e.into_inner()).iter().skip(1).copied().collect::<Vec<_>>() {
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            let _ = Command::new("taskkill").args(["/PID", &pid.to_string(), "/T", "/F"]).creation_flags(0x0800_0000).output();
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = Command::new("kill").args(["-9", &pid.to_string()]).output();
+        }
+    }
+    if !bg {
+        let all = tracked.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        CHILDREN.lock().unwrap_or_else(|e| e.into_inner()).retain(|p| !all.contains(p));
+    }
+    if !bg && CANCELLED.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err(EngineError::Cancelled);
+    }
+    if timed_out {
+        return Err(EngineError::OfficeFailed("tardou demasiado e o trasno parouno".into()));
+    }
+    Ok(External { code: status.code(), stdout, stderr })
+}
+
 pub(crate) fn run_ffmpeg(args: &[std::ffi::OsString]) -> Result<Output> {
     let bin = ffmpeg_path()?;
     let sink = if is_background() { None } else { SINK.lock().unwrap_or_else(|e| e.into_inner()).clone() };
@@ -303,10 +411,23 @@ pub fn convert_media_seek(
     pre_args: &[String],
     extra_args: &[String],
 ) -> Result<PathBuf> {
-    if !input.is_file() {
-        return Err(EngineError::InputNotFound(input.to_path_buf()));
+    convert_media_inputs(&[input], output_final, overwrite, pre_args, extra_args)
+}
+
+/// Como `convert_media_seek`, con varias entradas (a primeira é a principal; as demais, p. ex. unha capa para superpoñer).
+pub fn convert_media_inputs(
+    inputs: &[&Path],
+    output_final: &Path,
+    overwrite: bool,
+    pre_args: &[String],
+    extra_args: &[String],
+) -> Result<PathBuf> {
+    for input in inputs {
+        if !input.is_file() {
+            return Err(EngineError::InputNotFound(input.to_path_buf()));
+        }
     }
-    ensure_distinct(&[input], output_final)?;
+    ensure_distinct(inputs, output_final)?;
     if output_final.extension().is_none() {
         return Err(EngineError::IntegrityCheck(
             "O nome do ficheiro de saída non ten extensión (por exemplo «.mp4»): ffmpeg necesita saber que formato crear.".into(),
@@ -332,8 +453,10 @@ pub fn convert_media_seek(
     let temp_path = dir.join(format!(".trasno-{}.part.{}", uuid::Uuid::new_v4(), ext));
 
     let mut args: Vec<std::ffi::OsString> = pre_args.iter().map(std::ffi::OsString::from).collect();
-    args.push(std::ffi::OsString::from("-i"));
-    args.push(input.as_os_str().to_owned());
+    for input in inputs {
+        args.push(std::ffi::OsString::from("-i"));
+        args.push(input.as_os_str().to_owned());
+    }
     args.extend(extra_args.iter().map(std::ffi::OsString::from));
     args.push(temp_path.as_os_str().to_owned());
 

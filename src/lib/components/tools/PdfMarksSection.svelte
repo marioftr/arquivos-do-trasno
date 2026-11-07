@@ -353,14 +353,14 @@
   .list { display: flex; flex-direction: column; gap: 2px; max-height: 11rem; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
   .li { display: flex; align-items: center; border-radius: 5px; }
   .li.on { background: color-mix(in srgb, var(--accent) 18%, transparent); }
-  .pick { flex: 1; min-width: 0; display: flex; gap: 0.6rem; align-items: baseline; text-align: left; background: none; border: none; color: var(--text); padding: 0.35rem 0.5rem; font-size: 0.84rem; border-radius: 5px; }
+  .pick { flex: 1; min-width: 0; display: flex; gap: 0.6rem; align-items: baseline; text-align: left; background: none; border: none; color: var(--text); padding: 0.35rem 0.5rem; font-size: var(--fs-md); border-radius: 5px; }
   .pick:hover { background: var(--bg-hover); }
-  .pg { flex: 0 0 auto; font-size: 0.72rem; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+  .pg { flex: 0 0 auto; font-size: var(--fs-xs); color: var(--text-faint); font-variant-numeric: tabular-nums; }
   .sn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .del { display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 auto; background: none; border: none; border-radius: 5px; color: var(--text-faint); }
   .del:hover { background: var(--bg-hover); color: var(--accent-video); }
   .ta { display: flex; flex-direction: column; gap: 0.2rem; }
-  .lab { font-size: 0.82rem; color: var(--text-muted); }
-  textarea { width: 100%; resize: vertical; min-height: 4.2rem; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0.4rem 0.6rem; font: inherit; font-size: 0.9rem; }
+  .lab { font-size: var(--fs-sm); color: var(--text-muted); }
+  textarea { width: 100%; resize: vertical; min-height: 4.2rem; background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0.4rem 0.6rem; font: inherit; font-size: var(--fs-md); }
   textarea:focus { outline: none; border-color: var(--accent); }
 </style>

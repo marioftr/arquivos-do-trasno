@@ -390,25 +390,25 @@
 </div>
 
 <style>
-  dl { display: grid; grid-template-columns: minmax(0, 42%) minmax(0, 1fr); gap: 0.45rem 0.9rem; margin: 0; font-size: 0.84rem; }
+  dl { display: grid; grid-template-columns: minmax(0, 42%) minmax(0, 1fr); gap: 0.45rem 0.9rem; margin: 0; font-size: var(--fs-md); }
   dt { color: var(--text-muted); min-width: 0; overflow-wrap: anywhere; }
   dd { margin: 0; min-width: 0; }
   dd.wrap { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
-  .hash { font-family: Consolas, monospace; font-size: 0.72rem; }
-  .small { font-size: 0.82rem; margin: 0; }
+  .hash { font-family: Consolas, monospace; font-size: var(--fs-xs); }
+  .small { font-size: var(--fs-sm); margin: 0; }
   .fold summary { cursor: pointer; }
-  .chaps { list-style: none; margin: 0.5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.55rem; font-size: 0.84rem; }
+  .chaps { list-style: none; margin: 0.5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.55rem; font-size: var(--fs-md); }
   .chaps li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: 0.4rem; align-items: baseline; }
   .cn { color: var(--text-muted); font-variant-numeric: tabular-nums; text-align: right; }
   .cb { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
   .cname { overflow-wrap: anywhere; font-weight: 600; }
-  .ctime { color: var(--text-muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+  .ctime { color: var(--text-muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
   .fold dl { margin-top: 0.5rem; }
   .raw { margin-top: 1.1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; }
-  .raw summary { cursor: pointer; font-size: 0.84rem; color: var(--text-muted); }
+  .raw summary { cursor: pointer; font-size: var(--fs-md); color: var(--text-muted); }
   .sub { margin-top: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.4rem; }
-  .sub summary { cursor: pointer; font-size: 0.82rem; font-weight: 600; }
+  .sub summary { cursor: pointer; font-size: var(--fs-sm); font-weight: 600; }
   .sub dl { margin-top: 0.5rem; }
-  dl.mono { font-size: 0.74rem; }
+  dl.mono { font-size: var(--fs-xs); }
   dl.mono dt { font-family: Consolas, monospace; }
 </style>

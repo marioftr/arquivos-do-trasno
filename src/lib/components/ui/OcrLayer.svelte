@@ -24,6 +24,22 @@
 
   /** Palabra máis preto do punto (en px do visor): primeiro a liña máis próxima en vertical e dentro dela a máis próxima en horizontal. */
   function nearest(px: number, py: number, strict = false): number {
+    // Primero, o cadro que está xusto debaixo do punto (con algo de marxe): se hai varios que se solapan, o máis pequeno, que é o
+    // que se ve por riba (unha letra grande de logotipo non pode tapar as palabras que están dentro da súa altura).
+    let hit = -1;
+    let ha = Infinity;
+    for (let i = 0; i < flat.length; i++) {
+      const w = flat[i];
+      const h = (w.y1 - w.y0) * sc;
+      const mx = Math.min(4, h * 0.25);
+      const my = Math.min(3, h * 0.25);
+      if (px < w.x0 * sc - mx || px > w.x1 * sc + mx || py < w.y0 * sc - my || py > w.y1 * sc + my) continue;
+      const ar = (w.x1 - w.x0) * (w.y1 - w.y0);
+      if (ar < ha) (ha = ar), (hit = i);
+    }
+    if (hit >= 0) return hit;
+    // En estrito (clic e cursor) só valen os cadros: nada de adiviñar polas liñas.
+    if (strict) return -1;
     let best = -1;
     let bd = Infinity;
     let bh = 0;
@@ -46,8 +62,6 @@
       bh = bot - top;
       bx = wd;
     });
-    // En estrito (clic, cursor) só vale se o punto está sobre unha liña ou moi preto dela.
-    if (strict && best >= 0 && (bd > bh * 0.5 || bx > bh * 2)) return -1;
     return best;
   }
   const local = (e: PointerEvent): [number, number] => {

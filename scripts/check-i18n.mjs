@@ -42,6 +42,20 @@ for (const file of walk(root)) {
       if (b) for (const m of b[1].matchAll(new RegExp(str, "g"))) add(unesc(m[1]), rel);
     }
   }
+  // Frases do trasno despois de ler o texto dunha imaxe (listas en ocr.ts)
+  if (rel.endsWith("ocr.ts")) {
+    for (const block of ["OCR_NONE", "OCR_FEW", "OCR_SOME", "OCR_LOT"]) {
+      const b = src.match(new RegExp(`const ${block}\\b[^=]*=\\s*\\[([\\s\\S]*?)\\n\\];`));
+      if (b) for (const m of b[1].matchAll(new RegExp(str, "g"))) add(unesc(m[1]), rel);
+    }
+  }
+  // Verbos dos avisos de ferramentas bloqueadas
+  if (rel.endsWith("formats.ts")) {
+    for (const block of ["VERB", "VERB_LO"]) {
+      const b = src.match(new RegExp(`const ${block}\\b[^=]*=\\s*\\{([\\s\\S]*?)\\};`));
+      if (b) for (const m of b[1].matchAll(new RegExp(String.raw`:\s*${str}`, "g"))) add(unesc(m[1]), rel);
+    }
+  }
   // Predefinidos de calidade (Tools): label e hint
   if (rel.endsWith("ConvertSection.svelte")) {
     for (const m of src.matchAll(new RegExp(String.raw`label:\s*${str}\s*,\s*value:\s*\d+\s*,\s*hint:\s*${str}`, "g"))) {

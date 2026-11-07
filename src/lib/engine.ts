@@ -187,6 +187,20 @@ export async function makePreviewChunk(path: string, start: number, len: number,
 /** Subtítulos de texto dun vídeo en WebVTT (índice entre os subtítulos). */
 /** Garda uns bytes (por exemplo, unha imaxe con debuxo) nun ficheiro novo: primeiro un temporal e despois o nome final. */
 export const saveBytes = (path: string, bytes: Uint8Array): Promise<string> => call("save_bytes", bytes, { headers: { "x-path": encodeURIComponent(path) } });
+export interface OfficeStatus { word: boolean; excel: boolean; powerpoint: boolean; libreoffice: boolean }
+/** Que hai instalado para converter documentos de Office. */
+export const officeStatus = (): Promise<OfficeStatus> => call("office_status");
+/** Formatos de saída para un documento de Office (ou PDF), segundo o que haxa instalado. */
+export const officeTargets = (ext: string): Promise<string[]> => call("office_targets", { ext });
+export const convertOffice = (input: string, output: string, overwrite: boolean): Promise<string> => call("convert_office", { input, output, overwrite });
+
+/** Garda unha imaxe (en PNG) no formato da extensión de `path`, sexa cal sexa. */
+export const saveImageBytes = (path: string, png: Uint8Array): Promise<string> => call("save_image_bytes", png, { headers: { "x-path": encodeURIComponent(path) } });
+/** Ten a imaxe máis dun fotograma (GIF, WebP ou PNG animados)? */
+export const imageIsAnimated = (path: string): Promise<boolean> => call("image_is_animated", { path });
+/** Anota un GIF animado: `overlay` é unha capa PNG transparente co debuxado que se superpón en todos os fotogramas. */
+export const annotateAnimated = (input: string, output: string, overlay: Uint8Array): Promise<string> =>
+  call("annotate_animated", overlay, { headers: { "x-input": encodeURIComponent(input), "x-path": encodeURIComponent(output) } });
 export interface InfoGroup {
   title: string;
   rows: [string, string][];
@@ -241,7 +255,7 @@ export async function compressImage(
 }
 
 /** Extensión en que se comprime unha imaxe: a mesma se o motor sabe (JPG, PNG, WebP, AVIF, JPEG XL, JPEG 2000), se non JPG. */
-export const COMPRESS_KEEP = ["jpg", "jpeg", "png", "webp", "avif", "jxl", "jp2"];
+export const COMPRESS_KEEP = ["jpg", "jpeg", "png", "webp", "avif", "jxl", "jp2", "gif"];
 export const compressExt = (ext: string) => (COMPRESS_KEEP.includes(ext.toLowerCase()) ? ext.toLowerCase() : "jpg");
 
 export async function estimateImage(input: string, ext: string, quality: number, maxSide?: number, background?: [number, number, number]): Promise<number> {
@@ -387,7 +401,7 @@ export interface TrackRef {
 export const mkvMux = (inputs: MuxInput[], order: TrackRef[], output: string, overwrite = false): Promise<string> =>
   call("mkv_mux", { inputs, order, output, overwrite });
 
-export type LinkId = "ffmpeg" | "ffmpeg-license" | "mkvtoolnix" | "mkvtoolnix-license" | "iso639-2" | "mkvmerge-doc";
+export type LinkId = "ffmpeg" | "ffmpeg-license" | "mkvtoolnix" | "mkvtoolnix-license" | "iso639-2" | "mkvmerge-doc" | "libreoffice" | "libreoffice-license";
 export const openUrl = (url: string): Promise<void> => call("open_url", { url });
 export const openLink = (id: LinkId): Promise<void> => call("open_link", { id });
 

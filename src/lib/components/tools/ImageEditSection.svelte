@@ -6,7 +6,8 @@
   import * as engine from "../../engine";
   import { get } from "svelte/store";
   import { imageEdit, imageCrop, imageCropAspect, imageCropEnabled, imageNatural, type FileEntry } from "../../files";
-  import { fileNameOf, TRASNO, fallo, listo, IMAGE_TARGETS } from "../../formats";
+  import { fileNameOf, TRASNO, fallo, listo, sameFormat, cannotSaveNotice, animatedNotice, readOnlyLabel } from "../../formats";
+  import LockNote from "../ui/LockNote.svelte";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { NO_ALPHA, BACKGROUNDS, hasTransparency, backdrop, cssOf, type Bg } from "../../transparency";
@@ -14,7 +15,6 @@
   import { askOutput } from "./shared";
   import Slider from "../ui/Slider.svelte";
   import NumberField from "../ui/NumberField.svelte";
-  import SelectField from "../ui/SelectField.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
@@ -37,15 +37,21 @@
     cy: 0,
     cw: file.width ?? 0,
     ch: file.height ?? 0,
-    ext: file.ext === "jpg" || file.ext === "png" || file.ext === "webp" ? file.ext : "png",
     bg: "white" as Bg,
   }, undefined, "imgedit|" + file.path);
   onMount(() => useForm(form));
 
+  // O formato de saída é sempre o do orixinal (cambiar de formato é cousa de Converter). Se só se sabe ler, a edición queda bloqueada.
+  const fmt = sameFormat(file.ext);
+  // Unha imaxe animada quedaría fixa ao editala (o motor só trata un fotograma): bloquéase en vez de perder a animación sen avisar.
+  let animated = false;
+  $: void engine.imageIsAnimated(file.path).then((r) => (animated = r)).catch(() => (animated = false));
+  $: outExt = animated ? null : fmt;
+  $: lockText = !fmt ? cannotSaveNotice(file.ext, "editar") : animatedNotice(file.ext, "editar");
   let transparent = false;
   $: void hasTransparency(file.path).then((r) => (transparent = r));
 
-  $: backdrop.set(NO_ALPHA.includes($form.ext) && transparent ? cssOf($form.bg) : null);
+  $: backdrop.set(outExt && NO_ALPHA.includes(outExt) && transparent ? cssOf($form.bg) : null);
   onDestroy(() => backdrop.set(null));
 
   const job = createJob();
@@ -80,7 +86,14 @@
   $: swapped = $form.rotate % 180 !== 0;
   $: W = swapped ? H0 : W0;
   $: H = swapped ? W0 : H0;
+  let mounted = false;
+  // Con a edición bloqueada (formato só de lectura ou imaxe animada) non hai recorte no visor.
+  $: if (mounted && !outExt) {
+    imageCropEnabled.set(false);
+    imageCrop.set(null);
+  }
   onMount(() => {
+    mounted = true;
     imageCropEnabled.set(true);
     // Ao abrir a edición xa se ve o rectángulo sobre toda a imaxe, listo para axustar.
     if (W && H && !get(imageCrop)) imageCrop.set({ x: 0, y: 0, w: W, h: H });
@@ -111,7 +124,20 @@
     const ar = a === "free" ? null : Number(a);
     imageCropAspect.set(ar);
     const c = get(imageCrop);
-    if (!ar || !c) return;
+    if (!ar) return;
+    if (!c) {
+      // Sen recorte (p. ex. despois de «Quitar o recorte»): sae o máis grande posible con esa proporción, centrado.
+      let w = W;
+      let h = W / ar;
+      if (h > H) {
+        h = H;
+        w = H * ar;
+      }
+      w = Math.max(1, Math.min(W, Math.round(w)));
+      h = Math.max(1, Math.min(H, Math.round(w / ar)));
+      imageCrop.set({ x: Math.round((W - w) / 2), y: Math.round((H - h) / 2), w, h });
+      return;
+    }
     // O recorte actual encolle, centrado, ata ter a proporción pedida: nunca se estira nin se deforma.
     let w = c.w;
     let h = w / ar;
@@ -151,7 +177,8 @@
   async function apply() {
     const f = $form;
     try {
-      const out = await askOutput(file, `-${tr("editada")}`, f.ext);
+      if (!outExt) return;
+      const out = await askOutput(file, `-${tr("editada")}`, outExt);
       if (!out) return;
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
         const done = await engine.editImage(
@@ -168,7 +195,7 @@
             blur: f.blur,
             crop: f.cropOn ? [f.cx, f.cy, f.cw, f.ch] : undefined,
             quality: 90,
-            background: NO_ALPHA.includes(f.ext) ? BACKGROUNDS[f.bg] : undefined,
+            background: NO_ALPHA.includes(outExt) ? BACKGROUNDS[f.bg] : undefined,
           },
           true,
         );
@@ -181,6 +208,8 @@
 </script>
 
 <div class="stack">
+  {#if !outExt}<LockNote label={readOnlyLabel()} text={lockText} />{/if}
+  <div class="locked-tools" class:on={!outExt} inert={!outExt}>
 
   <div class="group">
     <h4 class="group-title">{$t("Transformar")}</h4>
@@ -208,6 +237,7 @@
         { value: "0.5625", label: "9:16" },
       ]}
       bind:value={aspect}
+      on:pick={() => aspect === lastAspect && setAspect(aspect)}
     />
     <div class="pair">
       <button class="btn" on:click={fullCrop}>{$t("Toda a imaxe")}</button>
@@ -233,7 +263,7 @@
   </div>
 
   <div class="group">
-    {#if NO_ALPHA.includes($form.ext) && transparent}
+    {#if outExt && NO_ALPHA.includes(outExt) && transparent}
       <Segmented
         label={$t("Fondo")}
         info={$t("A imaxe ten transparencia e este formato non a admite: hai que escoller un fondo sobre o que compoñela.")}
@@ -241,10 +271,11 @@
         bind:value={$form.bg}
       />
     {/if}
-    <SelectField label={$t("Gardar como")} bind:value={$form.ext} options={[...IMAGE_TARGETS, "pdf"].map((x) => ({ value: x, label: x.toUpperCase() }))} def={form.defaults.ext} />
-    <button class="btn primary block" on:click={apply} disabled={!$dirty || $busy}>
+    <button class="btn primary block" on:click={apply} disabled={!$dirty || $busy || !outExt}>
       {$t("Gardar copia editada")}
     </button>
+  </div>
+
   </div>
 
   <JobStatus {job} />

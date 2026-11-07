@@ -102,7 +102,7 @@
       options={LANGS.map((l) => ({ value: l.id, label: l.label }))}
       bind:value={langV}
     />
-    <div class="lab">{$t("Tema")}</div>
+    <div class="lab stk">{$t("Tema")}</div>
     <div class="themes" role="radiogroup" aria-label={$t("Tema")}>
       {#each [{ id: "system", label: $t("Sistema") }, { id: "light", label: $t("Claro") }, { id: "dark", label: $t("Escuro") }] as th}
         <button class="theme" class:on={themeV === th.id} role="radio" aria-checked={themeV === th.id} on:click={() => (themeV = th.id)}>
@@ -139,13 +139,15 @@
 </section>
 
 <style>
-  .hint { margin: 0.3rem 0 0; font-size: 0.78rem; line-height: 1.4; }
+  .hint { margin: 0.3rem 0 0; font-size: var(--fs-sm); line-height: 1.4; }
   section { display: flex; flex-direction: column; gap: 0.6rem; }
-  h3 { margin: 0; font-size: 0.86rem; font-weight: 600; }
+  h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
-  .lab { font-size: 0.86rem; display: inline-flex; align-items: center; }
+  .lab { font-size: var(--fs-md); display: inline-flex; align-items: center; }
+  /* Etiqueta dun control que ocupa a liña enteira (igual que a dos selectores segmentados): máis pequena e apagada. */
+  .lab.stk { font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: -0.4rem; }
   .themes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
-  .theme { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.4rem 0.4rem 0.5rem; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); color: var(--text-muted); font-size: 0.82rem; }
+  .theme { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.4rem 0.4rem 0.5rem; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); color: var(--text-muted); font-size: var(--fs-sm); }
   .theme:hover { border-color: var(--text-faint); color: var(--text); }
   .theme.on { border-color: var(--accent); color: var(--text); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
   .mini { position: relative; display: block; height: 58px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(128, 128, 128, 0.35); }
@@ -163,6 +165,6 @@
   .half .hd, .half .bd { left: 36%; right: 8%; }
   .half .ac { left: 36%; width: 40%; }
   .tl { text-align: center; }
-  .note { margin: 0; font-size: 0.8rem; }
+  .note { margin: 0; font-size: var(--fs-sm); }
   .exrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
 </style>
