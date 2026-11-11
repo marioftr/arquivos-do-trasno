@@ -20,3 +20,9 @@ panic = "abort"
 
 [profile.dev]
 opt-level = 0
+# Só táboas de liñas (backtraces con ficheiro:liña): os .pdb enteiros chegaban a 280 MB cada un.
+debug = "line-tables-only"
+
+# As dependencias non se depuran: sen información de depuración propia.
+[profile.dev.package."*"]
+debug = false
