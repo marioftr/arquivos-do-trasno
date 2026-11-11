@@ -346,6 +346,35 @@ pub async fn media_edit(
     .await
 }
 
+#[derive(serde::Serialize)]
+pub struct NormalizeResult {
+    output_path: String,
+    /// Volume do orixinal (LUFS), pico (dBTP) e rango (LU).
+    before_lufs: f64,
+    before_peak: f64,
+    before_range: f64,
+    /// `false` se houbo que comprimir a dinámica para chegar ao obxectivo.
+    linear: bool,
+}
+
+/// Iguala o volume percibido en dúas pasadas (EBU R128) cara ao obxectivo indicado.
+#[tauri::command]
+pub async fn normalize_audio(input: String, output: String, overwrite: bool, lufs: f64, peak: f64, range: f64, has_video: bool) -> Result<NormalizeResult, String> {
+    use trasno_engine::ffmpeg::{normalize_loudness, Loudness};
+    blocking(move || {
+        normalize_loudness(&PathBuf::from(input), &PathBuf::from(output), overwrite, Loudness { lufs, peak, range }, has_video)
+            .map(|r| NormalizeResult {
+                output_path: r.output.to_string_lossy().to_string(),
+                before_lufs: r.before.lufs,
+                before_peak: r.before.peak,
+                before_range: r.before.range,
+                linear: r.linear,
+            })
+            .map_err(to_err)
+    })
+    .await
+}
+
 /// Troca os cartafoles por os ficheiros que levan dentro (ata 6 niveis e 3000 ficheiros); os ficheiros pasan tal cal.
 #[tauri::command]
 pub async fn expand_paths(paths: Vec<String>) -> Vec<String> {

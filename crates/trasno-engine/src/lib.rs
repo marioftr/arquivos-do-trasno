@@ -111,10 +111,7 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
                     extra_args.push(a.to_string());
                 }
             } else if let Some(kbps) = options.bitrate_kbps.filter(|_| dst_category == Category::Audio && dst_ext == "ogg") {
-                // libvorbis non acepta calquera bitrate fixo (a 32 kbps estéreo ou a 320 kbps en mono de 8 kHz nin arranca):
-                // tradúcese ao nivel de calidade equivalente, que sempre vale.
-                const Q: [(u32, &str); 11] = [(45, "-1"), (64, "0"), (80, "1"), (96, "2"), (112, "3"), (128, "4"), (160, "5"), (192, "6"), (224, "7"), (256, "8"), (320, "9")];
-                let q = Q.iter().rev().find(|(k, _)| kbps >= *k).map(|(_, q)| *q).unwrap_or("-1");
+                let q = ffmpeg::vorbis_quality(kbps);
                 for a in ["-c:a", "libvorbis", "-q:a", q] {
                     extra_args.push(a.to_string());
                 }

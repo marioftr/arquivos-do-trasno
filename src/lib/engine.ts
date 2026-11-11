@@ -137,6 +137,19 @@ export async function imagesToPdf(inputs: string[], output: string, overwrite = 
 
 export type MediaOp = "frame" | "speed" | "mute" | "volume" | "scale" | "normalize" | "reverse" | "fadein" | "fadeout" | "echo" | "bass" | "treble" | "denoise";
 
+export interface NormalizeResult {
+  output_path: string;
+  before_lufs: number;
+  before_peak: number;
+  before_range: number;
+  /** `false` se houbo que comprimir a dinámica para chegar ao obxectivo. */
+  linear: boolean;
+}
+
+/** Iguala o volume percibido en dúas pasadas (EBU R128). `lufs`: obxectivo; `peak`: pico máximo (dBTP); `range`: rango dinámico máximo (LU). */
+export const normalizeAudio = (input: string, output: string, target: { lufs: number; peak: number; range: number }, hasVideo: boolean, overwrite = false): Promise<NormalizeResult> =>
+  call("normalize_audio", { input, output, overwrite, lufs: target.lufs, peak: target.peak, range: target.range, hasVideo });
+
 export async function mediaEdit(
   input: string,
   output: string,

@@ -165,11 +165,15 @@ pub fn video_to_animation(input: &Path, output: &Path, overwrite: bool, fps: Opt
             }
             let palette = Temp(std::env::temp_dir().join(format!("trasno-paleta-{}.png", uuid::Uuid::new_v4())));
             let pass1: Vec<String> = ["-vf".to_string(), format!("{chain},palettegen=max_colors=256:stats_mode=diff"), "-an".into(), "-frames:v".into(), "1".into(), "-update".into(), "1".into()].to_vec();
-            ffmpeg::convert_media_inputs(&[input], &palette.0, true, &[], &pass1)?;
+            ffmpeg::set_progress_phase(0.0, 0.3);
+            let made = ffmpeg::convert_media_inputs(&[input], &palette.0, true, &[], &pass1);
+            ffmpeg::set_progress_phase(0.3, 0.7);
             // Só se garda o rectángulo que cambia entre cadros.
             let filter = format!("[0:v]{chain}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle");
             let pass2: Vec<String> = ["-filter_complex".to_string(), filter, "-an".into(), "-loop".into(), "0".into()].to_vec();
-            ffmpeg::convert_media_inputs(&[input, &palette.0], output, overwrite, &[], &pass2)?
+            let done = made.and_then(|_| ffmpeg::convert_media_inputs(&[input, &palette.0], output, overwrite, &[], &pass2));
+            ffmpeg::set_progress_phase(0.0, 1.0);
+            done?
         }
         "webp" => {
             let q = quality.unwrap_or(75).clamp(1, 100);

@@ -699,7 +699,7 @@ pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has
             }
             args.extend(["-vf".into(), format!("scale=-2:{}", h - h % 2)]);
         }
-        MediaOp::Normalize => args.extend(["-af".into(), "loudnorm=I=-16:TP=-1.5:LRA=11".into()]),
+        MediaOp::Normalize => return normalize_loudness(input, output, overwrite, Loudness::default(), has_video).map(|r| r.output),
         MediaOp::Reverse => args.extend(["-af".into(), "areverse".into()]),
         MediaOp::FadeIn(d) => {
             if !d.is_finite() || !(0.05..=600.0).contains(&d) {
@@ -729,7 +729,168 @@ pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has
         }
         MediaOp::Denoise => args.extend(["-af".into(), "afftdn=nr=12".into()]),
     }
+    // Calquera filtro de son obriga a recodificar: que saia coa calidade do orixinal, non coa que FFmpeg pon por defecto.
+    if args.iter().any(|a| a == "-af" || a == "-filter:a") {
+        args.extend(keep_audio_args(input, output));
+    }
     convert_media(input, output, overwrite, &args)
+}
+
+/// Opcións para que o son recodificado conserve o que tiña o orixinal: frecuencia de mostraxe, bitrate (formatos con perdas) e
+/// profundidade de bits (WAV, AIFF) ou códec sen perdas (ALAC). Sen isto FFmpeg usa os seus valores por defecto: un MP3 de
+/// 320 kbps sae a 128, e un WAV de 24 bits a 16.
+pub(crate) fn keep_audio_args(input: &Path, output: &Path) -> Vec<String> {
+    let mut args = Vec::new();
+    let Ok(info) = probe(input) else { return args };
+    let Some(a) = info["streams"].as_array().and_then(|l| l.iter().find(|s| s["codec_type"] == "audio")) else { return args };
+    let in_ext = crate::formats::extension_of(input).unwrap_or_default();
+    let ext = crate::formats::extension_of(output).unwrap_or_default();
+    let codec = a["codec_name"].as_str().unwrap_or("");
+    // Só se o contedor é o mesmo se sabe que admite o que tiña o orixinal.
+    if in_ext != ext {
+        return args;
+    }
+    // Opus sempre traballa a 48 kHz.
+    if !matches!(ext.as_str(), "opus" | "webm") && codec != "opus" {
+        if let Some(rate) = a["sample_rate"].as_str().and_then(|r| r.parse::<u32>().ok()).filter(|r| (8000..=384_000).contains(r)) {
+            args.extend(["-ar".to_string(), rate.to_string()]);
+        }
+    }
+    if codec.starts_with("pcm_") && matches!(ext.as_str(), "wav" | "aiff" | "aif") {
+        args.extend(["-c:a".to_string(), codec.to_string()]);
+    } else if codec == "alac" && matches!(ext.as_str(), "m4a" | "mp4" | "mov") {
+        args.extend(["-c:a".to_string(), "alac".to_string()]);
+    } else if let Some(kbps) = a["bit_rate"].as_str().and_then(|b| b.parse::<u64>().ok()).map(|b| ((b + 500) / 1000) as u32).filter(|k| *k >= 8) {
+        match codec {
+            "vorbis" => args.extend(["-c:a".to_string(), "libvorbis".to_string(), "-q:a".to_string(), vorbis_quality(kbps).to_string()]),
+            "mp3" | "aac" | "opus" | "wmav2" | "wmav1" | "ac3" | "eac3" | "mp2" => {
+                let top = if codec == "opus" { 510 } else if codec == "mp3" { 320 } else { 640 };
+                args.extend(["-b:a".to_string(), format!("{}k", kbps.clamp(16, top))]);
+            }
+            _ => {}
+        }
+    }
+    args
+}
+
+/// libvorbis non acepta calquera bitrate fixo (a 32 kbps estéreo ou a 320 kbps en mono de 8 kHz nin arranca): tradúcese ao
+/// nivel de calidade equivalente, que sempre vale.
+pub(crate) fn vorbis_quality(kbps: u32) -> &'static str {
+    const Q: [(u32, &str); 11] = [(45, "-1"), (64, "0"), (80, "1"), (96, "2"), (112, "3"), (128, "4"), (160, "5"), (192, "6"), (224, "7"), (256, "8"), (320, "9")];
+    Q.iter().rev().find(|(k, _)| kbps >= *k).map(|(_, q)| *q).unwrap_or("-1")
+}
+
+/// Obxectivo dunha normalización de volume (EBU R128).
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Loudness {
+    /// Volume percibido obxectivo, en LUFS (−70 a −5). Streaming: −14; podcast: −16; emisión: −23.
+    pub lufs: f64,
+    /// Pico máximo permitido, en dBTP (−9 a 0).
+    pub peak: f64,
+    /// Rango dinámico máximo, en LU (1 a 50). Se o orixinal ten máis, comprímese.
+    pub range: f64,
+}
+
+impl Default for Loudness {
+    fn default() -> Self {
+        Loudness { lufs: -16.0, peak: -1.5, range: 11.0 }
+    }
+}
+
+/// O que se mediu nun ficheiro de son.
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize)]
+pub struct LoudnessMeasure {
+    pub lufs: f64,
+    pub peak: f64,
+    pub range: f64,
+    pub thresh: f64,
+    pub offset: f64,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct LoudnessReport {
+    pub output: PathBuf,
+    /// Como estaba o orixinal.
+    pub before: LoudnessMeasure,
+    /// `true` se abondou con subir ou baixar o volume por igual; `false` se houbo que comprimir a dinámica para chegar ao obxectivo.
+    pub linear: bool,
+}
+
+fn check_loudness(t: &Loudness) -> Result<()> {
+    let ok = t.lufs.is_finite() && t.peak.is_finite() && t.range.is_finite() && (-70.0..=-5.0).contains(&t.lufs) && (-9.0..=0.0).contains(&t.peak) && (1.0..=50.0).contains(&t.range);
+    if ok {
+        Ok(())
+    } else {
+        Err(EngineError::IntegrityCheck("Os valores de normalización non son válidos: o volume vai de −70 a −5 LUFS, o pico de −9 a 0 dBTP e o rango de 1 a 50 LU.".into()))
+    }
+}
+
+/// Primeira pasada: mide o volume do ficheiro enteiro sen escribir nada.
+pub fn measure_loudness(input: &Path, target: Loudness) -> Result<LoudnessMeasure> {
+    check_loudness(&target)?;
+    if !input.is_file() {
+        return Err(EngineError::InputNotFound(input.to_path_buf()));
+    }
+    let sink = if cfg!(windows) { "NUL" } else { "/dev/null" };
+    let args: Vec<std::ffi::OsString> = vec![
+        "-i".into(),
+        input.as_os_str().to_owned(),
+        "-map".into(),
+        "0:a:0".into(),
+        "-af".into(),
+        format!("loudnorm=I={}:TP={}:LRA={}:print_format=json", target.lufs, target.peak, target.range).into(),
+        "-f".into(),
+        "null".into(),
+        sink.into(),
+    ];
+    let out = run_ffmpeg(&args)?;
+    check_success(&out)?;
+    let text = String::from_utf8_lossy(&out.stderr);
+    // O filtro escribe un bloque JSON ao final da súa saída.
+    let block = text.rfind('{').zip(text.rfind('}')).filter(|(a, b)| a < b).map(|(a, b)| &text[a..=b]);
+    let json: serde_json::Value = block.and_then(|b| serde_json::from_str(b).ok()).ok_or_else(|| EngineError::IntegrityCheck("Non se puido medir o volume do ficheiro.".into()))?;
+    let num = |k: &str| json[k].as_str().and_then(|v| v.trim().parse::<f64>().ok()).filter(|v| v.is_finite());
+    match (num("input_i"), num("input_tp"), num("input_lra"), num("input_thresh"), num("target_offset")) {
+        (Some(lufs), Some(peak), Some(range), Some(thresh), Some(offset)) => Ok(LoudnessMeasure { lufs, peak, range, thresh, offset }),
+        // Un ficheiro en silencio mide «-inf»: non hai nada que igualar.
+        _ => Err(EngineError::IntegrityCheck("O ficheiro está en silencio (ou case): non hai volume que igualar.".into())),
+    }
+}
+
+/// Iguala o volume percibido en dúas pasadas (EBU R128): a primeira mide o ficheiro enteiro e a segunda aplica a corrección
+/// exacta, a mesma para todo o ficheiro. Nunha soa pasada o filtro vai corrixindo segundo le e esmaga a dinámica (o baixo e o alto
+/// quedan case iguais).
+/// Se o ficheiro leva vídeo, a imaxe cópiase sen tocar.
+pub fn normalize_loudness(input: &Path, output: &Path, overwrite: bool, target: Loudness, has_video: bool) -> Result<LoudnessReport> {
+    check_loudness(&target)?;
+    ensure_distinct(&[input], output)?;
+    if output.exists() && !overwrite {
+        return Err(EngineError::DestinationExists(output.to_path_buf()));
+    }
+    set_progress_phase(0.0, 0.4);
+    let measured = measure_loudness(input, target);
+    set_progress_phase(0.4, 0.6);
+    let result = measured.and_then(|m| {
+        let filter = format!(
+            "loudnorm=I={}:TP={}:LRA={}:measured_I={}:measured_TP={}:measured_LRA={}:measured_thresh={}:offset={}:linear=true",
+            target.lufs, target.peak, target.range, m.lufs, m.peak, m.range, m.thresh, m.offset
+        );
+        let mut args: Vec<String> = vec!["-af".into(), filter];
+        if has_video {
+            args.extend(["-c:v".into(), "copy".into()]);
+        }
+        args.extend(keep_audio_args(input, output));
+        // O filtro traballa por dentro a 192 kHz: sen fixar a frecuencia, un contedor que a admita sairía a 192 kHz.
+        if !args.iter().any(|a| a == "-ar") {
+            args.extend(["-ar".into(), "48000".into()]);
+        }
+        let out = convert_media(input, output, overwrite, &args)?;
+        // Abonda con cambiar o volume por igual se o rango xa cabe e o pico non pasa do tope ao aplicar a ganancia.
+        let linear = m.range <= target.range && m.peak + (target.lufs - m.lufs) <= target.peak;
+        Ok(LoudnessReport { output: out, before: m, linear })
+    });
+    set_progress_phase(0.0, 1.0);
+    result
 }
 
 /// Información de ffprobe (formato e pistas) como JSON.
