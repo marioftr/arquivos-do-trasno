@@ -1,6 +1,6 @@
 // Traballos rápidos do clic dereito: o que se fai con cada ficheiro (convertir, comprimir, cambiar tamaño, xirar).
 import * as engine from "./engine";
-import { withExtension, sameFormat, cannotSaveNotice, noCompressionNotice, animatedNotice } from "./formats";
+import { withExtension, sameFormat, OFFICE_EXTS, cannotSaveNotice, noCompressionNotice, animatedNotice } from "./formats";
 import { tr } from "./i18n";
 
 const extOf = (p: string) => (p.match(/\.([^.\\/]+)$/)?.[1] ?? "").toLowerCase();
@@ -27,7 +27,8 @@ export async function runOne(job: engine.StartupJob, path: string): Promise<{ ou
 
   if (job.action === "convert") {
     const out = await engine.uniquePath(withExtension(it.path, arg));
-    if (cat === "imaxe" && arg === "pdf") await engine.imagesToPdf([it.path], out, false);
+    if (OFFICE_EXTS.includes(ext)) await engine.convertOffice(it.path, out, false);
+    else if (cat === "imaxe" && arg === "pdf") await engine.imagesToPdf([it.path], out, false);
     else await engine.convertFile(it.path, out, { overwrite: false });
     return { out };
   }

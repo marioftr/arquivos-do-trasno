@@ -241,6 +241,8 @@
       welcomeIfNeeded();
       // Se se acaba de actualizar pedindo refrescar o menú do Explorador, faise agora coa versión nova.
       applyPendingMenuRefresh(installExplorerMenu);
+      // Se o menú desta copia da app lle fai falta algún tipo de ficheiro, ponse ao día en silencio (nunca se mete por riba doutra copia).
+      engine.explorerStatus().then((s) => (s.installed && s.current && !s.complete ? installExplorerMenu() : undefined)).catch(() => {});
       // Busca de versións novas, un pouco despois de abrir para non estorbar.
       setTimeout(() => {
         if (get(autoCheck)) checkForUpdate(true);

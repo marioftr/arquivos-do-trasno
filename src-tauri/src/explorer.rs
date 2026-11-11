@@ -63,6 +63,14 @@ enum Kind {
     Video,
     Text,
     Pdf,
+    /// Imaxes que o trasno só sabe ler ou converter (HEIC, AVIF, DDS…): abrir e converter, sen editar.
+    ImageRead,
+    /// Documentos que só se abren (HTML, SVG).
+    Doc,
+    /// Documentos de Office: abrir e pasar a PDF.
+    Office,
+    /// Obxectos 3D: abrir (a conversión faise dentro da app).
+    Model3d,
 }
 
 fn sources() -> Vec<(&'static str, Kind)> {
@@ -80,6 +88,19 @@ fn sources() -> Vec<(&'static str, Kind)> {
         v.push((e, Kind::Text));
     }
     v.push(("pdf", Kind::Pdf));
+    // Todo o que a aplicación acepta ten que ter polo menos «Abrir en Arquivos do Trasno».
+    for e in ["pnm", "pbm", "pgm", "ppm", "avif", "jp2", "jpx", "j2k", "jxl", "heic", "heif", "dds", "exr", "pcx", "hdr"] {
+        v.push((e, Kind::ImageRead));
+    }
+    for e in ["html", "htm", "svg"] {
+        v.push((e, Kind::Doc));
+    }
+    for e in ["docx", "doc", "docm", "odt", "rtf", "xlsx", "xls", "xlsm", "ods", "pptx", "ppt", "pptm", "ppsx", "pps", "odp"] {
+        v.push((e, Kind::Office));
+    }
+    for e in ["obj", "stl", "ply", "gltf", "glb", "fbx"] {
+        v.push((e, Kind::Model3d));
+    }
     v
 }
 
@@ -166,6 +187,9 @@ fn menu_for(ext: &str, kind: Kind, l: &Labels) -> Vec<Item> {
             items.push(Item::Sub { id: next("more"), label: l.get("more"), items: sub });
         }
         Kind::Text => push_cmds(&mut items, convert(&["pdf"])),
+        Kind::ImageRead => push_cmds(&mut items, convert(&["png", "jpg", "webp", "pdf"])),
+        Kind::Office => push_cmds(&mut items, convert(&["pdf"])),
+        Kind::Doc | Kind::Model3d => {}
         Kind::Pdf => {
             push_cmds(&mut items, convert(&["txt"]));
             items.push(rotate(&next("rotate"), true));
@@ -292,7 +316,7 @@ pub fn explorer_uninstall() -> Result<(), String> {
 pub fn explorer_status() -> serde_json::Value {
     #[cfg(not(windows))]
     {
-        serde_json::json!({ "available": false, "installed": false, "current": false })
+        serde_json::json!({ "available": false, "installed": false, "current": false, "complete": false })
     }
     #[cfg(windows)]
     {
@@ -300,11 +324,14 @@ pub fn explorer_status() -> serde_json::Value {
         let out = run_reg(&["query", &key, "/ve"]).ok();
         let text = out.as_ref().filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).to_string());
         let installed = text.is_some();
+        // `complete`: xa ten entrada o último tipo da lista (unha versión con tipos novos, como os obxectos 3D, deixa o menú incompleto).
+        let last = sources().last().map(|(e, _)| *e).unwrap_or("png");
+        let has_last = run_reg(&["query", &format!("HKCU\\{ROOT}\\.{last}\\shell\\{KEY}")]).ok().is_some_and(|o| o.status.success());
         let current = match (&text, exe()) {
             (Some(t), Ok(e)) => t.to_lowercase().contains(&e.to_lowercase()),
             _ => false,
         };
-        serde_json::json!({ "available": true, "installed": installed, "current": current })
+        serde_json::json!({ "available": true, "installed": installed, "current": current, "complete": has_last })
     }
 }
 
@@ -545,6 +572,22 @@ mod tests {
         for (ext, kind) in sources() {
             let n = 1 + count(&menu_for(ext, kind, &labels()));
             assert!(n <= 16, ".{ext} ten {n} entradas");
+        }
+    }
+
+    #[test]
+    fn todo_o_que_a_app_acepta_ten_menu_no_explorador() {
+        use trasno_engine::{formats, image_ffmpeg};
+        let rexistradas: Vec<&str> = sources().into_iter().map(|(e, _)| e).collect();
+        let aceptadas = formats::IMAGE_DECODE
+            .iter()
+            .chain(image_ffmpeg::DECODE_EXTS)
+            .chain(formats::AUDIO_EXTS)
+            .chain(formats::VIDEO_EXTS)
+            .chain(formats::DOCUMENT_EXTS)
+            .chain(formats::MODEL3D_EXTS);
+        for e in aceptadas {
+            assert!(rexistradas.contains(e), ".{e} non ten entrada no menú do Explorador");
         }
     }
 

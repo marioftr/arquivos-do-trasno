@@ -409,6 +409,7 @@ export interface ExplorerStatus {
   available: boolean;
   installed: boolean;
   current: boolean;
+  complete: boolean;
 }
 export const explorerStatus = (): Promise<ExplorerStatus> => call("explorer_status");
 export const explorerInstall = (labels: Record<string, string>): Promise<void> => call("explorer_install", { labels });
