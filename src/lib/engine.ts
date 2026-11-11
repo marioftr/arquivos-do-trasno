@@ -20,6 +20,10 @@ export interface ConvertOptions {
   lossless?: boolean;
   /** Fondo [r, g, b] para a transparencia ao pasar a un formato que non a admite. */
   background?: [number, number, number];
+  /** Vídeo → GIF ou WebP animado: tope de fotogramas por segundo (por defecto 15). */
+  fps?: number;
+  /** Vídeo → GIF ou WebP animado: ancho máximo en píxeles (por defecto 640). */
+  maxWidth?: number;
 }
 
 export async function detectCategory(path: string): Promise<Category> {
@@ -52,6 +56,8 @@ export async function convertFile(
     bitrateKbps: options.bitrateKbps ?? null,
     lossless: options.lossless ?? null,
     background: options.background ?? null,
+    fps: options.fps ?? null,
+    maxWidth: options.maxWidth ?? null,
   });
 }
 

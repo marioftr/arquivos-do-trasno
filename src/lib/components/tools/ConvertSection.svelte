@@ -10,7 +10,7 @@
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
-  import { targetsForCategory, OFFICE_EXTS, PDF_TO_DOC, withExtension, fileNameOf, formatBytes, AUDIO_TARGETS, TRASNO, fallo, listo, firstFrameNotice } from "../../formats";
+  import { targetsForCategory, OFFICE_EXTS, PDF_TO_DOC, withExtension, fileNameOf, formatBytes, AUDIO_TARGETS, CLIP_TARGETS, TRASNO, fallo, listo, firstFrameNotice } from "../../formats";
   import LockNote from "../ui/LockNote.svelte";
   import { samePath, askPath, askDir } from "./shared";
   import Icon from "../Icon.svelte";
@@ -63,6 +63,9 @@
     maxSide: null as number | null,
     lossless: false,
     bg: "white" as Bg,
+    clipFps: 15,
+    clipWidth: 640 as number | null,
+    clipQuality: 75,
   }, undefined, "convert|" + selection.map((f) => f.path).join("|"));
   onMount(() => useForm(form));
 
@@ -98,6 +101,9 @@
 
   $: backdrop.set(needsBg && transparent && selection.length === 1 ? cssOf($form.bg) : null);
   onDestroy(() => backdrop.set(null));
+
+  // Vídeo → imaxe animada (GIF ou WebP): en vez de bitrate, cadencia e ancho.
+  $: toClip = category === "video" && CLIP_TARGETS.includes($form.targetExt);
 
   // Con «sen perdas» o resultado é o orixinal tal cal: calidade, bitrate e tamaño deixan de ter sentido.
   $: exact = canLossless && $form.lossless;
@@ -148,6 +154,9 @@
     }
     // Un vídeo que se converte só a audio leva o bitrate de audio.
     const toAudio = f.category === "video" && AUDIO_TARGETS.includes(v.targetExt);
+    if (f.category === "video" && CLIP_TARGETS.includes(v.targetExt)) {
+      return engine.convertFile(f.path, out, { overwrite, fps: v.clipFps, maxWidth: v.clipWidth ?? 7680, quality: v.targetExt === "webp" ? v.clipQuality : undefined });
+    }
     return engine.convertFile(f.path, out, {
       overwrite,
       quality: f.category === "imaxe" ? v.quality : undefined,
@@ -256,6 +265,13 @@
     {:else if category === "video" && AUDIO_TARGETS.includes($form.targetExt)}
       <GroupNote text={$t("Só se garda o son do vídeo.")} />
       <Slider label={$t("Bitrate de audio")} unit="kbps" min={32} max={320} step={8} bind:value={$form.audioBitrate} def={form.defaults.audioBitrate} hint={$t("Máis alto = máis calidade e máis tamaño")} />
+    {:else if toClip}
+      <GroupNote text={$t("Sae unha imaxe animada, sen son. Nunca pasa da cadencia nin do ancho do vídeo.")} />
+      <Slider label={$t("Fotogramas por segundo")} unit="fps" min={5} max={30} step={1} bind:value={$form.clipFps} def={form.defaults.clipFps} hint={$t("Máis alto = movemento máis fluído e máis peso")} />
+      <NumberField label={$t("Ancho máximo")} unit="px" min={16} placeholder={$t("orixinal")} bind:value={$form.clipWidth} def={form.defaults.clipWidth} />
+      {#if $form.targetExt === "webp"}
+        <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.clipQuality} def={form.defaults.clipQuality} hint={$t("Máis alto = mellor imaxe e máis peso")} />
+      {/if}
     {:else if isMedia}
       <Slider
         label={category === "audio" ? $t("Bitrate de audio") : $t("Bitrate de vídeo")}

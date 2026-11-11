@@ -1547,5 +1547,11 @@
   "O trasno ven de ler un montón de texto en «{name}»: {n} palabras. Cópiao todo dun golpe co botón.": "El trasno acaba de leer un montón de texto en «{name}»: {n} palabras. Cópialo todo de un golpe con el botón.",
   "Que parrafada! O trasno quedou sen folgos lendo «{name}» ({n} palabras), pero aí tes o texto.": "¡Qué parrafada! El trasno se quedó sin aliento leyendo «{name}» ({n} palabras), pero ahí tienes el texto.",
   "Esta imaxe é animada e editala só gardaría un fotograma: non se fai para non perder a animación.": "Esta imagen es animada y editarla solo guardaría un fotograma: no se hace para no perder la animación.",
-  "Esta imaxe é animada e comprimila só gardaría un fotograma: o trasno só sabe comprimir sen perder a animación os GIF.": "Esta imagen es animada y comprimirla solo guardaría un fotograma: el trasno solo sabe comprimir sin perder la animación los GIF."
+  "Esta imaxe é animada e comprimila só gardaría un fotograma: o trasno só sabe comprimir sen perder a animación os GIF.": "Esta imagen es animada y comprimirla solo guardaría un fotograma: el trasno solo sabe comprimir sin perder la animación los GIF.",
+  "Sae unha imaxe animada, sen son. Nunca pasa da cadencia nin do ancho do vídeo.": "Sale una imagen animada, sin sonido. Nunca pasa de la cadencia ni del ancho del vídeo.",
+  "Fotogramas por segundo": "Fotogramas por segundo",
+  "Ancho máximo": "Ancho máximo",
+  "Máis alto = movemento máis fluído e máis peso": "Más alto = movimiento más fluido y más peso",
+  "Máis alto = mellor imaxe e máis peso": "Más alto = mejor imagen y más peso",
+  "O resultado quedou nunha imaxe fixa; descarteino para non deixarche un ficheiro roto.": "El resultado se quedó en una imagen fija; lo descarté para no dejarte un archivo roto."
 }

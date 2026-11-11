@@ -59,6 +59,8 @@ export const PDF_TO_DOC = ["docx", "doc", "odt", "rtf"];
 export const AUDIO_TARGETS = ["mp3", "wav", "flac", "ogg", "opus", "m4a", "aac", "aiff"];
 
 export const VIDEO_TARGETS = ["mp4", "mkv", "mov", "webm", "avi", "gif"];
+/** Imaxes animadas que se poden facer desde un vídeo. */
+export const CLIP_TARGETS = ["gif", "webp"];
 
 /** Documentos de texto plano: pódense maquetar nun PDF. */
 export const PLAIN_TEXT = ["txt", "md", "csv", "json", "xml", "log"];
@@ -81,7 +83,7 @@ export function targetsForCategory(category: Category, sourceExt?: string): stri
       return AUDIO_TARGETS;
     case "video":
       // Un vídeo tamén se pode converter só ao seu audio.
-      return [...VIDEO_TARGETS, ...AUDIO_TARGETS];
+      return [...VIDEO_TARGETS, "webp", ...AUDIO_TARGETS];
     case "documento":
       // Un PDF dá o seu texto (e as súas páxinas como imaxes, na pestana Imaxes); un .txt maquétase nun PDF sinxelo.
       if (sourceExt === "pdf") return ["txt"];

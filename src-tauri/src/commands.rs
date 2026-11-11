@@ -149,6 +149,8 @@ pub async fn convert_file(
     bitrate_kbps: Option<u32>,
     lossless: Option<bool>,
     background: Option<[u8; 3]>,
+    fps: Option<u32>,
+    max_width: Option<u32>,
 ) -> Result<ConvertResult, String> {
     let options = ConvertOptions {
         overwrite,
@@ -157,6 +159,8 @@ pub async fn convert_file(
         bitrate_kbps,
         lossless: lossless.unwrap_or(false),
         background,
+        fps,
+        max_width,
     };
     blocking(move || {
         trasno_engine::convert_file(&PathBuf::from(input), &PathBuf::from(output), &options)

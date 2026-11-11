@@ -113,6 +113,80 @@ pub fn convert_animated(input: &Path, output: &Path, overwrite: bool, quality: O
     Ok(out)
 }
 
+/// Cadencia por defecto dunha imaxe animada feita desde un vídeo (fotogramas por segundo).
+pub const CLIP_FPS: u32 = 15;
+/// Ancho máximo por defecto dunha imaxe animada feita desde un vídeo (píxeles).
+pub const CLIP_WIDTH: u32 = 640;
+
+/// Cadencia e ancho do primeiro fluxo de vídeo, se se poden ler.
+fn video_shape(input: &Path) -> (Option<f64>, Option<u32>) {
+    let Ok(info) = ffmpeg::probe(input) else { return (None, None) };
+    let Some(v) = info["streams"].as_array().and_then(|a| a.iter().find(|s| s["codec_type"] == "video")) else { return (None, None) };
+    let fps = v["avg_frame_rate"].as_str().filter(|r| *r != "0/0").or_else(|| v["r_frame_rate"].as_str()).and_then(|r| {
+        let (n, d) = r.split_once('/')?;
+        let (n, d): (f64, f64) = (n.parse().ok()?, d.parse().ok()?);
+        (d > 0.0 && n > 0.0).then_some(n / d)
+    });
+    (fps, v["width"].as_u64().map(|w| w as u32))
+}
+
+/// Cadencia e ancho finais: o pedido (ou o valor por defecto), sen pasar nunca do que ten o vídeo (non se inventan
+/// fotogramas nin píxeles). O ancho queda par, que é o que piden os codificadores.
+fn clip_shape(fps: Option<u32>, width: Option<u32>, src_fps: Option<f64>, src_width: Option<u32>) -> (u32, u32) {
+    let mut f = fps.unwrap_or(CLIP_FPS).clamp(1, 60);
+    if let Some(s) = src_fps {
+        f = f.min((s.round() as u32).max(1));
+    }
+    let mut w = width.unwrap_or(CLIP_WIDTH).clamp(16, 7680);
+    if let Some(s) = src_width {
+        w = w.min(s.max(16));
+    }
+    (f, w - w % 2)
+}
+
+/// Pasa un vídeo a imaxe animada: GIF (coa paleta calculada sobre o clip enteiro, non a fixa de FFmpeg, que deixa as cores
+/// sucias e o ficheiro enorme) ou WebP animado (cor real, moito máis lixeiro). O son non existe nestes formatos.
+/// `fps` e `width` son topes: nunca se pasa da cadencia nin do ancho do orixinal.
+pub fn video_to_animation(input: &Path, output: &Path, overwrite: bool, fps: Option<u32>, width: Option<u32>, quality: Option<u8>) -> Result<PathBuf> {
+    let dst = crate::formats::extension_of(output).unwrap_or_default();
+    let (src_fps, src_width) = video_shape(input);
+    let (fps, width) = clip_shape(fps, width, src_fps, src_width);
+    let chain = format!("fps={fps},scale={width}:-2:flags=lanczos");
+    let out = match dst.as_str() {
+        "gif" => {
+            // Dúas pasadas: a primeira calcula a paleta do clip enteiro («diff» dálle prioridade ao que se move) e gárdaa nun PNG
+            // temporal; a segunda aplícaa. Nun só paso FFmpeg tería que gardar en memoria todos os fotogramas mentres fai a paleta,
+            // e cun vídeo longo iso son varios GB.
+            struct Temp(PathBuf);
+            impl Drop for Temp {
+                fn drop(&mut self) {
+                    let _ = std::fs::remove_file(&self.0);
+                }
+            }
+            let palette = Temp(std::env::temp_dir().join(format!("trasno-paleta-{}.png", uuid::Uuid::new_v4())));
+            let pass1: Vec<String> = ["-vf".to_string(), format!("{chain},palettegen=max_colors=256:stats_mode=diff"), "-an".into(), "-frames:v".into(), "1".into(), "-update".into(), "1".into()].to_vec();
+            ffmpeg::convert_media_inputs(&[input], &palette.0, true, &[], &pass1)?;
+            // Só se garda o rectángulo que cambia entre cadros.
+            let filter = format!("[0:v]{chain}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle");
+            let pass2: Vec<String> = ["-filter_complex".to_string(), filter, "-an".into(), "-loop".into(), "0".into()].to_vec();
+            ffmpeg::convert_media_inputs(&[input, &palette.0], output, overwrite, &[], &pass2)?
+        }
+        "webp" => {
+            let q = quality.unwrap_or(75).clamp(1, 100);
+            let args: Vec<String> = ["-vf".to_string(), chain, "-c:v".into(), "libwebp_anim".into(), "-quality".into(), q.to_string(), "-an".into(), "-loop".into(), "0".into()].to_vec();
+            ffmpeg::convert_media_inputs(&[input], output, overwrite, &[], &args)?
+        }
+        other => return Err(EngineError::UnsupportedConversion { from: "vídeo".into(), to: other.into() }),
+    };
+    // Un vídeo de máis dun fotograma ten que dar unha imaxe animada: se queda fixa, algo fallou e non se entrega.
+    let frames = src_fps.zip(ffmpeg::probe(input).ok().and_then(|i| i["format"]["duration"].as_str().and_then(|d| d.parse::<f64>().ok()))).map(|(f, d)| f * d);
+    if frames.is_some_and(|n| n >= 2.0) && !is_animated(&out) {
+        let _ = std::fs::remove_file(&out);
+        return Err(EngineError::IntegrityCheck("O resultado quedou nunha imaxe fixa; descarteino para non deixarche un ficheiro roto.".into()));
+    }
+    Ok(out)
+}
+
 /// A conversión desta imaxe animada pode facerse conservando a animación?
 /// (FFmpeg só decodifica GIF e APNG; o WebP animado non, así que dese só se le o primeiro fotograma.)
 pub fn can_keep_animation(input: &Path, dst_ext: &str) -> bool {
@@ -271,6 +345,77 @@ mod tests {
             c.unwrap();
             assert!(is_animated(&dir.path().join("c.gif")));
         }
+    }
+
+    /// Vídeo de proba: 2 s a 30 fps e 480 px de ancho, con son.
+    fn clip(dir: &Path) -> PathBuf {
+        let mp4 = dir.join("v.mp4");
+        let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+            .args(["-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=480x270:rate=30:duration=2", "-f", "lavfi", "-i", "sine=frequency=440:duration=2"])
+            .args(["-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac"])
+            .arg(&mp4)
+            .status()
+            .unwrap();
+        assert!(st.success());
+        mp4
+    }
+
+    fn gif_shape(path: &Path) -> (u32, u32, usize) {
+        use image::AnimationDecoder;
+        let dec = image::codecs::gif::GifDecoder::new(std::io::BufReader::new(std::fs::File::open(path).unwrap())).unwrap();
+        let frames: Vec<_> = dec.into_frames().collect_frames().unwrap();
+        let b = frames[0].buffer();
+        (b.width(), b.height(), frames.len())
+    }
+
+    #[test]
+    fn os_topes_de_cadencia_e_ancho_nunca_pasan_do_orixinal() {
+        assert_eq!(clip_shape(None, None, Some(30.0), Some(1920)), (15, 640));
+        assert_eq!(clip_shape(None, None, Some(10.0), Some(320)), (10, 320), "non se inventan fotogramas nin píxeles");
+        assert_eq!(clip_shape(Some(60), Some(4000), Some(29.97), Some(1281)), (30, 1280), "o ancho queda par");
+        assert_eq!(clip_shape(Some(0), Some(1), None, None), (1, 16));
+        assert_eq!(clip_shape(Some(999), None, None, None), (60, 640));
+    }
+
+    #[test]
+    fn video_a_gif_con_paleta_propia_cadencia_e_ancho() {
+        if !ffmpeg::is_available() {
+            return;
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let mp4 = clip(dir.path());
+        // Por defecto: 15 fps e o ancho do orixinal (480 < 640).
+        let out = video_to_animation(&mp4, &dir.path().join("a.gif"), false, None, None, None).unwrap();
+        let (w, h, n) = gif_shape(&out);
+        assert_eq!((w, h), (480, 270));
+        assert!((28..=32).contains(&n), "2 s a 15 fps son uns 30 fotogramas, saíron {n}");
+        assert!((duration(&out) - 2.0).abs() < 0.2, "a duración consérvase");
+        // Con topes pedidos.
+        let small = video_to_animation(&mp4, &dir.path().join("b.gif"), false, Some(10), Some(240), None).unwrap();
+        let (w, _, n) = gif_shape(&small);
+        assert_eq!(w, 240);
+        assert!((18..=22).contains(&n), "2 s a 10 fps son uns 20 fotogramas, saíron {n}");
+        assert!(std::fs::metadata(&small).unwrap().len() < std::fs::metadata(&out).unwrap().len());
+        // Non se pisa un ficheiro que xa existe.
+        assert!(video_to_animation(&mp4, &dir.path().join("a.gif"), false, None, None, None).is_err());
+    }
+
+    #[test]
+    fn o_conversor_xeral_fai_gif_e_webp_animados_desde_video() {
+        if !ffmpeg::is_available() {
+            return;
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let mp4 = clip(dir.path());
+        let o = crate::ConvertOptions { fps: Some(12), max_width: Some(320), ..Default::default() };
+        let gif = crate::convert_file(&mp4, &dir.path().join("c.gif"), &o).unwrap().output_path;
+        assert!(is_animated(&gif));
+        assert_eq!(gif_shape(&gif).0, 320);
+        let webp = crate::convert_file(&mp4, &dir.path().join("c.webp"), &o).unwrap().output_path;
+        assert!(is_animated(&webp), "o WebP ten que saír animado, non só o primeiro fotograma");
+        assert!(std::fs::metadata(&webp).unwrap().len() < std::fs::metadata(&gif).unwrap().len(), "o WebP animado pesa menos ca o GIF");
+        // O vídeo orixinal segue intacto.
+        assert!(mp4.is_file());
     }
 
     #[test]

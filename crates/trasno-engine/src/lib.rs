@@ -52,6 +52,12 @@ pub struct ConvertOptions {
     /// Fondo (RGB) para a transparencia ao pasar a un formato que non a admite (JPG, BMP, PNM). Por defecto, branco.
     #[serde(default)]
     pub background: Option<[u8; 3]>,
+    /// Vídeo → imaxe animada (GIF, WebP): tope de fotogramas por segundo. `None` = 15.
+    #[serde(default)]
+    pub fps: Option<u32>,
+    /// Vídeo → imaxe animada (GIF, WebP): ancho máximo en píxeles. `None` = 640.
+    #[serde(default)]
+    pub max_width: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -81,6 +87,10 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
                 background: options.background,
             },
         )?,
+        // Vídeo → GIF ou WebP animado: paleta propia, cadencia e ancho medidos (ver `animated::video_to_animation`).
+        (Category::Video, Category::Imaxe) if matches!(formats::extension_of(output).as_deref(), Some("gif" | "webp")) => {
+            animated::video_to_animation(input, output, options.overwrite, options.fps, options.max_width, options.quality)?
+        }
         (Category::Audio, Category::Audio)
         | (Category::Video, Category::Video)
         | (Category::Video, Category::Audio)
