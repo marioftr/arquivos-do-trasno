@@ -493,3 +493,29 @@ fn png_comprime_con_perdas_e_conserva_a_transparencia() {
     assert!(t.bytes_written <= target);
     assert_eq!(t.scale_percent, 100, "cabe baixando a calidade: non hai que reducir as dimensións");
 }
+
+#[test]
+fn ppm_converte_nos_dous_sentidos() {
+    use trasno_engine::{convert_file, ConvertOptions};
+    let dir = tempfile::tempdir().unwrap();
+    let png = dir.path().join("a.png");
+    image::DynamicImage::ImageRgb8(image::RgbImage::from_fn(16, 8, |x, y| image::Rgb([(x * 15) as u8, (y * 30) as u8, 90]))).save(&png).unwrap();
+    let opts = ConvertOptions::default();
+    let ppm = dir.path().join("b.ppm");
+    convert_file(&png, &ppm, &opts).unwrap();
+    assert!(std::fs::read(&ppm).unwrap().starts_with(b"P6
+"), "debe ser un PPM clásico (P6), non PAM");
+    for (ext, magic) in [("pgm", "P5"), ("pbm", "P4"), ("pnm", "P6")] {
+        let o = dir.path().join(format!("d.{ext}"));
+        convert_file(&png, &o, &opts).unwrap_or_else(|e| panic!("png -> {ext}: {e}"));
+        assert!(std::fs::read(&o).unwrap().starts_with(magic.as_bytes()), "{ext} debe empezar por {magic}");
+        assert!(image::open(&o).is_ok(), "{ext} non se pode ler");
+    }
+    for ext in ["png", "jpg", "webp", "bmp", "tiff"] {
+        let out = dir.path().join(format!("c.{ext}"));
+        convert_file(&ppm, &out, &opts).unwrap_or_else(|e| panic!("ppm -> {ext}: {e}"));
+        assert!(image::open(&out).is_ok(), "{ext} non se pode ler");
+    }
+    let back = image::open(dir.path().join("c.png")).unwrap().to_rgb8();
+    assert_eq!(back.get_pixel(3, 2), &image::Rgb([45, 60, 90]), "sen perdas ao pasar por PPM");
+}

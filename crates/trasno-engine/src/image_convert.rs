@@ -131,7 +131,7 @@ pub fn convert_image(
             enc.encode_image(&img)?;
         }
         _ => {
-            img.write_to(&mut std::io::BufWriter::new(out.as_file_mut()), dst_format)?;
+            write_dynamic(&img, &mut std::io::BufWriter::new(out.as_file_mut()), dst_format, output)?;
         }
     }
 
@@ -318,6 +318,27 @@ pub fn edit_image(
     write_verified(&img, output, overwrite, dst_format, edits.quality, edits.background)
 }
 
+/// Escribe a imaxe no formato pedido. Para PNM/PPM/PGM/PBM a biblioteca por defecto escribe PAM («P7»), que
+/// moitos programas non len; aquí escríbese o formato clásico que corresponde á extensión (P6, P5 ou P4).
+fn write_dynamic<W: std::io::Write + std::io::Seek>(img: &image::DynamicImage, w: &mut W, format: ImageFormat, output: &Path) -> Result<()> {
+    if format != ImageFormat::Pnm {
+        img.write_to(w, format)?;
+        return Ok(());
+    }
+    use image::codecs::pnm::{PnmEncoder, PnmSubtype, SampleEncoding};
+    use image::{ExtendedColorType, ImageEncoder};
+    let ext = output.extension().and_then(|e| e.to_str()).unwrap_or("ppm").to_ascii_lowercase();
+    let (width, height) = (img.width(), img.height());
+    let (subtype, bytes, color) = match ext.as_str() {
+        "pgm" => (PnmSubtype::Graymap(SampleEncoding::Binary), img.to_luma8().into_raw(), ExtendedColorType::L8),
+        // PBM é en branco e negro: o que supera a metade do brillo queda branco.
+        "pbm" => (PnmSubtype::Bitmap(SampleEncoding::Binary), img.to_luma8().into_raw().into_iter().map(|v| u8::from(v < 128)).collect(), ExtendedColorType::L8),
+        _ => (PnmSubtype::Pixmap(SampleEncoding::Binary), img.to_rgb8().into_raw(), ExtendedColorType::Rgb8),
+    };
+    PnmEncoder::new(w).with_subtype(subtype).write_image(&bytes, width, height, color)?;
+    Ok(())
+}
+
 /// Garda `img` de forma atómica e comproba que se pode reabrir.
 fn write_verified(
     img: &image::DynamicImage,
@@ -334,7 +355,7 @@ fn write_verified(
             let mut enc = image::codecs::jpeg::JpegEncoder::new_with_quality(out.as_file_mut(), q.clamp(1, 100));
             enc.encode_image(&img)?;
         }
-        _ => img.write_to(&mut std::io::BufWriter::new(out.as_file_mut()), format)?,
+        _ => write_dynamic(&img, &mut std::io::BufWriter::new(out.as_file_mut()), format, output)?,
     }
     let final_path = out.commit()?;
     match image::open(&final_path) {
