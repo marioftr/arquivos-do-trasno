@@ -159,6 +159,32 @@ export interface NormalizeResult {
 }
 
 /** Iguala o volume percibido en dúas pasadas (EBU R128). `lufs`: obxectivo; `peak`: pico máximo (dBTP); `range`: rango dinámico máximo (LU). */
+export interface SilenceValues {
+  /** Volume por baixo do cal hai silencio (dB). */
+  thresholdDb: number;
+  /** Silencio mínimo para cortalo (s). */
+  minSilence: number;
+  /** Silencio que se deixa a cada lado de cada corte (s). */
+  padding: number;
+}
+export interface SilenceAnalysis {
+  duration: number;
+  /** Tramos que se cortarían: [inicio, fin] en segundos. */
+  cuts: [number, number][];
+  result_duration: number;
+}
+export interface SilenceReport {
+  output_path: string;
+  before: number;
+  after: number;
+  cuts: number;
+}
+/** Busca os silencios (non escribe nada): cantos hai e canto duraría o resultado. */
+export const analyzeSilence = (input: string, v: SilenceValues): Promise<SilenceAnalysis> => call("analyze_silence", { input, thresholdDb: v.thresholdDb, minSilence: v.minSilence, padding: v.padding });
+/** Corta os silencios nun ficheiro novo (audio ou vídeo). */
+export const cutSilence = (input: string, output: string, v: SilenceValues, overwrite = false): Promise<SilenceReport> =>
+  call("cut_silence", { input, output, overwrite, thresholdDb: v.thresholdDb, minSilence: v.minSilence, padding: v.padding });
+
 export const normalizeAudio = (input: string, output: string, target: { lufs: number; peak: number; range: number }, hasVideo: boolean, overwrite = false): Promise<NormalizeResult> =>
   call("normalize_audio", { input, output, overwrite, lufs: target.lufs, peak: target.peak, range: target.range, hasVideo });
 

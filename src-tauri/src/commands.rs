@@ -383,6 +383,20 @@ pub async fn normalize_audio(input: String, output: String, overwrite: bool, luf
     .await
 }
 
+/// Busca os silencios dun audio ou vídeo e di cantos se cortarían e canto duraría o resultado (non escribe nada).
+#[tauri::command]
+pub async fn analyze_silence(input: String, threshold_db: f64, min_silence: f64, padding: f64) -> Result<trasno_engine::silence::SilenceAnalysis, String> {
+    use trasno_engine::silence::{analyze_silence, SilenceOptions};
+    blocking_bg(move || analyze_silence(&PathBuf::from(input), &SilenceOptions { threshold_db, min_silence, padding }).map_err(to_err)).await
+}
+
+/// Corta os silencios dun audio ou vídeo nun ficheiro novo.
+#[tauri::command]
+pub async fn cut_silence(input: String, output: String, overwrite: bool, threshold_db: f64, min_silence: f64, padding: f64) -> Result<trasno_engine::silence::SilenceReport, String> {
+    use trasno_engine::silence::{cut_silence, SilenceOptions};
+    blocking(move || cut_silence(&PathBuf::from(input), &PathBuf::from(output), overwrite, &SilenceOptions { threshold_db, min_silence, padding }).map_err(to_err)).await
+}
+
 /// Troca os cartafoles por os ficheiros que levan dentro (ata 6 niveis e 3000 ficheiros); os ficheiros pasan tal cal.
 #[tauri::command]
 pub async fn expand_paths(paths: Vec<String>) -> Vec<String> {

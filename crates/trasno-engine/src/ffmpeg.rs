@@ -188,6 +188,13 @@ pub fn set_progress_phase(offset: f64, span: f64) {
     *PHASE.lock().unwrap_or_else(|e| e.into_inner()) = (offset, span);
 }
 
+/// Duración que se agarda do resultado (segundos), para a barra de progreso cando é distinta da do orixinal (p. ex. se se cortan
+/// partes). `None` volve á duración do ficheiro de entrada.
+static EXPECTED: std::sync::Mutex<Option<f64>> = std::sync::Mutex::new(None);
+pub fn set_expected_duration(seconds: Option<f64>) {
+    *EXPECTED.lock().unwrap_or_else(|e| e.into_inner()) = seconds.filter(|s| s.is_finite() && *s > 0.0);
+}
+
 /// «00:01:30.50» → segundos.
 fn parse_clock(s: &str) -> Option<f64> {
     let mut parts = s.trim().split(':');
@@ -251,7 +258,7 @@ fn run_ffmpeg_with_progress(bin: PathBuf, args: &[std::ffi::OsString], sink: Opt
     for line in BufReader::new(stdout).lines().map_while(|l| l.ok()) {
         let Some(sink) = &sink else { continue };
         if let Some(v) = line.strip_prefix("out_time_us=") {
-            let d = *duration.lock().unwrap_or_else(|e| e.into_inner());
+            let d = (*EXPECTED.lock().unwrap_or_else(|e| e.into_inner())).unwrap_or(*duration.lock().unwrap_or_else(|e| e.into_inner()));
             if let (Ok(us), true) = (v.trim().parse::<f64>(), d > 0.0) {
                 sink(offset + span * (us / 1e6 / d).clamp(0.0, 1.0));
             }

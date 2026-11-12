@@ -50,6 +50,8 @@ pub fn run() {
             commands::begin_job,
             commands::cancel_job,
             commands::job_cancelled,
+            commands::analyze_silence,
+            commands::cut_silence,
             commands::pdf_add_text_layer,
             commands::pause_job,
             commands::discard_output,

@@ -31,6 +31,7 @@ pub mod model3d;
 pub mod office;
 pub mod pdf;
 pub mod pdf_tools;
+pub mod silence;
 pub mod tools_install;
 
 pub use error::{EngineError, Result};

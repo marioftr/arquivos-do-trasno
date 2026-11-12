@@ -21,6 +21,7 @@
   import MediaEditSection from "./tools/MediaEditSection.svelte";
   import ExtractSection from "./tools/ExtractSection.svelte";
   import AudioEffectsSection from "./tools/AudioEffectsSection.svelte";
+  import SilenceSection from "./tools/SilenceSection.svelte";
   import TrimSection from "./tools/TrimSection.svelte";
   import PdfSplitSection from "./tools/PdfSplitSection.svelte";
   import PdfMarksSection from "./tools/PdfMarksSection.svelte";
@@ -129,8 +130,8 @@
     if (tab === "convert" && cat === "video" && !pdf) return [m("mp4", "A MP4 con perfís"), m("format", "A outro formato")];
     if (many) return [];
     if (!pdf) {
-      if (tab === "edit" && cat === "video") return [m("trim", "Cortar"), m("tune", "Velocidade e volume"), m("effects", "Son")];
-      if (tab === "edit" && cat === "audio") return [m("trim", "Cortar"), m("tune", "Velocidade e volume"), m("effects", "Efectos")];
+      if (tab === "edit" && cat === "video") return [m("trim", "Cortar"), m("tune", "Velocidade e volume"), m("effects", "Son"), m("silence", "Silencios")];
+      if (tab === "edit" && cat === "audio") return [m("trim", "Cortar"), m("tune", "Velocidade e volume"), m("effects", "Efectos"), m("silence", "Silencios")];
       return [];
     }
     switch (tab) {
@@ -217,6 +218,8 @@
           <CompressSection {selection} {category} />
         {:else if current === "edit" && mode === "trim" && first}
           <TrimSection file={first} />
+        {:else if current === "edit" && mode === "silence" && first}
+          <SilenceSection file={first} />
         {:else if current === "edit" && mode === "effects" && first}
           <AudioEffectsSection file={first} />
         {:else if current === "annotate" && first && category === "imaxe"}
