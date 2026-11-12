@@ -11,14 +11,16 @@
   import { askOutput } from "./shared";
   import Slider from "../ui/Slider.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
+  import Segmented from "../ui/Segmented.svelte";
 
   export let file: FileEntry;
 
-  const LEVELS = [
-    { value: "low", label: "Pouca", quality: 85, scale: 100, hint: "Mantén case todo; só limpa e comprime o que se pode sen perdas" },
-    { value: "mid", label: "Recomendada", quality: 70, scale: 75, hint: "Bo equilibrio entre peso e calidade" },
-    { value: "high", label: "Extrema", quality: 45, scale: 50, hint: "O máis pequeno posible; as imaxes perden nitidez" },
-  ];
+  /** Niveis de compresión (por iso en feminino: «compresión pouca, recomendada, extrema»). «Personalizado» deixa poñer os dous valores á man. */
+  const LEVELS: Record<string, { quality: number; scale: number }> = {
+    low: { quality: 85, scale: 100 },
+    mid: { quality: 70, scale: 75 },
+    high: { quality: 45, scale: 50 },
+  };
 
   const form = createForm({ level: "mid", quality: 70, scale: 75 }, "pdf-comprimir", "pdfcompress|" + file.path);
   onMount(() => useForm(form));
@@ -26,11 +28,9 @@
   const job = createJob();
   const busy = job.busy;
 
-  function pick(level: string) {
-    const l = LEVELS.find((x) => x.value === level)!;
-    form.update((f) => ({ ...f, level, quality: l.quality, scale: l.scale }));
-  }
-  $: level = $form.level;
+  // Un nivel fixo enche calidade e tamaño; con «Personalizado» quedan os que poña o usuario.
+  $: preset = LEVELS[$form.level];
+  $: if (preset && ($form.quality !== preset.quality || $form.scale !== preset.scale)) form.update((f) => ({ ...f, ...preset }));
 
   async function run() {
     try {
@@ -53,21 +53,25 @@
 </script>
 
 <div class="stack">
-  <div class="levels">
-    {#each LEVELS as l}
-      <button class="btn" class:primary={level === l.value} on:click={() => pick(l.value)} title={$t(l.hint)}>{$t(l.label)}</button>
-    {/each}
-  </div>
   <div class="group">
-    <h4 class="group-title">{$t("Imaxes dentro do PDF")}</h4>
-    <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={70} />
-    <Slider label={$t("Tamaño das imaxes")} unit="%" min={20} max={100} step={5} bind:value={$form.scale} def={75} hint={$t("100 % = sen reducir")} />
+    <Segmented
+      label={$t("Nivel de compresión")}
+      info={$t("Cantas veces se aperta o PDF. Pouca: calidade 85 % e imaxes ao 100 % (case non se nota). Recomendada: calidade 70 % e imaxes ao 75 %. Extrema: calidade 45 % e imaxes ao 50 %, o ficheiro máis pequeno posible. Personalizado: os valores que se queiran.")}
+      options={[
+        { value: "low", label: $t("Pouca"), hint: $t("Mantén case todo; só limpa e comprime o que se pode sen perdas") },
+        { value: "mid", label: $t("Recomendada"), hint: $t("Bo equilibrio entre peso e calidade") },
+        { value: "high", label: $t("Extrema"), hint: $t("O máis pequeno posible; as imaxes perden nitidez") },
+        { value: "custom", label: $t("Personalizado"), hint: $t("Os valores que se queiran") },
+      ]}
+      bind:value={$form.level}
+    />
+    {#if $form.level === "custom"}
+      <h4 class="group-title">{$t("Imaxes dentro do PDF")}</h4>
+      <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={70} hint={$t("Canto se conserva da imaxe. Máis alto pesa máis e perde menos detalle.")} />
+      <Slider label={$t("Tamaño das imaxes")} unit="%" min={20} max={100} step={5} bind:value={$form.scale} def={75} hint={$t("100 % = sen reducir")} />
+    {/if}
     <GroupNote text={$t("Tamén se comprime o resto do contido e se quita o que non se usa.")} />
   </div>
   <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Comprimir PDF")}</button>
   <JobStatus {job} />
 </div>
-
-<style>
-  .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
-</style>

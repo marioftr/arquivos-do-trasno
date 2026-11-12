@@ -350,7 +350,12 @@
         <Slider label={hasLossy ? $t("Calidade do PNG") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.pngQuality} def={form.defaults.pngQuality} hint={$t("100 % non cambia ningún píxel: o ficheiro pode pesar menos porque se volve gardar coa máxima compresión e, se non o pides, sen metadatos (EXIF). Por baixo, o PNG reduce o número de cores (paleta) para pesar menos, sen perder a transparencia.")} />
       {/if}
     {:else}
-      <Segmented options={LEVELS.map((l) => ({ value: l.crf, label: $t(l.label), hint: $t(l.hint) }))} bind:value={$form.crf} />
+      <Segmented
+        label={$t("Nivel de calidade")}
+        info={$t("Calidade alta: CRF 23. Equilibrada: CRF 28. Forte: CRF 33. O desprazador de debaixo deixa poñer calquera valor.")}
+        options={LEVELS.map((l) => ({ value: l.crf, label: $t(l.label), hint: $t(l.hint) }))}
+        bind:value={$form.crf}
+      />
       <Slider label={$t("Calidade (CRF)")} min={18} max={40} bind:value={$form.crf} def={form.defaults.crf} hint={$t("Menos CRF = máis calidade e máis peso")} />
     {/if}
 

@@ -20,6 +20,7 @@
     shape: "crop",
     marks: "type",
     optimize: "wrench",
+    ocr: "scan-text",
     security: "lock",
   };
 
