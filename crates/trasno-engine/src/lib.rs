@@ -32,6 +32,7 @@ pub mod office;
 pub mod pdf;
 pub mod pdf_tools;
 pub mod silence;
+pub mod subtitles;
 pub mod tools_install;
 
 pub use error::{EngineError, Result};
@@ -144,6 +145,7 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
             match (in_ext.as_str(), out_ext.as_str()) {
                 (e, "pdf") if formats::PLAIN_TEXT_EXTS.contains(&e) => pdf::text_to_pdf(input, output, options.overwrite)?,
                 ("pdf", "txt") => pdf::pdf_to_text(input, output, options.overwrite)?,
+                (a, b) if subtitles::SUBTITLE_EXTS.contains(&a) && subtitles::SUBTITLE_EXTS.contains(&b) => subtitles::convert_subtitle(input, output, options.overwrite)?,
                 _ => {
                     return Err(EngineError::UnsupportedConversion {
                         from: in_ext,
@@ -200,6 +202,7 @@ pub fn suggested_targets(input: &Path) -> Vec<&'static str> {
         Category::Documento => match formats::extension_of(input).as_deref() {
             Some("pdf") => vec!["txt"],
             Some(e) if formats::PLAIN_TEXT_EXTS.contains(&e) => vec!["pdf"],
+            Some(e) if subtitles::SUBTITLE_EXTS.contains(&e) => vec!["srt", "vtt", "ass"],
             _ => Vec::new(),
         },
         Category::Modelo3d => formats::MODEL3D_ENGINE_SUPPORTED.to_vec(),

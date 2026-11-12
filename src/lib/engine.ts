@@ -159,6 +159,31 @@ export interface NormalizeResult {
 }
 
 /** Iguala o volume percibido en dúas pasadas (EBU R128). `lufs`: obxectivo; `peak`: pico máximo (dBTP); `range`: rango dinámico máximo (LU). */
+export interface SubtitleInfo {
+  format: "srt" | "vtt" | "ass";
+  cues: number;
+  /** Inicio da primeira fala, inicio da última e fin da última (ms). */
+  first_start: number;
+  last_start: number;
+  last_end: number;
+  encoding: string;
+}
+export interface Retime {
+  shift_ms: number;
+  factor: number;
+}
+export interface RetimeReport {
+  output_path: string;
+  cues: number;
+  dropped: number;
+}
+export const subtitleInfo = (path: string): Promise<SubtitleInfo> => call("subtitle_info", { path });
+export const retimeSubtitle = (input: string, output: string, r: Retime, overwrite = false): Promise<RetimeReport> =>
+  call("retime_subtitle", { input, output, overwrite, shiftMs: r.shift_ms, factor: r.factor });
+export const subtitleTwoPoints = (first: number, last: number, wantFirst: number, wantLast: number): Promise<Retime> =>
+  call("subtitle_two_points", { first, last, wantFirst, wantLast });
+export const subtitleFpsChange = (fromFps: number, toFps: number): Promise<Retime> => call("subtitle_fps_change", { fromFps, toFps });
+
 export interface SilenceValues {
   /** Volume por baixo do cal hai silencio (dB). */
   thresholdDb: number;

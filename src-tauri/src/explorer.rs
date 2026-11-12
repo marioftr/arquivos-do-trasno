@@ -92,7 +92,7 @@ fn sources() -> Vec<(&'static str, Kind)> {
     for e in ["pnm", "pbm", "pgm", "ppm", "avif", "jp2", "jpx", "j2k", "jxl", "heic", "heif", "dds", "exr", "pcx", "hdr"] {
         v.push((e, Kind::ImageRead));
     }
-    for e in ["html", "htm", "svg"] {
+    for e in ["html", "htm", "svg", "srt", "vtt", "ass", "ssa"] {
         v.push((e, Kind::Doc));
     }
     for e in ["docx", "doc", "docm", "odt", "rtf", "xlsx", "xls", "xlsm", "ods", "pptx", "ppt", "pptm", "ppsx", "pps", "odp"] {

@@ -383,6 +383,30 @@ pub async fn normalize_audio(input: String, output: String, overwrite: bool, luf
     .await
 }
 
+/// Datos dunha lexenda: formato, falas, primeiro e último tempo e codificación.
+#[tauri::command]
+pub async fn subtitle_info(path: String) -> Result<trasno_engine::subtitles::SubtitleInfo, String> {
+    blocking_bg(move || trasno_engine::subtitles::subtitle_info(&PathBuf::from(path)).map_err(to_err)).await
+}
+
+/// Resincroniza unha lexenda (desprazamento, cadencia ou dous puntos) nun ficheiro novo.
+#[tauri::command]
+pub async fn retime_subtitle(input: String, output: String, overwrite: bool, shift_ms: i64, factor: f64) -> Result<trasno_engine::subtitles::RetimeReport, String> {
+    blocking(move || trasno_engine::subtitles::retime_subtitle(&PathBuf::from(input), &PathBuf::from(output), overwrite, &trasno_engine::subtitles::Retime { shift_ms, factor }).map_err(to_err)).await
+}
+
+/// Calcula o cambio de tempo que fai que a primeira fala quede en `want_first` e a última en `want_last` (milisegundos).
+#[tauri::command]
+pub fn subtitle_two_points(first: i64, last: i64, want_first: i64, want_last: i64) -> Result<trasno_engine::subtitles::Retime, String> {
+    trasno_engine::subtitles::Retime::from_two_points(first, last, want_first, want_last).map_err(to_err)
+}
+
+/// Cambio de tempo para pasar unha lexenda feita para `from_fps` a un vídeo de `to_fps`.
+#[tauri::command]
+pub fn subtitle_fps_change(from_fps: f64, to_fps: f64) -> Result<trasno_engine::subtitles::Retime, String> {
+    trasno_engine::subtitles::Retime::from_fps(from_fps, to_fps).map_err(to_err)
+}
+
 /// Busca os silencios dun audio ou vídeo e di cantos se cortarían e canto duraría o resultado (non escribe nada).
 #[tauri::command]
 pub async fn analyze_silence(input: String, threshold_db: f64, min_silence: f64, padding: f64) -> Result<trasno_engine::silence::SilenceAnalysis, String> {

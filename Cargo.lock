@@ -4557,6 +4557,7 @@ name = "trasno-engine"
 version = "0.1.5"
 dependencies = [
  "color_quant",
+ "encoding_rs",
  "image",
  "kamadak-exif",
  "lopdf",

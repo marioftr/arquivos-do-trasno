@@ -2,7 +2,7 @@
   import type { Category } from "../engine";
   import type { FileEntry } from "../files";
   import { t } from "../i18n";
-  import { formatBytes, CATEGORY_LABELS, PLAIN_TEXT, OFFICE_EXTS } from "../formats";
+  import { formatBytes, CATEGORY_LABELS, PLAIN_TEXT, OFFICE_EXTS, SUBTITLE_EXTS } from "../formats";
   import ToolStrip from "./ui/ToolStrip.svelte";
   import FormBar from "./ui/FormBar.svelte";
   import { activeForm } from "../forms";
@@ -22,6 +22,7 @@
   import ExtractSection from "./tools/ExtractSection.svelte";
   import AudioEffectsSection from "./tools/AudioEffectsSection.svelte";
   import SilenceSection from "./tools/SilenceSection.svelte";
+  import SubtitleSection from "./tools/SubtitleSection.svelte";
   import TrimSection from "./tools/TrimSection.svelte";
   import PdfSplitSection from "./tools/PdfSplitSection.svelte";
   import PdfMarksSection from "./tools/PdfMarksSection.svelte";
@@ -83,7 +84,9 @@
               tab("security", "Seguridade"),
               tab("info", "Información"),
             ]
-          : PLAIN_TEXT.includes(first?.ext ?? "") || OFFICE_EXTS.includes(first?.ext ?? "")
+          : SUBTITLE_EXTS.includes(first?.ext ?? "")
+            ? [tab("convert", "Converter"), tab("edit", "Resincronizar"), tab("info", "Información")]
+            : PLAIN_TEXT.includes(first?.ext ?? "") || OFFICE_EXTS.includes(first?.ext ?? "")
             ? [tab("convert", "Converter"), tab("info", "Información")]
             : [tab("info", "Información")];
       default:
@@ -219,6 +222,8 @@
           <CompressSection {selection} {category} />
         {:else if current === "edit" && mode === "trim" && first}
           <TrimSection file={first} />
+        {:else if current === "edit" && first && SUBTITLE_EXTS.includes(first.ext)}
+          <SubtitleSection file={first} />
         {:else if current === "edit" && mode === "silence" && first}
           <SilenceSection file={first} />
         {:else if current === "edit" && mode === "effects" && first}

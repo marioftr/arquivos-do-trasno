@@ -65,6 +65,10 @@ export const CLIP_TARGETS = ["gif", "webp"];
 /** Documentos de texto plano: pódense maquetar nun PDF. */
 export const PLAIN_TEXT = ["txt", "md", "csv", "json", "xml", "log"];
 
+/** Lexendas: vense como texto, convértense entre elas (e a UTF-8) e resincronízanse. */
+export const SUBTITLE_EXTS = ["srt", "vtt", "ass", "ssa"];
+export const SUBTITLE_TARGETS = ["srt", "vtt", "ass"];
+
 export const CATEGORY_LABELS: Record<Category, string> = {
   imaxe: "Imaxe",
   audio: "Audio",
@@ -87,6 +91,7 @@ export function targetsForCategory(category: Category, sourceExt?: string): stri
     case "documento":
       // Un PDF dá o seu texto (e as súas páxinas como imaxes, na pestana Imaxes); un .txt maquétase nun PDF sinxelo.
       if (sourceExt === "pdf") return ["txt"];
+      if (SUBTITLE_EXTS.includes(sourceExt ?? "")) return SUBTITLE_TARGETS;
       return PLAIN_TEXT.includes(sourceExt ?? "") ? ["pdf"] : [];
     case "modelo3d":
       // O motor Rust lé OBJ/STL/PLY; FBX e glTF léense e escríbense a través

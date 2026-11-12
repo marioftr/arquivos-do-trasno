@@ -13,6 +13,17 @@
   $: filePath = file.path;
   $: load(filePath);
 
+  /** UTF-8 (con ou sen BOM) ou UTF-16 con BOM; se non é UTF-8 válido, Windows-1252, que é o que levan os ficheiros antigos en galego, español... */
+  function decodeText(bytes: Uint8Array): string {
+    if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder("utf-16le").decode(bytes);
+    if (bytes[0] === 0xfe && bytes[1] === 0xff) return new TextDecoder("utf-16be").decode(bytes);
+    try {
+      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      return new TextDecoder("windows-1252").decode(bytes);
+    }
+  }
+
   async function load(path: string) {
     const hit = textCache.get(path);
     if (hit !== undefined) {
@@ -21,7 +32,7 @@
     }
     try {
       const res = await fetch(await viewUrl(path));
-      text = (await res.text()).slice(0, 200_000);
+      text = decodeText(new Uint8Array(await res.arrayBuffer())).slice(0, 200_000);
       textCache.set(path, text);
     } catch (e) {
       text = tr("Non puiden ler o ficheiro: {error}", { error: errText(e) });
