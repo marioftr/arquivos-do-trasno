@@ -137,7 +137,7 @@
       case "convert": return [m("images", "A imaxes"), m("format", "A outro formato")];
       case "pages": return [m("organize", "Ordenar"), m("extract", "Extraer"), m("split", "Dividir")];
       case "shape": return [m("rotate", "Xirar"), m("crop", "Recortar")];
-      case "optimize": return [m("compress", "Comprimir"), m("repair", "Reparar")];
+      case "optimize": return [m("compress", "Comprimir"), m("repair", "Reparar"), m("ocr", "Texto (OCR)")];
       default: return [];
     }
   }
@@ -239,6 +239,8 @@
           <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} part="rotate" />
         {:else if current === "marks" && first}
           <PdfMarksSection file={first} />
+        {:else if current === "optimize" && mode === "ocr" && first}
+          <Lazy loader={() => import("./tools/PdfOcrSection.svelte")} file={first} />
         {:else if current === "optimize" && mode === "repair" && first}
           <PdfRepairSection file={first} />
         {:else if current === "optimize" && first}

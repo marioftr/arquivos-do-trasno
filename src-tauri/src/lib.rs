@@ -49,6 +49,8 @@ pub fn run() {
             commands::enable_progress,
             commands::begin_job,
             commands::cancel_job,
+            commands::job_cancelled,
+            commands::pdf_add_text_layer,
             commands::pause_job,
             commands::discard_output,
             procs::proc_upsert,

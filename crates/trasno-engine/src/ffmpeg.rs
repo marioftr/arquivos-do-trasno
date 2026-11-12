@@ -90,6 +90,11 @@ pub fn begin_job() {
     CANCELLED.store(false, std::sync::atomic::Ordering::SeqCst);
 }
 
+/// Se se pediu cancelar o traballo en marcha (ata que comece o seguinte).
+pub fn is_cancelled() -> bool {
+    CANCELLED.load(std::sync::atomic::Ordering::SeqCst)
+}
+
 /// Pon en pausa (ou retoma) o ffmpeg que estea a correr. Devolve `true` se había un ffmpeg ao que facerllo.
 /// En Windows suspende o proceso; noutros sistemas envía SIGSTOP / SIGCONT.
 pub fn set_paused(paused: bool) -> bool {

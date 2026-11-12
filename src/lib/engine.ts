@@ -387,6 +387,25 @@ export async function pdfRepair(input: string, output: string, overwrite = false
 
 export const beginJob = (): Promise<void> => call("begin_job");
 export const pauseJob = (paused: boolean): Promise<boolean> => call("pause_job", { paused });
+export const jobCancelled = (): Promise<boolean> => call("job_cancelled");
+export interface OcrTextWord {
+  text: string;
+  /** Esquina de abaixo á esquerda da palabra tal como se ve, en puntos do PDF (orixe abaixo á esquerda). */
+  x: number;
+  y: number;
+  /** Longo sobre a liña e alto, en puntos. */
+  w: number;
+  h: number;
+  /** Graos (sentido contrario ao reloxo) da liña respecto do eixe X: 0 nunha páxina normal. */
+  angle: number;
+}
+export interface TextLayerReport {
+  output_path: string;
+  pages: number;
+  words: number;
+}
+export const pdfAddTextLayer = (input: string, output: string, pages: { page: number; words: OcrTextWord[] }[], overwrite = false): Promise<TextLayerReport> =>
+  call("pdf_add_text_layer", { input, output, overwrite, pages });
 export const cancelJob = (): Promise<boolean> => call("cancel_job");
 export const discardOutput = (path: string): Promise<boolean> => call("discard_output", { path });
 export const enableProgress = (): Promise<void> => call("enable_progress");

@@ -59,6 +59,12 @@ pub fn cancel_job() -> bool {
     trasno_engine::ffmpeg::cancel_current()
 }
 
+/// `true` se o usuario cancelou o traballo en marcha. Os traballos que fai a interface (como o OCR, páxina a páxina) miran isto entre paso e paso.
+#[tauri::command]
+pub fn job_cancelled() -> bool {
+    trasno_engine::ffmpeg::is_cancelled()
+}
+
 /// Pon en pausa (ou retoma) o traballo en marcha. Devolve `true` se había un ffmpeg ao que facerllo.
 #[tauri::command]
 pub fn pause_job(paused: bool) -> bool {
@@ -977,6 +983,21 @@ pub async fn pdf_add_texts(input: String, output: String, overwrite: bool, items
     blocking(move || {
         let (i, o) = paths(input, output);
         done(trasno_engine::pdf_tools::add_texts(&i, &o, overwrite, &items))
+    })
+    .await
+}
+
+/// Engade a un PDF dixitalizado a capa de texto invisible lida por OCR (ver `pdf_tools::add_text_layer`).
+#[tauri::command]
+pub async fn pdf_add_text_layer(
+    input: String,
+    output: String,
+    overwrite: bool,
+    pages: Vec<trasno_engine::pdf_tools::OcrPage>,
+) -> Result<trasno_engine::pdf_tools::TextLayerReport, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        trasno_engine::pdf_tools::add_text_layer(&i, &o, overwrite, &pages).map_err(to_err)
     })
     .await
 }

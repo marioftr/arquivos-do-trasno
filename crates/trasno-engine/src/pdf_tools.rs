@@ -763,3 +763,157 @@ mundo".into(), x_pct: 10.0, y_pct: 90.0, size: 20.0, color: "#ff0000".into(), fo
         assert!(b < a, "{b} !< {a}");
     }
 }
+
+// ------------------------------------------------- capa de texto invisible (OCR)
+
+/// Unha palabra lida nunha páxina dixitalizada, xa en coordenadas do PDF (puntos, orixe abaixo á esquerda, sen xiro de páxina):
+/// `(x, y)` é a esquina de abaixo á esquerda da palabra tal como se ve, `w` o seu longo sobre a liña e `h` a súa altura; `angle`, os graos
+/// (sentido contrario ao reloxo) que leva a liña respecto do eixo X (0 nunha páxina normal, 90 ou 270 se a páxina está xirada).
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct OcrWord {
+    pub text: String,
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+    #[serde(default)]
+    pub angle: f32,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct OcrPage {
+    pub page: u32,
+    pub words: Vec<OcrWord>,
+}
+
+/// Cantas palabras levou cada páxina.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct TextLayerReport {
+    pub output_path: PathBuf,
+    pub pages: u32,
+    pub words: u32,
+}
+
+fn utf16_hex(c: char) -> String {
+    let mut b = [0u16; 2];
+    c.encode_utf16(&mut b).iter().map(|u| format!("{u:04X}")).collect()
+}
+
+/// Engade a un PDF dixitalizado unha capa de texto invisible (modo de debuxo 3, como fai Acrobat ou OCRmyPDF) enriba de cada páxina
+/// lida: a imaxe non se toca nin un píxel, pero o texto pódese buscar, seleccionar e copiar. O texto vai nunha letra «sen glifos»
+/// (non se debuxa) co seu ToUnicode, e cada palabra estírase á súa caixa para que a selección coincida co que se ve.
+pub fn add_text_layer(input: &Path, output: &Path, overwrite: bool, pages: &[OcrPage]) -> Result<TextLayerReport> {
+    ensure_distinct(&[input], output)?;
+    let words: u32 = pages.iter().map(|p| p.words.iter().filter(|w| !w.text.trim().is_empty()).count() as u32).sum();
+    if words == 0 {
+        return Err(pdf_err("O OCR non atopou texto nese PDF: non hai nada que engadir."));
+    }
+    let mut doc = load(input)?;
+    if doc.is_encrypted() {
+        return Err(pdf_err("O PDF está protexido con contrasinal: quítalle a protección antes de engadirlle texto."));
+    }
+    flatten_inherited_page_attributes(&mut doc);
+    let ids = doc.get_pages();
+
+    // Cada carácter distinto recibe un código de 2 bytes (o 0 queda libre); o ToUnicode di a que letra corresponde.
+    let mut table: std::collections::HashMap<char, u16> = std::collections::HashMap::new();
+    let mut order: Vec<char> = Vec::new();
+    let mut code_of = |c: char| -> Option<u16> {
+        if let Some(k) = table.get(&c) {
+            return Some(*k);
+        }
+        if order.len() >= 65_000 {
+            return None;
+        }
+        order.push(c);
+        let k = order.len() as u16;
+        table.insert(c, k);
+        Some(k)
+    };
+
+    let mut streams: Vec<(ObjectId, String)> = Vec::new();
+    for p in pages {
+        let id = *ids.get(&p.page).ok_or(EngineError::PageMissing { page: p.page, total: ids.len() as u32 })?;
+        let mut content = String::from("q\n");
+        let mut any = false;
+        for w in &p.words {
+            let text: String = w.text.chars().filter(|c| !c.is_control()).collect();
+            let text = text.trim();
+            let vals = [w.x, w.y, w.w, w.h, w.angle];
+            if text.is_empty() || vals.iter().any(|v| !v.is_finite()) || w.w <= 0.0 || w.h <= 0.0 {
+                continue;
+            }
+            let codes: Vec<u16> = text.chars().filter_map(&mut code_of).collect();
+            if codes.is_empty() {
+                continue;
+            }
+            // Ancho natural: cada glifo mide media letra; «Tz» estíralo ata o ancho da caixa lida.
+            let size = w.h.clamp(1.0, 400.0);
+            let tz = (w.w / (codes.len() as f32 * 0.5 * size) * 100.0).clamp(1.0, 2000.0);
+            let (s, c) = w.angle.to_radians().sin_cos();
+            // Sen «-0.00000» nas rotacións de múltiplos de 90°.
+            let (s, c) = (if s.abs() < 1e-6 { 0.0 } else { s }, if c.abs() < 1e-6 { 0.0 } else { c });
+            let hex: String = codes.iter().map(|k| format!("{k:04X}")).collect();
+            content.push_str(&format!("BT 3 Tr /FTrasnoOcr {size:.2} Tf {tz:.2} Tz {c:.5} {s:.5} {ns:.5} {c:.5} {x:.2} {y:.2} Tm <{hex}> Tj ET\n", ns = -s, x = w.x, y = w.y));
+            any = true;
+        }
+        if any {
+            content.push('Q');
+            streams.push((id, content));
+        }
+    }
+    if streams.is_empty() {
+        return Err(pdf_err("O OCR non atopou texto utilizable nese PDF."));
+    }
+
+    // ToUnicode: bloques de ata 100 entradas, como pide o formato.
+    let mut cmap = String::from(
+        "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n",
+    );
+    for (n, chunk) in order.chunks(100).enumerate() {
+        cmap.push_str(&format!("{} beginbfchar\n", chunk.len()));
+        for (i, ch) in chunk.iter().enumerate() {
+            cmap.push_str(&format!("<{:04X}> <{}>\n", n * 100 + i + 1, utf16_hex(*ch)));
+        }
+        cmap.push_str("endbfchar\n");
+    }
+    cmap.push_str("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n");
+    let to_unicode = doc.add_object(Stream::new(dictionary! {}, cmap.into_bytes()));
+    let descriptor = doc.add_object(dictionary! {
+        "Type" => "FontDescriptor",
+        "FontName" => "TrasnoOcr",
+        "Flags" => 4,
+        "FontBBox" => vec![0.into(), (-200).into(), 1000.into(), 800.into()],
+        "ItalicAngle" => 0,
+        "Ascent" => 800,
+        "Descent" => -200,
+        "CapHeight" => 700,
+        "StemV" => 80,
+    });
+    let cid_font = doc.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "CIDFontType2",
+        "BaseFont" => "TrasnoOcr",
+        "CIDSystemInfo" => dictionary! { "Registry" => Object::string_literal("Adobe"), "Ordering" => Object::string_literal("Identity"), "Supplement" => 0 },
+        "FontDescriptor" => Object::Reference(descriptor),
+        "DW" => 500,
+        "CIDToGIDMap" => "Identity",
+    });
+    let font = doc.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type0",
+        "BaseFont" => "TrasnoOcr",
+        "Encoding" => "Identity-H",
+        "DescendantFonts" => vec![Object::Reference(cid_font)],
+        "ToUnicode" => Object::Reference(to_unicode),
+    });
+    let ctx = Ctx { font, q: doc.add_object(Stream::new(dictionary! {}, b"q".to_vec())), qq: doc.add_object(Stream::new(dictionary! {}, b"Q".to_vec())), name: "FTrasnoOcr".to_string(), embedded: None };
+
+    let mut layered = 0;
+    for (id, content) in streams {
+        add_overlay(&mut doc, &ctx, id, content, None, None)?;
+        layered += 1;
+    }
+    let path = save_atomically(&mut doc, output, overwrite)?;
+    Ok(TextLayerReport { output_path: path, pages: layered, words })
+}
