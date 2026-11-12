@@ -129,7 +129,7 @@
     if (tab === "convert" && cat === "video" && !pdf) return [m("mp4", "A MP4 con perfís"), m("format", "A outro formato")];
     if (many) return [];
     if (!pdf) {
-      if (tab === "edit" && cat === "video") return [m("trim", "Cortar"), m("tune", "Velocidade e volume")];
+      if (tab === "edit" && cat === "video") return [m("trim", "Cortar"), m("tune", "Velocidade e volume"), m("effects", "Son")];
       if (tab === "edit" && cat === "audio") return [m("trim", "Cortar"), m("tune", "Velocidade e volume"), m("effects", "Efectos")];
       return [];
     }

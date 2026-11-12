@@ -21,6 +21,8 @@ pub struct ImageConvertOptions {
     pub lossless: bool,
     /// Fondo (RGB) sobre o que se compón a transparencia se o formato de destino non a admite (JPG, BMP, PNM). Por defecto, branco.
     pub background: Option<[u8; 3]>,
+    /// Metadatos do orixinal que se levan ao resultado (por defecto ningún). Só os levan JPG, PNG e WebP sen perdas.
+    pub metadata: crate::image_meta::Metadata,
 }
 
 /// Le só as dimensións dunha imaxe (cabeceira, sen decodificar os píxeles),
@@ -77,22 +79,19 @@ pub fn convert_image(
         let tmp = tempfile::Builder::new().suffix(".png").tempfile()?.into_temp_path();
         let tmp_path = tmp.to_path_buf();
         convert_image(input, &tmp_path, true, options)?;
-        return crate::image_ffmpeg::encode(&tmp_path, output, overwrite, options.quality, options.lossless);
+        let done = crate::image_ffmpeg::encode(&tmp_path, output, overwrite, options.quality, options.lossless)?;
+        // FFmpeg escribe o WebP sen perfil de cor nin metadatos: ponselles despois (o PNG temporal xa leva só o que hai que levar).
+        if dst_ext == "webp" {
+            crate::image_meta::add_to_webp_file(&done, &crate::image_meta::read_carried(&tmp_path))?;
+        }
+        return Ok(done);
     }
     let dst_format = format_from_ext(&dst_ext)?;
-    let readable = crate::image_ffmpeg::readable(input)?;
 
     // Decodificar por completo antes de tocar o destino: se a imaxe de
     // orixe está corrompida, fallamos aquí e nunca chegamos a crear nada.
     // A orientación EXIF aplícase ao abrir: as medidas do recorte son as da imaxe tal como se ve.
-    let mut img = {
-        use image::ImageDecoder;
-        let mut dec = image::ImageReader::open(&readable)?.with_guessed_format()?.into_decoder()?;
-        let orientation = dec.orientation().unwrap_or(image::metadata::Orientation::NoTransforms);
-        let mut i = image::DynamicImage::from_decoder(dec)?;
-        i.apply_orientation(orientation);
-        i
-    };
+    let (mut img, carried) = crate::image_meta::open_oriented(input, options.metadata)?;
 
     if let Some((w, h)) = options.resize {
         if w == 0 || h == 0 {
@@ -112,7 +111,24 @@ pub fn convert_image(
         (ImageFormat::Jpeg, Some(q)) => {
             let mut encoder =
                 image::codecs::jpeg::JpegEncoder::new_with_quality(out.as_file_mut(), q.clamp(1, 100));
+            carried.apply(&mut encoder);
             encoder.encode_image(&img)?;
+        }
+        // Con perfil de cor ou metadatos que levar, o codificador escríbeos (as demais vías non os levan).
+        (ImageFormat::Png, _) if !carried.is_empty() => {
+            let mut enc = image::codecs::png::PngEncoder::new(std::io::BufWriter::new(out.as_file_mut()));
+            carried.apply(&mut enc);
+            img.write_with_encoder(enc)?;
+        }
+        (ImageFormat::WebP, _) if !carried.is_empty() => {
+            let mut enc = image::codecs::webp::WebPEncoder::new_lossless(std::io::BufWriter::new(out.as_file_mut()));
+            carried.apply(&mut enc);
+            img.write_with_encoder(enc)?;
+        }
+        (ImageFormat::Jpeg, None) if !carried.is_empty() => {
+            let mut enc = image::codecs::jpeg::JpegEncoder::new(std::io::BufWriter::new(out.as_file_mut()));
+            carried.apply(&mut enc);
+            enc.encode_image(&img)?;
         }
         _ => {
             img.write_to(&mut std::io::BufWriter::new(out.as_file_mut()), dst_format)?;
@@ -344,7 +360,7 @@ mod tests {
         image::DynamicImage::ImageRgb8(img).save(&input).unwrap();
 
         let output = dir.path().join("destino.jpg");
-        let opts = ImageConvertOptions { quality: Some(85), resize: None, lossless: false, background: None };
+        let opts = ImageConvertOptions { quality: Some(85), resize: None, lossless: false, background: None, metadata: Default::default() };
         let result = convert_image(&input, &output, false, &opts).unwrap();
 
         assert!(result.exists());
@@ -376,7 +392,7 @@ mod tests {
             .save(&input)
             .unwrap();
         let output = dir.path().join("destino.png");
-        let opts = ImageConvertOptions { quality: None, resize: Some((20, 10)), lossless: false, background: None };
+        let opts = ImageConvertOptions { quality: None, resize: Some((20, 10)), lossless: false, background: None, metadata: Default::default() };
         let result = convert_image(&input, &output, false, &opts).unwrap();
 
         let decoded = image::open(&result).unwrap();

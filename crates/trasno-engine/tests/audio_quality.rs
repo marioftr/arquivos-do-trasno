@@ -159,6 +159,43 @@ fn normalizar_un_video_copia_a_imaxe_sen_tocala() {
 }
 
 #[test]
+fn os_efectos_de_son_nun_video_non_tocan_a_imaxe_nin_cambian_o_codec_do_son() {
+    if !ffmpeg::is_available() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let d = dir.path();
+    // MP4 con AAC e MKV con AAC (o MKV escollería outro códec se non se fixa).
+    for (name, acodec) in [("v.mp4", "aac"), ("v.mkv", "aac"), ("w.webm", "libopus")] {
+        let src = d.join(name);
+        let vcodec = if name.ends_with("webm") { "libvpx-vp9" } else { "libx264" };
+        let st = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap())
+            .args(["-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=25:duration=3", "-f", "lavfi", "-i", QUIET])
+            .args(["-shortest", "-c:v", vcodec, "-pix_fmt", "yuv420p", "-c:a", acodec, "-b:a", "160k"])
+            .arg(&src)
+            .status()
+            .unwrap();
+        assert!(st.success(), "{name}");
+        let codecs = |p: &Path| {
+            let info = ffmpeg::probe(p).unwrap();
+            let s = info["streams"].as_array().unwrap();
+            let c = |kind: &str| s.iter().find(|x| x["codec_type"] == kind).map(|x| (x["codec_name"].clone(), x["width"].clone(), x["nb_frames"].clone()));
+            (c("video"), c("audio").map(|a| a.0))
+        };
+        let want = codecs(&src);
+        let outs = [
+            ffmpeg::media_edit(&src, &d.join(format!("fi-{name}")), false, MediaOp::FadeIn(1.0), true).unwrap(),
+            ffmpeg::media_edit(&src, &d.join(format!("ec-{name}")), false, MediaOp::Echo(300.0), true).unwrap(),
+            ffmpeg::media_edit(&src, &d.join(format!("dn-{name}")), false, MediaOp::Denoise, true).unwrap(),
+            ffmpeg::normalize_loudness(&src, &d.join(format!("nm-{name}")), false, Loudness::default(), true).unwrap().output,
+        ];
+        for out in outs {
+            assert_eq!(codecs(&out), want, "{name}: {}", out.display());
+        }
+    }
+}
+
+#[test]
 fn normalizar_rexeita_o_silencio_os_valores_malos_e_non_pisa_nada() {
     if !ffmpeg::is_available() {
         return;

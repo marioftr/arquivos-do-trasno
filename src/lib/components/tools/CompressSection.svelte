@@ -20,6 +20,7 @@
   import Icon from "../Icon.svelte";
   import Slider from "../ui/Slider.svelte";
   import NumberField from "../ui/NumberField.svelte";
+  import PhotoMeta from "../ui/PhotoMeta.svelte";
   import SelectField from "../ui/SelectField.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
@@ -72,6 +73,8 @@
     videoKbps: 2000,
     sizeValue: 10,
     unit: "MB",
+    keepMeta: false,
+    keepGps: false,
   }, `comprimir2-${category}`, "compress|" + selection.map((f) => f.path).join("|"));
   $: videoDar.set(isImage ? "" : v.dar ?? "");
   const own = claim("videoDar");
@@ -206,7 +209,7 @@
       const r = await engine.compressImage(
         f.path,
         out,
-        { quality: v.mode === "quality" ? (isPngExt(f.ext) ? v.pngQuality : v.quality) : undefined, targetBytes: v.mode === "size" ? targetBytes : undefined, maxSide: v.maxSide || undefined },
+        { quality: v.mode === "quality" ? (isPngExt(f.ext) ? v.pngQuality : v.quality) : undefined, targetBytes: v.mode === "size" ? targetBytes : undefined, maxSide: v.maxSide || undefined, metadata: engine.photoMetadata(v.keepMeta, v.keepGps) },
         overwrite,
       );
       return r.bytes_written;
@@ -344,7 +347,7 @@
         <Slider label={hasPng ? $t("Calidade (JPG, WebP…)") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={hasGif ? $t("Nos GIF, menos calidade significa menos cores na paleta; os fotogramas e os seus tempos non se tocan.") : undefined} />
       {/if}
       {#if hasPng}
-        <Slider label={hasLossy ? $t("Calidade do PNG") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.pngQuality} def={form.defaults.pngQuality} hint={$t("100 % non cambia ningún píxel: o ficheiro pode pesar menos porque se volve gardar coa máxima compresión e sen metadatos (EXIF, perfil de cor). Por baixo, o PNG reduce o número de cores (paleta) para pesar menos, sen perder a transparencia.")} />
+        <Slider label={hasLossy ? $t("Calidade do PNG") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.pngQuality} def={form.defaults.pngQuality} hint={$t("100 % non cambia ningún píxel: o ficheiro pode pesar menos porque se volve gardar coa máxima compresión e, se non o pides, sen metadatos (EXIF). Por baixo, o PNG reduce o número de cores (paleta) para pesar menos, sen perder a transparencia.")} />
       {/if}
     {:else}
       <Segmented options={LEVELS.map((l) => ({ value: l.crf, label: $t(l.label), hint: $t(l.hint) }))} bind:value={$form.crf} />
@@ -353,6 +356,9 @@
 
     {#if isImage}
       <NumberField label={$t("Lado máximo")} unit="px" min={1} placeholder={$t("orixinal")} bind:value={$form.maxSide} def={null} />
+      {#if usable.some((f) => engine.META_EXTS.includes(f.ext.toLowerCase()))}
+        <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} disabled={$busy} />
+      {/if}
     {:else}
       <SelectField
         label={$t("Altura máxima")}

@@ -18,6 +18,7 @@
   import NumberField from "../ui/NumberField.svelte";
   import SelectField from "../ui/SelectField.svelte";
   import Toggle from "../ui/Toggle.svelte";
+  import PhotoMeta from "../ui/PhotoMeta.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import { NO_ALPHA, BACKGROUNDS, anyTransparent, backdrop, cssOf, type Bg } from "../../transparency";
   import JobStatus from "../ui/JobStatus.svelte";
@@ -66,6 +67,8 @@
     clipFps: 15,
     clipWidth: 640 as number | null,
     clipQuality: 75,
+    keepMeta: false,
+    keepGps: false,
   }, undefined, "convert|" + selection.map((f) => f.path).join("|"));
   onMount(() => useForm(form));
 
@@ -164,6 +167,7 @@
       bitrateKbps: canLossless && v.lossless ? undefined : toAudio ? v.audioBitrate : isMedia && v.bitrate ? v.bitrate : undefined,
       lossless: canLossless && v.lossless,
       background: f.category === "imaxe" && NO_ALPHA.includes(v.targetExt) ? BACKGROUNDS[v.bg] : undefined,
+      metadata: f.category === "imaxe" && !exact ? engine.photoMetadata(v.keepMeta, v.keepGps) : undefined,
     });
   }
 
@@ -253,6 +257,7 @@
     {:else if category === "imaxe"}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto = mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL)")} />
       <Segmented options={PRESETS.map((p) => ({ value: p.value, label: $t(p.label), hint: $t(p.hint) }))} bind:value={$form.quality} />
+      <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} supported={engine.META_EXTS.includes($form.targetExt)} disabled={$busy} />
       {#if multi}
         <NumberField label={$t("Lado máximo")} unit="px" min={1} placeholder={$t("orixinal")} bind:value={$form.maxSide} def={null} />
       {:else}

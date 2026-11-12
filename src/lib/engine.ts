@@ -24,7 +24,18 @@ export interface ConvertOptions {
   fps?: number;
   /** Vídeo → GIF ou WebP animado: ancho máximo en píxeles (por defecto 640). */
   maxWidth?: number;
+  /** Imaxe → imaxe: metadatos do orixinal que se levan (por defecto ningún). Só JPG, PNG e WebP sen perdas. */
+  metadata?: PhotoMetadata;
 }
+
+/** Que facer cos metadatos dunha foto: `strip` ningún, `no_location` cámara e data sen ubicación, `all` todo. */
+export type PhotoMetadata = "strip" | "no_location" | "all";
+
+/** Formatos de imaxe que poden levar metadatos e perfil de cor. */
+export const META_EXTS = ["jpg", "jpeg", "png", "webp"];
+
+/** Dos dous interruptores da interface ao valor que entende o motor. */
+export const photoMetadata = (keep: boolean, gps: boolean): PhotoMetadata => (!keep ? "strip" : gps ? "all" : "no_location");
 
 export async function detectCategory(path: string): Promise<Category> {
   return call("detect_category", { path });
@@ -58,6 +69,7 @@ export async function convertFile(
     background: options.background ?? null,
     fps: options.fps ?? null,
     maxWidth: options.maxWidth ?? null,
+    metadata: options.metadata ?? null,
   });
 }
 
@@ -259,7 +271,7 @@ export interface ImageCompressReport {
 export async function compressImage(
   input: string,
   output: string,
-  opts: { quality?: number; targetBytes?: number; maxSide?: number; background?: [number, number, number] },
+  opts: { quality?: number; targetBytes?: number; maxSide?: number; background?: [number, number, number]; metadata?: PhotoMetadata },
   overwrite = false,
 ): Promise<ImageCompressReport> {
   return call("compress_image", {
@@ -270,6 +282,7 @@ export async function compressImage(
     targetBytes: opts.targetBytes ?? null,
     maxSide: opts.maxSide ?? null,
     background: opts.background ?? null,
+    metadata: opts.metadata ?? null,
   });
 }
 

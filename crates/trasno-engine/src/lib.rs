@@ -24,6 +24,7 @@ pub mod fonts;
 pub mod formats;
 pub mod image_convert;
 pub mod image_ffmpeg;
+pub mod image_meta;
 pub mod integrity;
 pub mod mkv;
 pub mod model3d;
@@ -58,6 +59,9 @@ pub struct ConvertOptions {
     /// Vídeo → imaxe animada (GIF, WebP): ancho máximo en píxeles. `None` = 640.
     #[serde(default)]
     pub max_width: Option<u32>,
+    /// Imaxe → imaxe: que metadatos levar do orixinal (por defecto ningún). Só os levan JPG, PNG e WebP sen perdas.
+    #[serde(default)]
+    pub metadata: image_meta::Metadata,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -85,6 +89,7 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
                 resize: options.resize,
                 lossless: options.lossless,
                 background: options.background,
+                metadata: options.metadata,
             },
         )?,
         // Vídeo → GIF ou WebP animado: paleta propia, cadencia e ancho medidos (ver `animated::video_to_animation`).

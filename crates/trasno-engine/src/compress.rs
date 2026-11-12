@@ -5,6 +5,7 @@
 use crate::error::{EngineError, Result};
 use crate::ffmpeg::{self, check_success, run_ffmpeg};
 use crate::integrity::{assert_non_empty_file, ensure_distinct, AtomicOutput};
+use crate::image_meta::{Carried, Metadata};
 use image::DynamicImage;
 use std::path::{Path, PathBuf};
 
@@ -21,6 +22,8 @@ pub struct ImageCompress {
     pub max_side: Option<u32>,
     /// Fondo para a transparencia se o resultado é JPG (por defecto, branco).
     pub background: Option<[u8; 3]>,
+    /// Metadatos do orixinal que se levan ao resultado (por defecto ningún). Só os levan JPG, PNG e WebP sen perdas.
+    pub metadata: crate::image_meta::Metadata,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -51,19 +54,22 @@ fn flatten(img: &DynamicImage, bg: Option<[u8; 3]>) -> image::RgbImage {
     crate::image_convert::flatten_on(img, bg.unwrap_or(crate::image_convert::WHITE))
 }
 
-fn jpeg_bytes(img: &DynamicImage, quality: u8, bg: Option<[u8; 3]>) -> Result<Vec<u8>> {
+fn jpeg_bytes(img: &DynamicImage, quality: u8, bg: Option<[u8; 3]>, carried: &Carried) -> Result<Vec<u8>> {
     let rgb = flatten(img, bg);
     let mut buf = Vec::new();
     let mut enc = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, quality.clamp(1, 100));
+    carried.apply(&mut enc);
     enc.encode_image(&rgb)?;
     Ok(buf)
 }
 
 /// PNG sen perdas co mellor nivel de compresión e filtro adaptativo.
-fn png_bytes(img: &DynamicImage) -> Result<Vec<u8>> {
+fn png_bytes(img: &DynamicImage, carried: &Carried) -> Result<Vec<u8>> {
     use image::codecs::png::{CompressionType, FilterType, PngEncoder};
     let mut buf = Vec::new();
-    img.write_with_encoder(PngEncoder::new_with_quality(&mut buf, CompressionType::Best, FilterType::Adaptive))?;
+    let mut enc = PngEncoder::new_with_quality(&mut buf, CompressionType::Best, FilterType::Adaptive);
+    carried.apply(&mut enc);
+    img.write_with_encoder(enc)?;
     Ok(buf)
 }
 
@@ -76,7 +82,7 @@ pub(crate) fn palette_colors(quality: u8) -> usize {
 /// PNG con perdas: reduce a imaxe a unha paleta de cores (NeuQuant) con tramado Floyd–Steinberg e garda un PNG indexado
 /// (conserva a transparencia). É o que fan ferramentas como pngquant ou TinyPNG; se non dá un ficheiro máis pequeno que o sen
 /// perdas, devólvese este último.
-fn png_quantized(img: &DynamicImage, quality: u8) -> Result<Vec<u8>> {
+fn png_quantized(img: &DynamicImage, quality: u8, carried: &Carried) -> Result<Vec<u8>> {
     let rgba = img.to_rgba8();
     let (w, h) = (rgba.width() as usize, rgba.height() as usize);
     let colors = palette_colors(quality);
@@ -127,38 +133,43 @@ fn png_quantized(img: &DynamicImage, quality: u8) -> Result<Vec<u8>> {
     }
     let mut buf = Vec::new();
     {
-        let mut enc = png::Encoder::new(&mut buf, w as u32, h as u32);
-        enc.set_color(png::ColorType::Indexed);
-        enc.set_depth(png::BitDepth::Eight);
-        enc.set_palette(palette);
+        let mut info = png::Info::with_size(w as u32, h as u32);
+        info.color_type = png::ColorType::Indexed;
+        info.bit_depth = png::BitDepth::Eight;
+        info.palette = Some(palette.into());
         if alpha.iter().any(|a| *a != 255) {
-            enc.set_trns(alpha);
+            info.trns = Some(alpha.into());
         }
+        info.icc_profile = carried.icc.clone().map(Into::into);
+        info.exif_metadata = carried.exif.clone().map(Into::into);
+        let mut enc = png::Encoder::with_info(&mut buf, info).map_err(|e| std::io::Error::other(e.to_string()))?;
         enc.set_compression(png::Compression::High);
         let mut wr = enc.write_header().map_err(|e| std::io::Error::other(e.to_string()))?;
         wr.write_image_data(&idx).map_err(|e| std::io::Error::other(e.to_string()))?;
     }
-    let lossless = png_bytes(img)?;
+    let lossless = png_bytes(img, carried)?;
     Ok(if buf.len() < lossless.len() { buf } else { lossless })
 }
 
 /// WebP, AVIF, JPEG XL e JPEG 2000 escríbense con FFmpeg a partir dun PNG temporal.
-fn ffmpeg_bytes(img: &DynamicImage, ext: &str, quality: u8) -> Result<Vec<u8>> {
+fn ffmpeg_bytes(img: &DynamicImage, ext: &str, quality: u8, carried: &Carried) -> Result<Vec<u8>> {
     let dir = tempfile::tempdir()?;
     let src = dir.path().join("in.png");
     img.save(&src)?;
     let dst = dir.path().join(format!("out.{ext}"));
     crate::image_ffmpeg::encode(&src, &dst, true, Some(quality), false)?;
-    Ok(std::fs::read(&dst)?)
+    let bytes = std::fs::read(&dst)?;
+    // FFmpeg escribe o WebP sen perfil de cor nin metadatos: ponselles despois. AVIF, JPEG XL e JPEG 2000 non os levan.
+    Ok(if ext == "webp" { crate::image_meta::add_to_webp(bytes, carried) } else { bytes })
 }
 
 /// Os bytes que daría a imaxe nese formato con esa calidade (en PNG, 100 é sen perdas e menos reduce a paleta de cores).
-fn encode_bytes(img: &DynamicImage, ext: &str, quality: u8, bg: Option<[u8; 3]>) -> Result<Vec<u8>> {
+fn encode_bytes(img: &DynamicImage, ext: &str, quality: u8, bg: Option<[u8; 3]>, carried: &Carried) -> Result<Vec<u8>> {
     match ext {
-        "jpg" | "jpeg" => jpeg_bytes(img, quality, bg),
-        "png" if quality >= 100 => png_bytes(img),
-        "png" => png_quantized(img, quality),
-        _ => ffmpeg_bytes(img, ext, quality),
+        "jpg" | "jpeg" => jpeg_bytes(img, quality, bg, carried),
+        "png" if quality >= 100 => png_bytes(img, carried),
+        "png" => png_quantized(img, quality, carried),
+        _ => ffmpeg_bytes(img, ext, quality, carried),
     }
 }
 
@@ -171,17 +182,19 @@ fn scaled(base: &DynamicImage, percent: u32) -> DynamicImage {
     base.resize_exact(w, h, image::imageops::FilterType::Lanczos3)
 }
 
-fn load_base(input: &Path, max_side: Option<u32>) -> Result<DynamicImage> {
+/// Abre a imaxe xa na orientación correcta (as fotos do móbil gárdanse deitadas cunha etiqueta EXIF; como ao comprimir a etiqueta
+/// non se leva por defecto, sen xirar os píxeles a foto saíría de lado) e colle os metadatos que toque levar.
+fn load_base(input: &Path, max_side: Option<u32>, mode: Metadata) -> Result<(DynamicImage, Carried)> {
     if !input.is_file() {
         return Err(EngineError::InputNotFound(input.to_path_buf()));
     }
-    let mut img = image::open(crate::image_ffmpeg::readable(input)?)?;
+    let (mut img, carried) = crate::image_meta::open_oriented(input, mode)?;
     if let Some(m) = max_side.filter(|m| *m > 0) {
         if img.width().max(img.height()) > m {
             img = img.resize(m, m, image::imageops::FilterType::Lanczos3);
         }
     }
-    Ok(img)
+    Ok((img, carried))
 }
 
 /// Tamaño aproximado (bytes) do resultado en `ext` con esta calidade.
@@ -194,9 +207,9 @@ pub fn estimate_image_bytes(input: &Path, ext: &str, quality: u8, max_side: Opti
         ffmpeg::background(|| crate::animated::compress_gif(input, &path, true, quality, max_side))?;
         return Ok(std::fs::metadata(&path)?.len());
     }
-    let img = load_base(input, max_side)?;
+    let (img, carried) = load_base(input, max_side, Metadata::Strip)?;
     // A estimación non é un traballo do usuario: non lle afecta «Cancelar».
-    let bytes = ffmpeg::background(|| encode_bytes(&img, &ext, quality, bg))?;
+    let bytes = ffmpeg::background(|| encode_bytes(&img, &ext, quality, bg, &carried))?;
     Ok(bytes.len() as u64)
 }
 
@@ -223,14 +236,14 @@ pub fn compress_image(
     if crate::animated::is_animated(input) {
         return Err(EngineError::IntegrityCheck("Esta imaxe é animada e comprimila só gardaría un fotograma: o trasno só sabe comprimir sen perder a animación os GIF.".into()));
     }
-    let base = load_base(input, o.max_side)?;
+    let (base, carried) = load_base(input, o.max_side, o.metadata)?;
     // En PNG, calidade 100 (a de por defecto) é sen perdas; por baixo reduce a paleta de cores (como pngquant).
     let lossy = true;
 
     let (bytes, quality, scale) = match o.target_bytes {
         None => {
             let q = o.quality.unwrap_or(if ext == "png" { 100 } else { 80 }).clamp(1, 100);
-            (encode_bytes(&base, &ext, q, o.background)?, q, 100)
+            (encode_bytes(&base, &ext, q, o.background, &carried)?, q, 100)
         }
         Some(target) => {
             let mut found = None;
@@ -239,7 +252,7 @@ pub fn compress_image(
                 let img = scaled(&base, percent);
                 if ext == "png" {
                     // Primeiro sen perdas: se xa cabe, non se toca nin unha cor.
-                    let b = png_bytes(&img)?;
+                    let b = png_bytes(&img, &carried)?;
                     if b.len() as u64 <= target {
                         found = Some((b, 100, percent));
                         break;
@@ -251,7 +264,7 @@ pub fn compress_image(
                     let mut best: Option<(Vec<u8>, u8)> = None;
                     while lo <= hi {
                         let mid = lo + (hi - lo) / 2;
-                        let b = encode_bytes(&img, &ext, mid, o.background)?;
+                        let b = encode_bytes(&img, &ext, mid, o.background, &carried)?;
                         if b.len() as u64 <= target {
                             best = Some((b, mid));
                             lo = mid + 1;
@@ -267,7 +280,7 @@ pub fn compress_image(
                         break;
                     }
                 } else {
-                    let b = png_bytes(&img)?;
+                    let b = png_bytes(&img, &carried)?;
                     if b.len() as u64 <= target {
                         found = Some((b, 100, percent));
                         break;

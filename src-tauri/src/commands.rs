@@ -151,6 +151,7 @@ pub async fn convert_file(
     background: Option<[u8; 3]>,
     fps: Option<u32>,
     max_width: Option<u32>,
+    metadata: Option<trasno_engine::image_meta::Metadata>,
 ) -> Result<ConvertResult, String> {
     let options = ConvertOptions {
         overwrite,
@@ -161,6 +162,7 @@ pub async fn convert_file(
         background,
         fps,
         max_width,
+        metadata: metadata.unwrap_or_default(),
     };
     blocking(move || {
         trasno_engine::convert_file(&PathBuf::from(input), &PathBuf::from(output), &options)
@@ -859,9 +861,10 @@ pub async fn compress_image(
     target_bytes: Option<u64>,
     max_side: Option<u32>,
     background: Option<[u8; 3]>,
+    metadata: Option<trasno_engine::image_meta::Metadata>,
 ) -> Result<trasno_engine::compress::ImageCompressReport, String> {
     blocking(move || {
-        let o = trasno_engine::compress::ImageCompress { quality, target_bytes, max_side, background };
+        let o = trasno_engine::compress::ImageCompress { quality, target_bytes, max_side, background, metadata: metadata.unwrap_or_default() };
         trasno_engine::compress::compress_image(&PathBuf::from(input), &PathBuf::from(output), overwrite, &o)
             .map_err(to_err)
     })

@@ -732,6 +732,10 @@ pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has
     // Calquera filtro de son obriga a recodificar: que saia coa calidade do orixinal, non coa que FFmpeg pon por defecto.
     if args.iter().any(|a| a == "-af" || a == "-filter:a") {
         args.extend(keep_audio_args(input, output));
+        // Se leva imaxe e o efecto só toca o son, a imaxe cópiase tal cal (sen recodificala, que tarda e perde calidade).
+        if has_video && !args.iter().any(|a| matches!(a.as_str(), "-c:v" | "-vf" | "-filter:v")) {
+            args.extend(["-c:v".to_string(), "copy".to_string()]);
+        }
     }
     convert_media(input, output, overwrite, &args)
 }
@@ -760,12 +764,29 @@ pub(crate) fn keep_audio_args(input: &Path, output: &Path) -> Vec<String> {
         args.extend(["-c:a".to_string(), codec.to_string()]);
     } else if codec == "alac" && matches!(ext.as_str(), "m4a" | "mp4" | "mov") {
         args.extend(["-c:a".to_string(), "alac".to_string()]);
-    } else if let Some(kbps) = a["bit_rate"].as_str().and_then(|b| b.parse::<u64>().ok()).map(|b| ((b + 500) / 1000) as u32).filter(|k| *k >= 8) {
+    } else {
+        // Os MKV e WebM non gardan o bitrate no fluxo: lese da etiqueta BPS que pon FFmpeg ao crealos.
+        let bits = a["bit_rate"].as_str().or_else(|| a["tags"]["BPS"].as_str()).and_then(|b| b.trim().parse::<u64>().ok());
+        let kbps = bits.map(|b| ((b + 500) / 1000) as u32).filter(|k| *k >= 8);
         match codec {
-            "vorbis" => args.extend(["-c:a".to_string(), "libvorbis".to_string(), "-q:a".to_string(), vorbis_quality(kbps).to_string()]),
+            "vorbis" => {
+                args.extend(["-c:a".to_string(), "libvorbis".to_string()]);
+                if let Some(k) = kbps {
+                    args.extend(["-q:a".to_string(), vorbis_quality(k).to_string()]);
+                }
+            }
             "mp3" | "aac" | "opus" | "wmav2" | "wmav1" | "ac3" | "eac3" | "mp2" => {
                 let top = if codec == "opus" { 510 } else if codec == "mp3" { 320 } else { 640 };
-                args.extend(["-b:a".to_string(), format!("{}k", kbps.clamp(16, top))]);
+                // O mesmo códec que tiña: nun contedor de vídeo (MKV, WebM...) FFmpeg escollería o seu por defecto.
+                let encoder = match codec {
+                    "mp3" => "libmp3lame",
+                    "opus" => "libopus",
+                    other => other,
+                };
+                args.extend(["-c:a".to_string(), encoder.to_string()]);
+                if let Some(k) = kbps {
+                    args.extend(["-b:a".to_string(), format!("{}k", k.clamp(16, top))]);
+                }
             }
             _ => {}
         }

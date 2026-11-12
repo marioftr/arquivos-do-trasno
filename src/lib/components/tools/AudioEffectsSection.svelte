@@ -11,6 +11,7 @@
   import Slider from "../ui/Slider.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
+  import GroupNote from "../ui/GroupNote.svelte";
 
   export let file: FileEntry;
 
@@ -60,6 +61,10 @@
 </script>
 
 <div class="stack">
+
+  {#if file.category === "video"}
+    <GroupNote text={$t("Estes efectos só tocan o son: a imaxe cópiase tal cal, sen recodificala nin perder calidade.")} />
+  {/if}
 
   <div class="group">
     <h4 class="group-title">{$t("Son")}</h4>
