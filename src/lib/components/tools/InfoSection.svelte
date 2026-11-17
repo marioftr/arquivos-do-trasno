@@ -3,7 +3,7 @@
   import { errText } from "../../errors";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
-  import { formatBytes } from "../../formats";
+  import { formatBytes, formatClock } from "../../formats";
   import { t, tr, lang } from "../../i18n";
   import Segmented from "../ui/Segmented.svelte";
 
@@ -108,7 +108,7 @@
           ["Tipo", file.ext.toUpperCase()],
           f.size && ["Tamaño", formatBytes(Number(f.size))],
           v?.width && ["Dimensións", `${v.width} × ${v.height} px`],
-          f.duration && ["Duración", `${Math.floor(Number(f.duration) / 60)}:${(Number(f.duration) % 60).toFixed(1).padStart(4, "0")}`],
+          f.duration && ["Duración", formatClock(Number(f.duration), 1)],
           v && ["Vídeo", `${v.codec_name} · ${v.width}×${v.height}`],
           a && ["Audio", `${a.codec_name}${a.sample_rate ? ` · ${a.sample_rate} Hz` : ""}`],
           f.bit_rate && ["Bitrate", `${Math.round(Number(f.bit_rate) / 1000)} kbps`],

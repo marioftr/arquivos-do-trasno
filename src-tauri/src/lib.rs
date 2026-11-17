@@ -79,6 +79,8 @@ pub fn run() {
             commands::image_has_transparency,
             commands::images_to_pdf,
             commands::media_edit,
+            commands::edit_apply,
+            commands::edit_preview,
             commands::normalize_audio,
             commands::probe_media,
             commands::sha256,

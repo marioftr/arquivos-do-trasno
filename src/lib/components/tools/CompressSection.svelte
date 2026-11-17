@@ -1,5 +1,4 @@
 <script lang="ts">
-  import GroupNote from "../ui/GroupNote.svelte";
   import InfoTip from "../ui/InfoTip.svelte";
     import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
@@ -308,15 +307,19 @@
       {#if !isImage}
         <Segmented
           label={$t("Relación de aspecto")}
+          info={$t("Só para vídeos que se ven esticados ou aplastados; no resto convén deixalo en orixinal.")}
           options={DARS.map((d) => ({ value: d, label: d ? d.replace("/", ":") : $t("orixinal") }))}
           bind:value={$form.dar}
         />
-        <GroupNote text={$t("Só para vídeos que se ven esticados ou aplastados; no resto convén deixalo en orixinal.")} />
       {/if}
     </div>
   {/if}
 
   <Segmented
+    label={$t("Como se axusta o peso")}
+    info={isImage
+      ? $t("Por calidade: un valor fixo de calidade, e o peso depende da imaxe. Tamaño máximo: o trasno busca a calidade máis alta que quede por debaixo do límite.")
+      : $t("Por calidade: un valor fixo de calidade, e o peso depende do vídeo. Por bitrate: unha cantidade fixa de datos por segundo. Tamaño máximo: o trasno busca a calidade máis alta que quede por debaixo do límite.")}
     options={isImage
       ? [
           { value: "quality", label: $t("Por calidade") },

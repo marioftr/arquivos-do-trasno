@@ -17,6 +17,7 @@
 
 pub mod animated;
 pub mod compress;
+pub mod edit_plan;
 pub mod error;
 pub mod ffmpeg;
 pub mod fileinfo;

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { formatClock } from "../../formats";
   import { createEventDispatcher } from "svelte";
   import { trimRange } from "../../files";
   import { t } from "../../i18n";
@@ -65,6 +66,8 @@
   }
   const up = () => (mode = null);
   const round = (v: number) => Math.round(v * 10) / 10;
+  // Menos de un minuto: «12,3 s»; máis: reloxo («1:05:00»).
+  const tag = (v: number) => (v < 60 ? `${round(v)} s` : formatClock(v));
 </script>
 
 <div class="tl" style={`height:${height}px`} bind:this={box} on:pointerdown={(e) => down(e, "seek")} on:pointermove={move} on:pointerup={up} on:pointercancel={up} role="presentation">
@@ -74,10 +77,10 @@
     <div class="cut" style={`left:${pct($trimRange.end)}%;right:0`}></div>
     <div class="keep" style={`left:${pct($trimRange.start)}%;width:${pct($trimRange.end) - pct($trimRange.start)}%`}></div>
     <div class="handle" style={`left:${pct($trimRange.start)}%`} on:pointerdown={(e) => down(e, "start")} on:pointermove={move} on:pointerup={up} role="presentation" title={$t("Inicio do corte")}>
-      <span class="tag">{round($trimRange.start)} s</span>
+      <span class="tag">{tag($trimRange.start)}</span>
     </div>
     <div class="handle" style={`left:${pct($trimRange.end)}%`} on:pointerdown={(e) => down(e, "end")} on:pointermove={move} on:pointerup={up} role="presentation" title={$t("Fin do corte")}>
-      <span class="tag">{round($trimRange.end)} s</span>
+      <span class="tag">{tag($trimRange.end)}</span>
     </div>
   {/if}
   <div class="head" style={`left:${pct(now)}%`}></div>

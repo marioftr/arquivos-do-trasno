@@ -1,11 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import InfoTip from "./InfoTip.svelte";
-  import { t } from "../../i18n";
 
-  /** Explicación dun grupo de axustes: en vez de ocupar un parágrafo, vive nunha «i». Vai na liña do título do
-   *  grupo ou dentro do primeiro botón (á dereita). Se non hai nin unha cousa nin outra, nunca queda unha «i» solta: o texto
-   *  curto amósase tal cal e o longo vai nunha liña co seu nome (`label`) e a «i». */
+  /** Explicación dun grupo de axustes. A «i» vai sempre ao carón do que explica: pegada ao título do grupo (a primeira nota do
+   *  grupo) ou dentro do primeiro botón (á dereita). Se non hai nin unha cousa nin outra, a nota é un texto normal: nunca queda
+   *  unha liña xenérica de «máis información» nin unha «i» solta. Con `label`, vai nunha liña co seu nome e a «i». */
   export let text: string;
   export let label = "";
 
@@ -18,12 +17,16 @@
     if (!group) return;
     const place = () => {
       const title = group.querySelector<HTMLElement>(":scope > .group-title");
+      const first = group.querySelector(":scope > .gn") === el;
       const next = el.nextElementSibling as HTMLElement | null;
-      if (title) {
+      if (title && first) {
         mode = "title";
-        title.style.paddingRight = "1.8rem";
-        style = `top:${title.offsetTop + (title.offsetHeight - 18) / 2}px;right:0`;
-      } else if (next && next.matches("button.btn")) {
+        // Xusto despois do último carácter do título (non ao final da liña).
+        const r = document.createRange();
+        r.selectNodeContents(title);
+        const end = r.getBoundingClientRect().right - group.getBoundingClientRect().left;
+        style = `top:${title.offsetTop + (title.offsetHeight - 18) / 2}px;left:${Math.round(end + 2)}px`;
+      } else if (!title && next && next.matches("button.btn")) {
         mode = "inbtn";
         style = `top:${next.offsetTop + (next.offsetHeight - 18) / 2}px;right:0.7rem`;
       } else {
@@ -43,10 +46,8 @@
     <InfoTip {text} />
   {:else if label}
     <span class="gl">{label}<InfoTip {text} /></span>
-  {:else if text.length <= 72}
-    <span class="gl">{text}</span>
   {:else}
-    <span class="gl">{$t("Máis información")}<InfoTip {text} /></span>
+    <span class="gl">{text}</span>
   {/if}
 </span>
 

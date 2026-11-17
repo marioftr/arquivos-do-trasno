@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { noteAction } from "../../agent";
-  import { claim } from "../../claim";
   import { onMount, onDestroy, tick } from "svelte";
   import { viewUrl, imageEdit, imageCrop, imageCropAspect, imageCropEnabled, imageUrl, imageNatural, type FileEntry } from "../../files";
   import * as engine from "../../engine";
@@ -9,14 +7,8 @@
   import OcrLayer from "../ui/OcrLayer.svelte";
   import ZoomRuler from "../ui/ZoomRuler.svelte";
   import { backdrop } from "../../transparency";
-  import Icon from "../Icon.svelte";
-  import { lang as appLang } from "../../i18n";
-  import { toast } from "../../toasts";
-  import { tr } from "../../i18n";
-  import { errText } from "../../errors";
   import InfoTip from "../ui/InfoTip.svelte";
-  import { OCR_LANGS, OCR_SIZE, ocrVerdict, ocrInstalled, ocrDownload, ocrProgress, ocrActive, savedLang, rememberLang, refreshOcr, downloadLang, recognize, ocrPeek, detectLang, type OcrResult } from "../../ocr";
-  import { trasnoSay } from "../../agent";
+  import { ocrActive, ocrShown } from "../../ocr";
   import { annoActive } from "../../annot";
   import { actionFor } from "../../keymap";
 
@@ -35,7 +27,6 @@
   let sh = 0;
   // Barra de abaixo: con pouco ancho os botóns pasan a ser só icona e despois agóchase o que sobra.
   let barW = 9999;
-  $: compact = barW < 820;
   $: tiny = barW < 560;
 
   // Só cando cambia a ruta, non cada vez que chegan datos novos do ficheiro (tamaño, dimensións…).
@@ -65,117 +56,8 @@
   let triedPreview = false;
   let converted = false; // o que se ve é un PNG temporal que fixo o trasno, non o ficheiro orixinal
 
-  // ---- recoñecemento de texto (OCR): ler o texto da imaxe para seleccionalo e copialo
-  let ocrOn = false;
-  let ocrBusy = false;
-  let ocrRes: OcrResult | null = null;
-  let ocrErr = "";
-  let ocrLang = savedLang($appLang);
-  let askDownload = false;
-  onMount(() => void refreshOcr().catch(() => {}));
-  const own = claim("ocr");
-  onDestroy(() => own.release(() => ocrActive.set(false)));
-  $: ocrActive.set(ocrOn);
-  // Outra imaxe: o texto lido deixa de valer.
-  $: onFile(filePath);
-  function onFile(p: string) {
-    ocrRes = null;
-    ocrErr = "";
-    askDownload = false;
-    // Se esta imaxe xa se leu (ou se está lendo), o texto volve sen empezar de novo.
-    ocrOn = !!ocrPeek(p, ocrLang);
-    if (ocrOn) void runOcr();
-  }
-  async function toggleOcr() {
-    if (ocrOn) {
-      ocrOn = false;
-      return;
-    }
-    ocrOn = true;
-    await runOcr();
-  }
-  async function runOcr() {
-    ocrErr = "";
-    const path = file.path;
-    const lang = ocrLang;
-    const cached = ocrPeek(path, lang);
-    if (cached && cached !== "busy") {
-      ocrRes = cached;
-      return;
-    }
-    if (!cached && !$ocrInstalled.includes(lang)) {
-      askDownload = true;
-      return;
-    }
-    askDownload = false;
-    ocrBusy = true;
-    try {
-      const res = await recognize(path, url, lang);
-      if (ocrOn && file.path === path && ocrLang === lang) {
-        ocrRes = res;
-        // O trasno conta o que atopou (ou que non atopou nada) e queda no historial.
-        const v = ocrVerdict(res, file.name);
-        noteAction(v.note);
-        trasnoSay(v.say, "info", 9000, undefined, { copy: v.found ? res.text : undefined, notify: !v.found });
-        offerLang(path, lang, res);
-      }
-    } catch (e) {
-      ocrErr = errText(e);
-    } finally {
-      ocrBusy = false;
-    }
-  }
-  // Se o texto lido parece doutro idioma, o trasno ofrécese a lelo de novo nel (descargando o paquete se fai falta).
-  const offered = new Set<string>();
-  function offerLang(path: string, cur: string, res: OcrResult) {
-    const g = res.lines.length ? detectLang(res.text) : null;
-    if (!g || g === cur || offered.has(`${path}|${g}`)) return;
-    offered.add(`${path}|${g}`);
-    const name = OCR_LANGS.find((l) => l.id === g)?.label.toLowerCase();
-    const curName = OCR_LANGS.find((l) => l.id === cur)?.label.toLowerCase() ?? cur;
-    if (!name) return;
-    const installed = $ocrInstalled.includes(g);
-    trasnoSay(
-      installed
-        ? tr("Este texto parece estar en {lang}, pero o lin como {cur}. Queres que o lea de novo en {lang}?", { lang: name, cur: curName })
-        : tr("Este texto parece estar en {lang}. Queres que descargue o paquete de idioma (uns {size}) e o lea de novo?", { lang: name, size: OCR_SIZE }),
-      "info",
-      30000,
-      {
-        label: installed ? tr("Ler en {lang}", { lang: name }) : tr("Descargar e ler"),
-        run: async () => {
-          if (!ocrOn || file.path !== path) return;
-          ocrLang = g;
-          rememberLang(g);
-          ocrRes = null;
-          if (installed) await runOcr();
-          else await acceptDownload();
-        },
-      },
-    );
-  }
-  async function acceptDownload() {
-    try {
-      await downloadLang(ocrLang);
-      await runOcr();
-    } catch (e) {
-      ocrErr = errText(e);
-    }
-  }
-  function changeLang() {
-    rememberLang(ocrLang);
-    ocrRes = null;
-    if (ocrOn) runOcr();
-  }
-  async function copyAll() {
-    if (!ocrRes) return;
-    try {
-      await navigator.clipboard.writeText(ocrRes.text);
-      toast(tr("O trasno meteu o texto no portapapeis."));
-    } catch {
-      toast(tr("O portapapeis púxose teimudo co texto. Tenta de novo."), { kind: "warn" });
-    }
-  }
+  // O texto lido (pestana «Recoñecer texto») debúxase enriba da imaxe e pódese seleccionar.
+  $: ocrOn = $ocrActive && !!$ocrShown;
 
   async function load(path: string) {
     failed = false;
@@ -460,8 +342,8 @@
             <img bind:this={imgEl} src={url} alt={file.name} style={nw ? imgStyle : "opacity:0"} on:error={onError} on:load={loaded} draggable="false" />
           </div>
         </div>
-        {#if ocrOn && ocrRes && box.w}
-          <OcrLayer {box} {sc} result={ocrRes} />
+        {#if ocrOn && $ocrShown && box.w}
+          <OcrLayer {box} {sc} result={$ocrShown} />
         {/if}
         {#if $annoActive && box.w && !ocrOn}
           <AnnotLayer {box} {sc} W={TW} H={TH} />
@@ -493,21 +375,6 @@
         {/if}
       {/if}
     </div>
-    {#if askDownload || $ocrDownload || ocrErr}
-      <div class="ocrbar" role="status">
-        {#if $ocrDownload}
-          <span>{$t("Descargando o idioma…")} {Math.round($ocrDownload.progress * 100)} %</span>
-          <div class="pbar"><div class="pfill" style={`width:${Math.round($ocrDownload.progress * 100)}%`}></div></div>
-        {:else if askDownload}
-          <span>{$t("Para ler texto en {lang} o trasno ten que descargar o seu paquete de idioma (uns {size}, do proxecto Tesseract en GitHub).", { lang: OCR_LANGS.find((l) => l.id === ocrLang)?.label ?? ocrLang, size: OCR_SIZE })}</span>
-          <button class="btn primary" on:click={acceptDownload}>{$t("Aceptar e descargar")}</button>
-          <button class="btn ghost" on:click={() => ((askDownload = false), (ocrOn = false))}>{$t("Agora non")}</button>
-        {:else}
-          <span class="err">{ocrErr}</span>
-          <button class="btn" on:click={runOcr}>{$t("Tentar de novo")}</button>
-        {/if}
-      </div>
-    {/if}
   </div>
   {#if converted}
     <p class="note" role="note">{$t("Vista previa convertida a PNG só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t("O visor da app é o dun navegador, que non le o formato {ext}. Por iso o trasno fai unha copia temporal en PNG só para velo. O orixinal non se toca e as ferramentas parten sempre del.", { ext: file.ext.toUpperCase() })} /></p>
@@ -520,14 +387,7 @@
       <span class="muted pct">{shown} %</span>
     {/if}
     <span class="grow"></span>
-    {#if ocrOn}
-      <select class="lg" class:code={compact} bind:value={ocrLang} on:change={changeLang} aria-label={$t("Idioma do texto")} title={OCR_LANGS.find((l) => l.id === ocrLang)?.label} disabled={ocrBusy}>
-        {#each OCR_LANGS as l}<option value={l.id} title={l.label}>{compact ? l.code : l.label}{$ocrInstalled.includes(l.id) ? "" : " ⇩"}</option>{/each}
-      </select>
-      <button class="btn" on:click={copyAll} disabled={!ocrRes?.lines.length}><Icon name="copy" size={14} />{#if !compact} {$t("Copiar todo o texto")}{/if}</button>
-    {/if}
-    <button class="btn ocrbtn" class:ocrc={compact} class:on={ocrOn} on:click={toggleOcr} disabled={ocrBusy || !!$ocrDownload} title={$t("Le o texto da imaxe para poder seleccionalo e copialo")} aria-label={$t("Texto da imaxe")}><Icon name="type" size={15} />{#if !compact || ocrBusy} {ocrBusy ? `${compact ? "" : `${$t("Lendo o texto…")} `}${Math.round($ocrProgress * 100)} %` : $t("Texto da imaxe")}{/if}</button>
-    {#if file.width && !tiny && !(compact && ocrOn)}<span class="muted dims">{file.width} × {file.height} px</span>{/if}
+    {#if file.width && !tiny}<span class="muted dims">{file.width} × {file.height} px</span>{/if}
   </div>
 </div>
 
@@ -557,23 +417,12 @@
   /* Barra de abaixo: unha soa fila fixa; nada cambia de sitio nin de tamaño ao usar o OCR. */
   .bar { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem 0.5rem max(0.9rem, var(--dock-gap, 0px)); border-top: 1px solid var(--border); font-size: var(--fs-md); overflow: hidden; }
   .bar > * { flex: none; white-space: nowrap; }
-  .bar:has(.ocrc) :global(.zr) { width: 170px; }
   .bar.tinybar { flex-wrap: wrap; row-gap: 0.4rem; }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .grow { flex: 1 1 auto; min-width: 0; }
   .pct { min-width: 3.2rem; font-variant-numeric: tabular-nums; }
-  .ocrbtn { min-width: 11.5rem; justify-content: center; }
-  .ocrbtn.ocrc { min-width: 0; }
-  .lg { height: var(--control-h); width: 7.4rem; min-width: 0; }
-  .lg.code { width: 4.9rem; text-transform: uppercase; }
   .note { display: flex; align-items: center; gap: 0.4rem; margin: 0; padding: 0.35rem 0.9rem 0.35rem max(0.9rem, var(--dock-gap, 0px)); font-size: var(--fs-xs); color: var(--text-muted); border-top: 1px solid var(--border); user-select: text; }
   .note + .bar { border-top: none; padding-top: 0.25rem; }
-  .bar:has(.ocrc) .lg { width: 7rem; }
-  .bar:has(.ocrc) .lg.code { width: 4.9rem; }
   .dims { min-width: 6.5rem; text-align: right; }
-  .ocrbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.55rem 0.9rem 0.55rem max(0.9rem, var(--dock-gap, 0px)); border-top: 1px solid var(--border-strong); background: var(--bg-elevated); font-size: var(--fs-sm); }
-  .ocrbar .err { color: var(--accent-video); }
-  .pbar { flex: 1 1 8rem; height: 6px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
-  .pfill { height: 100%; background: var(--accent); transition: width 0.2s ease; }
   .msg { margin: auto; text-align: center; padding: 2rem; }
 </style>

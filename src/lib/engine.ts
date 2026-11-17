@@ -224,6 +224,32 @@ export async function mediaEdit(
   return call("media_edit", { input, output, overwrite, op, value, hasVideo });
 }
 
+/** Todo o que se lle pode facer a un audio ou vídeo nunha soa exportación (os valores por defecto non cambian nada). */
+export interface EditPlan {
+  start: number;
+  end: number | null;
+  speed: number;
+  volume: number;
+  mute: boolean;
+  denoise: boolean;
+  reverse: boolean;
+  fade_in: number;
+  fade_out: number;
+  bass: number;
+  treble: number;
+  echo_ms: number;
+  normalize: { lufs: number; peak: number; range: number } | null;
+}
+export interface EditReport {
+  output: string;
+  duration: number | null;
+  video_copied: boolean;
+}
+/** Aplica o plan enteiro nun ficheiro novo. */
+export const editApply = (input: string, output: string, plan: EditPlan, overwrite = false): Promise<EditReport> => call("edit_apply", { input, output, overwrite, plan });
+/** Un anaco curto co plan aplicado, para oílo antes de exportar; devolve a ruta do ficheiro temporal. */
+export const editPreview = (input: string, plan: EditPlan, at: number, seconds: number, video: boolean): Promise<string> => call("edit_preview", { input, plan, at, seconds, video });
+
 export interface MediaInfo {
   format?: { duration?: string; bit_rate?: string; format_long_name?: string };
   streams?: {

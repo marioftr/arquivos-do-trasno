@@ -269,7 +269,7 @@ fn audio_graph(keeps: &[(f64, f64)], duration: f64, start: f64) -> String {
 }
 
 /// Como se recodifica a imaxe: cortar fotogramas obriga a recodificar, así que sae con moita calidade (H.264 con CRF 18, ou VP9 en WebM).
-fn video_encoder_args(output: &Path) -> Vec<String> {
+pub(crate) fn video_encoder_args(output: &Path) -> Vec<String> {
     let ext = crate::formats::extension_of(output).unwrap_or_default();
     let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
     match ext.as_str() {

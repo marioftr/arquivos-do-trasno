@@ -18,12 +18,11 @@
   import ConvertSection from "./tools/ConvertSection.svelte";
   import CompressSection from "./tools/CompressSection.svelte";
   import ImageEditSection from "./tools/ImageEditSection.svelte";
-  import MediaEditSection from "./tools/MediaEditSection.svelte";
+  import ImageOcrSection from "./tools/ImageOcrSection.svelte";
+  import EditMediaSection from "./tools/EditMediaSection.svelte";
   import ExtractSection from "./tools/ExtractSection.svelte";
-  import AudioEffectsSection from "./tools/AudioEffectsSection.svelte";
   import SilenceSection from "./tools/SilenceSection.svelte";
   import SubtitleSection from "./tools/SubtitleSection.svelte";
-  import TrimSection from "./tools/TrimSection.svelte";
   import PdfSplitSection from "./tools/PdfSplitSection.svelte";
   import PdfMarksSection from "./tools/PdfMarksSection.svelte";
   import PdfCropSection from "./tools/PdfCropSection.svelte";
@@ -36,7 +35,6 @@
   import Icon from "./Icon.svelte";
   import { tools, openSettings, toolActions, jump } from "../settings";
   import { requestTool } from "../toolinstall";
-  import { ocrActive } from "../ocr";
   import MergeSection from "./tools/MergeSection.svelte";
   import InfoSection from "./tools/InfoSection.svelte";
 
@@ -67,7 +65,7 @@
     }
     switch (cat) {
       case "imaxe":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("annotate", "Anotar"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("annotate", "Anotar"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
         return [tab("convert", "Converter"), tab("edit", "Editar"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
@@ -134,8 +132,8 @@
     if (tab === "convert" && cat === "video" && !pdf) return [m("mp4", "A MP4 con perfís"), m("format", "A outro formato")];
     if (many) return [];
     if (!pdf) {
-      if (tab === "edit" && cat === "video") return [m("trim", "Cortar"), m("tune", "Velocidade e volume"), m("effects", "Son"), m("silence", "Silencios")];
-      if (tab === "edit" && cat === "audio") return [m("trim", "Cortar"), m("tune", "Velocidade e volume"), m("effects", "Efectos"), m("silence", "Silencios")];
+      // Un só formulario con todos os axustes (corte, velocidade, volume, efectos…) que se exporta dunha vez; os silencios teñen o seu proceso.
+      if (tab === "edit" && (cat === "video" || cat === "audio")) return [m("adjust", "Axustes"), m("silence", "Silencios")];
       return [];
     }
     switch (tab) {
@@ -191,10 +189,7 @@
       {/if}
     </header>
 
-    {#if $ocrActive && category === "imaxe" && (current === "edit" || current === "annotate")}
-      <p class="ocrnote">{$t("Desactiva «Texto da imaxe» para usar estas ferramentas.")}</p>
-    {/if}
-    <div class="body scrollbar-thin" class:off={$ocrActive && category === "imaxe" && (current === "edit" || current === "annotate")} inert={$ocrActive && category === "imaxe" && (current === "edit" || current === "annotate")} bind:this={body}>
+    <div class="body scrollbar-thin" bind:this={body}>
       {#if modes.length}
         <div class="modes"><Segmented options={modes} bind:value={sub[current]} /></div>
       {/if}
@@ -220,20 +215,16 @@
           <ConvertSection {selection} {category} />
         {:else if current === "compress" && category === "imaxe"}
           <CompressSection {selection} {category} />
-        {:else if current === "edit" && mode === "trim" && first}
-          <TrimSection file={first} />
         {:else if current === "edit" && first && SUBTITLE_EXTS.includes(first.ext)}
           <SubtitleSection file={first} />
         {:else if current === "edit" && mode === "silence" && first}
           <SilenceSection file={first} />
-        {:else if current === "edit" && mode === "effects" && first}
-          <AudioEffectsSection file={first} />
         {:else if current === "annotate" && first && category === "imaxe"}
           <Lazy loader={() => import("./tools/AnnotateSection.svelte")} file={first} />
         {:else if current === "edit" && first && category === "imaxe"}
           <ImageEditSection file={first} />
         {:else if current === "edit" && first}
-          <MediaEditSection file={first} />
+          <EditMediaSection file={first} />
         {:else if current === "extract" && first}
           <ExtractSection file={first} />
         {:else if current === "pages" && mode === "extract" && first}
@@ -248,6 +239,8 @@
           <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} part="rotate" />
         {:else if current === "marks" && first}
           <PdfMarksSection file={first} />
+        {:else if current === "ocr" && first && category === "imaxe"}
+          <ImageOcrSection file={first} />
         {:else if current === "ocr" && first}
           <Lazy loader={() => import("./tools/PdfOcrSection.svelte")} file={first} />
         {:else if current === "optimize" && mode === "repair" && first}
@@ -277,8 +270,6 @@
   .ttl { flex: 1; min-width: 0; }
   header h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sub { margin: 0.1rem 0 0; font-size: var(--fs-xs); }
-  .ocrnote { margin: 0; padding: 0.5rem 1.1rem; font-size: var(--fs-sm); color: var(--accent-pdf); border-bottom: 1px solid var(--border); }
-  .body.off { opacity: 0.45; }
   .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; padding: 0.9rem 1.1rem 1.5rem; }
   .locked { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; text-align: center; padding: 2rem 1rem; color: var(--accent-pdf); }
   .locked p { margin: 0; color: var(--text); }

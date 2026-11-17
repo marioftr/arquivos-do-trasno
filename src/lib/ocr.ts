@@ -42,8 +42,10 @@ export function rememberLang(l: string) {
 export const ocrInstalled = writable<string[]>([]);
 export const ocrDownload = writable<{ lang: string; progress: number } | null>(null);
 export const ocrProgress = writable(0);
-/** Mentres se le ou se selecciona o texto da imaxe, as ferramentas do panel de ao lado quedan desactivadas. */
+/** Mentres a pestana «Recoñecer texto» está aberta, o visor da imaxe deixa seleccionar o texto lido en vez de mover a vista. */
 export const ocrActive = writable(false);
+/** O texto lido da imaxe aberta (o visor debúxao enriba da imaxe); `null` se aínda non se leu. */
+export const ocrShown = writable<OcrResult | null>(null);
 let dir = "";
 
 export async function refreshOcr() {

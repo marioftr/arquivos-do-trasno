@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { formatClock } from "../../formats";
   import { viewUrl, mediaPreview, mediaSeek, mediaTime, trimRange, type FileEntry, videoDar } from "../../files";
   import * as engine from "../../engine";
   import { get } from "svelte/store";
@@ -412,7 +413,7 @@
     if (e.key === " " && !(e.target as HTMLElement).closest("input, select, textarea, [contenteditable]")) e.preventDefault();
   }
 
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  const fmt = (s: number) => formatClock(s);
 
   // ---- onda de son (só audio): picos por columna, calculados no navegador ----
   let peaks: number[] = [];

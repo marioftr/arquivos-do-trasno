@@ -664,6 +664,22 @@ pub enum MediaOp {
     Denoise,
 }
 
+/// Filtro de son para cambiar a velocidade: `atempo` só admite 0,5 a 2, así que se encadea para chegar ao resto.
+pub(crate) fn atempo_chain(f: f64) -> String {
+    let mut chain = Vec::new();
+    let mut rest = f;
+    while rest > 2.0 {
+        chain.push("atempo=2.0".to_string());
+        rest /= 2.0;
+    }
+    while rest < 0.5 {
+        chain.push("atempo=0.5".to_string());
+        rest /= 0.5;
+    }
+    chain.push(format!("atempo={rest}"));
+    chain.join(",")
+}
+
 pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has_video: bool) -> Result<PathBuf> {
     let bad = |m: &str| Err(EngineError::IntegrityCheck(m.into()));
     let mut args: Vec<String> = Vec::new();
@@ -681,19 +697,7 @@ pub fn media_edit(input: &Path, output: &Path, overwrite: bool, op: MediaOp, has
             if has_video {
                 args.extend(["-filter:v".into(), format!("setpts=PTS/{f}")]);
             }
-            // atempo só admite 0,5 a 2: encadéase para chegar ao resto.
-            let mut chain = Vec::new();
-            let mut rest = f;
-            while rest > 2.0 {
-                chain.push("atempo=2.0".to_string());
-                rest /= 2.0;
-            }
-            while rest < 0.5 {
-                chain.push("atempo=0.5".to_string());
-                rest /= 0.5;
-            }
-            chain.push(format!("atempo={rest}"));
-            args.extend(["-filter:a".into(), chain.join(",")]);
+            args.extend(["-filter:a".into(), atempo_chain(f)]);
         }
         MediaOp::Mute => args.extend(["-an".into(), "-c:v".into(), "copy".into()]),
         MediaOp::Volume(v) => {
@@ -860,22 +864,29 @@ fn check_loudness(t: &Loudness) -> Result<()> {
 
 /// Primeira pasada: mide o volume do ficheiro enteiro sen escribir nada.
 pub fn measure_loudness(input: &Path, target: Loudness) -> Result<LoudnessMeasure> {
+    measure_loudness_with(input, target, &[], "")
+}
+
+/// Como `measure_loudness`, pero medindo o son despois de `pre_args` (un tramo con `-ss`/`-t`) e dos filtros `prefix` (cadea
+/// que remata en coma ou baleira): así a edición conxunta mide o que de verdade vai quedar no ficheiro.
+pub(crate) fn measure_loudness_with(input: &Path, target: Loudness, pre_args: &[String], prefix: &str) -> Result<LoudnessMeasure> {
     check_loudness(&target)?;
     if !input.is_file() {
         return Err(EngineError::InputNotFound(input.to_path_buf()));
     }
     let sink = if cfg!(windows) { "NUL" } else { "/dev/null" };
-    let args: Vec<std::ffi::OsString> = vec![
+    let mut args: Vec<std::ffi::OsString> = pre_args.iter().map(std::ffi::OsString::from).collect();
+    args.extend::<Vec<std::ffi::OsString>>(vec![
         "-i".into(),
         input.as_os_str().to_owned(),
         "-map".into(),
         "0:a:0".into(),
         "-af".into(),
-        format!("loudnorm=I={}:TP={}:LRA={}:print_format=json", target.lufs, target.peak, target.range).into(),
+        format!("{prefix}loudnorm=I={}:TP={}:LRA={}:print_format=json", target.lufs, target.peak, target.range).into(),
         "-f".into(),
         "null".into(),
         sink.into(),
-    ];
+    ]);
     let out = run_ffmpeg(&args)?;
     check_success(&out)?;
     let text = String::from_utf8_lossy(&out.stderr);

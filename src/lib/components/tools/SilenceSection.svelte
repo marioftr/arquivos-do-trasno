@@ -3,7 +3,7 @@
   import { errText } from "../../errors";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
-  import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
+  import { fileNameOf, formatClock, TRASNO, fallo, listo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
@@ -42,11 +42,7 @@
   $: key = `${$form.thresholdDb}|${$form.minSilence}|${$form.padding}`;
   $: current = analysis && analysis.key === key ? analysis.data : null;
 
-  const clock = (s: number) => {
-    const m = Math.floor(s / 60);
-    const r = s - m * 60;
-    return `${m}:${r.toFixed(1).padStart(4, "0").replace(".", ",")}`;
-  };
+  const clock = (s: number) => formatClock(s, 1);
   const percent = (a: number, b: number) => (a > 0 ? Math.round((1 - b / a) * 100) : 0);
 
   async function analyze() {

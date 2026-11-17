@@ -179,3 +179,16 @@ export function formatBytes(bytes: number): string {
   }
   return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[i]}`;
 }
+
+/** Tempo como reloxo: «5:09» ou, con máis dunha hora, «1:05:09». `decimals` engade décimas («1:05:09,5»). */
+export function formatClock(seconds: number, decimals = 0): string {
+  const total = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
+  const k = 10 ** decimals;
+  const whole = Math.floor(total);
+  const frac = decimals ? Math.min(k - 1, Math.floor((total - whole) * k)) : 0;
+  const h = Math.floor(whole / 3600);
+  const m = Math.floor((whole % 3600) / 60);
+  const sec = String(whole % 60).padStart(2, "0");
+  const tail = decimals ? "," + String(frac).padStart(decimals, "0") : "";
+  return `${h ? `${h}:${String(m).padStart(2, "0")}` : m}:${sec}${tail}`;
+}

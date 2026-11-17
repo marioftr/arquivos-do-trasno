@@ -5,6 +5,8 @@
   /** Icono «i»: ao pasar o rato, enfocalo co teclado ou premelo, amosa a explicación do axuste. */
   export let text: string;
 
+  // Cada globo ten o seu id: o lector de pantalla le a explicación ao enfocar a «i» (como fan os popups accesibles).
+  const uid = `tip-${Math.random().toString(36).slice(2, 9)}`;
   let btn: HTMLButtonElement;
   let popEl: HTMLDivElement | undefined;
   let open = false;
@@ -48,6 +50,7 @@
   type="button"
   aria-label={$t("Que fai isto?")}
   aria-expanded={open}
+  aria-describedby={open ? uid : undefined}
   on:mouseenter={enter}
   on:mouseleave={hide}
   on:focus={show}
@@ -60,7 +63,7 @@
 ><Icon name="info" size={13} /></button>
 
 {#if open}
-  <div class="pop" role="tooltip" bind:this={popEl} on:mouseenter={() => ((overPop = true), clearTimeout(timer))} on:mouseleave={() => ((overPop = false), hide())} style={`left:${pos.x}px;top:${pos.y}px;transform:translate(-50%, ${pos.below ? "0" : "-100%"})`}>{text}</div>
+  <div class="pop" id={uid} role="tooltip" bind:this={popEl} on:mouseenter={() => ((overPop = true), clearTimeout(timer))} on:mouseleave={() => ((overPop = false), hide())} style={`left:${pos.x}px;top:${pos.y}px;transform:translate(-50%, ${pos.below ? "0" : "-100%"})`}>{text}</div>
 {/if}
 
 <style>
