@@ -3,6 +3,7 @@
   import { HINTS } from "../../hints";
   import Icon from "../Icon.svelte";
   import { t } from "../../i18n";
+  import { sliderDragging } from "./drag";
 
   export let label = "";
   export let value: number;
@@ -34,6 +35,8 @@
   }
 </script>
 
+<svelte:window on:pointerup={() => sliderDragging.set(false)} on:pointercancel={() => sliderDragging.set(false)} />
+
 <div class="field" class:compact>
   <div class="head" class:hidden={compact}>
     <span class="lab">{label}{#if tip}<InfoTip text={tip} />{/if}</span>
@@ -44,9 +47,9 @@
     {/if}
   </div>
   <div class="ctl">
-    <input type="range" style={`--pct:${pct}%`} {min} {max} {step} bind:value {disabled} aria-label={label} on:input />
+    <input type="range" style={`--pct:${pct}%`} {min} {max} {step} bind:value {disabled} aria-label={label} on:input on:pointerdown={() => sliderDragging.set(true)} on:change={() => sliderDragging.set(false)} />
     <label class="num">
-      <input type="number" {min} {max} {step} {value} {disabled} on:input={typed} on:input on:blur={commit} aria-label={label} />
+      <input type="number" {min} {max} {step} {value} {disabled} on:input={typed} on:input on:focus={() => sliderDragging.set(true)} on:blur={(e) => { sliderDragging.set(false); commit(e); }} aria-label={label} />
       {#if unit}<span class="unit">{unit}</span>{/if}
     </label>
   </div>

@@ -12,22 +12,24 @@
   import { askOutput } from "./shared";
   import Slider from "../ui/Slider.svelte";
   import Toggle from "../ui/Toggle.svelte";
-  import Segmented from "../ui/Segmented.svelte";
+  import Levels from "../ui/Levels.svelte";
   import GroupNote from "../ui/GroupNote.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let file: FileEntry;
+  /** «edit»: cortar e velocidade. «sound»: volume, ruído e efectos. Cada parte ten o seu formulario e a súa exportación. */
+  export let part: "edit" | "sound" = "edit";
 
   const isVideo = file.category === "video";
   // A duración chega un chisco despois de abrir o ficheiro (despois de ler os seus datos): ata entón, 0.
   let total = file.duration ?? 0;
 
-  /** Obxectivos de volume segundo onde se vai escoitar o ficheiro. «Personalizado» deixa poñer os tres valores á man. */
-  const PROFILES: Record<string, { lufs: number; peak: number; range: number }> = {
-    streaming: { lufs: -14, peak: -1, range: 11 },
-    podcast: { lufs: -16, peak: -1.5, range: 11 },
-    emision: { lufs: -23, peak: -1, range: 15 },
-  };
+  /** Obxectivos de volume segundo onde se vai escoitar o ficheiro; os desprazadores deixan poñer os tres valores á man. */
+  const LEVELS = [
+    { id: "streaming", label: "Streaming", detail: "−14 LUFS", hint: "Spotify, YouTube e semellantes", values: { lufs: -14, peak: -1, range: 11 } },
+    { id: "podcast", label: "Podcast", detail: "−16 LUFS", hint: "Voz para escoitar con auriculares", values: { lufs: -16, peak: -1.5, range: 11 } },
+    { id: "emision", label: "Emisión", detail: "−23 LUFS", hint: "Radio e televisión (EBU R128)", values: { lufs: -23, peak: -1, range: 15 } },
+  ];
 
   const form = createForm(
     {
@@ -39,7 +41,6 @@
       denoise: false,
       reverse: false,
       normalize: false,
-      profile: "podcast",
       lufs: -16,
       peak: -1.5,
       range: 11,
@@ -52,7 +53,7 @@
       echoMs: 300,
     },
     undefined,
-    "editar|" + file.path,
+    (part === "edit" ? "editar|" : "son|") + file.path,
   );
   onMount(() => useForm(form));
   $: if ((file.duration ?? 0) !== total) {
@@ -61,10 +62,6 @@
     // «Fin» aínda estaba no valor de «ata o final»: segue sendo o final co novo tamaño.
     if (!get(form).end || get(form).end === before) form.update((f) => ({ ...f, end: total }));
   }
-
-  // Un perfil fixo enche os tres valores; con «Personalizado» quedan os que poña o usuario.
-  $: preset = PROFILES[$form.profile];
-  $: if (preset && ($form.lufs !== preset.lufs || $form.peak !== preset.peak || $form.range !== preset.range)) form.update((f) => ({ ...f, ...preset }));
 
   // O visor reproduce xa en directo coa velocidade, o volume, os graves, os agudos, o eco e o esvaecer elixidos e amosa o corte sobre a liña de tempo (as súas asas móvense e
   // os campos seguen sempre o que se ve).
@@ -78,14 +75,14 @@
     fadeOut: !$form.mute && $form.fadeOut ? $form.fade : 0,
   });
   const r1 = (v: number) => Math.round(v * 10) / 10;
-  $: if (total) {
+  $: if (total && part === "edit") {
     const r = { start: $form.start, end: $form.end || total };
     const cur = get(trimRange);
     if (!cur || cur.start !== r.start || cur.end !== r.end) trimRange.set(r);
   }
   onMount(() =>
     trimRange.subscribe((r) => {
-      if (!r || !total) return;
+      if (!r || !total || part !== "edit") return;
       const start = r1(r.start);
       const end = r1(r.end) >= r1(total) ? total : r1(r.end);
       const f = get(form);
@@ -186,7 +183,7 @@
 
   async function exportAll() {
     try {
-      const out = await askOutput(file, tr("-editado"), file.ext);
+      const out = await askOutput(file, part === "edit" ? tr("-editado") : tr("-son"), file.ext);
       if (!out) return;
       const p = planOf($form);
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
@@ -203,7 +200,7 @@
 </script>
 
 <div class="stack">
-  {#if total}
+  {#if part === "edit" && total}
     <div class="group">
       <h4 class="group-title">{$t("Cortar")}</h4>
       <GroupNote text={$t("Arrastra as asas da liña de tempo do visor. Só se garda o tramo elixido.")} />
@@ -216,10 +213,12 @@
     </div>
   {/if}
 
+  {#if part === "edit"}
   <div class="group">
     <h4 class="group-title">{$t("Velocidade")}</h4>
     <Slider label={$t("Factor de velocidade")} unit="×" min={0.25} max={4} step={0.05} bind:value={$form.speed} def={1} hint={$t("2 = o dobre de rápido; 0,5 = a metade")} />
   </div>
+  {:else}
 
   {#if isVideo}
     <div class="group">
@@ -232,22 +231,16 @@
     <h4 class="group-title">{$t("Volume")}</h4>
     <Toggle label={$t("Igualar o volume")} bind:checked={$form.normalize} disabled={$form.mute} hint={$t("Leva o volume percibido de todo o ficheiro ao valor elixido (EBU R128). Substitúe o multiplicador de volume.")} />
     {#if $form.normalize}
-      <Segmented
+      <Levels
         label={$t("Perfil")}
         info={$t("LUFS mide o volume percibido: canto máis preto de 0, máis alto.")}
-        options={[
-          { value: "streaming", label: $t("Streaming"), hint: $t("−14 LUFS: Spotify, YouTube e semellantes") },
-          { value: "podcast", label: $t("Podcast"), hint: $t("−16 LUFS: voz para escoitar con auriculares") },
-          { value: "emision", label: $t("Emisión"), hint: $t("−23 LUFS: radio e televisión (EBU R128)") },
-          { value: "custom", label: $t("Personalizado") },
-        ]}
-        bind:value={$form.profile}
+        levels={LEVELS.map((l) => ({ ...l, label: $t(l.label), detail: l.detail, hint: $t(l.hint) }))}
+        values={{ lufs: $form.lufs, peak: $form.peak, range: $form.range }}
+        on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))}
       />
-      {#if $form.profile === "custom"}
         <Slider label={$t("Volume obxectivo")} unit="LUFS" min={-30} max={-8} step={0.5} bind:value={$form.lufs} def={-16} />
         <Slider label={$t("Pico máximo")} unit="dBTP" min={-6} max={0} step={0.5} bind:value={$form.peak} def={-1.5} hint={$t("O pico máis alto permitido. Por baixo de 0 non distorsiona.")} />
         <Slider label={$t("Rango dinámico máximo")} unit="LU" min={1} max={30} step={1} bind:value={$form.range} def={11} hint={$t("Diferenza máxima entre o máis baixo e o máis alto; se hai máis, comprímese.")} />
-      {/if}
     {:else}
       <Slider label={$t("Multiplicador de volume")} unit="×" min={0} max={4} step={0.05} bind:value={$form.volume} def={1} disabled={$form.mute} hint={$t("1 = igual que o orixinal")} />
     {/if}
@@ -274,6 +267,7 @@
       <Slider label={$t("Atraso do eco")} unit="ms" min={20} max={2000} step={10} bind:value={$form.echoMs} def={300} />
     {/if}
   </div>
+  {/if}
 
   {#if changed}
     <div class="group">

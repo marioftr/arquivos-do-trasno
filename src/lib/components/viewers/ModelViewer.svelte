@@ -1,17 +1,12 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { open } from "@tauri-apps/plugin-dialog";
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
   import { errText } from "../../errors";
   import type { FileEntry } from "../../files";
   import { t, tr, lang } from "../../i18n";
-  import { fileNameOf, TRASNO } from "../../formats";
-  import Slider from "../ui/Slider.svelte";
-  import SidePanel from "../ui/SidePanel.svelte";
-  import PanelSection from "../ui/PanelSection.svelte";
-  import SelectField from "../ui/SelectField.svelte";
-  import Icon from "../Icon.svelte";
+  import { TRASNO } from "../../formats";
+  import { modelLight, modelShow, modelInfo } from "../../modelView";
   import { resolvedTheme } from "../../settings";
   import {
     loadModelDetailed,
@@ -21,8 +16,6 @@
     textureOk,
     TEXTURE_SLOTS,
     textureImports,
-    addTextureImport,
-    removeTextureImport,
     type MaterialReport,
   } from "../../model3d";
 
@@ -54,26 +47,22 @@
 
   let wireframe = false;
   let grid = true;
+  let azimuth = 45, elevation = 50, intensity = 1.6, ambient = 1.1, showMarker = true;
   let channel = "full";
-  let panelOpen = true;
-  /** Índice do material illado (só se ve ese) ou null. */
   let isolated: number | null = null;
-
-  // Luz: dirección (azimut e altura), intensidade e luz ambiente.
-  let azimuth = 45;
-  let elevation = 50;
-  let intensity = 1.6;
-  let ambient = 1.1;
-  let showMarker = true;
-
-  // Texturas que engade o usuario
-  let importSlot = "map";
-  let importMaterial: number | "all" = "all";
+  // A pestana «Vista» das ferramentas manda sobre a luz, a canle e o material illado (índice ou null).
+  $: ({ azimuth, elevation, intensity, ambient, showMarker } = $modelLight);
+  $: ({ channel, isolated } = $modelShow);
 
   const overlays: THREE.Material[] = [];
   const clay = fallbackMaterial();
 
-  $: imports = $textureImports[file.path] ?? [];
+  // Ao engadir ou quitar unha textura desde a pestana, o modelo recárgase sen mover a cámara.
+  $: importsKey = JSON.stringify($textureImports[file.path] ?? []);
+  let loadedKey = "";
+  let loadedFile = "";
+  $: if (ready && importsKey !== loadedKey && loadedFile === file.path) void load(file, true);
+  $: modelInfo.set({ status, report, channels, hasTextures, missing, notes });
 
   onMount(() => {
     scene = new THREE.Scene();
@@ -114,6 +103,8 @@
 
   onDestroy(() => {
     cancelAnimationFrame(raf);
+    modelInfo.set({ status: "", report: [], channels: [], hasTextures: false, missing: [], notes: [] });
+    modelShow.set({ channel: "full", isolated: null });
     ro?.disconnect();
     clear();
     controls?.dispose();
@@ -196,8 +187,9 @@
     // Se o rato queda fóra da esfera, vale o punto máis próximo ao raio.
     const point = r.intersectSphere(sphere, new THREE.Vector3()) ?? r.closestPointToPoint(center, new THREE.Vector3());
     const d = point.clone().sub(center).normalize();
-    elevation = Math.round((Math.asin(Math.max(-1, Math.min(1, d.y))) * 180) / Math.PI);
-    azimuth = Math.round(((Math.atan2(d.x, d.z) * 180) / Math.PI + 360) % 360);
+    const el = Math.round((Math.asin(Math.max(-1, Math.min(1, d.y))) * 180) / Math.PI);
+    const az = Math.round(((Math.atan2(d.x, d.z) * 180) / Math.PI + 360) % 360);
+    modelLight.update((l) => ({ ...l, elevation: el, azimuth: az }));
   }
 
   function onUp(e: PointerEvent) {
@@ -258,10 +250,9 @@
     notes = [];
     missing = [];
     channels = [];
-    if (!keepView) {
-      channel = "full";
-      isolated = null;
-    }
+    loadedKey = JSON.stringify($textureImports[f.path] ?? []);
+    loadedFile = f.path;
+    if (!keepView) modelShow.set({ channel: "full", isolated: null });
     clear();
     report = [];
     try {
@@ -293,8 +284,8 @@
         { id: "clay", label: "Sen material (arxila)" },
         ...present.map((p) => ({ id: p.slot, label: p.label })),
       ];
-      if (!channels.some((c) => c.id === channel)) channel = "full";
-      if (isolated !== null && isolated >= report.length) isolated = null;
+      if (!channels.some((c) => c.id === channel)) modelShow.update((v) => ({ ...v, channel: "full" }));
+      if (isolated !== null && isolated >= report.length) modelShow.update((v) => ({ ...v, isolated: null }));
       applyView(channel, wireframe, isolated);
       status = "";
     } catch (e) {
@@ -321,22 +312,6 @@
     }
   }
 
-  async function importTexture() {
-    const picked = await open({
-      multiple: false,
-      filters: [{ name: tr("Imaxes"), extensions: ["png", "jpg", "jpeg", "webp", "bmp", "tga", "tif", "tiff", "gif"] }],
-    });
-    if (typeof picked !== "string") return;
-    addTextureImport(file.path, { slot: importSlot, path: picked, material: importMaterial === "all" ? null : importMaterial });
-    await load(file, true);
-  }
-
-  async function removeImport(i: number) {
-    removeTextureImport(file.path, i);
-    await load(file, true);
-  }
-
-  const slotLabel = (slot: string) => TEXTURE_SLOTS.find((s) => s.slot === slot)?.label ?? slot;
 </script>
 
 <div class="wrap">
@@ -345,99 +320,12 @@
       {#if status}<p class="status muted">{status}</p>{/if}
     </div>
 
-    {#if panelOpen}
-      <SidePanel id="modelo" title={$t("Panel do modelo")} on:close={() => (panelOpen = false)}>
-        <PanelSection title={$t("Luz")}>
-        <Slider label={$t("Azimut")} unit="°" min={0} max={360} bind:value={azimuth} def={45} />
-        <Slider label={$t("Altura")} unit="°" min={-90} max={90} bind:value={elevation} def={50} />
-        <Slider label={$t("Forza")} min={0} max={5} step={0.1} bind:value={intensity} def={1.6} />
-        <Slider label={$t("Ambiente")} min={0} max={4} step={0.1} bind:value={ambient} def={1.1} />
-        <label class="chk"><input type="checkbox" bind:checked={showMarker} /> {$t("Amosar a luz (podes arrastrala)")}</label>
-        </PanelSection>
-
-        <PanelSection title={$t("Vista")}>
-        <div class="chan">
-          {#each channels as c}
-            <button class="ch" class:on={channel === c.id} on:click={() => (channel = c.id)}>{$t(c.label)}</button>
-          {/each}
-        </div>
-        </PanelSection>
-
-        <PanelSection title={$t("Materiais")} meta={report.length ? String(report.length) : ""}>
-        {#if report.length}
-          <h4>{$t("Materiais")}</h4>
-          <ul class="mats">
-            {#each report as m, i}
-              <li>
-                <button class="mat" class:on={isolated === i} on:click={() => (isolated = isolated === i ? null : i)} title={$t("Illar este material")}>
-                  <div class="mname">
-                    {#if m.color}<span class="sw" style={`background:${m.color}`}></span>{/if}
-                    <span class="mn">{m.name}</span>
-                    <span class="muted">{m.color ?? ""}</span>
-                  </div>
-                  {#if m.slots.length}
-                    <div class="slots">
-                      {#each m.slots as s}
-                        <span class:bad={!s.ok}>{$t(s.label)}{s.ok ? "" : ` · ${$t("non cargou")}`}</span>
-                      {/each}
-                    </div>
-                  {:else}
-                    <div class="slots muted">{$t("sen texturas")}</div>
-                  {/if}
-                </button>
-              </li>
-            {/each}
-          </ul>
-          {#if isolated !== null}
-            <button class="btn ghost" on:click={() => (isolated = null)}>{$t("Mostrar todos os materiais")}</button>
-          {/if}
-        {:else if !status}
-          <p class="muted tiny">{$t("Este modelo non ten materiais: úsoo en gris.")}</p>
-        {/if}
-
-        </PanelSection>
-
-        <PanelSection title={$t("Texturas")} open={!!imports.length || !hasTextures}>
-        {#if !hasTextures && !imports.length && !status}
-          <p class="muted tiny">{$t("Este modelo non ten texturas: importa unha imaxe para pintalo.")}</p>
-        {/if}
-        <SelectField
-          label={$t("Tipo de textura")}
-          bind:value={importSlot}
-          options={TEXTURE_SLOTS.map((s) => ({ value: s.slot, label: $t(s.label) }))}
-        />
-        <SelectField
-          label={$t("Aplicar a")}
-          bind:value={importMaterial}
-          options={[{ value: "all", label: $t("Todos os materiais") }, ...report.map((r, i) => ({ value: i, label: r.name }))]}
-        />
-        <button class="btn block" on:click={importTexture}><Icon name="plus" size={14} /> {$t("Importar textura…")}</button>
-        {#if imports.length}
-          <ul class="imps">
-            {#each imports as imp, i}
-              <li>
-                <span class="in" title={imp.path}>{$t(slotLabel(imp.slot))}: {fileNameOf(imp.path)}</span>
-                <button class="btn ghost icon" on:click={() => removeImport(i)} aria-label={$t("Quitar")} title={$t("Quitar")}><Icon name="close" size={13} /></button>
-              </li>
-            {/each}
-          </ul>
-          <p class="muted tiny">{$t("As texturas importadas tamén se levan ao converter o modelo.")}</p>
-        {/if}
-
-        {#if missing.length}
-          <p class="warn selectable">{$t("Texturas que o modelo pide e non estaban no cartafol: {list}", { list: missing.join(", ") })}</p>
-        {/if}
-        {#each notes as n}<p class="muted tiny selectable">·&nbsp;{n}</p>{/each}
-        </PanelSection>
-      </SidePanel>
-    {/if}
   </div>
   <div class="bar">
     <button class="btn" title={$t("Axustar o modelo ao espazo dispoñible")} on:click={() => model && frame(model, true)}>{$t("Recentrar")}</button>
     <label class="chk"><input type="checkbox" bind:checked={wireframe} /> {$t("Malla")}</label>
     <label class="chk"><input type="checkbox" bind:checked={grid} /> {$t("Cuadrícula")}</label>
     <span class="muted stats">{stats || $t("Arrastra para rotar · roda para zoom · botón dereito para mover")}</span>
-    <button class="btn" class:on={panelOpen} on:click={() => (panelOpen = !panelOpen)} aria-pressed={panelOpen}>{panelOpen ? $t("Agochar panel") : $t("Panel")}</button>
   </div>
 </div>
 
@@ -445,27 +333,8 @@
   .wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .row { flex: 1; min-height: 0; display: flex; }
   .canvas { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
-  .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   .canvas :global(canvas) { display: block; }
   .status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 2rem; text-align: center; pointer-events: none; }
-  .chan { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-  .ch { background: transparent; border: 1px solid var(--border-strong); color: var(--text-muted); border-radius: var(--radius-sm); padding: 0.28em 0.6em; font-size: var(--fs-sm); }
-  .ch:hover { color: var(--text); }
-  .ch.on { border-color: var(--accent); color: var(--accent); }
-  .mats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
-  .mat { width: 100%; text-align: left; background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 0.45rem 0.6rem; display: flex; flex-direction: column; gap: 0.15rem; }
-  .mat:hover { background: var(--bg-hover); border-color: var(--border-strong); }
-  .mat.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-  .mname { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
-  .mn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sw { width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--border-strong); flex-shrink: 0; }
-  .slots { display: flex; flex-direction: column; font-size: var(--fs-xs); color: var(--text-muted); padding-left: 1.05rem; }
-  .slots .bad { color: var(--accent-video); }
-  .imps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-  .imps li { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; border-bottom: 1px solid var(--border); }
-  .in { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); }
-  .warn { color: var(--accent-pdf); font-size: var(--fs-sm); margin: 0; word-break: break-word; }
-  .tiny { margin: 0; font-size: var(--fs-sm); }
   .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem; padding: 0.5rem 0.9rem 0.5rem max(0.9rem, var(--dock-gap, 0px)); border-top: 1px solid var(--border); font-size: var(--fs-md); }
   .chk { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--text-muted); }
   .stats { margin-left: auto; }

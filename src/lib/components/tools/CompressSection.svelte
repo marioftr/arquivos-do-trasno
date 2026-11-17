@@ -23,6 +23,7 @@
   import SelectField from "../ui/SelectField.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import { IMAGE_LEVELS, VIDEO_LEVELS } from "../../levels";
+  import Levels from "../ui/Levels.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let selection: FileEntry[];
@@ -163,19 +164,10 @@
   // A «i» do perfil explica cada perfil fixo, un por liña (Personalizado e os teus perfís non levan texto).
   $: profilesTip = Object.values(PROFILES).filter((p) => p.hint).map((p) => `${$t(p.label)}: ${$t(p.hint ?? "")}`).join(String.fromCharCode(10));
 
-  // Nivel de calidade con nome: coincide cos valores ou é «Personalizado» (os desprazadores de abaixo).
-  let customPicked = false;
-  $: imgLevel = customPicked ? "custom" : IMAGE_LEVELS.find((l) => (!hasLossy || v.quality === l.jpg) && (!hasPng || v.pngQuality === l.png))?.id ?? "custom";
-  $: vidLevel = customPicked ? "custom" : VIDEO_LEVELS.find((l) => l.crf === v.crf)?.crf ?? "custom";
-  function pickImageLevel(id: string | number) {
-    customPicked = id === "custom";
-    const l = IMAGE_LEVELS.find((x) => x.id === id);
-    if (l) form.update((f) => ({ ...f, quality: l.jpg, pngQuality: l.png }));
-  }
-  function pickVideoLevel(crf: string | number) {
-    customPicked = crf === "custom";
-    if (typeof crf === "number") form.update((f) => ({ ...f, crf }));
-  }
+  // Nivel de calidade con nome: só conta o valor dos formatos que hai na selección.
+  $: imageValues = { ...(hasLossy ? { quality: v.quality } : {}), ...(hasPng ? { pngQuality: v.pngQuality } : {}) };
+  $: imageLevels = IMAGE_LEVELS.map((l) => ({ id: l.id, label: $t(l.label), detail: `${l.q} %`, hint: $t(l.hint), values: { ...(hasLossy ? { quality: l.q } : {}), ...(hasPng ? { pngQuality: l.q } : {}) } }));
+  $: videoLevels = VIDEO_LEVELS.map((l) => ({ id: String(l.crf), label: $t(l.label), detail: `CRF ${l.crf}`, hint: $t(l.hint), values: { crf: l.crf } }));
 
   let lastKey = "";
   function invalidate(key: string) {
@@ -354,13 +346,7 @@
     {:else if v.mode === "bitrate" && !isImage}
       <Slider label={$t("Bitrate de vídeo")} unit="kbps" min={200} max={12000} step={100} bind:value={$form.videoKbps} def={form.defaults.videoKbps} hint={$t("Datos por segundo da imaxe: máis alto, máis calidade e máis peso.")} />
     {:else if isImage}
-      <Segmented
-        label={$t("Nivel de calidade")}
-        info={hasPng ? $t("Nos PNG equivalen a 60, 80 e 100 %.") : ""}
-        options={[...IMAGE_LEVELS.map((l) => ({ value: l.id, label: $t(l.label), detail: `${hasLossy ? l.jpg : l.png} %`, hint: $t(l.hint) })), { value: "custom", label: $t("Personalizado") }]}
-        value={imgLevel}
-        on:pick={(e) => pickImageLevel(e.detail)}
-      />
+      <Levels label={$t("Nivel de calidade")} levels={imageLevels} values={imageValues} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
       {#if hasLossy}
         <Slider label={hasPng ? $t("Calidade (JPG, WebP…)") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={hasGif ? $t("Nos GIF, menos calidade son menos cores; os fotogramas non cambian.") : undefined} />
       {/if}
@@ -368,12 +354,7 @@
         <Slider label={hasLossy ? $t("Calidade do PNG") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.pngQuality} def={form.defaults.pngQuality} hint={$t("100 %: non cambia ningún píxel. Menos: reduce as cores para pesar menos, sen perder a transparencia.")} />
       {/if}
     {:else}
-      <Segmented
-        label={$t("Nivel de calidade")}
-        options={[...VIDEO_LEVELS.map((l) => ({ value: l.crf, label: $t(l.label), detail: `CRF ${l.crf}`, hint: $t(l.hint) })), { value: "custom", label: $t("Personalizado") }]}
-        value={vidLevel}
-        on:pick={(e) => pickVideoLevel(e.detail)}
-      />
+      <Levels label={$t("Nivel de calidade")} levels={videoLevels} values={{ crf: v.crf }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
       <Slider label={$t("Calidade (CRF)")} min={18} max={40} bind:value={$form.crf} def={form.defaults.crf} />
     {/if}
 

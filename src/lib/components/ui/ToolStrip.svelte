@@ -11,6 +11,8 @@
     convert: "convert",
     compress: "compress",
     edit: "sliders",
+    sound: "volume",
+    view: "cube",
     annotate: "pencil",
     info: "info",
     extract: "download",

@@ -3,7 +3,7 @@ export default {
   about: "Silencios: botóns con texto claro, «i» co detalle, botón Analizar no estilo de Estimar",
   async run(app, c) {
     await app.open(app.video("a.mp4", 4));
-    await app.click("Editar");
+    await app.click("Son");
     await app.click("Silencios");
     const opts = await app.ev(`[...document.querySelectorAll('.stack [role=radiogroup] button')].map(b=>b.innerText.split(String.fromCharCode(10)).join(' ').trim())`);
     c.ok(opts.length === 4 && opts[0] === "Suave Pausas longas" && opts[1] === "Normal Pausas habituais" && opts[2] === "Forte Case todas" && opts[3] === "Personalizado", "os botóns din o que fan e Personalizado non leva texto de máis", opts.join(" | "));

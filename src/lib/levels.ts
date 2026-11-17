@@ -1,10 +1,10 @@
 // Niveis de calidade con nome, os mesmos en Converter e Comprimir. O texto en galego é a chave de tradución.
 
-/** Imaxes: `jpg` vale para JPG, WebP, AVIF… e `png` é a calidade equivalente en PNG (100 = sen perder un píxel). */
+/** Imaxes: a mesma calidade (%) en Converter e Comprimir, para todos os formatos. */
 export const IMAGE_LEVELS = [
-  { id: "whatsapp", label: "WhatsApp", jpg: 55, png: 60, hint: "Máis lixeiro, ideal para enviar rápido" },
-  { id: "web", label: "Web", jpg: 75, png: 80, hint: "Equilibrio entre peso e nitidez" },
-  { id: "arquivo", label: "Arquivo", jpg: 95, png: 100, hint: "Case sen perdas, para gardar" },
+  { id: "whatsapp", label: "WhatsApp", q: 55, hint: "Máis lixeiro, ideal para enviar rápido" },
+  { id: "web", label: "Web", q: 75, hint: "Equilibrio entre peso e nitidez" },
+  { id: "arquivo", label: "Arquivo", q: 95, hint: "Case sen perdas, para gardar" },
 ];
 
 /** Vídeo: o CRF que levan os botóns (menos é máis calidade). */

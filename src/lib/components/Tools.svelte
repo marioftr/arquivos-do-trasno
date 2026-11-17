@@ -22,6 +22,7 @@
   import EditMediaSection from "./tools/EditMediaSection.svelte";
   import ExtractSection from "./tools/ExtractSection.svelte";
   import SilenceSection from "./tools/SilenceSection.svelte";
+  import ModelViewSection from "./tools/ModelViewSection.svelte";
   import SubtitleSection from "./tools/SubtitleSection.svelte";
   import PdfSplitSection from "./tools/PdfSplitSection.svelte";
   import PdfMarksSection from "./tools/PdfMarksSection.svelte";
@@ -67,9 +68,9 @@
       case "imaxe":
         return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("annotate", "Anotar"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
-        return [tab("convert", "Converter"), tab("edit", "Editar"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
-        return [tab("convert", "Converter"), tab("edit", "Editar"), ...mkvTab(), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...mkvTab(), tab("info", "Información")];
       case "documento":
         return pdf
           ? [
@@ -87,6 +88,8 @@
             : PLAIN_TEXT.includes(first?.ext ?? "") || OFFICE_EXTS.includes(first?.ext ?? "")
             ? [tab("convert", "Converter"), tab("info", "Información")]
             : [tab("info", "Información")];
+      case "modelo3d":
+        return [tab("convert", "Converter"), tab("view", "Vista"), tab("info", "Información")];
       default:
         return [tab("convert", "Converter"), tab("info", "Información")];
     }
@@ -132,8 +135,8 @@
     if (tab === "convert" && cat === "video" && !pdf) return [m("mp4", "A MP4 con perfís"), m("format", "A outro formato")];
     if (many) return [];
     if (!pdf) {
-      // Un só formulario con todos os axustes (corte, velocidade, volume, efectos…) que se exporta dunha vez; os silencios teñen o seu proceso.
-      if (tab === "edit" && (cat === "video" || cat === "audio")) return [m("adjust", "Axustes"), m("silence", "Silencios")];
+      // O son ten dúas tarefas: axustalo (volume, ruído, efectos) ou cortar os silencios.
+      if (tab === "sound" && (cat === "video" || cat === "audio")) return [m("adjust", "Axustes"), m("silence", "Silencios")];
       return [];
     }
     switch (tab) {
@@ -217,8 +220,12 @@
           <CompressSection {selection} {category} />
         {:else if current === "edit" && first && SUBTITLE_EXTS.includes(first.ext)}
           <SubtitleSection file={first} />
-        {:else if current === "edit" && mode === "silence" && first}
+        {:else if current === "view" && first && category === "modelo3d"}
+          <ModelViewSection file={first} />
+        {:else if current === "sound" && mode === "silence" && first}
           <SilenceSection file={first} />
+        {:else if current === "sound" && first}
+          <EditMediaSection file={first} part="sound" />
         {:else if current === "annotate" && first && category === "imaxe"}
           <Lazy loader={() => import("./tools/AnnotateSection.svelte")} file={first} />
         {:else if current === "edit" && first && category === "imaxe"}

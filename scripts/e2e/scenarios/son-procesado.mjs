@@ -4,14 +4,14 @@ import path from "node:path";
 import { ffmpegBin } from "../harness.mjs";
 
 export default {
-  about: "Editar → «Dar a volta ao son»: a vista previa do visor soa ao revés en sincronía",
+  about: "Son → «Dar a volta ao son»: a vista previa do visor soa ao revés en sincronía",
   async run(app, c) {
     // 8 s de vídeo cun tono só nos 2 primeiros segundos.
     const src = path.join(app.media, "tono.mp4");
     const r = spawnSync(ffmpegBin(), ["-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=s=160x120:r=10:d=8", "-f", "lavfi", "-i", "sine=f=440:r=44100:d=8,volume='if(lt(t,2),1,0)':eval=frame", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", src]);
     if (r.status !== 0) throw new Error("FFmpeg: " + r.stderr);
     await app.open(src);
-    await app.click("Editar");
+    await app.click("Son");
     await app.slider("Graves", 1); // crea o grafo de son do visor (e o analizador de proba)
 
     const listen = async (at) => {

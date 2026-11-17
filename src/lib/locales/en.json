@@ -1739,5 +1739,7 @@
   "Case idéntico ao orixinal.": "Almost identical to the original.",
   "O máis pequeno; nótase perda de nitidez.": "The smallest; some sharpness is lost.",
   "Nos PNG equivalen a 60, 80 e 100 %.": "For PNG they equal 60, 80 and 100 %.",
-  "Non puiden lelo por dentro ({e}); pode estar protexido": "I couldn't read inside it ({e}); it may be protected"
+  "Non puiden lelo por dentro ({e}); pode estar protexido": "I couldn't read inside it ({e}); it may be protected",
+  "-son": "-sound",
+  "Preme un material para velo só a el.": "Click a material to see only it."
 }

@@ -1,16 +1,18 @@
-// Editar un vídeo: todos os axustes nunha pestana, vista previa en directo no visor e unha soa exportación.
+// Editar un vídeo: cortar e velocidade en Editar; volume, ruído e efectos en Son. Vista previa en directo no visor e unha soa exportación por menú.
 import fs from "node:fs";
 import path from "node:path";
 import { ffprobeDuration } from "../harness.mjs";
 
 export default {
-  about: "Editar → Axustes: resultado ordenado, vista previa en directo no visor e exportar nunha vez",
+  about: "Editar (corte e velocidade) e Son (axustes): resultado ordenado, vista previa en directo e exportar",
   async run(app, c) {
     const src = app.video("clip.mp4", 12);
     await app.open(src);
     await app.click("Editar");
-    const radios = await app.ev(`[...document.querySelectorAll('[role=radio]')].map(b=>b.textContent.trim())`);
-    c.ok(radios.includes("Axustes") && radios.includes("Silencios") && !radios.includes("Cortar"), "os modos son Axustes e Silencios", radios.join(","));
+    const tabs = await app.tabs();
+    c.ok(tabs.includes("Editar") && tabs.includes("Son"), "Editar e Son son menús separados", tabs.join(","));
+    const edRadios = await app.ev(`[...document.querySelectorAll('[role=radio]')].map(b=>b.textContent.trim())`);
+    c.ok(!edRadios.includes("Silencios") && !(await app.panel()).includes("Graves"), "Editar só ten corte e velocidade", edRadios.join(","));
 
     const btn = `document.querySelector('.stack .btn.primary')`;
     c.ok(await app.ev(`${btn}?.disabled`), "Exportar está desactivado sen cambios");
@@ -26,6 +28,12 @@ export default {
     await app.slider("Factor de velocidade", 2);
     c.near(await app.ev(`document.querySelector('video').playbackRate`), 2, 0.01, "o visor reproduce xa a ×2");
     await app.slider("Factor de velocidade", 1);
+
+    // ---- Son: volume, ruído e efectos, en directo no visor
+    await app.click("Son");
+    const sonRadios = await app.ev(`[...document.querySelectorAll('[role=radio]')].map(b=>b.textContent.trim())`);
+    c.ok(sonRadios.includes("Axustes") && sonRadios.includes("Silencios"), "Son ten os modos Axustes e Silencios", sonRadios.join(","));
+    c.ok(!(await app.panel()).includes("Factor de velocidade"), "Son non ten a velocidade");
     await app.slider("Graves", 6);
     await app.ev(`document.querySelector('video').play()`, true);
     await app.sleep(600);
@@ -55,6 +63,7 @@ export default {
     await app.waitFor(`!window.__trasnoAux`, "que se solte o son preparado");
     c.ok(true, "ao apagalo o visor volve ao son orixinal");
 
+    await app.click("Editar");
     await app.slider("Factor de velocidade", 2);
     await app.slider("Fin", 8);
     await app.slider("Inicio", 2);

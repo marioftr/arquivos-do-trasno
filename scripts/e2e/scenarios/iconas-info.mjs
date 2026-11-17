@@ -3,7 +3,7 @@ export default {
   about: "Pestanas dun vídeo: sen «Máis información» e coa «i» xunto ao título",
   async run(app, c) {
     await app.open(app.video("a.mp4", 4));
-    for (const tab of ["Converter", "Editar", "Extraer"]) {
+    for (const tab of ["Converter", "Editar", "Son", "Extraer"]) {
       await app.click(tab);
       await app.sleep(700);
       const modes = await app.ev(`[...document.querySelectorAll('.modes [role=radio]')].map(b=>b.textContent.trim())`);

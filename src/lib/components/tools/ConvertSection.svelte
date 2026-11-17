@@ -21,6 +21,7 @@
   import PhotoMeta from "../ui/PhotoMeta.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import { IMAGE_LEVELS } from "../../levels";
+  import Levels from "../ui/Levels.svelte";
   import { NO_ALPHA, BACKGROUNDS, anyTransparent, backdrop, cssOf, type Bg } from "../../transparency";
   import JobStatus from "../ui/JobStatus.svelte";
 
@@ -28,14 +29,7 @@
   export let category: Category;
 
   const MAX_CONCURRENT = 3;
-  // Nivel de calidade con nome: coincide co valor do desprazador ou é «Personalizado».
-  let customPicked = false;
-  $: level = customPicked ? "custom" : IMAGE_LEVELS.find((l) => l.jpg === $form.quality)?.id ?? "custom";
-  function pickLevel(id: string | number) {
-    customPicked = id === "custom";
-    const l = IMAGE_LEVELS.find((x) => x.id === id);
-    if (l) $form.quality = l.jpg;
-  }
+  $: imageLevels = IMAGE_LEVELS.map((l) => ({ id: l.id, label: $t(l.label), detail: `${l.q} %`, hint: $t(l.hint), values: { quality: l.q } }));
 
   const first = selection[0];
   const multi = selection.length > 1;
@@ -259,12 +253,7 @@
     {#if category === "imaxe" && $form.targetExt === "pdf"}
       <GroupNote text={$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")} />
     {:else if category === "imaxe"}
-      <Segmented
-        label={$t("Nivel de calidade")}
-        options={[...IMAGE_LEVELS.map((l) => ({ value: l.id, label: $t(l.label), detail: `${l.jpg} %`, hint: $t(l.hint) })), { value: "custom", label: $t("Personalizado") }]}
-        value={level}
-        on:pick={(e) => pickLevel(e.detail)}
-      />
+      <Levels label={$t("Nivel de calidade")} levels={imageLevels} values={{ quality: $form.quality }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto: mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL).")} />
       <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} supported={engine.META_EXTS.includes($form.targetExt)} disabled={$busy} />
       {#if multi}

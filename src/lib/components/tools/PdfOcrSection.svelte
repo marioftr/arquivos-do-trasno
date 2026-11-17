@@ -12,7 +12,7 @@
   import { OCR_LANGS, OCR_SIZE, ocrInstalled, ocrDownload, ocrProgress, savedLang, rememberLang, refreshOcr, downloadLang, recognize, forgetOcr } from "../../ocr";
   import { askOutput, parsePageSpec } from "./shared";
   import Slider from "../ui/Slider.svelte";
-  import Segmented from "../ui/Segmented.svelte";
+  import Levels from "../ui/Levels.svelte";
   import SelectField from "../ui/SelectField.svelte";
   import TextField from "../ui/TextField.svelte";
   import Toggle from "../ui/Toggle.svelte";
@@ -23,10 +23,14 @@
 
   export let file: FileEntry;
 
-  /** Resolución con que se le cada páxina. «Personalizado» deixa poñer os ppp que se queiran. */
-  const PROFILES: Record<string, number> = { rapida: 150, normal: 200, alta: 300 };
+  /** Resolución con que se le cada páxina; o desprazador deixa poñer os ppp á man. */
+  const LEVELS = [
+    { id: "rapida", label: "Rápida", detail: "150 ppp", hint: "150 ppp: borradores ou letra grande", values: { dpi: 150 } },
+    { id: "normal", label: "Normal", detail: "200 ppp", hint: "200 ppp: a maioría das dixitalizacións", values: { dpi: 200 } },
+    { id: "alta", label: "Alta", detail: "300 ppp", hint: "300 ppp: letra pequena ou dixitalizacións pobres", values: { dpi: 300 } },
+  ];
 
-  const form = createForm({ lang: savedLang($appLang), profile: "normal", dpi: 200, skipText: true, pageSpec: "" }, "pdf-ocr", "pdfocr|" + file.path);
+  const form = createForm({ lang: savedLang($appLang), dpi: 200, skipText: true, pageSpec: "" }, "pdf-ocr", "pdfocr|" + file.path);
   onMount(() => {
     void refreshOcr();
     return useForm(form);
@@ -35,9 +39,6 @@
   const job = createJob();
   const busy = job.busy;
 
-  // Un perfil fixo enche os ppp; con «Personalizado» quedan os que poña o usuario.
-  $: preset = PROFILES[$form.profile];
-  $: if (preset && $form.dpi !== preset) form.update((f) => ({ ...f, dpi: preset }));
   $: if ($form.lang) rememberLang($form.lang);
 
   $: installed = $ocrInstalled.includes($form.lang);
@@ -173,19 +174,13 @@
       {#if downloadErr}<p class="warn">{downloadErr}</p>{/if}
     {/if}
 
-    <Segmented
+    <Levels
       label={$t("Resolución de lectura")}
-      options={[
-        { value: "rapida", label: $t("Rápida"), detail: "150 ppp", hint: $t("150 ppp: borradores ou letra grande") },
-        { value: "normal", label: $t("Normal"), detail: "200 ppp", hint: $t("200 ppp: a maioría das dixitalizacións") },
-        { value: "alta", label: $t("Alta"), detail: "300 ppp", hint: $t("300 ppp: letra pequena ou dixitalizacións pobres") },
-        { value: "custom", label: $t("Personalizado") },
-      ]}
-      bind:value={$form.profile}
+      levels={LEVELS.map((l) => ({ ...l, label: $t(l.label), detail: $t(l.detail), hint: $t(l.hint) }))}
+      values={{ dpi: $form.dpi }}
+      on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))}
     />
-    {#if $form.profile === "custom"}
       <Slider label={$t("Resolución")} unit={$t("ppp")} min={100} max={400} step={10} bind:value={$form.dpi} def={200} hint={$t("Máis ppp: letras pequenas mellor lidas, pero máis tempo por páxina.")} />
-    {/if}
 
     <Toggle label={$t("Saltar as páxinas que xa teñen texto")} bind:checked={$form.skipText} disabled={$busy} hint={$t("As páxinas con texto quedan como están. Desactívao se ese texto está mal.")} />
     <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
