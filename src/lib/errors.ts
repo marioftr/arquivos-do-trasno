@@ -51,5 +51,5 @@ export const missingToolOf = (e: unknown): "ffmpeg" | "mkvmerge" | null => (e as
 /** Se o erro é só que o usuario cancelou o traballo (non é un fallo). */
 export function isCancelled(e: unknown): boolean {
   const raw = typeof e === "string" ? e : e instanceof Error ? e.message : String(e);
-  return raw.includes("Cancelouse o traballo.");
+  return raw.includes("Cancelei o traballo.");
 }

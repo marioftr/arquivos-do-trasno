@@ -302,7 +302,7 @@ pub fn describe_pdf(path: &Path) -> Result<Info> {
         }
         Err(e) => {
             // Moitas veces: PDF con contrasinal.
-            summary.push(group("Documento", vec![row("Estado", format!("Non se puido ler por dentro ({e}); pode estar protexido"))]));
+            summary.push(group("Documento", vec![row("Estado", format!("Non puiden lelo por dentro ({e}); pode estar protexido"))]));
         }
     }
     summary.push(file_group(path));

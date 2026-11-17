@@ -108,13 +108,15 @@ export interface Bubble {
   copy?: string;
   /** Notificación: o trasno pestanexa e queda sorprendido. */
   notify?: boolean;
+  /** Comentario de compañía: non se le en voz alta aos lectores de pantalla (os avisos e resultados si). */
+  quiet?: boolean;
 }
 export const bubble = writable<Bubble | null>(null);
 let bubbleId = 0;
 let bubbleTimer: ReturnType<typeof setTimeout> | undefined;
-export function trasnoSay(text: string, kind: Bubble["kind"] = "info", ms = 14000, action?: Bubble["action"], extra: { copy?: string; notify?: boolean } = {}) {
+export function trasnoSay(text: string, kind: Bubble["kind"] = "info", ms = 14000, action?: Bubble["action"], extra: { copy?: string; notify?: boolean; quiet?: boolean } = {}) {
   const id = ++bubbleId;
-  bubble.set({ id, text, kind, action, copy: extra.copy, notify: extra.notify });
+  bubble.set({ id, text, kind, action, copy: extra.copy, notify: extra.notify, quiet: extra.quiet });
   clearTimeout(bubbleTimer);
   bubbleTimer = setTimeout(() => bubble.update((b) => (b?.id === id ? null : b)), ms);
 }

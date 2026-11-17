@@ -63,6 +63,8 @@ for (const file of walk(root)) {
       add(unesc(m[2]), rel);
     }
   }
+  // Niveis de calidade con nome (Converter e Comprimir)
+  if (rel.endsWith("levels.ts")) for (const m of src.matchAll(new RegExp(String.raw`(?:label|hint):\s*${str}`, "g"))) add(unesc(m[1]), rel);
   // Etiquetas de textura (model3d) e canles do visor 3D
   if (rel.endsWith("model3d.ts")) for (const m of src.matchAll(new RegExp(String.raw`label:\s*${str}`, "g"))) add(unesc(m[1]), rel);
   if (rel.endsWith("ModelViewer.svelte")) for (const m of src.matchAll(new RegExp(String.raw`id:\s*"[a-z]+",\s*label:\s*${str}`, "g"))) add(unesc(m[1]), rel);

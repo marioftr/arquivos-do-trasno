@@ -22,7 +22,7 @@
   </p>
 
   {#if !$savedProfiles.length}
-    <p class="muted empty">{$t("Aínda non gardaches ningún perfil. O trasno non ten nada que aprender de ti por agora.")}</p>
+    <p class="muted empty">{$t("Aínda non gardaches ningún perfil.")}</p>
   {/if}
 
   {#each $savedProfiles as p (p.id)}

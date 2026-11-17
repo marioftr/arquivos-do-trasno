@@ -51,7 +51,6 @@
       <NumberField label={$t("Instante")} unit="s" min={0} step={0.1} bind:value={$form.frameAt} def={0} />
     {/if}
     <FramePreview path={file.path} time={$form.frameMode === "viewer" ? $mediaTime : $form.frameAt} />
-    <p class="group-note">{$t("Esta é a imaxe que se vai gardar.")}</p>
     <button class="btn primary block" on:click={() => frame($form.frameMode === "viewer" ? $mediaTime : $form.frameAt)} disabled={$busy}>{$t("Gardar este fotograma")}</button>
   </div>
 

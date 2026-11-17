@@ -142,7 +142,7 @@ pub fn analyze_silence(input: &Path, o: &SilenceOptions) -> Result<SilenceAnalys
     let info = ffmpeg::probe(input)?;
     let duration = duration_of(&info);
     if duration <= 0.0 {
-        return Err(EngineError::IntegrityCheck("Non se puido saber canto dura o ficheiro.".into()));
+        return Err(EngineError::IntegrityCheck("Non puiden saber canto dura o ficheiro.".into()));
     }
     if !info["streams"].as_array().is_some_and(|l| l.iter().any(|s| s["codec_type"] == "audio")) {
         return Err(EngineError::IntegrityCheck("Este ficheiro non ten son: non hai silencios que cortar.".into()));

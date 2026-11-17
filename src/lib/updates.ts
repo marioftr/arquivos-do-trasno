@@ -66,7 +66,7 @@ export async function checkForUpdate(silent = false): Promise<void> {
       updState.set("found");
       updateAvailable.set(true);
       if (silent) {
-        toast(tr("O trasno estreou roupa nova: a versión {v}.", { v: u.version }), { action: { label: tr("Ver novidades"), run: () => openHub("news.updates") }, ms: 12000 });
+        toast(tr("Estreei roupa nova: a versión {v}.", { v: u.version }), { action: { label: tr("Ver novidades"), run: () => openHub("news.updates") }, ms: 12000 });
       }
     } else {
       updFound.set(null);

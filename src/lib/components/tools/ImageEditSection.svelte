@@ -19,7 +19,6 @@
   import Segmented from "../ui/Segmented.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
   import Icon from "../Icon.svelte";
-  import { HINTS } from "../../hints";
 
   export let file: FileEntry;
 
@@ -214,18 +213,18 @@
   <div class="group">
     <h4 class="group-title">{$t("Transformar")}</h4>
     <div class="pair">
-      <button class="btn" on:click={() => rot(270)} title={$t("Xirar 90° á esquerda")}><Icon name="rotate-ccw" size={15} /> {$t("Xirar 90° á esquerda")}</button>
-      <button class="btn" on:click={() => rot(90)} title={$t("Xirar 90° á dereita")}><Icon name="rotate-cw" size={15} /> {$t("Xirar 90° á dereita")}</button>
+      <button class="btn" on:click={() => rot(270)}><Icon name="rotate-ccw" size={15} /> {$t("Xirar 90° á esquerda")}</button>
+      <button class="btn" on:click={() => rot(90)}><Icon name="rotate-cw" size={15} /> {$t("Xirar 90° á dereita")}</button>
     </div>
     <div class="pair">
-      <button class="btn tog" class:on={$form.flipH} aria-pressed={$form.flipH} on:click={() => flip("H")} title={$t(HINTS["Espello horizontal"])}><Icon name="flip-h" size={15} /> {$t("Espello horizontal")}</button>
-      <button class="btn tog" class:on={$form.flipV} aria-pressed={$form.flipV} on:click={() => flip("V")} title={$t(HINTS["Espello vertical"])}><Icon name="flip-v" size={15} /> {$t("Espello vertical")}</button>
+      <button class="btn tog" class:on={$form.flipH} aria-pressed={$form.flipH} on:click={() => flip("H")}><Icon name="flip-h" size={15} /> {$t("Espello horizontal")}</button>
+      <button class="btn tog" class:on={$form.flipV} aria-pressed={$form.flipV} on:click={() => flip("V")}><Icon name="flip-v" size={15} /> {$t("Espello vertical")}</button>
     </div>
   </div>
 
   <div class="group">
     <h4 class="group-title">{$t("Recortar")}</h4>
-    <GroupNote text={$t("Arrastrar sobre a imaxe delimita o que queda; despois pódese mover o rectángulo ou tirar das esquinas.")} />
+    <GroupNote text={$t("Arrastra sobre a imaxe para delimitar o que queda; despois move o rectángulo ou tira das esquinas.")} />
     <Segmented
       label={$t("Proporción")}
       options={[

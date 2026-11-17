@@ -382,7 +382,7 @@ pub(crate) fn run_external(mut cmd: Command, timeout: std::time::Duration) -> Re
         return Err(EngineError::Cancelled);
     }
     if timed_out {
-        return Err(EngineError::OfficeFailed("tardou demasiado e o trasno parouno".into()));
+        return Err(EngineError::OfficeFailed("tardou demasiado e parei o proceso".into()));
     }
     Ok(External { code: status.code(), stdout, stderr })
 }
@@ -892,7 +892,7 @@ pub(crate) fn measure_loudness_with(input: &Path, target: Loudness, pre_args: &[
     let text = String::from_utf8_lossy(&out.stderr);
     // O filtro escribe un bloque JSON ao final da súa saída.
     let block = text.rfind('{').zip(text.rfind('}')).filter(|(a, b)| a < b).map(|(a, b)| &text[a..=b]);
-    let json: serde_json::Value = block.and_then(|b| serde_json::from_str(b).ok()).ok_or_else(|| EngineError::IntegrityCheck("Non se puido medir o volume do ficheiro.".into()))?;
+    let json: serde_json::Value = block.and_then(|b| serde_json::from_str(b).ok()).ok_or_else(|| EngineError::IntegrityCheck("Non puiden medir o volume do ficheiro.".into()))?;
     let num = |k: &str| json[k].as_str().and_then(|v| v.trim().parse::<f64>().ok()).filter(|v| v.is_finite());
     match (num("input_i"), num("input_tp"), num("input_lra"), num("input_thresh"), num("target_offset")) {
         (Some(lufs), Some(peak), Some(range), Some(thresh), Some(offset)) => Ok(LoudnessMeasure { lufs, peak, range, thresh, offset }),

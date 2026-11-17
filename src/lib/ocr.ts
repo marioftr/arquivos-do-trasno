@@ -747,24 +747,24 @@ export function forgetOcr(path: string) {
 
 // ---- o que di o trasno despois de ler o texto dunha imaxe
 const OCR_NONE = [
-  "O trasno mirou ben «{name}» e non lle viu nin unha letra. Se hai texto, proba con outro idioma ou cunha imaxe máis nítida.",
-  "Nada de nada: o trasno non atopou texto en «{name}». Ou non hai letras, ou están moi escondidas.",
-  "O trasno apertou os ollos, espreitou polas esquinas e non atopou texto en «{name}».",
+  "Mirei ben «{name}» e non vin nin unha letra. Se hai texto, proba con outro idioma ou cunha imaxe máis nítida.",
+  "Nada de nada: non atopei texto en «{name}». Ou non hai letras, ou están moi escondidas.",
+  "Apertei os ollos, espreitei polas esquinas e non atopei texto en «{name}».",
 ];
 const OCR_FEW = [
-  "O trasno atopou só un cachiño de texto en «{name}»: pouca cousa, pero xa o podes copiar.",
-  "Un pouquiño de texto leu o trasno en «{name}». Se esperabas máis, proba con outro idioma ou cunha imaxe máis nítida.",
-  "Só unhas palabras en «{name}», pero o trasno non deixou escapar ningunha.",
+  "Atopei só un cachiño de texto en «{name}»: pouca cousa, pero xa o podes copiar.",
+  "Lin un pouquiño de texto en «{name}». Se esperabas máis, proba con outro idioma ou cunha imaxe máis nítida.",
+  "Só unhas palabras en «{name}», pero non deixei escapar ningunha.",
 ];
 const OCR_SOME = [
-  "O trasno atopou texto en «{name}» ({n} palabras) e xa o podes seleccionar e copiar.",
-  "Ben! O trasno leu o texto de «{name}»: selecciónao co rato ou cópiao todo dun golpe.",
-  "O trasno sacoulle as letras a «{name}» ({n} palabras): xa son túas para copiar.",
+  "Atopei texto en «{name}» ({n} palabras) e xa o podes seleccionar e copiar.",
+  "Ben! Lin o texto de «{name}»: selecciónao co rato ou cópiao todo dun golpe.",
+  "Saqueille as letras a «{name}» ({n} palabras): xa son túas para copiar.",
 ];
 const OCR_LOT = [
-  "Boh, canto texto! O trasno leu unha parrafada enorme en «{name}» ({n} palabras). Revísao antes de fiarte de cada letra.",
-  "O trasno ven de ler un montón de texto en «{name}»: {n} palabras. Cópiao todo dun golpe co botón.",
-  "Que parrafada! O trasno quedou sen folgos lendo «{name}» ({n} palabras), pero aí tes o texto.",
+  "Boh, canto texto! Lin unha parrafada enorme en «{name}» ({n} palabras). Revísao antes de fiarte de cada letra.",
+  "Acabo de ler un montón de texto en «{name}»: {n} palabras. Cópiao todo dun golpe co botón.",
+  "Que parrafada! Quedei sen folgos lendo «{name}» ({n} palabras), pero aí tes o texto.",
 ];
 let lastOcrLine = "";
 /** Que di o trasno (e que queda no historial) segundo canto texto atopou: nada, un pouco, bastante ou moito. */

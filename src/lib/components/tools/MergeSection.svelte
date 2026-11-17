@@ -81,7 +81,7 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{title}</h4>
-    <GroupNote text={$t("A unión segue a orde da lista. Pódese cambiar arrastrando os ficheiros, coas frechas ou escribindo a posición.")} />
+    <GroupNote text={$t("Segue a orde da lista: cámbiase arrastrando, coas frechas ou escribindo a posición.")} />
     <ol class="order">
       {#each items as f, i (f.path)}
         <li

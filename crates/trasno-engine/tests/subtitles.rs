@@ -1,4 +1,4 @@
-//! Lexendas como ficheiros da app: categoría, conversión polo conversor xeral, UTF-8 e resincronización de ficheiros reais.
+//! Subtítulos como ficheiros da app: categoría, conversión polo conversor xeral, UTF-8 e resincronización de ficheiros reais.
 
 use trasno_engine::subtitles::{retime_subtitle, subtitle_info, Retime};
 use trasno_engine::{convert_file, formats, suggested_targets, Category, ConvertOptions};
@@ -6,7 +6,7 @@ use trasno_engine::{convert_file, formats, suggested_targets, Category, ConvertO
 const SRT: &str = "1\n00:00:01,000 --> 00:00:03,500\nOlá, mundo!\n\n2\n00:00:05,250 --> 00:00:07,000\nNiño, ñoño\n\n3\n01:00:00,000 --> 01:00:02,000\nÚltima\n";
 
 #[test]
-fn as_lexendas_son_documentos_e_ofrecen_srt_vtt_e_ass() {
+fn os_subtitulos_son_documentos_e_ofrecen_srt_vtt_e_ass() {
     for e in ["srt", "vtt", "ass", "ssa", "SRT"] {
         assert_eq!(formats::category_of_extension(e), Category::Documento, "{e}");
     }
@@ -19,7 +19,7 @@ fn as_lexendas_son_documentos_e_ofrecen_srt_vtt_e_ass() {
 #[test]
 fn o_conversor_xeral_pasa_entre_formatos_e_garda_en_utf8() {
     let dir = tempfile::tempdir().unwrap();
-    // Unha lexenda antiga en Windows-1252 («Niño» co ñ = 0xF1).
+    // Uns subtítulos antigos en Windows-1252 («Niño» co ñ = 0xF1).
     let latin: Vec<u8> = SRT.chars().map(|c| match c { 'ñ' => 0xF1, 'á' => 0xE1, 'Ú' => 0xDA, 'O' => b'O', 'l' => b'l', c if (c as u32) < 128 => c as u8, _ => b'?' }).collect();
     let src = dir.path().join("vella.srt");
     std::fs::write(&src, &latin).unwrap();
@@ -37,7 +37,7 @@ fn o_conversor_xeral_pasa_entre_formatos_e_garda_en_utf8() {
     }
     // O orixinal non se tocou.
     assert_eq!(std::fs::read(&src).unwrap(), latin);
-    // A VTT non se converte a algo que non é lexenda.
+    // A VTT non se converte a algo que non son subtítulos.
     assert!(convert_file(&src, &dir.path().join("x.docx"), &ConvertOptions::default()).is_err());
 }
 

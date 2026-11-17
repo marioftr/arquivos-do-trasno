@@ -119,7 +119,7 @@
   async function copyPath(p: string) {
     try {
       await navigator.clipboard.writeText(p);
-      toast(tr("O trasno copiou a ruta: pégaa onde queiras."));
+      toast(tr("Copiei a ruta: pégaa onde queiras."));
     } catch {
       toast(tr("O portapapeis púxose teimudo coa ruta. Tenta de novo."), { kind: "warn" });
     }

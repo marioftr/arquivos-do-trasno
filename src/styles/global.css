@@ -519,3 +519,6 @@ html, body { touch-action: pan-x pan-y; }
 
 /* Sin o xesto de «volver atrás» do navegador (desprazar a páxina enteira cara á dereita cun deslizamento horizontal do touchpad) */
 html, body { overscroll-behavior: none; }
+
+/* Texto só para lectores de pantalla */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

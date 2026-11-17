@@ -36,7 +36,7 @@
     exMsg = "";
     try {
       await installExplorerMenu();
-      exMsg = $t("Feito. O menú do clic dereito xa ten as entradas do trasno.");
+      exMsg = $t("Feito. O menú do clic dereito xa ten as entradas de Arquivos do Trasno.");
     } catch (e) {
       exMsg = errText(e);
     } finally {
@@ -67,7 +67,7 @@
 
   <section>
     <h3>{$t("Trasno")}</h3>
-    <Toggle label={$t("Consellos do trasno")} bind:checked={$tipsOn} hint={$t("O trasno comenta de cando en vez cousas útiles sobre o ficheiro e a ferramenta abertos. Desactivalo silencia eses comentarios, pero non os avisos importantes.")} />
+    <Toggle label={$t("Consellos do trasno")} bind:checked={$tipsOn} hint={$t("Comento de cando en vez cousas útiles sobre o ficheiro e a ferramenta abertos. Os avisos importantes sempre saen.")} />
     <div class="row">
       <span class="lab">{$t("Ao premer o trasno")}<InfoTip text={$t("Que ocorre ao premer directamente o trasno da barra inferior.")} /></span>
       <IconSelect label={$t("Ao premer o trasno")} options={CLICK_ITEMS.map((c) => ({ value: c.id, label: $t(c.action), icon: c.icon }))} bind:value={clickV} />
@@ -90,8 +90,8 @@
   </section>
 
   <section>
-    <h3>{$t("Accesibilidade")}<InfoTip text={$t("O tamaño da interface amplía o texto e os controis por igual, como o zoom do navegador. A xanela non pode ser máis pequena que o necesario para que nada se solape.")} /></h3>
-    <Toggle label={$t("Reducir animacións")} bind:checked={motionV} hint={$t("O trasno e a interface quedan quietos: sen saltos, voos nin transicións. Por defecto segue o axuste de animacións do sistema.")} />
+    <h3>{$t("Accesibilidade")}<InfoTip text={$t("Amplía o texto e os controis por igual, como o zoom do navegador. A xanela non baixa do tamaño no que nada se solapa.")} /></h3>
+    <Toggle label={$t("Reducir animacións")} bind:checked={motionV} hint={$t("Sen saltos, voos nin transicións. Por defecto segue o axuste do sistema.")} />
     <Segmented label={$t("Tamaño da interface")} options={UI_SCALES.map((v) => ({ value: v, label: `${v} %` }))} bind:value={$uiScale} />
   </section>
 
@@ -122,7 +122,7 @@
 
   {#if ex?.available}
   <section>
-    <h3>{$t("Menú do clic dereito (Explorador)")}<InfoTip text={$t("Engade «Converter a…» e «Comprimir» ao clic dereito sobre un ficheiro, sen abrir a aplicación completa. Non fai falta ser administrador e pódese quitar en calquera momento. En Windows 11 aparece en «Mostrar máis opcións»; se a aplicación cambia de cartafol, hai que instalalo de novo.")} /></h3>
+    <h3>{$t("Menú do clic dereito (Explorador)")}<InfoTip text={$t("Engade «Converter a…» e «Comprimir» ao clic dereito sobre un ficheiro. Non fai falta ser administrador. En Windows 11 sae en «Mostrar máis opcións»; se a app cambia de cartafol, hai que instalalo de novo.")} /></h3>
     <div class="exrow">
       <button class="btn primary" on:click={exInstall} disabled={exBusy}>{ex.installed ? $t("Actualizar entradas") : $t("Instalar no menú")}</button>
       {#if ex.installed}<button class="btn" on:click={exRemove} disabled={exBusy}>{$t("Quitar do menú")}</button>{/if}

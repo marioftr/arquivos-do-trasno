@@ -30,20 +30,20 @@ export const readOnlyLabel = () => tr("Só modo lectura");
 export function cannotSaveNotice(ext: string, tool: LockTool): string {
   const fmt = ext.toUpperCase();
   const verb = tr(VERB[tool]);
-  return tr("O trasno só sabe ler o formato {fmt}, non gardalo, así que non se pode {verb} directamente. Convérteo antes a PNG ou JPG na pestana Converter.", { fmt, verb });
+  return tr("Só sei ler {fmt}, non gardalo: para {verb} hai que convertelo antes a PNG ou JPG, en Converter.", { fmt, verb });
 }
 
 /** Formatos que se poden gardar pero non teñen compresión propia (BMP, TIFF…): comprimir mantendo o formato non ten sentido. */
 export function noCompressionNotice(ext: string): string {
-  return tr("O formato {fmt} non ten compresión propia, así que non se pode comprimir mantendo o formato. Convérteo antes a PNG ou JPG na pestana Converter.", { fmt: ext.toUpperCase() });
+  return tr("O {fmt} non ten compresión propia: convérteo antes a PNG ou JPG, en Converter.", { fmt: ext.toUpperCase() });
 }
 
 /** Imaxe animada que a ferramenta non sabe tratar sen perder os fotogramas (só se garda un). */
 export function animatedNotice(ext: string, tool: LockTool): string {
   const fmt = ext.toUpperCase();
   const verb = tr(VERB[tool]);
-  const gifOnly = tool === "editar" ? "" : " " + tr("O trasno só sabe {verb} sen perder a animación os GIF.", { verb });
-  return tr("Este {fmt} é animado: {verbLo} só gardaría un fotograma e perderíase a animación, así que non se pode {verb} directamente.", { fmt, verb, verbLo: tr(VERB_LO[tool]).toLowerCase() }) + gifOnly;
+  const gifOnly = tool === "editar" ? "" : " " + tr("Só sei {verb} GIF sen perder a animación.", { verb });
+  return tr("Este {fmt} é animado: {verbLo} só gardaría un fotograma.", { fmt, verb, verbLo: tr(VERB_LO[tool]).toLowerCase() }) + gifOnly;
 }
 
 /** Aviso de que unha imaxe animada pasa a un formato que só garda un fotograma. */
@@ -65,7 +65,7 @@ export const CLIP_TARGETS = ["gif", "webp"];
 /** Documentos de texto plano: pódense maquetar nun PDF. */
 export const PLAIN_TEXT = ["txt", "md", "csv", "json", "xml", "log"];
 
-/** Lexendas: vense como texto, convértense entre elas (e a UTF-8) e resincronízanse. */
+/** Subtítulos: vense como texto, convértense entre eles (e a UTF-8) e resincronízanse. */
 export const SUBTITLE_EXTS = ["srt", "vtt", "ass", "ssa"];
 export const SUBTITLE_TARGETS = ["srt", "vtt", "ass"];
 
@@ -104,32 +104,32 @@ export function targetsForCategory(category: Category, sourceExt?: string): stri
 
 /** Frases de éxito: ao azar, para que non soen sempre igual. */
 export const TRASNO_LISTO = [
-  "Feito! O trasno rematou sen romper nin un prato.",
-  "Listo! Cousa de fogar: o trasno deixou todo no seu sitio (esta vez de verdade).",
-  "Xa está! Aínda non cantou o galo e o trasno xa tiña isto feito.",
-  "Rematado! O trasno tocou o gorro vermello e deu o traballo por bo.",
-  "Todo correcto! Esta vez o trasno non tivo que facer ningunha trasnada.",
+  "Feito! Rematei sen romper nin un prato.",
+  "Listo! Cousa de fogar: deixei todo no seu sitio (esta vez de verdade).",
+  "Xa está! Aínda non cantou o galo e eu xa tiña isto feito.",
+  "Rematado! Toquei o gorro vermello e dei o traballo por bo.",
+  "Todo correcto! Esta vez non tiven que facer ningunha trasnada.",
 ];
 
 /** Frases de fallo por tipo de traballo (tamén ao azar). */
 export const TRASNO_FALLO: Record<string, string[]> = {
   convertendo: [
-    "Vaites! O trasno enredouse na conversión.",
+    "Vaites! Enredeime na conversión.",
     "Ouh! Trasnada de última hora: a conversión non saíu.",
-    "Caramba! Ata o trasno perde o fío ás veces: a conversión fallou.",
+    "Caramba! Ata un trasno perde o fío ás veces: a conversión fallou.",
   ],
   unindo: [
-    "Vaites! Os ficheiros fixéronlle unha trasnada ao trasno e non se deixaron unir.",
-    "Ouh! O trasno perdeu a agulla mentres cosía os ficheiros.",
+    "Vaites! Os ficheiros fixéronme unha trasnada e non se deixaron unir.",
+    "Ouh! Perdín a agulla mentres cosía os ficheiros.",
   ],
   editando: [
-    "Vaites! O trasno escorregou co gorro posto durante a edición.",
-    "Ouh! A ferramenta escapóuselle ao trasno mentres editaba.",
+    "Vaites! Escorregei co gorro posto durante a edición.",
+    "Ouh! A ferramenta escapóuseme mentres editaba.",
     "Caramba! Algo se enredou na edición.",
   ],
   comprimindo: [
-    "Vaites! A compresión foi máis teimuda ca o trasno.",
-    "Ouh! O trasno apertou, apertou… e non houbo maneira.",
+    "Vaites! A compresión foi máis teimuda ca min.",
+    "Ouh! Apertei, apertei… e non houbo maneira.",
   ],
 };
 
@@ -145,11 +145,11 @@ export function listo(): string {
 /** Frases do trasno, o duende que fai o traballo de fondo. O texto en galego
  * é a chave de tradución: pásase por `tr()` / `$t()` ao amosalo. */
 export const TRASNO = {
-  traballando: "O trasno arremanga e ponse a traballar…",
-  convertendo: "O trasno está convertendo… xa case!",
-  unindo: "O trasno está cosendo os ficheiros…",
-  abrindo: "O trasno está abrindo o modelo…",
-  comprimindo: "O trasno está apertando os ficheiros… paciencia!",
+  traballando: "Arremango e póñome a traballar…",
+  convertendo: "Estou convertendo… xa case!",
+  unindo: "Estou cosendo os ficheiros…",
+  abrindo: "Estou abrindo o modelo…",
+  comprimindo: "Estou apertando os ficheiros… paciencia!",
 };
 
 export function extensionOf(path: string): string {

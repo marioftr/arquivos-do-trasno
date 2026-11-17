@@ -17,11 +17,11 @@
       void refreshOffice();
       const s = await refreshTools();
       const found = [!before?.ffmpeg && s.ffmpeg ? "FFmpeg" : "", !before?.mkvmerge && s.mkvmerge ? "MKVToolNix" : ""].filter(Boolean);
-      if (found.length) toast(tr("O trasno atopou {list}. Xa non fai falta descargalo.", { list: found.join(" e ") }));
-      else if (s.ffmpeg && s.mkvmerge) toast(tr("O trasno revisou o almacén: ten todas as ferramentas."));
+      if (found.length) toast(tr("Atopei {list}. Xa non fai falta descargalo.", { list: found.join(" e ") }));
+      else if (s.ffmpeg && s.mkvmerge) toast(tr("Revisei o almacén: teño todas as ferramentas."));
       else toast(tr("O que falta non aparece por ningunha parte. Se o acabas de instalar, pecha e abre a aplicación unha vez."), { kind: "warn", ms: 8000 });
     } catch {
-      toast(tr("O trasno non puido revisar o almacén. Tenta de novo."), { kind: "warn" });
+      toast(tr("Non puiden revisar o almacén. Tenta de novo."), { kind: "warn" });
     } finally {
       checking = false;
     }
@@ -64,7 +64,7 @@
 
 <div class="panel">
   <p class="muted lead">
-    {$t("Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: o trasno pode descargalos por ti ou podes instalalos ti e a app detectaos soa.")}
+    {$t("Arquivos do Trasno traballa só coas imaxes, os PDF e o 3D. Para audio, vídeo e MKV axúdase de dous programas gratuítos que non van incluídos: pode descargalos por ti ou podes instalalos ti e detéctaos soa.")}
   </p>
   <p class="muted lead">
     {$t("Para os documentos de Office usa Microsoft Office ou LibreOffice, se algún dos dous está instalado.")}
@@ -86,7 +86,7 @@
         {office === null ? $t("Comprobando…") : officeAny ? $t("Instalado") : $t("Non atopado")}
       </span>
     </div>
-    <p class="muted">{$t("Para converter documentos de Office (DOCX, XLSX, PPTX, ODT…) a PDF e entre si, o trasno usa Microsoft Office ou LibreOffice, o que haxa instalado. Non van incluídos nin se descargan desde a app, e o trasno non lles envía nada á rede.")}</p>
+    <p class="muted">{$t("Para converter documentos de Office (DOCX, XLSX, PPTX, ODT…) a PDF e entre si uso Microsoft Office ou LibreOffice, o que haxa instalado. Non van incluídos nin se descargan desde a app, e non lles envío nada á rede.")}</p>
     <p><span class="muted">{$t("Desbloquea:")}</span> {$t("Converter documentos de Office a PDF e a outros formatos, e velos no visor.")}</p>
     {#if office}
       <p class="progs">
@@ -126,7 +126,7 @@
         </div>
       {:else if confirming === key}
         <div class="ask">
-          <p>{$t("O trasno descargará {name} (uns {size}) de {source}, comprobará que o ficheiro está íntegro e deixarao na súa carpeta de datos. Non fai falta ser administrador.", { name: it.name, size: it.size, source: it.source })}</p>
+          <p>{$t("Descargarei {name} (uns {size}) de {source}, comprobarei que o ficheiro está íntegro e deixareino na miña carpeta de datos. Non fai falta ser administrador.", { name: it.name, size: it.size, source: it.source })}</p>
           <div class="acts">
             <button class="btn primary" on:click={() => accept(key)}>{$t("Aceptar e descargar")}</button>
             <button class="btn" on:click={() => (confirming = null)}>{$t("Agora non")}</button>

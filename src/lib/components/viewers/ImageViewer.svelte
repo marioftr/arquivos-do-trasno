@@ -333,7 +333,7 @@
     >
       {#if failed}
         <div class="msg">
-          <p class="muted">{$t("O trasno non puido preparar unha vista previa de {ext}.", { ext: file.ext.toUpperCase() })}</p>
+          <p class="muted">{$t("Non puiden preparar unha vista previa de {ext}.", { ext: file.ext.toUpperCase() })}</p>
           <button class="btn" on:click={() => load(file.path)}>{$t("Tentar de novo")}</button>
         </div>
       {:else if url}
@@ -377,7 +377,7 @@
     </div>
   </div>
   {#if converted}
-    <p class="note" role="note">{$t("Vista previa convertida a PNG só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t("O visor da app é o dun navegador, que non le o formato {ext}. Por iso o trasno fai unha copia temporal en PNG só para velo. O orixinal non se toca e as ferramentas parten sempre del.", { ext: file.ext.toUpperCase() })} /></p>
+    <p class="note" role="note">{$t("Vista previa convertida a PNG")}<InfoTip text={$t("O visor é o dun navegador e non le {ext}: uso unha copia en PNG só para velo. As ferramentas parten sempre do orixinal.", { ext: file.ext.toUpperCase() })} /></p>
   {/if}
   <div class="bar" class:tinybar={tiny} bind:clientWidth={barW}>
     <button class="btn" class:on={fit} on:click={() => (fit = true)}>{$t("Axustar")}</button>

@@ -269,7 +269,7 @@
         try {
           info = await engine.probeMedia(path);
         } catch {
-          note = tr("Sen ffmpeg non se pode ler a información de audio e vídeo.");
+          note = tr("Sen ffmpeg non podo ler a información de audio e vídeo.");
           const b = await engine.fileInfo(path);
           if (path === file.path) summary = b.summary.map((g) => ({ title: g.title, rows: g.rows }));
           return;

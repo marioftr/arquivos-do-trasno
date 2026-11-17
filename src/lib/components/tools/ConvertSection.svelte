@@ -20,6 +20,7 @@
   import Toggle from "../ui/Toggle.svelte";
   import PhotoMeta from "../ui/PhotoMeta.svelte";
   import Segmented from "../ui/Segmented.svelte";
+  import { IMAGE_LEVELS } from "../../levels";
   import { NO_ALPHA, BACKGROUNDS, anyTransparent, backdrop, cssOf, type Bg } from "../../transparency";
   import JobStatus from "../ui/JobStatus.svelte";
 
@@ -27,11 +28,14 @@
   export let category: Category;
 
   const MAX_CONCURRENT = 3;
-  const PRESETS = [
-    { label: "WhatsApp", value: 55, hint: "Máis lixeiro, ideal para enviar rápido" },
-    { label: "Web", value: 75, hint: "Equilibrio entre peso e nitidez" },
-    { label: "Arquivo", value: 95, hint: "Case sen perdas, para gardar" },
-  ];
+  // Nivel de calidade con nome: coincide co valor do desprazador ou é «Personalizado».
+  let customPicked = false;
+  $: level = customPicked ? "custom" : IMAGE_LEVELS.find((l) => l.jpg === $form.quality)?.id ?? "custom";
+  function pickLevel(id: string | number) {
+    customPicked = id === "custom";
+    const l = IMAGE_LEVELS.find((x) => x.id === id);
+    if (l) $form.quality = l.jpg;
+  }
 
   const first = selection[0];
   const multi = selection.length > 1;
@@ -214,8 +218,8 @@
     await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT, selection.length) }, worker));
     const bad = results.filter((r) => r.state === "erro").length;
     job.say(!bad, bad
-      ? tr("Vaites! {bad} de {total} ficheiros escapáronlle ao trasno.", { bad, total: selection.length })
-      : tr("Feito! O trasno gardou os {n} ficheiros en {dir} sen perder nin un.", { n: selection.length, dir: fileNameOf(dir) }));
+      ? tr("Vaites! {bad} de {total} ficheiros escapáronseme.", { bad, total: selection.length })
+      : tr("Feito! Gardei os {n} ficheiros en {dir} sen perder nin un.", { n: selection.length, dir: fileNameOf(dir) }));
     job.busy.set(false);
   }
 </script>
@@ -248,19 +252,20 @@
     {/if}
 
     {#if canLossless}
-      <Toggle label={$t("Sen perdas")} bind:checked={$form.lossless} hint={$t("Conserva exactamente a calidade do orixinal, sen compresión con perdas. O ficheiro resultante pesa moito máis e o proceso tarda máis.")} />
+      <Toggle label={$t("Sen perdas")} bind:checked={$form.lossless} hint={$t("Sen perder calidade: o ficheiro pesa moito máis e tarda máis.")} />
     {/if}
 
     <div class="locked" class:on={exact} inert={exact}>
     {#if category === "imaxe" && $form.targetExt === "pdf"}
       <GroupNote text={$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")} />
     {:else if category === "imaxe"}
-      <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto = mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL)")} />
       <Segmented
-        label={$t("Preaxustes de calidade")}
-        options={PRESETS.map((p) => ({ value: p.value, label: $t(p.label), detail: `${p.value} %`, hint: $t(p.hint) }))}
-        bind:value={$form.quality}
+        label={$t("Nivel de calidade")}
+        options={[...IMAGE_LEVELS.map((l) => ({ value: l.id, label: $t(l.label), detail: `${l.jpg} %`, hint: $t(l.hint) })), { value: "custom", label: $t("Personalizado") }]}
+        value={level}
+        on:pick={(e) => pickLevel(e.detail)}
       />
+      <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto: mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL).")} />
       <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} supported={engine.META_EXTS.includes($form.targetExt)} disabled={$busy} />
       {#if multi}
         <NumberField label={$t("Lado máximo")} unit="px" min={1} placeholder={$t("orixinal")} bind:value={$form.maxSide} def={null} />
@@ -272,14 +277,13 @@
         <Toggle label={$t("Manter proporción")} bind:checked={$form.keepRatio} />
       {/if}
     {:else if category === "video" && AUDIO_TARGETS.includes($form.targetExt)}
-      <GroupNote text={$t("Só se garda o son do vídeo.")} />
-      <Slider label={$t("Bitrate de audio")} unit="kbps" min={32} max={320} step={8} bind:value={$form.audioBitrate} def={form.defaults.audioBitrate} hint={$t("Máis alto = máis calidade e máis tamaño")} />
+      <Slider label={$t("Bitrate de audio")} unit="kbps" min={32} max={320} step={8} bind:value={$form.audioBitrate} def={form.defaults.audioBitrate} hint={$t("Máis alto: máis calidade e máis peso.")} />
     {:else if toClip}
-      <GroupNote text={$t("Sae unha imaxe animada, sen son. Nunca pasa da cadencia nin do ancho do vídeo.")} />
-      <Slider label={$t("Fotogramas por segundo")} unit="fps" min={5} max={30} step={1} bind:value={$form.clipFps} def={form.defaults.clipFps} hint={$t("Máis alto = movemento máis fluído e máis peso")} />
+      <GroupNote text={$t("Imaxe animada sen son, sen superar a cadencia nin o ancho do vídeo.")} />
+      <Slider label={$t("Fotogramas por segundo")} unit="fps" min={5} max={30} step={1} bind:value={$form.clipFps} def={form.defaults.clipFps} hint={$t("Máis alto: movemento máis fluído e máis peso.")} />
       <NumberField label={$t("Ancho máximo")} unit="px" min={16} placeholder={$t("orixinal")} bind:value={$form.clipWidth} def={form.defaults.clipWidth} />
       {#if $form.targetExt === "webp"}
-        <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.clipQuality} def={form.defaults.clipQuality} hint={$t("Máis alto = mellor imaxe e máis peso")} />
+        <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.clipQuality} def={form.defaults.clipQuality} hint={$t("Máis alto: mellor imaxe e máis peso.")} />
       {/if}
     {:else if isMedia}
       <Slider
@@ -290,10 +294,8 @@
         step={category === "audio" ? 8 : 100}
         bind:value={$form.bitrate}
         def={form.defaults.bitrate}
-        hint={$t("Máis alto = máis calidade e máis tamaño")}
+        hint={$t("Máis alto: máis calidade e máis peso.")}
       />
-    {:else if category === "modelo3d" && !ENGINE_3D.includes(first.ext)}
-      <GroupNote text={$t("Os FBX e glTF conviértense co mesmo cargador do visor.")} />
     {/if}
     </div>
   </div>

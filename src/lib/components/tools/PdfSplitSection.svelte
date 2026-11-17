@@ -79,11 +79,11 @@
     job.clear();
     try {
       for (let i = 0; i < list.length; i++) {
-        job.text.set(tr("O trasno está cortando o PDF: parte {n} de {total}…", { n: i + 1, total: list.length }));
+        job.text.set(tr("Estou cortando o PDF: parte {n} de {total}…", { n: i + 1, total: list.length }));
         const out = await join(dir, `${base}-${tr("parte")}-${String(i + 1).padStart(String(list.length).length, "0")}.pdf`);
         await engine.pdfExtractPages(file.path, list[i], out, false);
       }
-      job.say(true, `${listo()} ${tr("O trasno cortou o PDF en {n} partes en {dir}.", { n: list.length, dir: fileNameOf(dir) })}`);
+      job.say(true, `${listo()} ${tr("Cortei o PDF en {n} partes en {dir}.", { n: list.length, dir: fileNameOf(dir) })}`);
     } catch (e) {
       job.say(false, `${fallo("editando")}\n${errText(e)}`);
     } finally {
@@ -102,11 +102,9 @@
     bind:value={$form.mode}
   />
   <div class="group">
-    {#if $form.mode === "each"}
-      <GroupNote text={$t("Sairá un PDF por cada páxina.")} />
-    {:else if $form.mode === "every"}
+    {#if $form.mode === "every"}
       <NumberField label={$t("Páxinas por parte")} min={1} bind:value={$form.every} def={2} />
-    {:else}
+    {:else if $form.mode !== "each"}
       <TextField label={$t("Intervalos")} placeholder={$t("ex: 1-3; 4-6; 7")} bind:value={$form.ranges} hint={$t("Cada parte, separada por «;», vai a un PDF.")} />
     {/if}
     {#if preview !== null}<p class="group-note">{$t("Resultado: {n} PDF", { n: preview })} · {$t("O PDF ten {n} páxinas.", { n: total })}</p>{/if}

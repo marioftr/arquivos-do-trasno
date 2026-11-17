@@ -43,8 +43,8 @@
         const before = file.size ?? 0;
         const pct = before ? Math.round((1 - after / before) * 100) : 0;
         return pct > 0
-          ? tr("Listo! O trasno deixou o PDF en {to} ({pct} % menos; antes eran {from}).", { to: formatBytes(after), pct, from: formatBytes(before) })
-          : tr("O trasno fixo o que puido, pero este PDF xa estaba moi apretado: {to} (antes {from}).", { to: formatBytes(after), from: formatBytes(before) });
+          ? tr("Listo! Deixei o PDF en {to} ({pct} % menos; antes eran {from}).", { to: formatBytes(after), pct, from: formatBytes(before) })
+          : tr("Fixen o que puiden, pero este PDF xa estaba moi apretado: {to} (antes {from}).", { to: formatBytes(after), from: formatBytes(before) });
       });
     } catch (e) {
       job.say(false, `${fallo("comprimindo")}\n${errText(e)}`);
@@ -60,16 +60,16 @@
         { value: "low", label: $t("Pouca"), detail: $t("Calidade 85 %"), hint: $t("Mantén case todo; só limpa e comprime o que se pode sen perdas") },
         { value: "mid", label: $t("Recomendada"), detail: $t("Calidade 70 %"), hint: $t("Bo equilibrio entre peso e calidade") },
         { value: "high", label: $t("Extrema"), detail: $t("Calidade 45 %"), hint: $t("O máis pequeno posible; as imaxes perden nitidez") },
-        { value: "custom", label: $t("Personalizado"), hint: $t("Os valores que se queiran") },
+        { value: "custom", label: $t("Personalizado") },
       ]}
       bind:value={$form.level}
     />
     {#if $form.level === "custom"}
       <h4 class="group-title">{$t("Imaxes dentro do PDF")}</h4>
-      <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={70} hint={$t("Canto se conserva da imaxe. Máis alto pesa máis e perde menos detalle.")} />
+      <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={70} hint={$t("Máis alto: máis detalle e máis peso.")} />
       <Slider label={$t("Tamaño das imaxes")} unit="%" min={20} max={100} step={5} bind:value={$form.scale} def={75} hint={$t("100 % = sen reducir")} />
     {/if}
-    <GroupNote text={$t("Tamén se comprime o resto do contido e se quita o que non se usa.")} />
+    <GroupNote text={$t("Tamén comprime o resto do contido e quita o que non se usa.")} />
   </div>
   <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Comprimir PDF")}</button>
   <JobStatus {job} />

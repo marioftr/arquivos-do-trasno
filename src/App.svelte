@@ -49,7 +49,7 @@
   function sayNow() {
     if (dockOpen) return;
     const c = pickComment($viewCtx.category, $viewCtx.tool, $viewCtx.ext, $viewCtx.count);
-    trasnoSay(c.text, c.kind, 14000);
+    trasnoSay(c.text, c.kind, 14000, undefined, { quiet: true });
   }
   function scheduleTip(first = false) {
     clearTimeout(tipTimer);
@@ -191,7 +191,7 @@
   }
   const hhmm = (n: number) => new Date(n).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   $: lastAct = $actions[0];
-  $: voice = lastRun?.subtitle ?? (cancelling.size ? $t("O trasno está parando o traballo…") : null) ?? lastAct?.text ?? ($files.length ? $t("Listo cando queiras.") : $t("Arrastra algún ficheiro e poñémonos a elo."));
+  $: voice = lastRun?.subtitle ?? (cancelling.size ? $t("Estou parando o traballo…") : null) ?? lastAct?.text ?? ($files.length ? $t("Listo cando queiras.") : $t("Arrastra algún ficheiro e poñémonos a elo."));
   $: history = $actions.length ? `${$t("Últimas accións")}:\n` + $actions.map((x) => `${hhmm(x.at)}  ${x.text}`).join("\n") : "";
   $: runningProcs = $procs.filter((p) => p.state === "running").length;
   let ffmpegOk: boolean | null = null;
@@ -373,10 +373,14 @@
   </div>
   </div>
 
+  <!-- O que di o trasno (resultados, avisos, erros) lese en voz alta aos lectores de pantalla; os comentarios de compañía non. -->
+  <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{#if $bubble && $bubble.kind === "info" && !$bubble.quiet}{$t($bubble.text)}{/if}</div>
+  <div class="sr-only" role="alert" aria-live="assertive" aria-atomic="true">{#if $bubble?.kind === "warn"}{$t($bubble.text)}{/if}</div>
+
   <footer class="status">
     {#if !dockOpen}
       {#if $bubble}
-        <div class="bubble" class:tipb={$bubble.kind === "tip"} class:warnb={$bubble.kind === "warn"} role={$bubble.kind === "warn" ? "alert" : "status"} on:pointerenter={holdBubble} on:pointerleave={() => releaseBubble()}>
+        <div class="bubble" class:tipb={$bubble.kind === "tip"} class:warnb={$bubble.kind === "warn"} role="group" on:pointerenter={holdBubble} on:pointerleave={() => releaseBubble()}>
           <span class="bi"><Icon name={$bubble.kind === "tip" ? "bulb" : $bubble.kind === "warn" ? "warning" : "sparkles"} size={17} /></span>
           <span class="bt">{#if $bubble.kind === "tip"}<b>{$t("Sabías que…")}</b>{" "}{/if}{$t($bubble.text)}{#if $bubble.action}{" "}<button class="bact" on:click={() => { $bubble?.action?.run(); hideBubble(); }}>{$bubble.action.label}</button>{/if}</span>
           {#if $bubble.copy}<button class="bclose" on:click={() => copyText($bubble?.copy ?? "", "bubble")} aria-label={$t("Copiar")} title={$t("Copiar")}><Icon name={copied === "bubble" ? "check" : "copy"} size={14} /></button>{/if}
@@ -460,7 +464,7 @@
   <ToolNeedDialog />
 
   {#if dragging}
-    <div class="veil"><span>{$t("Solta os ficheiros para que o trasno os colla")}</span></div>
+    <div class="veil"><span>{$t("Solta os ficheiros e collo eu")}</span></div>
   {/if}
 </div>
 {/if}

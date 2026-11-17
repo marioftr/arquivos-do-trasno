@@ -116,14 +116,14 @@ export async function addPaths(input: string[]) {
   for (const [idx, path] of paths.entries()) {
     if (get(files).some((f) => f.path === path)) {
       // Xa estaba: avísase e queda á vista.
-      toast(tr("«{name}» xa estaba na lista. O trasno ten boa memoria: non o garda dúas veces.", { name: fileNameOf(path) }));
+      toast(tr("«{name}» xa estaba na lista: non o gardo dúas veces.", { name: fileNameOf(path) }));
       if (!selectedNew) activePath.set(path);
       selectedNew = true;
       continue;
     }
     const category = kinds[idx].c;
     if (!category) {
-      toast(tr("O trasno rebuscou en «{name}» e non foi quen de lelo. Estará danado ou protexido?", { name: fileNameOf(path) }), { kind: "warn" });
+      toast(tr("Rebusquei en «{name}» e non fun quen de lelo. Estará danado ou protexido?", { name: fileNameOf(path) }), { kind: "warn" });
       continue;
     }
     if (category === "descoñecido") {
@@ -131,7 +131,7 @@ export async function addPaths(input: string[]) {
         skipped++;
         continue;
       }
-      toast(tr("Un «.{ext}»? O trasno rabuña a cabeza: «{name}» non é cousa que saiba traballar.", { ext: extensionOf(path) || "?", name: fileNameOf(path) }), { kind: "warn" });
+      toast(tr("Un «.{ext}»? Rabuño a cabeza: «{name}» non é cousa que saiba traballar.", { ext: extensionOf(path) || "?", name: fileNameOf(path) }), { kind: "warn" });
       continue;
     }
     const entry: FileEntry = { path, name: fileNameOf(path), ext: extensionOf(path), category };
@@ -147,7 +147,7 @@ export async function addPaths(input: string[]) {
   const added = get(files).length - before;
   if (added === 1) noteAction("O trasno engadiu «{name}»", { name: get(files)[get(files).length - 1].name }, () => restoreFiles(beforeList));
   else if (added > 1) noteAction("O trasno engadiu {n} ficheiros", { n: added }, () => restoreFiles(beforeList));
-  if (skipped) toast(tr("O trasno deixou {n} ficheiros fóra da lista: non coñece ese tipo de cousas.", { n: skipped }), { kind: "warn" });
+  if (skipped) toast(tr("Deixei {n} ficheiros fóra da lista: non coñezo ese tipo de cousas.", { n: skipped }), { kind: "warn" });
 }
 
 // O último ficheiro quitado, para poder desfacelo.
@@ -407,7 +407,7 @@ export async function restoreSession() {
       await addPaths(alive);
       if (s.active && alive.includes(s.active)) activePath.set(s.active);
       checked.set(new Set((s.checked ?? []).filter((p) => alive.includes(p))));
-      if (missing > 0) toast(tr("Da última vez había {n} ficheiros que xa non están onde os deixaches. O trasno buscounos por todas partes e nada.", { n: missing }), { kind: "warn" });
+      if (missing > 0) toast(tr("Da última vez había {n} ficheiros que xa non están onde os deixaches. Busqueinos por todas partes e nada.", { n: missing }), { kind: "warn" });
     }
   } catch {
     // sesión rota: empézase en branco
@@ -437,7 +437,7 @@ export async function reimportFile(path: string) {
     category = null;
   }
   if (!category || category === "descoñecido") {
-    toast(tr("O trasno rebuscou en «{name}» e non foi quen de lelo. Estará danado ou protexido?", { name: old.name }), { kind: "warn" });
+    toast(tr("Rebusquei en «{name}» e non fun quen de lelo. Estará danado ou protexido?", { name: old.name }), { kind: "warn" });
     return;
   }
   const entry: FileEntry = { path, name: fileNameOf(path), ext: extensionOf(path), category };

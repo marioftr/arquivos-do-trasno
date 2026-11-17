@@ -16,7 +16,7 @@
 
   export let file: FileEntry;
 
-  /** Cambios de cadencia habituais (lexenda feita para → vídeo de). «Personalizado» deixa poñer os dous valores. */
+  /** Cambios de cadencia habituais (subtítulos feitos para → vídeo de). «Personalizado» deixa poñer os dous valores. */
   const FPS_PAIRS: Record<string, [number, number]> = {
     a: [23.976, 25],
     b: [25, 23.976],
@@ -24,7 +24,7 @@
     d: [25, 24],
   };
 
-  const form = createForm({ how: "shift", seconds: 0, fpsPair: "a", fromFps: 23.976, toFps: 25, firstAt: "", lastAt: "" }, "lexendas", "lexendas|" + file.path);
+  const form = createForm({ how: "shift", seconds: 0, fpsPair: "a", fromFps: 23.976, toFps: 25, firstAt: "", lastAt: "" }, "subtitulos", "subtitulos|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();
@@ -66,7 +66,7 @@
     const a = parseTime(f.firstAt);
     const b = parseTime(f.lastAt);
     if (a === null || b === null) throw new Error(tr("Escribe os dous tempos coma «0:01:02,5» (horas:minutos:segundos)."));
-    if (!info) throw new Error(tr("Aínda non se leu a lexenda."));
+    if (!info) throw new Error(tr("Aínda non se leron os subtítulos."));
     return engine.subtitleTwoPoints(info.first_start, info.last_start, a, b);
   }
 
@@ -88,14 +88,14 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Resincronizar a lexenda")}</h4>
-    <GroupNote text={$t("Se a lexenda sae adiantada, atrasada ou vai perdéndose pouco a pouco, aquí axústase.")} />
+    <h4 class="group-title">{$t("Resincronizar os subtítulos")}</h4>
+    <GroupNote text={$t("Axusta uns subtítulos que saen adiantados, atrasados ou que se van desfasando.")} />
     {#if info}
       <p class="muted info">
         {$t("{n} falas · a primeira empeza en {a} e a última en {b}.", { n: info.cues, a: clock(info.first_start), b: clock(info.last_start) })}
       </p>
       {#if info.encoding !== "UTF-8"}
-        <p class="warn">{$t("Esta lexenda está en {enc}, non en UTF-8: nalgúns reprodutores os acentos e os «ñ» saen mal. Ao gardala aquí quedará en UTF-8.", { enc: info.encoding })}</p>
+        <p class="warn">{$t("Estes subtítulos están en {enc}, non en UTF-8: nalgúns reprodutores os acentos e os «ñ» saen mal. Ao gardalos aquí quedan en UTF-8.", { enc: info.encoding })}</p>
         <button class="btn block" on:click={() => run(true)} disabled={$busy}>{$t("Gardar en UTF-8 sen cambiar nada máis")}</button>
       {/if}
     {:else if infoErr}
@@ -105,9 +105,9 @@
     <Segmented
       label={$t("Que lle pasa")}
       options={[
-        { value: "shift", label: $t("Desprazar"), hint: $t("Toda a lexenda vai igual de adiantada ou atrasada: sumas ou restas uns segundos.") },
-        { value: "fps", label: $t("Cadencia"), hint: $t("A lexenda foi feita para un vídeo con outras imaxes por segundo (23,976, 24, 25…) e vai perdendo o paso aos poucos.") },
-        { value: "points", label: $t("Dous puntos"), hint: $t("Indicas cando debe saír a primeira e a última fala e axústase todo o de enriba.") },
+        { value: "shift", label: $t("Desprazar"), hint: $t("Todos os subtítulos van igual de adiantados ou atrasados: suma ou resta segundos.") },
+        { value: "fps", label: $t("Cadencia"), hint: $t("Feitos para un vídeo con outra cadencia (23,976, 24, 25…): van perdendo o paso aos poucos.") },
+        { value: "points", label: $t("Dous puntos"), hint: $t("Indica cando debe saír a primeira e a última fala e axusto todo o demais.") },
       ]}
       bind:value={$form.how}
     />
@@ -117,7 +117,7 @@
     {:else if $form.how === "fps"}
       <Segmented
         label={$t("Cambio de cadencia")}
-        info={$t("Primeiro, a cadencia para a que se fixo a lexenda; despois, a do vídeo no que a vas usar. Personalizado: os valores que se queiran.")}
+        info={$t("Primeiro, a cadencia para a que se fixeron os subtítulos; despois, a do vídeo no que os vas usar.")}
         options={[
           { value: "a", label: "23,976 → 25" },
           { value: "b", label: "25 → 23,976" },
@@ -129,7 +129,7 @@
       />
       {#if $form.fpsPair === "custom"}
         <div class="pair">
-          <NumberField label={$t("Lexenda feita para")} unit="fps" step={0.001} min={1} max={240} bind:value={$form.fromFps} def={23.976} />
+          <NumberField label={$t("Subtítulos feitos para")} unit="fps" step={0.001} min={1} max={240} bind:value={$form.fromFps} def={23.976} />
           <NumberField label={$t("Vídeo de")} unit="fps" step={0.001} min={1} max={240} bind:value={$form.toFps} def={25} />
         </div>
       {/if}

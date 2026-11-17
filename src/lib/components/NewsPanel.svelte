@@ -51,13 +51,13 @@
           <ul class="notes selectable">{#each notes as n}<li>{n}</li>{/each}</ul>
         {/if}
         {#if hasMenu}
-          <Toggle label={$t("Actualizar tamén as entradas do menú do clic dereito")} bind:checked={refreshMenu} hint={$t("As entradas do Explorador apuntan ao programa instalado. Se está marcado, o trasno volve crealas coa versión nova ao reiniciar, para que sigan funcionando e leven as novidades do menú.")} />
+          <Toggle label={$t("Actualizar tamén as entradas do menú do clic dereito")} bind:checked={refreshMenu} hint={$t("As entradas do Explorador apuntan ao programa instalado. Se está marcado, créoas de novo coa versión nova ao reiniciar.")} />
         {/if}
         <button class="btn primary" on:click={() => installUpdate(hasMenu && refreshMenu)}><Icon name="download" size={14} /> {$t("Instalar e reiniciar")}</button>
       </div>
     {:else if $updState === "downloading"}
       <div class="box" role="status">
-        <p class="muted">{$t("O trasno está descargando a versión nova…")}</p>
+        <p class="muted">{$t("Estou descargando a versión nova…")}</p>
         <div class="bar"><div class="fill" style={`width:${Math.round($updProgress * 100)}%`}></div></div>
         <span class="muted pct">{Math.round($updProgress * 100)} %</span>
       </div>
@@ -65,13 +65,13 @@
       <Toggle label={$t("Buscar versións novas ao abrir a app")} bind:checked={$autoCheck} />
       <div class="row">
         <button class="btn" on:click={() => checkForUpdate(false)} disabled={$updState === "checking"}><Icon name="reset" size={14} /> {$updState === "checking" ? $t("Buscando…") : $t("Buscar actualizacións")}</button>
-        {#if $updState === "none"}<span class="muted">{$t("Tes a última versión. O trasno non ten nada pendente.")}</span>{/if}
+        {#if $updState === "none"}<span class="muted">{$t("Tes a última versión.")}</span>{/if}
       </div>
       {#if $updState === "error"}
-        <p class="warn selectable">{noRelease ? $t("Aínda non hai ningunha versión publicada en GitHub. O trasno non ten nada que ofrecerche por agora.") : $t("O trasno non puido comprobar as actualizacións. Revisa a conexión a internet e proba de novo.")}</p>
+        <p class="warn selectable">{noRelease ? $t("Aínda non hai ningunha versión publicada en GitHub.") : $t("Non puiden comprobar as actualizacións. Revisa a conexión a internet e proba de novo.")}</p>
       {/if}
     {/if}
-    <p class="muted note">{$t("As versións publícanse en GitHub. O trasno só descarga ficheiros asinados coa clave do seu autor.")}</p>
+    <p class="muted note">{$t("As versións publícanse en GitHub. Só descargo ficheiros asinados coa clave do seu autor.")}</p>
   </section>
 {/if}
 

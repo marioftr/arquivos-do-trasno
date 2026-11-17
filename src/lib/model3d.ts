@@ -392,7 +392,7 @@ export async function applyImports(obj: THREE.Object3D, modelPath: string, ext: 
         m.needsUpdate = true;
       }
     } catch (e) {
-      notes.push(tr("Non se puido cargar a textura {name}", { name: imp.path.split(/[\\/]/).pop() ?? imp.path }));
+      notes.push(tr("Non puiden cargar a textura {name}", { name: imp.path.split(/[\\/]/).pop() ?? imp.path }));
     }
   }
   return notes;

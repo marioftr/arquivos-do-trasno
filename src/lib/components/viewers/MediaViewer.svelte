@@ -363,7 +363,7 @@
       tick();
     } catch {
       selS = -1;
-      toast(tr("Estes subtítulos están nun formato que o trasno non entende. Non os puido ler."), { kind: "warn" });
+      toast(tr("Estes subtítulos están nun formato que non entendo; non os puiden ler."), { kind: "warn" });
     }
   }
   $: pickV = { video: selV, audio: selA };
@@ -571,7 +571,7 @@
 
   const tick_ = () => new Promise((r) => setTimeout(r, 120));
   const WHY_PREVIEW =
-    "O visor da app é o dun navegador, que só le uns poucos formatos (sobre todo MP4 e WebM). Por iso o trasno prepara unha copia temporal só para velo, coa mesma resolución. O orixinal non se toca e ao exportar parte sempre del.";
+    "O visor é o dun navegador e só le uns poucos formatos (sobre todo MP4 e WebM): preparo unha copia temporal só para velo, coa mesma resolución. Ao exportar parto sempre do ficheiro orixinal.";
   let preparing = false;
   let converted = false; // a vista previa non é o ficheiro orixinal (recodificada)
   let failMsg = "";
@@ -693,16 +693,16 @@
 <div class="wrap">
   {#if preparing}
     <div class="msg loading" role="status">
-      <p class="muted">{$t("O trasno está preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}<InfoTip text={$t(WHY_PREVIEW)} /></p>
+      <p class="muted">{$t("Estou preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}<InfoTip text={$t(WHY_PREVIEW)} /></p>
       <div class="indet" aria-hidden="true"><span></span></div>
     </div>
   {:else if failed}
     <div class="msg">
       <p class="muted">
-        {#if $tools && !$tools.ffmpeg}{$t("O trasno non pode preparar a vista previa porque falta ffmpeg.")}{:else}{$t("O trasno non puido preparar a vista previa.")}{/if}
+        {#if $tools && !$tools.ffmpeg}{$t("Non podo preparar a vista previa porque falta ffmpeg.")}{:else}{$t("Non puiden preparar a vista previa.")}{/if}
       </p>
       {#if failMsg && !($tools && !$tools.ffmpeg)}<p class="muted tiny selectable">{failMsg}</p>{/if}
-      {#if $tools && !$tools.ffmpeg}<button class="btn primary" on:click={() => requestTool("ffmpeg", tr("Para ver este vídeo ou audio o trasno precisa FFmpeg, que non está instalado."), retry)}>{$t("Instalar agora")}</button>
+      {#if $tools && !$tools.ffmpeg}<button class="btn primary" on:click={() => requestTool("ffmpeg", tr("Para ver este vídeo ou audio necesito FFmpeg, que non está instalado."), retry)}>{$t("Instalar agora")}</button>
       {:else}<button class="btn" on:click={retry}><Icon name="reset" size={14} /> {$t("Tentar de novo")}</button>{/if}
     </div>
   {:else if url && file.category === "video"}
@@ -717,7 +717,7 @@
         </div>
         <div class="under" bind:clientHeight={barH}>
           {#if converted}
-            <p class="note" role="note">{$t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
+            <p class="note" role="note">{$t("Vista previa recodificada")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
           {/if}
           <div class="ctl">
             <button class="btn icon" on:click={toggle} aria-label={playing ? $t("Pausa") : $t("Reproducir")} title={`${playing ? $t("Pausa") : $t("Reproducir")} (${$t("Espazo")})`}><Icon name={playing ? "pause" : "play"} size={15} /></button>
@@ -726,7 +726,7 @@
             <button class="btn icon ghost" on:click={() => (muted = !muted)} aria-label={$t("Silenciar")} title={`${$t("Silenciar")} (M)`}><Icon name={muted || vol === 0 ? "mute" : "volume"} size={15} /></button>
             <input class="vol" type="range" min="0" max="1" step="0.01" bind:value={vol} on:input={() => (muted = false)} aria-label={$t("Volume")} title={`${$t("Volume")}: ${Math.round(vol * 100)} %`} />
             {#if hasTracks}
-              <button class="btn ghost" class:on={panelOpen} on:click={() => (panelOpen = !panelOpen)} aria-pressed={panelOpen} title={$t("Escoller pista de vídeo, audio ou subtítulos")}><Icon name="sliders" size={15} /> {$t("Pistas")}</button>
+              <button class="btn ghost" class:on={panelOpen} on:click={() => (panelOpen = !panelOpen)} aria-pressed={panelOpen}><Icon name="sliders" size={15} /> {$t("Pistas")}</button>
             {/if}
             <button class="btn icon ghost" on:click={fullscreen} aria-label={$t("Pantalla completa")} title={`${$t("Pantalla completa")} (F)`}><Icon name="expand" size={15} /></button>
           </div>
@@ -772,7 +772,7 @@
     <div class="audio">
       <div class="nome">{file.name}</div>
       <Timeline {duration} {now} {peaks} height={150} on:seek={(e) => seek(e.detail)} />
-      {#if !peaks.length}<span class="muted ph">{$t("O trasno está lendo as ondas do son…")}</span>{/if}
+      {#if !peaks.length}<span class="muted ph">{$t("Estou lendo as ondas do son…")}</span>{/if}
       <div class="ctl center">
         <button class="btn icon" on:click={toggle} aria-label={playing ? $t("Pausa") : $t("Reproducir")} title={`${playing ? $t("Pausa") : $t("Reproducir")} (${$t("Espazo")})`}><Icon name={playing ? "pause" : "play"} size={15} /></button>
         <span class="muted time">{fmt(now)} / {fmt(duration)}</span>
@@ -780,7 +780,7 @@
         <input class="vol" type="range" min="0" max="1" step="0.01" bind:value={vol} on:input={() => (muted = false)} aria-label={$t("Volume")} title={`${$t("Volume")}: ${Math.round(vol * 100)} %`} />
       </div>
       {#if converted}
-        <p class="note audionote" role="note">{$t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
+        <p class="note audionote" role="note">{$t("Vista previa recodificada")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
       {/if}
       <audio bind:this={el} crossorigin="anonymous" src={url} on:error={() => prepare()} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></audio>
     </div>

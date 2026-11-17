@@ -85,9 +85,9 @@
   $: tracker?.update({ progress: pct / 100, outputs: items.filter((i) => i.out).map((i) => i.out!) });
 
   const CANCEL_PHRASES = [
-    "Vale, o trasno déixao estar e recolle as ferramentas.",
-    "Proceso cancelado: o trasno gárdase o gorro e aquí non pasou nada.",
-    "Cancelado! O trasno borra as pegadas e non di nada.",
+    "Vale, déixoo estar e recollo as ferramentas.",
+    "Proceso cancelado: gardo o gorro e aquí non pasou nada.",
+    "Cancelado! Borro as pegadas e non digo nada.",
   ];
 
   /** Cancelar: para o ffmpeg e o resto da lista. `partial` borra só o que quedou a medias; `all` tamén o que xa estaba rematado. */
@@ -279,7 +279,7 @@
     {@const busy = $installing?.tool === missing ? $installing : null}
     <section class="need">
       <p><strong>{$t("Falta un complemento")}</strong></p>
-      <p class="muted">{$t("Para facer isto o trasno precisa {name}, que non está instalado.", { name: info.name })}</p>
+      <p class="muted">{$t("Para facer isto necesito {name}, que non está instalado.", { name: info.name })}</p>
       {#if busy}
         {@const p = Math.round(overall(busy) * 100)}
         <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={p}><div class="fill" style={`width:${p}%`}></div></div>
@@ -302,9 +302,9 @@
     {#if asking}
       <span class="ask">{$t("Cancelar o traballo?")}</span>
       <div class="acts">
-        <button class="btn danger" on:click={() => doCancel("partial")} title={$t("Para o traballo e borra só o ficheiro que quedaba a medias")}>{$t("Borrar só o incompleto")}</button>
+        <button class="btn danger" on:click={() => doCancel("partial")}>{$t("Borrar só o incompleto")}</button>
         {#if doneCount > 0}
-          <button class="btn danger" on:click={() => doCancel("all")} title={$t("Para o traballo e borra tamén o que xa estaba feito")}>{$t("Borrar todo")}</button>
+          <button class="btn danger" on:click={() => doCancel("all")}>{$t("Borrar todo")}</button>
         {/if}
         <button class="btn" on:click={() => (asking = false)}>{$t("Seguir")}</button>
       </div>
@@ -312,7 +312,7 @@
       <div class="acts"><button class="btn" on:click={() => (asking = true)}>{$t("Cancelar")}</button></div>
     {:else if finished}
       <div class="acts">
-        {#if !cancelMode && outs().length}<button class="btn" on:click={openFull} title={$t("Abre o resultado na aplicación completa, para velo ou seguir traballando con el")}><Icon name="open" size={14} /> {$t("Abrir co programa completo")}</button>{/if}
+        {#if !cancelMode && outs().length}<button class="btn" on:click={openFull}><Icon name="open" size={14} /> {$t("Abrir co programa completo")}</button>{/if}
         <button class="btn primary" on:click={() => win.destroy()}>{$t("Pechar")}</button>
       </div>
     {/if}

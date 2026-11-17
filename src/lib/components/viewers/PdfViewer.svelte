@@ -378,12 +378,12 @@
       const url = String(a.url ?? a.unsafeUrl ?? "");
       if (/^https?:\/\//i.test(url)) {
         toast(tr("Este PDF quere levarte a: {url}", { url: url.length > 70 ? `${url.slice(0, 70)}…` : url }), {
-          action: { label: tr("Abrir ligazón"), run: () => engine.openUrl(url).catch(() => toast(tr("A ligazón non se deixou abrir. O trasno ensaiou, pero nada."), { kind: "warn" })) },
+          action: { label: tr("Abrir ligazón"), run: () => engine.openUrl(url).catch(() => toast(tr("A ligazón non se deixou abrir. Ensaiei, pero nada."), { kind: "warn" })) },
           ms: 9000,
         });
       }
     } catch {
-      toast(tr("Esta ligazón apunta a un sitio que o trasno non atopa no PDF."), { kind: "warn" });
+      toast(tr("Esta ligazón apunta a un sitio que non atopo no PDF."), { kind: "warn" });
     }
   }
   /** Páxinas que quedan lonxe da pantalla liberan a súa imaxe (un PDF longo non enche a memoria). */

@@ -40,23 +40,23 @@
 <div class="wrap">
   {#if state === "loading"}
     <div class="msg" role="status">
-      <p class="muted">{$t("O trasno está preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}</p>
+      <p class="muted">{$t("Estou preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}</p>
       <div class="indet" aria-hidden="true"><span></span></div>
     </div>
   {:else if state === "missing"}
     <div class="msg">
-      <p>{$t("Para ver este documento fai falta Microsoft Office ou LibreOffice, e o trasno non atopa ningún dos dous neste equipo.")}</p>
+      <p>{$t("Para ver este documento fai falta Microsoft Office ou LibreOffice, e non atopo ningún dos dous neste equipo.")}</p>
       <button class="btn primary" on:click={() => openHub("settings.tools")}>{$t("Ver as extensións")}</button>
     </div>
   {:else if state === "failed"}
     <div class="msg">
-      <p class="muted">{$t("O trasno non puido preparar a vista previa.")}</p>
+      <p class="muted">{$t("Non puiden preparar a vista previa.")}</p>
       {#if failMsg}<p class="muted tiny selectable">{failMsg}</p>{/if}
       <button class="btn" on:click={load}><Icon name="reset" size={14} /> {$t("Tentar de novo")}</button>
     </div>
   {:else if pdf}
     <div class="pdf"><PdfViewer file={pdf} /></div>
-    <p class="note" role="note">{$t("Vista previa convertida a PDF só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t("O trasno convirte o documento a PDF con Microsoft Office ou LibreOffice para poder amosalo. A maquetación pode variar un pouco da que se ve no programa orixinal.")} /></p>
+    <p class="note" role="note">{$t("Vista previa convertida a PDF")}<InfoTip text={$t("Convirto o documento a PDF con Microsoft Office ou LibreOffice para amosalo; a maquetación pode variar un pouco.")} /></p>
   {/if}
 </div>
 

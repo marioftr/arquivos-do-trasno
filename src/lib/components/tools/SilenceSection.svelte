@@ -76,23 +76,23 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Cortar os silencios")}</h4>
-    <GroupNote text={$t("Quita os tramos sen son (pausas, respiracións, silencios longos) e xunta o que queda.")} />
+    <GroupNote text={$t("Quita os tramos sen son e xunta o que queda.")} />
 
     <Segmented
       label={$t("Que pausas se cortan")}
-      info={$t("Só se corta o que soa moi baixo e dura, polo menos, o tempo de cada perfil. Sempre queda un chisco de pausa a cada lado de cada corte para que non soe cortado de golpe.")}
+      info={$t("Corta as pausas máis longas ca o tempo indicado. Sempre queda un chisco de silencio a cada lado.")}
       options={[
-        { value: "suave", label: $t("Suave"), detail: $t("Pausas longas"), hint: $t("Só as pausas de máis de 1 segundo.") },
-        { value: "normal", label: $t("Normal"), detail: $t("Pausas habituais"), hint: $t("As pausas de máis de medio segundo.") },
-        { value: "forte", label: $t("Forte"), detail: $t("Case todas"), hint: $t("As pausas de máis de 0,3 segundos.") },
-        { value: "custom", label: $t("Personalizado"), hint: $t("Escolles ti o volume que conta como silencio, canto ten que durar e a pausa que queda.") },
+        { value: "suave", label: $t("Suave"), detail: $t("Pausas longas"), hint: $t("Máis de 1 segundo.") },
+        { value: "normal", label: $t("Normal"), detail: $t("Pausas habituais"), hint: $t("Máis de medio segundo.") },
+        { value: "forte", label: $t("Forte"), detail: $t("Case todas"), hint: $t("Máis de 0,3 segundos.") },
+        { value: "custom", label: $t("Personalizado") },
       ]}
       bind:value={$form.profile}
     />
     {#if $form.profile === "custom"}
-      <Slider label={$t("Volume de corte")} unit="dB" min={-60} max={-15} step={1} bind:value={$form.thresholdDb} def={-35} hint={$t("O que soe por debaixo deste volume conta como silencio. Máis preto de 0 = quita máis (tamén o son baixo).")} />
+      <Slider label={$t("Volume de corte")} unit="dB" min={-60} max={-15} step={1} bind:value={$form.thresholdDb} def={-35} hint={$t("O que soe por debaixo deste volume conta como silencio. Máis preto de 0, corta máis.")} />
       <Slider label={$t("Silencio mínimo")} unit="s" min={0.1} max={5} step={0.1} bind:value={$form.minSilence} def={0.5} hint={$t("Só se cortan os silencios que duran isto ou máis.")} />
-      <Slider label={$t("Pausa que se deixa")} unit="s" min={0} max={1} step={0.05} bind:value={$form.padding} def={0.1} hint={$t("Silencio que queda a cada lado de cada corte, para que as palabras non soen cortadas de golpe.")} />
+      <Slider label={$t("Pausa que se deixa")} unit="s" min={0} max={1} step={0.05} bind:value={$form.padding} def={0.1} hint={$t("Silencio que queda a cada lado dun corte, para non cortar as palabras en seco.")} />
     {/if}
   </div>
 

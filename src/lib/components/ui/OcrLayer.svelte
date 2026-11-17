@@ -109,7 +109,7 @@
   async function copy() {
     try {
       await navigator.clipboard.writeText(selectedText());
-      toast(tr("O trasno meteu o texto no portapapeis."));
+      toast(tr("Metín o texto no portapapeis."));
     } catch {
       toast(tr("O portapapeis púxose teimudo co texto. Tenta de novo."), { kind: "warn" });
     }

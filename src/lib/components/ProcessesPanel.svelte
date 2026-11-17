@@ -43,7 +43,7 @@
   <section>
     <h3>{$t("En marcha")}<span class="muted cnt">&nbsp;·&nbsp;{running.length}</span></h3>
     {#if !running.length}
-      <p class="muted note">{$t("Non hai ningún proceso en marcha. O trasno descansa.")}</p>
+      <p class="muted note">{$t("Non hai ningún proceso en marcha. Descanso.")}</p>
     {/if}
     {#each running as p (p.id)}
       <JobBar proc={p} pct={p.progress} large onCancel={cancel} />

@@ -366,7 +366,6 @@
         <PanelSection title={$t("Materiais")} meta={report.length ? String(report.length) : ""}>
         {#if report.length}
           <h4>{$t("Materiais")}</h4>
-          <p class="muted tiny">{$t("Preme un material para velo só a el.")}</p>
           <ul class="mats">
             {#each report as m, i}
               <li>
@@ -393,7 +392,7 @@
             <button class="btn ghost" on:click={() => (isolated = null)}>{$t("Mostrar todos os materiais")}</button>
           {/if}
         {:else if !status}
-          <p class="muted tiny">{$t("Este modelo non ten materiais: o trasno úsao en gris.")}</p>
+          <p class="muted tiny">{$t("Este modelo non ten materiais: úsoo en gris.")}</p>
         {/if}
 
         </PanelSection>

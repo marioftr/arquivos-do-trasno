@@ -206,7 +206,7 @@
   {#if total}
     <div class="group">
       <h4 class="group-title">{$t("Cortar")}</h4>
-      <GroupNote text={$t("Arrastra as asas da liña de tempo do visor ou usa os desprazadores. Só se garda o tramo elixido.")} />
+      <GroupNote text={$t("Arrastra as asas da liña de tempo do visor. Só se garda o tramo elixido.")} />
       <Slider label={$t("Inicio")} unit="s" min={0} max={total} step={0.1} bind:value={$form.start} def={0} />
       <Slider label={$t("Fin")} unit="s" min={0} max={total} step={0.1} bind:value={$form.end} def={total} />
       <div class="pair">
@@ -224,29 +224,29 @@
   {#if isVideo}
     <div class="group">
       <h4 class="group-title">{$t("Pista de son")}</h4>
-      <Toggle label={$t("Quitar o son")} bind:checked={$form.mute} hint={$t("O vídeo queda sen pista de son e os axustes de son desaparecen.")} />
+      <Toggle label={$t("Quitar o son")} bind:checked={$form.mute} />
     </div>
   {/if}
 
   <div class="group" class:off={$form.mute}>
     <h4 class="group-title">{$t("Volume")}</h4>
-    <Toggle label={$t("Igualar o volume")} bind:checked={$form.normalize} disabled={$form.mute} hint={$t("Iguala o volume percibido do ficheiro enteiro (EBU R128): mídese e despois súbese ou báixase todo o mesmo, así o que era baixo segue sendo baixo. Substitúe o multiplicador de volume.")} />
+    <Toggle label={$t("Igualar o volume")} bind:checked={$form.normalize} disabled={$form.mute} hint={$t("Leva o volume percibido de todo o ficheiro ao valor elixido (EBU R128). Substitúe o multiplicador de volume.")} />
     {#if $form.normalize}
       <Segmented
         label={$t("Perfil")}
-        info={$t("LUFS mide o volume que se percibe: canto máis preto de 0, máis alto.")}
+        info={$t("LUFS mide o volume percibido: canto máis preto de 0, máis alto.")}
         options={[
           { value: "streaming", label: $t("Streaming"), hint: $t("−14 LUFS: Spotify, YouTube e semellantes") },
           { value: "podcast", label: $t("Podcast"), hint: $t("−16 LUFS: voz para escoitar con auriculares") },
           { value: "emision", label: $t("Emisión"), hint: $t("−23 LUFS: radio e televisión (EBU R128)") },
-          { value: "custom", label: $t("Personalizado"), hint: $t("Escolles ti os tres valores.") },
+          { value: "custom", label: $t("Personalizado") },
         ]}
         bind:value={$form.profile}
       />
       {#if $form.profile === "custom"}
-        <Slider label={$t("Volume obxectivo")} unit="LUFS" min={-30} max={-8} step={0.5} bind:value={$form.lufs} def={-16} hint={$t("Volume percibido medio. Máis preto de 0 = máis alto.")} />
-        <Slider label={$t("Pico máximo")} unit="dBTP" min={-6} max={0} step={0.5} bind:value={$form.peak} def={-1.5} hint={$t("O punto máis alto que pode alcanzar o son. Por baixo de 0 evítase que distorsione.")} />
-        <Slider label={$t("Rango dinámico máximo")} unit="LU" min={1} max={30} step={1} bind:value={$form.range} def={11} hint={$t("Diferenza permitida entre o máis baixo e o máis alto. Se o ficheiro ten máis, comprímese para caber.")} />
+        <Slider label={$t("Volume obxectivo")} unit="LUFS" min={-30} max={-8} step={0.5} bind:value={$form.lufs} def={-16} />
+        <Slider label={$t("Pico máximo")} unit="dBTP" min={-6} max={0} step={0.5} bind:value={$form.peak} def={-1.5} hint={$t("O pico máis alto permitido. Por baixo de 0 non distorsiona.")} />
+        <Slider label={$t("Rango dinámico máximo")} unit="LU" min={1} max={30} step={1} bind:value={$form.range} def={11} hint={$t("Diferenza máxima entre o máis baixo e o máis alto; se hai máis, comprímese.")} />
       {/if}
     {:else}
       <Slider label={$t("Multiplicador de volume")} unit="×" min={0} max={4} step={0.05} bind:value={$form.volume} def={1} disabled={$form.mute} hint={$t("1 = igual que o orixinal")} />
@@ -255,8 +255,8 @@
 
   <div class="group" class:off={$form.mute}>
     <h4 class="group-title">{$t("Son")}</h4>
-    <Toggle label={$t("Quitar ruído de fondo")} bind:checked={$form.denoise} disabled={$form.mute} hint={$t("Reduce o ruído constante (zumbido, ventilador). O visor tarda un pouco en preparalo e logo amósao.")} />
-    <Toggle label={$t("Dar a volta ao son")} bind:checked={$form.reverse} disabled={$form.mute} hint={$t("O visor tarda un pouco en preparalo e logo amósao. Admite ata 20 minutos de son.")} />
+    <Toggle label={$t("Quitar ruído de fondo")} bind:checked={$form.denoise} disabled={$form.mute} hint={$t("Reduce o ruído constante (zumbido, ventilador). O visor tarda uns segundos en preparalo.")} />
+    <Toggle label={$t("Dar a volta ao son")} bind:checked={$form.reverse} disabled={$form.mute} hint={$t("O visor tarda uns segundos en preparalo. Máximo 20 minutos de son.")} />
     {#if auxState === "busy"}
       <p class="aux"><span class="spin"></span>{$t("Preparando o son para o visor…")}</p>
     {:else if auxState === "error"}
@@ -267,8 +267,8 @@
     {#if $form.fadeIn || $form.fadeOut}
       <Slider label={$t("Duración do esvaecer")} unit="s" min={0.1} max={30} step={0.1} bind:value={$form.fade} def={2} />
     {/if}
-    <Slider label={$t("Graves")} unit="dB" min={-12} max={12} step={1} bind:value={$form.bass} def={0} disabled={$form.mute} hint={$t("0 = sen cambios. Positivo = máis graves; negativo = menos.")} />
-    <Slider label={$t("Agudos")} unit="dB" min={-12} max={12} step={1} bind:value={$form.treble} def={0} disabled={$form.mute} hint={$t("0 = sen cambios. Positivo = máis agudos; negativo = menos.")} />
+    <Slider label={$t("Graves")} unit="dB" min={-12} max={12} step={1} bind:value={$form.bass} def={0} disabled={$form.mute} />
+    <Slider label={$t("Agudos")} unit="dB" min={-12} max={12} step={1} bind:value={$form.treble} def={0} disabled={$form.mute} />
     <Toggle label={$t("Eco")} bind:checked={$form.echo} disabled={$form.mute} />
     {#if $form.echo}
       <Slider label={$t("Atraso do eco")} unit="ms" min={20} max={2000} step={10} bind:value={$form.echoMs} def={300} />

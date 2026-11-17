@@ -239,7 +239,7 @@ pub fn edit_image(
     crate::integrity::ensure_distinct(&[input], output)?;
     // Unha imaxe animada só se leria polo primeiro fotograma: non se edita para non deixala fixa sen avisar.
     if crate::animated::is_animated(input) {
-        return Err(EngineError::IntegrityCheck("Esta imaxe é animada e editala só gardaría un fotograma: non se fai para non perder a animación.".into()));
+        return Err(EngineError::IntegrityCheck("Esta imaxe é animada: editala só gardaría un fotograma, así que non o fago.".into()));
     }
     let dst_ext = formats::extension_of(output).ok_or_else(|| EngineError::UnsupportedConversion {
         from: "imaxe".into(),

@@ -68,7 +68,7 @@
       // o texto tamén se pode seleccionar a man
     }
   }
-  const gone = (name: string) => toast(tr("«{name}» xa non está onde o deixou o trasno: puido moverse ou borrarse.", { name }), { kind: "warn" });
+  const gone = (name: string) => toast(tr("«{name}» xa non está onde o deixei: puido moverse ou borrarse.", { name }), { kind: "warn" });
   /** Abrir só le o ficheiro: nunca o modifica. Se xa non existe, avísase en lugar de intentalo. */
   async function openOut(outputs: string[]) {
     const here: string[] = [];

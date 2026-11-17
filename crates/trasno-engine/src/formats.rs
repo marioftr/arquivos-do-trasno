@@ -43,7 +43,7 @@ pub const DOCUMENT_EXTS: &[&str] = &[
     "pdf", "txt", "md", "csv", "json", "xml", "log", "html", "htm", "svg",
     // Documentos de Office: o motor non os le, convérteos Microsoft Office ou LibreOffice (ver `office`).
     "docx", "doc", "docm", "odt", "rtf", "xlsx", "xls", "xlsm", "ods", "pptx", "ppt", "pptm", "ppsx", "pps", "odp",
-    // Lexendas (ver `subtitles`): vense como texto, convértense entre elas e resincronízanse.
+    // Subtítulos (ver `subtitles`): vense como texto, convértense entre eles e resincronízanse.
     "srt", "vtt", "ass", "ssa",
 ];
 

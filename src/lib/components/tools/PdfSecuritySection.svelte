@@ -78,7 +78,7 @@
         <span class="lab">{$t("Contrasinal actual")}</span>
         <input type="password" bind:value={password} autocomplete="off" />
       </label>
-      <GroupNote text={$t("Hai que saber o contrasinal: o trasno quita o bloqueo, non o rompe.")} />
+      <GroupNote text={$t("Hai que saber o contrasinal: quito o bloqueo, non o rompo.")} />
     {/if}
   </div>
 

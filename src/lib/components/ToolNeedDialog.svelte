@@ -45,7 +45,7 @@
         </div>
       {:else}
         <p class="muted small">
-          {$t("O trasno descargará {name} (uns {size}) de {source}, comprobará que o ficheiro está íntegro e deixarao na súa carpeta de datos. Non fai falta ser administrador.", { name: info.name, size: info.size, source: info.source })}
+          {$t("Descargarei {name} (uns {size}) de {source}, comprobarei que o ficheiro está íntegro e deixareino na miña carpeta de datos. Non fai falta ser administrador.", { name: info.name, size: info.size, source: info.source })}
         </p>
         {#if $installError?.tool === n.tool}<p class="fail selectable">{$installError.text}</p>{/if}
         <div class="acts">

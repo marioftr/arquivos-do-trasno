@@ -145,14 +145,10 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{multi ? $t("Pistas dos ficheiros") : $t("Pistas do ficheiro")}</h4>
-    <p class="group-note">
-      {multi
-        ? $t("Escolle as pistas de cada ficheiro e ordénaas: sairá un só MKV. Non se recodifica nada.")
-        : $t("Quita ou reordena as pistas e cambia o nome ou o idioma. Non se recodifica nada.")}
-    </p>
+    <GroupNote text={multi ? $t("Escolle as pistas de cada ficheiro e ordénaas: sairá un só MKV. Non se recodifica nada.") : $t("Quita ou reordena as pistas e cambia o nome ou o idioma. Non se recodifica nada.")} />
     <div class="help">
-      <button class="btn ghost" on:click={() => engine.openLink("iso639-2")} title={$t("Abre a lista oficial de códigos de idioma (ISO 639-2) no navegador")}><Icon name="info" size={14} /> {$t("Códigos de idioma")}</button>
-      <button class="btn ghost" on:click={() => engine.openLink("mkvmerge-doc")} title={$t("Abre a documentación oficial de mkvmerge no navegador")}><Icon name="info" size={14} /> {$t("Guía de MKVToolNix")}</button>
+      <button class="btn ghost" on:click={() => engine.openLink("iso639-2")}><Icon name="info" size={14} /> {$t("Códigos de idioma")}</button>
+      <button class="btn ghost" on:click={() => engine.openLink("mkvmerge-doc")}><Icon name="info" size={14} /> {$t("Guía de MKVToolNix")}</button>
     </div>
     {#if multi}
       <ul class="legend">
@@ -162,7 +158,7 @@
     {#if loadError}
       <p class="group-note">{loadError}</p>
     {:else if loading}
-      <GroupNote text={$t("O trasno está lendo as pistas…")} />
+      <GroupNote text={$t("Lendo as pistas…")} />
     {:else}
       <div class="list">
         {#each rows as r, i (r.key)}

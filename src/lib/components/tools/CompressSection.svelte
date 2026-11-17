@@ -22,6 +22,7 @@
   import PhotoMeta from "../ui/PhotoMeta.svelte";
   import SelectField from "../ui/SelectField.svelte";
   import Segmented from "../ui/Segmented.svelte";
+  import { IMAGE_LEVELS, VIDEO_LEVELS } from "../../levels";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let selection: FileEntry[];
@@ -31,21 +32,16 @@
   const first = selection[0];
   const isImage = category === "imaxe";
 
-  const LEVELS = [
-    { label: "Calidade alta", crf: 23, detail: "Case igual", hint: "Case idéntico ao orixinal, pesa menos (CRF 23)" },
-    { label: "Equilibrada", crf: 28, detail: "Equilibrio", hint: "O mellor equilibrio entre peso e calidade (CRF 28)" },
-    { label: "Forte", crf: 33, detail: "Moi pequeno", hint: "Moi pequeno; nótanse perdas de nitidez (CRF 33)" },
-  ];
   const HEIGHTS = [0, 1080, 720, 480, 360];
 
   // Perfís de saída para vídeo: cada un fixa a calidade e os axustes de compatibilidade.
   // `deinterlace`: 0 non, 1 só se está entrelazado, 2 sempre (cadencia dobre, como facía o DV orixinal).
-  const PROFILES: Record<string, { label: string; hint: string; v: { crf: number; maxHeight: number; audioKbps: number; deinterlace: number; compat: boolean } }> = {
-    universal: { label: "Universal optimizado", hint: "MP4 H.264 que abre en móbiles, televisións e navegadores. Case idéntico ao orixinal e bastante máis lixeiro.", v: { crf: 20, maxHeight: 0, audioKbps: 160, deinterlace: 1, compat: true } },
-    minidv: { label: "Mini DV a MP4 (sen perda visible)", hint: "Para cintas dixitalizadas en AVI/DV: desentrelaza, calidade moi alta e MP4 que se ve en todas partes. Pesa moito menos que o AVI.", v: { crf: 18, maxHeight: 0, audioKbps: 192, deinterlace: 2, compat: true } },
-    youtube: { label: "Para subir a YouTube", hint: "Calidade alta e MP4 con «faststart», que é o que YouTube recomenda. Non reduce a resolución.", v: { crf: 18, maxHeight: 0, audioKbps: 192, deinterlace: 1, compat: true } },
-    movil: { label: "Móbil e mensaxería", hint: "Máis pequeno para enviar por WhatsApp ou correo: 720p e calidade equilibrada.", v: { crf: 26, maxHeight: 720, audioKbps: 128, deinterlace: 1, compat: true } },
-    custom: { label: "Personalizado", hint: "Axustas ti a calidade, a altura e o audio.", v: { crf: 28, maxHeight: 0, audioKbps: 128, deinterlace: 0, compat: false } },
+  const PROFILES: Record<string, { label: string; hint?: string; v: { crf: number; maxHeight: number; audioKbps: number; deinterlace: number; compat: boolean } }> = {
+    universal: { label: "Universal optimizado", hint: "MP4 H.264 que abre en móbiles, televisións e navegadores.", v: { crf: 20, maxHeight: 0, audioKbps: 160, deinterlace: 1, compat: true } },
+    minidv: { label: "Mini DV a MP4 (sen perda visible)", hint: "Para cintas dixitalizadas en AVI/DV: desentrelaza e dá calidade moi alta.", v: { crf: 18, maxHeight: 0, audioKbps: 192, deinterlace: 2, compat: true } },
+    youtube: { label: "Para subir a YouTube", hint: "Calidade alta e MP4 con «faststart», o que recomenda YouTube. Non reduce a resolución.", v: { crf: 18, maxHeight: 0, audioKbps: 192, deinterlace: 1, compat: true } },
+    movil: { label: "Móbil e mensaxería", hint: "720p e calidade equilibrada, para WhatsApp ou correo.", v: { crf: 26, maxHeight: 720, audioKbps: 128, deinterlace: 1, compat: true } },
+    custom: { label: "Personalizado", v: { crf: 28, maxHeight: 0, audioKbps: 128, deinterlace: 0, compat: false } },
   };
   const initialProfile = isImage ? "custom" : "universal";
   // Opcións segundo a orientación do vídeo: en vertical, as proporcións «de pé».
@@ -156,7 +152,7 @@
       { id, name, v: { mode: f.mode === "bitrate" ? "bitrate" : "quality", crf: f.crf, videoKbps: f.videoKbps, maxHeight: f.maxHeight, audioKbps: f.audioKbps, deinterlace: f.deinterlace, compat: f.compat, dar: f.dar } },
     ]);
     form.update((x) => ({ ...x, profile: `user:${id}` }));
-    toast(tr("Perfil «{name}» gardado: o trasno non o esquece.", { name }));
+    toast(tr("Perfil «{name}» gardado.", { name }));
     naming = false;
     newName = "";
   }
@@ -164,7 +160,22 @@
     ...Object.entries(PROFILES).map(([id, p]) => ({ value: id, label: $t(p.label) })),
     ...$savedProfiles.map((x) => ({ value: `user:${x.id}`, label: `★ ${x.name}` })),
   ];
-  $: profileHint = v.profile.startsWith("user:") ? $t("Perfil gardado por ti. Podes xestionalo en Axustes → Perfís de saída.") : $t(PROFILES[v.profile]?.hint ?? "");
+  // A «i» do perfil explica cada perfil fixo, un por liña (Personalizado e os teus perfís non levan texto).
+  $: profilesTip = Object.values(PROFILES).filter((p) => p.hint).map((p) => `${$t(p.label)}: ${$t(p.hint ?? "")}`).join(String.fromCharCode(10));
+
+  // Nivel de calidade con nome: coincide cos valores ou é «Personalizado» (os desprazadores de abaixo).
+  let customPicked = false;
+  $: imgLevel = customPicked ? "custom" : IMAGE_LEVELS.find((l) => (!hasLossy || v.quality === l.jpg) && (!hasPng || v.pngQuality === l.png))?.id ?? "custom";
+  $: vidLevel = customPicked ? "custom" : VIDEO_LEVELS.find((l) => l.crf === v.crf)?.crf ?? "custom";
+  function pickImageLevel(id: string | number) {
+    customPicked = id === "custom";
+    const l = IMAGE_LEVELS.find((x) => x.id === id);
+    if (l) form.update((f) => ({ ...f, quality: l.jpg, pngQuality: l.png }));
+  }
+  function pickVideoLevel(crf: string | number) {
+    customPicked = crf === "custom";
+    if (typeof crf === "number") form.update((f) => ({ ...f, crf }));
+  }
 
   let lastKey = "";
   function invalidate(key: string) {
@@ -244,8 +255,8 @@
     await job.run(TRASNO.comprimindo, fallo("comprimindo"), async () => {
       const before = (await engine.fileSize(first.path).catch(() => 0)) || (first.size ?? 0);
       const bytes = await compressOne(first, out, true);
-      if (!before) return tr("Listo! O trasno deixou o ficheiro en {to}.", { to: formatBytes(bytes) });
-      return tr("Listo! O trasno deixou o ficheiro en {to} ({pct}; antes eran {from}).", { from: formatBytes(before), to: formatBytes(bytes), pct: pct(before, bytes) });
+      if (!before) return tr("Listo! Deixei o ficheiro en {to}.", { to: formatBytes(bytes) });
+      return tr("Listo! Deixei o ficheiro en {to} ({pct}; antes eran {from}).", { from: formatBytes(before), to: formatBytes(bytes), pct: pct(before, bytes) });
     });
   }
 
@@ -284,8 +295,8 @@
     await Promise.all(Array.from({ length: Math.min(isImage ? 3 : 1, files.length) }, worker));
     const bad = results.filter((r) => r.state === "erro").length;
     job.say(!bad, bad
-      ? tr("Vaites! {bad} de {total} ficheiros escapáronlle ao trasno.", { bad, total: files.length })
-      : tr("Feito! O trasno comprimiu {n} ficheiros en {dir}: de {from} a {to}.", { n: files.length, dir: fileNameOf(dir), from: formatBytes(before), to: formatBytes(after) }));
+      ? tr("Vaites! {bad} de {total} ficheiros escapáronseme.", { bad, total: files.length })
+      : tr("Feito! Comprimín {n} ficheiros en {dir}: de {from} a {to}.", { n: files.length, dir: fileNameOf(dir), from: formatBytes(before), to: formatBytes(after) }));
     job.busy.set(false);
   }
 </script>
@@ -302,12 +313,12 @@
         on:change={(e) => pickProfile(String(e.detail))}
         options={profileOptions}
         def={initialProfile}
+        hint={profilesTip}
       />
-      <p class="group-note">{profileHint}</p>
       {#if !isImage}
         <Segmented
           label={$t("Relación de aspecto")}
-          info={$t("Só para vídeos que se ven esticados ou aplastados; no resto convén deixalo en orixinal.")}
+          info={$t("Só para vídeos que se ven esticados ou aplastados.")}
           options={DARS.map((d) => ({ value: d, label: d ? d.replace("/", ":") : $t("orixinal") }))}
           bind:value={$form.dar}
         />
@@ -318,8 +329,8 @@
   <Segmented
     label={$t("Como se axusta o peso")}
     info={isImage
-      ? $t("Por calidade: un valor fixo de calidade, e o peso depende da imaxe. Tamaño máximo: o trasno busca a calidade máis alta que quede por debaixo do límite.")
-      : $t("Por calidade: un valor fixo de calidade, e o peso depende do vídeo. Por bitrate: unha cantidade fixa de datos por segundo. Tamaño máximo: o trasno busca a calidade máis alta que quede por debaixo do límite.")}
+      ? $t("Por calidade: calidade fixa; o peso depende da imaxe. Tamaño máximo: busco a calidade máis alta que quede por debaixo do límite.")
+      : $t("Por calidade: calidade fixa; o peso depende do vídeo. Por bitrate: datos por segundo fixos. Tamaño máximo: busco a calidade máis alta que quede por debaixo do límite.")}
     options={isImage
       ? [
           { value: "quality", label: $t("Por calidade") },
@@ -339,26 +350,31 @@
         <NumberField label={$t("Pesar menos de")} min={1} step="any" bind:value={$form.sizeValue} def={form.defaults.sizeValue} />
         <SelectField label={$t("Unidade")} bind:value={$form.unit} options={UNITS.map((u) => ({ value: u.id, label: u.id }))} def={form.defaults.unit} />
       </div>
-      <p class="group-note">
-        {multi ? $t("Cada ficheiro quedará por debaixo de {size}.", { size: `${v.sizeValue} ${v.unit}` }) : $t("O resultado quedará por debaixo de {size}.", { size: `${v.sizeValue} ${v.unit}` })}
-      </p>
       {#if tooSmall}<p class="warn">{$t("Aviso: con este tamaño o vídeo quedará con moi pouca calidade.")}</p>{/if}
     {:else if v.mode === "bitrate" && !isImage}
-      <Slider label={$t("Bitrate de vídeo")} unit="kbps" min={200} max={12000} step={100} bind:value={$form.videoKbps} def={form.defaults.videoKbps} hint={$t("Cantidade de datos por segundo da imaxe: máis alto = máis calidade e máis peso")} />
+      <Slider label={$t("Bitrate de vídeo")} unit="kbps" min={200} max={12000} step={100} bind:value={$form.videoKbps} def={form.defaults.videoKbps} hint={$t("Datos por segundo da imaxe: máis alto, máis calidade e máis peso.")} />
     {:else if isImage}
+      <Segmented
+        label={$t("Nivel de calidade")}
+        info={hasPng ? $t("Nos PNG equivalen a 60, 80 e 100 %.") : ""}
+        options={[...IMAGE_LEVELS.map((l) => ({ value: l.id, label: $t(l.label), detail: `${hasLossy ? l.jpg : l.png} %`, hint: $t(l.hint) })), { value: "custom", label: $t("Personalizado") }]}
+        value={imgLevel}
+        on:pick={(e) => pickImageLevel(e.detail)}
+      />
       {#if hasLossy}
-        <Slider label={hasPng ? $t("Calidade (JPG, WebP…)") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={hasGif ? $t("Nos GIF, menos calidade significa menos cores na paleta; os fotogramas e os seus tempos non se tocan.") : undefined} />
+        <Slider label={hasPng ? $t("Calidade (JPG, WebP…)") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={hasGif ? $t("Nos GIF, menos calidade son menos cores; os fotogramas non cambian.") : undefined} />
       {/if}
       {#if hasPng}
-        <Slider label={hasLossy ? $t("Calidade do PNG") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.pngQuality} def={form.defaults.pngQuality} hint={$t("100 % non cambia ningún píxel: o ficheiro pode pesar menos porque se volve gardar coa máxima compresión e, se non o pides, sen metadatos (EXIF). Por baixo, o PNG reduce o número de cores (paleta) para pesar menos, sen perder a transparencia.")} />
+        <Slider label={hasLossy ? $t("Calidade do PNG") : $t("Calidade")} unit="%" min={10} max={100} bind:value={$form.pngQuality} def={form.defaults.pngQuality} hint={$t("100 %: non cambia ningún píxel. Menos: reduce as cores para pesar menos, sen perder a transparencia.")} />
       {/if}
     {:else}
       <Segmented
         label={$t("Nivel de calidade")}
-        options={LEVELS.map((l) => ({ value: l.crf, label: $t(l.label), detail: $t(l.detail), hint: $t(l.hint) }))}
-        bind:value={$form.crf}
+        options={[...VIDEO_LEVELS.map((l) => ({ value: l.crf, label: $t(l.label), detail: `CRF ${l.crf}`, hint: $t(l.hint) })), { value: "custom", label: $t("Personalizado") }]}
+        value={vidLevel}
+        on:pick={(e) => pickVideoLevel(e.detail)}
       />
-      <Slider label={$t("Calidade (CRF)")} min={18} max={40} bind:value={$form.crf} def={form.defaults.crf} hint={$t("Menos CRF = máis calidade e máis peso")} />
+      <Slider label={$t("Calidade (CRF)")} min={18} max={40} bind:value={$form.crf} def={form.defaults.crf} />
     {/if}
 
     {#if isImage}
@@ -374,9 +390,6 @@
         def={form.defaults.maxHeight}
       />
       <Slider label={$t("Bitrate de audio")} unit="kbps" min={48} max={256} step={8} bind:value={$form.audioKbps} def={form.defaults.audioKbps} />
-    {/if}
-    {#if !isImage}
-      <p class="group-note">{$t("Os vídeos gárdanse como MP4 (H.264).")}</p>
     {/if}
   </div>
 

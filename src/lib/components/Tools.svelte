@@ -168,7 +168,7 @@
 
 <div class="tools">
   {#if !selection.length}
-    <p class="muted hint">{$t("Abre un ficheiro para ver as ferramentas que o trasno ten para el.")}</p>
+    <p class="muted hint">{$t("Abre un ficheiro e ensínoche as ferramentas que teño para el.")}</p>
   {:else if !category}
     <p class="muted hint">
       {$t("Hai ficheiros de tipos distintos marcados. Marca só do mesmo tipo (por exemplo, varios PDF ou varias imaxes) para traballar con eles xuntos.")}

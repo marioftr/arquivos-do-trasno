@@ -1,12 +1,12 @@
-//! Lexendas (subtítulos) en ficheiro: SRT, WebVTT e ASS/SSA. Léense e escríbense sen FFmpeg, así que a conversión, o cambio de
-//! codificación (as lexendas vellas adoitan vir en Windows-1252 e saen con «Ã±» nos reprodutores) e a resincronización fanse con
+//! Subtítulos en ficheiro: SRT, WebVTT e ASS/SSA. Léense e escríbense sen FFmpeg, así que a conversión, o cambio de
+//! codificación (os subtítulos vellos adoitan vir en Windows-1252 e saen con «Ã±» nos reprodutores) e a resincronización fanse con
 //! todo o control. Sempre se escribe un ficheiro novo en UTF-8.
 
 use crate::error::{EngineError, Result};
 use crate::integrity::{ensure_distinct, AtomicOutput};
 use std::path::{Path, PathBuf};
 
-/// Formatos de lexenda que se len e se escriben.
+/// Formatos de subtítulos que se len e se escriben.
 pub const SUBTITLE_EXTS: &[&str] = &["srt", "vtt", "ass", "ssa"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
@@ -62,7 +62,7 @@ pub struct Subtitle {
 // --------------------------------------------------------------------------------------------- codificación
 
 /// Texto do ficheiro e a codificación que tiña. UTF-8 (con ou sen BOM) e UTF-16 con BOM; o resto vale como Windows-1252, que é o
-/// que levan case todas as lexendas antigas en galego, español, portugués e francés (ISO-8859-1 incluído).
+/// que levan case todos os subtítulos antigos en galego, español, portugués e francés (ISO-8859-1 incluído).
 pub fn decode(bytes: &[u8]) -> (String, &'static str) {
     if let Some(rest) = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]) {
         return (String::from_utf8_lossy(rest).into_owned(), "UTF-8");
@@ -302,16 +302,16 @@ fn parse_ass(text: &str) -> (Option<String>, Vec<Cue>) {
     (if cues.is_empty() && !text.contains("[Events]") { None } else { Some(header) }, cues)
 }
 
-/// Le unha lexenda (SRT, WebVTT ou ASS/SSA), en calquera das codificacións habituais.
+/// Le uns subtítulos (SRT, WebVTT ou ASS/SSA), en calquera das codificacións habituais.
 pub fn read_subtitle(path: &Path) -> Result<Subtitle> {
     if !path.is_file() {
         return Err(EngineError::InputNotFound(path.to_path_buf()));
     }
     let ext = crate::formats::extension_of(path).unwrap_or_default();
     let format = Format::from_ext(&ext).ok_or_else(|| EngineError::UnknownSourceFormat(path.to_path_buf()))?;
-    // Unha lexenda de máis de 20 MB non é unha lexenda.
+    // Uns subtítulos de máis de 20 MB non son uns subtítulos.
     if std::fs::metadata(path)?.len() > 20_000_000 {
-        return Err(EngineError::IntegrityCheck("Este ficheiro é demasiado grande para ser unha lexenda.".into()));
+        return Err(EngineError::IntegrityCheck("Este ficheiro é demasiado grande para ser de subtítulos.".into()));
     }
     let (text, encoding) = decode(&std::fs::read(path)?);
     let (cues, ass_header) = match format {
@@ -322,7 +322,7 @@ pub fn read_subtitle(path: &Path) -> Result<Subtitle> {
         f => (parse_blocks(&text, f), None),
     };
     if cues.is_empty() {
-        return Err(EngineError::IntegrityCheck("Non atopei ningunha fala neste ficheiro: non parece unha lexenda válida.".into()));
+        return Err(EngineError::IntegrityCheck("Non atopei ningunha fala neste ficheiro: non parecen uns subtítulos válidos.".into()));
     }
     Ok(Subtitle { format, cues, ass_header, encoding })
 }
@@ -331,7 +331,7 @@ pub fn read_subtitle(path: &Path) -> Result<Subtitle> {
 
 const ASS_DEFAULT_HEADER: &str = "[Script Info]\nScriptType: v4.00+\nPlayResX: 1920\nPlayResY: 1080\nWrapStyle: 0\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Arial,56,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,1,2,20,20,40,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n";
 
-/// A lexenda no formato pedido, como texto (sempre se grava en UTF-8).
+/// Os subtítulos no formato pedido, como texto (sempre se grava en UTF-8).
 pub fn render(sub: &Subtitle, to: Format) -> String {
     let mut out = String::new();
     match to {
@@ -370,11 +370,11 @@ fn write_text(output: &Path, overwrite: bool, text: &str) -> Result<PathBuf> {
     out.commit()
 }
 
-/// Pasa unha lexenda a outro formato (SRT, WebVTT ou ASS). Pasar un SRT a SRT serve para gardalo en UTF-8.
+/// Pasa uns subtítulos a outro formato (SRT, WebVTT ou ASS). Pasar un SRT a SRT serve para gardalo en UTF-8.
 pub fn convert_subtitle(input: &Path, output: &Path, overwrite: bool) -> Result<PathBuf> {
     ensure_distinct(&[input], output)?;
     let to = Format::from_ext(&crate::formats::extension_of(output).unwrap_or_default())
-        .ok_or_else(|| EngineError::UnsupportedConversion { from: "lexenda".into(), to: crate::formats::extension_of(output).unwrap_or_default() })?;
+        .ok_or_else(|| EngineError::UnsupportedConversion { from: "subtítulos".into(), to: crate::formats::extension_of(output).unwrap_or_default() })?;
     let sub = read_subtitle(input)?;
     write_text(output, overwrite, &render(&sub, to))
 }
@@ -391,7 +391,7 @@ pub struct Retime {
 }
 
 impl Retime {
-    /// A lexenda foi feita para un vídeo a `from_fps` e agora vaise usar nun a `to_fps`: o factor é `from / to`.
+    /// Os subtítulos foron feitos para un vídeo a `from_fps` e agora vaise usar nun a `to_fps`: o factor é `from / to`.
     pub fn from_fps(from_fps: f64, to_fps: f64) -> Result<Retime> {
         if !(from_fps.is_finite() && to_fps.is_finite() && (1.0..=240.0).contains(&from_fps) && (1.0..=240.0).contains(&to_fps)) {
             return Err(EngineError::IntegrityCheck("As cadencias non son válidas: teñen que estar entre 1 e 240 fotogramas por segundo.".into()));
@@ -584,10 +584,10 @@ mod tests {
     }
 
     #[test]
-    fn un_ficheiro_que_non_e_lexenda_dá_erro_claro_e_non_escribe_nada() {
+    fn un_ficheiro_que_non_e_de_subtitulos_dá_erro_claro_e_non_escribe_nada() {
         let dir = tempfile::tempdir().unwrap();
         let bad = dir.path().join("a.srt");
-        std::fs::write(&bad, "isto non é unha lexenda\nnin unha fala").unwrap();
+        std::fs::write(&bad, "isto non son uns subtítulos\nnin unha fala").unwrap();
         assert!(convert_subtitle(&bad, &dir.path().join("o.vtt"), false).is_err());
         assert!(!dir.path().join("o.vtt").exists());
         let ok = dir.path().join("b.srt");

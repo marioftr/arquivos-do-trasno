@@ -78,8 +78,8 @@
           let empty = 0;
           let step = 0;
           for (const n of wanted) {
-            if (await engine.jobCancelled()) throw new Error("Cancelouse o traballo.");
-            job.text.set(tr("O trasno está lendo a páxina {n} de {total}…", { n: step + 1, total: wanted.length }));
+            if (await engine.jobCancelled()) throw new Error("Cancelei o traballo.");
+            job.text.set(tr("Estou lendo a páxina {n} de {total}…", { n: step + 1, total: wanted.length }));
             job.progress.set(step / wanted.length);
             step++;
             const page = await doc.getPage(n);
@@ -98,7 +98,7 @@
             ctx.fillStyle = "#fff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             await page.render({ canvasContext: ctx, viewport }).promise;
-            const blob: Blob = await new Promise((ok, ko) => canvas.toBlob((b) => (b ? ok(b) : ko(new Error(tr("O trasno non puido debuxar a páxina")))), "image/png"));
+            const blob: Blob = await new Promise((ok, ko) => canvas.toBlob((b) => (b ? ok(b) : ko(new Error(tr("Non puiden debuxar a páxina")))), "image/png"));
             // Das coordenadas da imaxe lida (píxeles do lenzo) ás do visor (as que entende `convertToPdfPoint`).
             const sx = viewport.width / canvas.width;
             const sy = viewport.height / canvas.height;
@@ -133,12 +133,12 @@
             throw new Error(
               skipped === wanted.length
                 ? tr("Todas as páxinas xa teñen texto: non hai nada que facer. Se queres lelas igual, desactiva «Saltar as páxinas que xa teñen texto».")
-                : tr("O trasno non atopou texto en ningunha páxina. Proba con outro idioma ou con máis resolución."),
+                : tr("Non atopei texto en ningunha páxina. Proba con outro idioma ou con máis resolución."),
             );
           }
-          job.text.set(tr("O trasno está gardando o PDF…"));
+          job.text.set(tr("Estou gardando o PDF…"));
           job.progress.set(0.98);
-          if (await engine.jobCancelled()) throw new Error("Cancelouse o traballo.");
+          if (await engine.jobCancelled()) throw new Error("Cancelei o traballo.");
           const r = await engine.pdfAddTextLayer(file.path, out, layers, true);
           const extra = [skipped ? tr("{n} xa tiñan texto.", { n: skipped }) : "", empty ? tr("{n} sen texto.", { n: empty }) : ""].filter(Boolean).join(" ");
           return `${listo()} ${fileNameOf(r.output_path)}\n${tr("Engadiuse texto a {pages} páxinas ({words} palabras): agora pódese buscar e copiar.", { pages: r.pages, words: r.words })} ${extra}`.trim();
@@ -156,7 +156,7 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Texto dun PDF dixitalizado")}</h4>
-    <GroupNote text={$t("Le as páxinas que son só imaxe (dixitalizacións) e engade o texto por debaixo, invisible: o PDF queda igual de aspecto, pero xa se pode buscar e copiar. Tarda uns segundos por páxina.")} />
+    <GroupNote text={$t("Le as páxinas que son só imaxe e engade o texto por debaixo, invisible, para poder buscar e copiar. Tarda uns segundos por páxina.")} />
 
     <SelectField
       label={$t("Idioma do texto")}
@@ -166,7 +166,7 @@
       disabled={$busy}
     />
     {#if !installed}
-      <GroupNote text={$t("Para ler texto en {lang} o trasno ten que descargar o seu paquete de idioma (uns {size}, do proxecto Tesseract en GitHub).", { lang: langName, size: OCR_SIZE })} />
+      <GroupNote text={$t("Para ler {lang} teño que descargar o seu paquete de idioma (uns {size}, de Tesseract en GitHub).", { lang: langName, size: OCR_SIZE })} />
       <button class="btn block" on:click={download} disabled={$busy || !!$ocrDownload}>
         {$ocrDownload ? $t("Descargando… {p} %", { p: Math.round($ocrDownload.progress * 100) }) : $t("Descargar o paquete de idioma")}
       </button>
@@ -179,15 +179,15 @@
         { value: "rapida", label: $t("Rápida"), detail: "150 ppp", hint: $t("150 ppp: borradores ou letra grande") },
         { value: "normal", label: $t("Normal"), detail: "200 ppp", hint: $t("200 ppp: a maioría das dixitalizacións") },
         { value: "alta", label: $t("Alta"), detail: "300 ppp", hint: $t("300 ppp: letra pequena ou dixitalizacións pobres") },
-        { value: "custom", label: $t("Personalizado"), hint: $t("Os ppp que se queiran") },
+        { value: "custom", label: $t("Personalizado") },
       ]}
       bind:value={$form.profile}
     />
     {#if $form.profile === "custom"}
-      <Slider label={$t("Resolución")} unit={$t("ppp")} min={100} max={400} step={10} bind:value={$form.dpi} def={200} hint={$t("Máis ppp = máis precisión nas letras pequenas e máis tempo por páxina")} />
+      <Slider label={$t("Resolución")} unit={$t("ppp")} min={100} max={400} step={10} bind:value={$form.dpi} def={200} hint={$t("Máis ppp: letras pequenas mellor lidas, pero máis tempo por páxina.")} />
     {/if}
 
-    <Toggle label={$t("Saltar as páxinas que xa teñen texto")} bind:checked={$form.skipText} disabled={$busy} hint={$t("As páxinas que xa se poden buscar quedan tal cal. Desactívao para ler todas igual (por exemplo, se o texto que traen está mal).")} />
+    <Toggle label={$t("Saltar as páxinas que xa teñen texto")} bind:checked={$form.skipText} disabled={$busy} hint={$t("As páxinas con texto quedan como están. Desactívao se ese texto está mal.")} />
     <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
   </div>
 

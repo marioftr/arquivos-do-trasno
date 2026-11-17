@@ -69,7 +69,7 @@
       {#if kind && Comp && shownFor === kind}
         <svelte:component this={Comp} {file} />
       {:else if !kind}
-        <p class="muted msg">{$t("O trasno non coñece este tipo de ficheiro.")}</p>
+        <p class="muted msg">{$t("Non coñezo este tipo de ficheiro.")}</p>
       {/if}
     {/key}
   </div>

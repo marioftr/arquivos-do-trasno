@@ -75,7 +75,7 @@ export async function installToolNow(tool: ToolId): Promise<boolean> {
     toast(tr("{name} xa está na casa. A traballar!", { name: TOOL_INFO[tool].name }));
     return true;
   } catch (e) {
-    if (isCancelled(e)) toast(tr("Descarga cancelada. O trasno garda as ferramentas e non pasa nada."));
+    if (isCancelled(e)) toast(tr("Descarga cancelada. Gardo as ferramentas e non pasa nada."));
     else installError.set({ tool, text: errText(e) });
     return false;
   } finally {
@@ -109,8 +109,8 @@ export function requestTool(tool: ToolId, reason?: string, retry?: () => void) {
     reason:
       reason ??
       (tool === "ffmpeg"
-        ? tr("Para facer isto o trasno precisa FFmpeg, que non está instalado.")
-        : tr("Para facer isto o trasno precisa MKVToolNix, que non está instalado.")),
+        ? tr("Para facer isto necesito FFmpeg, que non está instalado.")
+        : tr("Para facer isto necesito MKVToolNix, que non está instalado.")),
     retry,
   });
 }

@@ -17,14 +17,14 @@
     label={$t("Manter os metadatos da foto")}
     bind:checked={keep}
     {disabled}
-    hint={$t("Cámara, data e datos de captura (sen números de serie nin dono da cámara, salvo con ubicación). Por defecto non se levan ao resultado, que é o máis privado. O perfil de cor vai sempre, para que as cores non cambien.")}
+    hint={$t("Cámara, data e datos da toma (sen número de serie nin dono). Por defecto non se levan ao resultado; o perfil de cor vai sempre.")}
   />
   {#if keep}
     <Toggle
       label={$t("Manter tamén a ubicación (GPS)")}
       bind:checked={gps}
       {disabled}
-      hint={$t("Se a foto leva ubicación, quen a reciba poderá saber onde se fixo. Déixao desactivado se vas compartila.")}
+      hint={$t("Quen reciba a foto poderá ver onde se fixo. Mellor desactivado se vas compartila.")}
     />
   {/if}
 {:else}

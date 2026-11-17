@@ -63,7 +63,7 @@
       const ext = f.format === "jpg" ? "jpg" : "png";
       const digits = String(doc.numPages).length;
       for (let i = 0; i < pages.length; i++) {
-        job.text.set(tr("O trasno está debuxando a páxina {n} de {total}…", { n: i + 1, total: pages.length }));
+        job.text.set(tr("Estou debuxando a páxina {n} de {total}…", { n: i + 1, total: pages.length }));
         const page = await doc.getPage(pages[i]);
         const viewport = page.getViewport({ scale: f.dpi / 72 });
         const canvas = document.createElement("canvas");
@@ -74,12 +74,12 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         await page.render({ canvasContext: ctx, viewport }).promise;
         const blob: Blob = await new Promise((resolve, reject) =>
-          canvas.toBlob((b) => (b ? resolve(b) : reject(new Error(tr("O trasno non puido debuxar a páxina")))), ext === "jpg" ? "image/jpeg" : "image/png", f.quality / 100),
+          canvas.toBlob((b) => (b ? resolve(b) : reject(new Error(tr("Non puiden debuxar a páxina")))), ext === "jpg" ? "image/jpeg" : "image/png", f.quality / 100),
         );
         const name = `${base}-${tr("páxina")}-${String(pages[i]).padStart(digits, "0")}.${ext}`;
         await writeBytes(await join(dir, name), file.path, new Uint8Array(await blob.arrayBuffer()), false);
       }
-      job.say(true, `${listo()} ${tr("O trasno gardou {n} imaxes en {dir} sen perder nin unha páxina.", { n: pages.length, dir: fileNameOf(dir) })}`);
+      job.say(true, `${listo()} ${tr("Gardei {n} imaxes en {dir} sen perder nin unha páxina.", { n: pages.length, dir: fileNameOf(dir) })}`);
     } catch (e) {
       job.say(false, `${fallo("convertendo")}\n${errText(e)}`);
     } finally {
@@ -99,7 +99,7 @@
       options={[{ value: "png", label: "PNG" }, { value: "jpg", label: "JPG" }]}
       def="png"
     />
-    <Slider label={$t("Resolución")} unit={$t("ppp")} min={72} max={300} step={6} bind:value={$form.dpi} def={150} hint={$t("Máis ppp = imaxes máis nítidas e máis pesadas")} />
+    <Slider label={$t("Resolución")} unit={$t("ppp")} min={72} max={300} step={6} bind:value={$form.dpi} def={150} hint={$t("Máis ppp: máis nitidez e máis peso.")} />
     {#if $form.format === "jpg"}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={90} />
     {/if}

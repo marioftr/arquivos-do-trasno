@@ -113,7 +113,7 @@
     if (!res) return;
     try {
       await navigator.clipboard.writeText(res.text);
-      toast(tr("O trasno meteu o texto no portapapeis."));
+      toast(tr("Metín o texto no portapapeis."));
     } catch {
       toast(tr("O portapapeis púxose teimudo co texto. Tenta de novo."), { kind: "warn" });
     }
@@ -123,7 +123,7 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Texto da imaxe")}</h4>
-    <GroupNote text={$t("Le as letras da imaxe para seleccionalas co rato sobre o visor e copialas.")} />
+    <GroupNote text={$t("Le o texto da imaxe para seleccionalo e copialo sobre o visor.")} />
 
     <SelectField
       label={$t("Idioma do texto")}
@@ -133,7 +133,7 @@
       on:change={changeLang}
     />
     {#if !installed}
-      <GroupNote text={$t("Para ler texto en {lang} o trasno ten que descargar o seu paquete de idioma (uns {size}, do proxecto Tesseract en GitHub).", { lang: langName, size: OCR_SIZE })} />
+      <GroupNote text={$t("Para ler {lang} teño que descargar o seu paquete de idioma (uns {size}, de Tesseract en GitHub).", { lang: langName, size: OCR_SIZE })} />
       <button class="btn block" on:click={download} disabled={busy || !!$ocrDownload}>
         {$ocrDownload ? $t("Descargando… {p} %", { p: Math.round($ocrDownload.progress * 100) }) : $t("Descargar o paquete de idioma")}
       </button>
@@ -154,7 +154,7 @@
         <p class="note">{$t("{n} palabras. Selecciona o texto co rato sobre a imaxe ou cópiao todo.", { n: words })}</p>
         <button class="btn block" on:click={copyAll}>{$t("Copiar todo o texto")}</button>
       {:else}
-        <p class="note">{$t("Non se atopou texto. Proba con outro idioma ou cunha imaxe máis nítida.")}</p>
+        <p class="note">{$t("Non atopei texto. Proba con outro idioma ou cunha imaxe máis nítida.")}</p>
       {/if}
     </div>
   {/if}

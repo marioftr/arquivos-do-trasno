@@ -131,7 +131,7 @@ impl EditPlan {
             c.push(format!("afade=t=in:st=0:d={}", self.fade_in));
         }
         if self.fade_out > 0.0 {
-            let Some(d) = out_dur else { return bad("Non se sabe canto dura o ficheiro: non se pode esvaecer o final.") };
+            let Some(d) = out_dur else { return bad("Non sei canto dura o ficheiro, así que non podo esvaecer o final.") };
             c.push(format!("afade=t=out:st={}:d={}", (d - self.fade_out).max(0.0), self.fade_out));
         }
         Ok(c)
@@ -218,7 +218,7 @@ fn run(input: &Path, output: &Path, overwrite: bool, plan: &EditPlan) -> Result<
     }
     let wants_audio = plan.audio_effects() || plan.speed != 1.0;
     if plan.mute && !has_video {
-        return bad("Un ficheiro de son non se pode deixar mudo: non quedaría nada.");
+        return bad("Non podo deixar mudo un ficheiro de son: non quedaría nada.");
     }
     if plan.audio_effects() && !has_audio && !plan.mute {
         return bad("Este ficheiro non ten son para aplicarlle ese axuste.");

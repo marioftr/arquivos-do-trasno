@@ -234,7 +234,7 @@ pub fn compress_image(
         return compress_gif_file(input, output, overwrite, o);
     }
     if crate::animated::is_animated(input) {
-        return Err(EngineError::IntegrityCheck("Esta imaxe é animada e comprimila só gardaría un fotograma: o trasno só sabe comprimir sen perder a animación os GIF.".into()));
+        return Err(EngineError::IntegrityCheck("Esta imaxe é animada: comprimila só gardaría un fotograma. Só sei comprimir GIF sen perder a animación.".into()));
     }
     let (base, carried) = load_base(input, o.max_side, o.metadata)?;
     // En PNG, calidade 100 (a de por defecto) é sen perdas; por baixo reduce a paleta de cores (como pngquant).

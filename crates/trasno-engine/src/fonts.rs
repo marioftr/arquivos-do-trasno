@@ -99,7 +99,7 @@ pub fn load(path: &Path) -> Result<Embedded> {
     let (widths, bbox, ascent, descent, cap, italic_angle, flags, ps) = {
         let face = Face::parse(&data, 0).map_err(|_| bad("Non puiden ler esa letra."))?;
         if !usable(&face) {
-            return Err(bad("Esa letra non se pode incrustar nun PDF."));
+            return Err(bad("Non podo incrustar esa letra nun PDF."));
         }
         let upem = face.units_per_em() as f32;
         let k = 1000.0 / upem;
