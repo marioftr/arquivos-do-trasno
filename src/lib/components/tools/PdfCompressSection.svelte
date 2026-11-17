@@ -60,7 +60,7 @@
         { value: "low", label: $t("Pouca"), detail: $t("Calidade 85 %"), hint: $t("Mantén case todo; só limpa e comprime o que se pode sen perdas") },
         { value: "mid", label: $t("Recomendada"), detail: $t("Calidade 70 %"), hint: $t("Bo equilibrio entre peso e calidade") },
         { value: "high", label: $t("Extrema"), detail: $t("Calidade 45 %"), hint: $t("O máis pequeno posible; as imaxes perden nitidez") },
-        { value: "custom", label: $t("Personalizado"), detail: $t("Valores propios"), hint: $t("Os valores que se queiran") },
+        { value: "custom", label: $t("Personalizado"), hint: $t("Os valores que se queiran") },
       ]}
       bind:value={$form.level}
     />

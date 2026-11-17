@@ -14,7 +14,6 @@
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let file: FileEntry;
-  const isVideo = file.category === "video";
 
   /** Que se considera silencio segundo o tipo de gravación. «Personalizado» deixa poñer os tres valores á man. */
   const PROFILES: Record<string, { thresholdDb: number; minSilence: number; padding: number }> = {
@@ -80,12 +79,13 @@
     <GroupNote text={$t("Quita os tramos sen son (pausas, respiracións, silencios longos) e xunta o que queda.")} />
 
     <Segmented
-      label={$t("Que se considera silencio")}
+      label={$t("Que pausas se cortan")}
+      info={$t("Só se corta o que soa moi baixo e dura, polo menos, o tempo de cada perfil. Sempre queda un chisco de pausa a cada lado de cada corte para que non soe cortado de golpe.")}
       options={[
-        { value: "suave", label: $t("Suave"), detail: "−40 dB · 1 s", hint: $t("Só as pausas longas") },
-        { value: "normal", label: $t("Normal"), detail: "−35 dB · 0,5 s", hint: $t("As pausas habituais") },
-        { value: "forte", label: $t("Forte"), detail: "−30 dB · 0,3 s", hint: $t("Case todas as pausas") },
-        { value: "custom", label: $t("Personalizado"), detail: $t("Valores propios"), hint: $t("Os valores que se queiran") },
+        { value: "suave", label: $t("Suave"), detail: $t("Pausas longas"), hint: $t("Só as pausas de máis de 1 segundo.") },
+        { value: "normal", label: $t("Normal"), detail: $t("Pausas habituais"), hint: $t("As pausas de máis de medio segundo.") },
+        { value: "forte", label: $t("Forte"), detail: $t("Case todas"), hint: $t("As pausas de máis de 0,3 segundos.") },
+        { value: "custom", label: $t("Personalizado"), hint: $t("Escolles ti o volume que conta como silencio, canto ten que durar e a pausa que queda.") },
       ]}
       bind:value={$form.profile}
     />
@@ -96,24 +96,19 @@
     {/if}
   </div>
 
-  <div class="group">
-    <button class="btn block" on:click={analyze} disabled={$busy || analyzing}>{analyzing ? $t("Analizando…") : $t("Ver canto se cortaría")}</button>
+  <div class="estimate">
     {#if analyzeErr}
-      <p class="warn">{analyzeErr}</p>
+      <span class="warn">{analyzeErr}</span>
     {:else if current}
       {#if current.cuts.length}
-        <p class="result">
-          {$t("{n} silencios: quitaríanse {a} de {b} (−{p} %). O resultado duraría {c}.", {
-            n: current.cuts.length,
-            a: clock(current.duration - current.result_duration),
-            b: clock(current.duration),
-            p: percent(current.duration, current.result_duration),
-            c: clock(current.result_duration),
-          })}
-        </p>
+        <span class="est-main">{clock(current.result_duration)}</span>
+        <span class="muted">{$t("orixinal {b}, −{p} % · {n} silencios", { b: clock(current.duration), p: percent(current.duration, current.result_duration), n: current.cuts.length })}</span>
       {:else}
-        <p class="result">{$t("Con estes valores non hai silencios que cortar. Proba a subir o volume de corte ou a baixar o silencio mínimo.")}</p>
+        <span class="muted">{$t("Non hai silencios con estes valores.")}</span>
       {/if}
+      <button class="btn ghost" on:click={analyze} disabled={$busy || analyzing}>{analyzing ? $t("Analizando…") : $t("Analizar de novo")}</button>
+    {:else}
+      <button class="btn" on:click={analyze} disabled={$busy || analyzing}>{analyzing ? $t("Analizando…") : $t("Analizar silencios")}</button>
     {/if}
   </div>
 
@@ -122,6 +117,5 @@
 </div>
 
 <style>
-  .result { margin: 0; font-size: var(--fs-sm); color: var(--text-muted); }
   .warn { margin: 0; font-size: var(--fs-sm); color: var(--accent-pdf); }
 </style>

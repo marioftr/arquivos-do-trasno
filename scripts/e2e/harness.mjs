@@ -112,6 +112,9 @@ export async function launch({ tessdata = false } = {}) {
     return r.result?.result?.value;
   };
 
+  // A ventá de proba pode non ter o foco do sistema (outro programa diante): finxe que o ten para que os eventos de foco cheguen.
+  await send("Emulation.setFocusEmulationEnabled", { enabled: true });
+
   const app = {
     root,
     media: path.join(root, "media"),

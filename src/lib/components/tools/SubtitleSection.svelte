@@ -104,11 +104,10 @@
 
     <Segmented
       label={$t("Que lle pasa")}
-      info={$t("Desprazar: vai toda igual de adiantada ou atrasada. Cambiar a cadencia: a lexenda foi feita para un vídeo con outra cadencia (23,976, 24, 25…) e vai perdendo o paso. Dous puntos: se vai perdendo o paso de calquera xeito, indicas cando debe aparecer a primeira e a última fala e o trasno axusta todo.")}
       options={[
-        { value: "shift", label: $t("Desprazar"), hint: $t("Toda igual de adiantada ou atrasada") },
-        { value: "fps", label: $t("Cadencia"), hint: $t("Vai perdendo o paso aos poucos") },
-        { value: "points", label: $t("Dous puntos"), hint: $t("Indicas onde caen a primeira e a última fala") },
+        { value: "shift", label: $t("Desprazar"), hint: $t("Toda a lexenda vai igual de adiantada ou atrasada: sumas ou restas uns segundos.") },
+        { value: "fps", label: $t("Cadencia"), hint: $t("A lexenda foi feita para un vídeo con outras imaxes por segundo (23,976, 24, 25…) e vai perdendo o paso aos poucos.") },
+        { value: "points", label: $t("Dous puntos"), hint: $t("Indicas cando debe saír a primeira e a última fala e axústase todo o de enriba.") },
       ]}
       bind:value={$form.how}
     />

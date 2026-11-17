@@ -7,8 +7,10 @@
   export let options: { value: string | number; label: string; hint?: string; detail?: string }[];
   export let value: string | number;
   export let label = "";
+  /** Explicación do selector, nunha «i» ao carón do título. Se hai `hint` nas opcións, engádense debaixo, unha por liña. */
   export let info = "";
 
+  $: tip = [info, ...options.filter((o) => o.hint).map((o) => `${o.label}: ${o.hint}`)].filter(Boolean).join(String.fromCharCode(10));
   let seg: HTMLDivElement;
   function key(e: KeyboardEvent) {
     const i = Math.max(0, options.findIndex((o) => o.value === value));
@@ -22,11 +24,11 @@
 </script>
 
 <div class="wrap">
-  {#if label}<span class="lab">{label}{#if info}<InfoTip text={info} />{/if}</span>{/if}
+  {#if label}<span class="lab">{label}{#if tip}<InfoTip text={tip} />{/if}</span>{/if}
   <!-- svelte-ignore a11y_interactive_supports_focus -->
   <div class="seg" class:two={options.some((o) => o.detail)} role="radiogroup" aria-label={label} on:keydown={key} bind:this={seg}>
     {#each options as o}
-      <button role="radio" aria-checked={value === o.value} tabindex={value === o.value ? 0 : -1} class:on={value === o.value} title={o.hint} on:click={() => ((value = o.value), dispatch("pick", o.value))}><span>{o.label}</span>{#if o.detail}<small>{o.detail}</small>{/if}</button>
+      <button role="radio" aria-checked={value === o.value} tabindex={value === o.value ? 0 : -1} class:on={value === o.value} on:click={() => ((value = o.value), dispatch("pick", o.value))}><span>{o.label}</span>{#if o.detail}<small>{o.detail}</small>{/if}</button>
     {/each}
   </div>
 </div>

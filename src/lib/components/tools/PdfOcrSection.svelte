@@ -179,7 +179,7 @@
         { value: "rapida", label: $t("Rápida"), detail: "150 ppp", hint: $t("150 ppp: borradores ou letra grande") },
         { value: "normal", label: $t("Normal"), detail: "200 ppp", hint: $t("200 ppp: a maioría das dixitalizacións") },
         { value: "alta", label: $t("Alta"), detail: "300 ppp", hint: $t("300 ppp: letra pequena ou dixitalizacións pobres") },
-        { value: "custom", label: $t("Personalizado"), detail: $t("Valores propios"), hint: $t("Os ppp que se queiran") },
+        { value: "custom", label: $t("Personalizado"), hint: $t("Os ppp que se queiran") },
       ]}
       bind:value={$form.profile}
     />

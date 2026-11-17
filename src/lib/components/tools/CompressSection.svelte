@@ -32,9 +32,9 @@
   const isImage = category === "imaxe";
 
   const LEVELS = [
-    { label: "Calidade alta", crf: 23, hint: "Case idéntico ao orixinal, pesa menos" },
-    { label: "Equilibrada", crf: 28, hint: "O mellor equilibrio entre peso e calidade" },
-    { label: "Forte", crf: 33, hint: "Moi pequeno; nótanse perdas de nitidez" },
+    { label: "Calidade alta", crf: 23, detail: "Case igual", hint: "Case idéntico ao orixinal, pesa menos (CRF 23)" },
+    { label: "Equilibrada", crf: 28, detail: "Equilibrio", hint: "O mellor equilibrio entre peso e calidade (CRF 28)" },
+    { label: "Forte", crf: 33, detail: "Moi pequeno", hint: "Moi pequeno; nótanse perdas de nitidez (CRF 33)" },
   ];
   const HEIGHTS = [0, 1080, 720, 480, 360];
 
@@ -355,8 +355,7 @@
     {:else}
       <Segmented
         label={$t("Nivel de calidade")}
-        info={$t("Calidade alta: CRF 23. Equilibrada: CRF 28. Forte: CRF 33. O desprazador de debaixo deixa poñer calquera valor.")}
-        options={LEVELS.map((l) => ({ value: l.crf, label: $t(l.label), hint: $t(l.hint) }))}
+        options={LEVELS.map((l) => ({ value: l.crf, label: $t(l.label), detail: $t(l.detail), hint: $t(l.hint) }))}
         bind:value={$form.crf}
       />
       <Slider label={$t("Calidade (CRF)")} min={18} max={40} bind:value={$form.crf} def={form.defaults.crf} hint={$t("Menos CRF = máis calidade e máis peso")} />
@@ -451,6 +450,4 @@
   .nameinp { flex: 1; min-width: 0; height: var(--control-h); background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.6rem; font: inherit; }
   .nameinp:focus { outline: none; border-color: var(--accent); }
   .tiny { font-size: var(--fs-xs); }
-  .estimate { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.7rem; min-height: var(--control-h); align-content: center; }
-  .est-main { font-size: var(--fs-lg); font-weight: 600; }
 </style>

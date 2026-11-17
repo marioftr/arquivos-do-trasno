@@ -358,6 +358,8 @@ export interface MediaPreview {
   fadeOut?: number;
 }
 export const mediaPreview = writable<MediaPreview | null>(null);
+/** Son preparado co ruído quitado e/ou ao revés (URL): o visor reprodúceo, sincronizado, no lugar do son do ficheiro. */
+export const mediaAux = writable<string | null>(null);
 export const mediaSeek = writable<{ t: number; stamp: number } | null>(null);
 /** Instante (s) en que está o reprodutor do visor, para usalo nas ferramentas. */
 export const mediaTime = writable<number>(0);

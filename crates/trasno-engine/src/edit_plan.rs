@@ -147,6 +147,60 @@ pub fn apply_plan(input: &Path, output: &Path, overwrite: bool, plan: &EditPlan)
     run(input, output, overwrite, plan)
 }
 
+/// Máximo de son que se pode dar a volta para a vista previa: `areverse` garda todo o tramo en memoria.
+const MAX_REVERSE_PREVIEW: f64 = 1200.0;
+
+/// Só o son do tramo [`start`, `end`] co ruído quitado e/ou dado a volta, colocado no seu sitio da liña de tempo (silencio antes e
+/// despois) para que o visor o reproduza sincronizado co ficheiro orixinal, no lugar do son orixinal.
+pub fn preview_audio(input: &Path, output: &Path, start: f64, end: Option<f64>, denoise: bool, reverse: bool) -> Result<PathBuf> {
+    if !denoise && !reverse {
+        return bad("Non hai nada que preparar.");
+    }
+    let info = ffmpeg::probe(input)?;
+    if !info["streams"].as_array().map(|l| l.iter().any(|s| s["codec_type"] == "audio")).unwrap_or(false) {
+        return bad("Este ficheiro non ten son para aplicarlle ese axuste.");
+    }
+    let total = media_duration(&info);
+    let start = if start.is_finite() { start.max(0.0) } else { 0.0 };
+    let end = match (end, total) {
+        (Some(e), Some(t)) => Some(e.min(t)),
+        (e, t) => e.or(t),
+    };
+    if let Some(e) = end {
+        if e <= start {
+            return bad("O fin do corte ten que vir despois do inicio.");
+        }
+        if reverse && e - start > MAX_REVERSE_PREVIEW {
+            return bad("Dar a volta a tanto son (máis de 20 minutos) gasta moita memoria: só se pode ver ao exportar. Acorta o tramo para velo antes.");
+        }
+    }
+    let mut pre: Vec<String> = Vec::new();
+    if start > 0.0 {
+        pre.extend(["-ss".into(), start.to_string()]);
+    }
+    if let Some(e) = end {
+        pre.extend(["-t".into(), (e - start).to_string()]);
+    }
+    let mut chain: Vec<String> = Vec::new();
+    if denoise {
+        chain.push("afftdn=nr=12".into());
+    }
+    if reverse {
+        chain.push("areverse".into());
+    }
+    if start > 0.0 {
+        chain.push(format!("adelay=delays={}:all=1", (start * 1000.0).round() as u64));
+    }
+    if let Some(t) = total {
+        chain.push(format!("apad=whole_dur={t}"));
+    }
+    let args: Vec<String> = vec!["-vn".into(), "-map".into(), "0:a:0".into(), "-af".into(), chain.join(","), "-c:a".into(), "aac".into(), "-b:a".into(), "128k".into()];
+    ffmpeg::set_expected_duration(end.map(|e| e - start));
+    let res = ffmpeg::convert_media_seek(input, output, true, &pre, &args);
+    ffmpeg::set_expected_duration(None);
+    res
+}
+
 fn run(input: &Path, output: &Path, overwrite: bool, plan: &EditPlan) -> Result<EditReport> {
     plan.validate()?;
     if plan.is_empty() {

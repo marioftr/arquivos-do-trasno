@@ -4,7 +4,7 @@
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import * as engine from "../../engine";
-  import { mediaPreview, mediaTime, trimRange, type FileEntry } from "../../files";
+  import { mediaAux, mediaPreview, mediaTime, trimRange, viewUrl, type FileEntry } from "../../files";
   import { fileNameOf, formatClock, TRASNO, fallo, listo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
@@ -19,7 +19,8 @@
   export let file: FileEntry;
 
   const isVideo = file.category === "video";
-  const total = file.duration ?? 0;
+  // A duración chega un chisco despois de abrir o ficheiro (despois de ler os seus datos): ata entón, 0.
+  let total = file.duration ?? 0;
 
   /** Obxectivos de volume segundo onde se vai escoitar o ficheiro. «Personalizado» deixa poñer os tres valores á man. */
   const PROFILES: Record<string, { lufs: number; peak: number; range: number }> = {
@@ -54,6 +55,12 @@
     "editar|" + file.path,
   );
   onMount(() => useForm(form));
+  $: if ((file.duration ?? 0) !== total) {
+    const before = total;
+    total = file.duration ?? 0;
+    // «Fin» aínda estaba no valor de «ata o final»: segue sendo o final co novo tamaño.
+    if (!get(form).end || get(form).end === before) form.update((f) => ({ ...f, end: total }));
+  }
 
   // Un perfil fixo enche os tres valores; con «Personalizado» quedan os que poña o usuario.
   $: preset = PROFILES[$form.profile];
@@ -87,10 +94,50 @@
   );
   const ownPreview = claim("mediaPreview");
   const ownTrim = claim("trimRange");
+  const ownAux = claim("mediaAux");
   onDestroy(() => {
+    clearTimeout(auxTimer);
+    auxToken++;
+    ownAux.release(() => mediaAux.set(null));
     ownPreview.release(() => mediaPreview.set(null));
     ownTrim.release(() => trimRange.set(null));
   });
+
+  // Ruído e son ao revés non se poden facer no navegador: prepárase o son co motor (tarda un pouco) e o visor reprodúceo no seu lugar.
+  let auxState: "idle" | "busy" | "error" = "idle";
+  let auxMsg = "";
+  let auxTimer: ReturnType<typeof setTimeout> | undefined;
+  let auxToken = 0;
+  $: auxKey = `${!$form.mute && $form.denoise}|${!$form.mute && $form.reverse}|${$form.start}|${$form.end}`;
+  $: scheduleAux(auxKey);
+  function scheduleAux(_key: string) {
+    clearTimeout(auxTimer);
+    const f = get(form);
+    const denoise = !f.mute && f.denoise;
+    const reverse = !f.mute && f.reverse;
+    if (!denoise && !reverse) {
+      auxToken++;
+      mediaAux.set(null);
+      auxState = "idle";
+      return;
+    }
+    auxState = "busy";
+    auxTimer = setTimeout(async () => {
+      const mine = ++auxToken;
+      try {
+        const end = f.end && (!total || f.end < total - 0.05) ? f.end : null;
+        const path = await engine.editAudioPreview(file.path, f.start || 0, end, denoise, reverse);
+        if (mine !== auxToken) return;
+        mediaAux.set(await viewUrl(path));
+        auxState = "idle";
+      } catch (e) {
+        if (mine !== auxToken) return;
+        mediaAux.set(null);
+        auxMsg = errText(e);
+        auxState = "error";
+      }
+    }, 700);
+  }
 
   const job = createJob();
   const busy = job.busy;
@@ -187,12 +234,12 @@
     {#if $form.normalize}
       <Segmented
         label={$t("Perfil")}
-        info={$t("Streaming: −14 LUFS (Spotify, YouTube). Podcast: −16 LUFS. Emisión: −23 LUFS (radio e televisión). Personalizado: os valores que se queiran.")}
+        info={$t("LUFS mide o volume que se percibe: canto máis preto de 0, máis alto.")}
         options={[
           { value: "streaming", label: $t("Streaming"), hint: $t("−14 LUFS: Spotify, YouTube e semellantes") },
           { value: "podcast", label: $t("Podcast"), hint: $t("−16 LUFS: voz para escoitar con auriculares") },
           { value: "emision", label: $t("Emisión"), hint: $t("−23 LUFS: radio e televisión (EBU R128)") },
-          { value: "custom", label: $t("Personalizado"), hint: $t("Os valores que se queiran") },
+          { value: "custom", label: $t("Personalizado"), hint: $t("Escolles ti os tres valores.") },
         ]}
         bind:value={$form.profile}
       />
@@ -208,8 +255,13 @@
 
   <div class="group" class:off={$form.mute}>
     <h4 class="group-title">{$t("Son")}</h4>
-    <Toggle label={$t("Quitar ruído de fondo")} bind:checked={$form.denoise} disabled={$form.mute} hint={$t("Reduce o ruído constante (zumbido, ventilador). Só se nota ao exportar.")} />
-    <Toggle label={$t("Dar a volta ao son")} bind:checked={$form.reverse} disabled={$form.mute} hint={$t("Só se nota ao exportar.")} />
+    <Toggle label={$t("Quitar ruído de fondo")} bind:checked={$form.denoise} disabled={$form.mute} hint={$t("Reduce o ruído constante (zumbido, ventilador). O visor tarda un pouco en preparalo e logo amósao.")} />
+    <Toggle label={$t("Dar a volta ao son")} bind:checked={$form.reverse} disabled={$form.mute} hint={$t("O visor tarda un pouco en preparalo e logo amósao. Admite ata 20 minutos de son.")} />
+    {#if auxState === "busy"}
+      <p class="aux"><span class="spin"></span>{$t("Preparando o son para o visor…")}</p>
+    {:else if auxState === "error"}
+      <p class="aux err">{auxMsg}</p>
+    {/if}
     <Toggle label={$t("Esvaecer ao principio")} bind:checked={$form.fadeIn} disabled={$form.mute} />
     <Toggle label={$t("Esvaecer ao final")} bind:checked={$form.fadeOut} disabled={$form.mute} />
     {#if $form.fadeIn || $form.fadeOut}
@@ -225,7 +277,7 @@
 
   {#if changed}
     <div class="group">
-      <h4 class="group-title">{$t("Resultado")}</h4>
+      <h4 class="group-title">{$t("Así quedará o ficheiro")}</h4>
       <dl class="rows">
         {#each rows as r}
           <dt>{r.k}</dt>
@@ -245,6 +297,10 @@
 
 <style>
   .off { opacity: 0.45; }
+  .aux { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: var(--fs-sm); color: var(--text-muted); }
+  .aux.err { color: var(--accent-pdf); align-items: flex-start; }
+  .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: giro 0.8s linear infinite; flex: none; }
+  @keyframes giro { to { transform: rotate(360deg); } }
   .rows { display: grid; grid-template-columns: auto 1fr; column-gap: 0; row-gap: 0.35rem; margin: 0; font-size: var(--fs-md); }
   .rows dt { color: var(--text-muted); padding-right: 1rem; }
   .rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; user-select: text; }

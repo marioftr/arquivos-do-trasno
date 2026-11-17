@@ -360,6 +360,28 @@ pub async fn edit_apply(input: String, output: String, overwrite: bool, plan: tr
     blocking(move || trasno_engine::edit_plan::apply_plan(&PathBuf::from(input), &PathBuf::from(output), overwrite, &plan).map_err(to_err)).await
 }
 
+/// O son do tramo con ruído quitado e/ou ao revés, no seu sitio da liña de tempo, para que o visor o escoite en directo.
+/// Devolve a ruta do ficheiro temporal (só se garda o último).
+#[tauri::command]
+pub async fn edit_audio_preview(input: String, start: f64, end: Option<f64>, denoise: bool, reverse: bool) -> Result<String, String> {
+    blocking_bg(move || {
+        let dir = preview_dir();
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        if let Ok(rd) = std::fs::read_dir(&dir) {
+            for e in rd.flatten() {
+                if e.file_name().to_string_lossy().starts_with("edicion-son-") {
+                    let _ = std::fs::remove_file(e.path());
+                }
+            }
+        }
+        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
+        let out = dir.join(format!("edicion-son-{stamp}.m4a"));
+        trasno_engine::edit_plan::preview_audio(&PathBuf::from(input), &out, start, end, denoise, reverse).map_err(to_err)?;
+        Ok(out.to_string_lossy().to_string())
+    })
+    .await
+}
+
 #[derive(serde::Serialize)]
 pub struct NormalizeResult {
     output_path: String,

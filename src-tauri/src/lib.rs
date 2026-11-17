@@ -80,6 +80,7 @@ pub fn run() {
             commands::images_to_pdf,
             commands::media_edit,
             commands::edit_apply,
+            commands::edit_audio_preview,
             commands::normalize_audio,
             commands::probe_media,
             commands::sha256,

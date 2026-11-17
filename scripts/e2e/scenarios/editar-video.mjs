@@ -41,6 +41,20 @@ export default {
     await app.slider("Multiplicador de volume", 1);
     await app.ev(`document.querySelector('video').pause()`);
 
+    // Son ao revés: o motor prepara o son e o visor reprodúceo sincronizado co vídeo (no lugar do orixinal).
+    await app.toggle("Dar a volta ao son");
+    await app.waitFor(`!!window.__trasnoAux && window.__trasnoAux.readyState > 0`, "o son preparado", 30000);
+    await app.ev(`document.querySelector('video').play()`, true);
+    await app.sleep(1500);
+    const drift = await app.ev(`Math.abs(window.__trasnoAux.currentTime - document.querySelector('video').currentTime)`);
+    c.ok(drift < 0.35, "o son preparado vai sincronizado co vídeo", String(drift));
+    c.ok(!(await app.ev(`window.__trasnoAux.paused`)), "o son preparado está a soar");
+    c.ok((await app.level()) > 0.01, "e chega ao grafo do visor");
+    await app.ev(`document.querySelector('video').pause()`);
+    await app.toggle("Dar a volta ao son");
+    await app.waitFor(`!window.__trasnoAux`, "que se solte o son preparado");
+    c.ok(true, "ao apagalo o visor volve ao son orixinal");
+
     await app.slider("Factor de velocidade", 2);
     await app.slider("Fin", 8);
     await app.slider("Inicio", 2);

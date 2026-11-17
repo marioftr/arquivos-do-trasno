@@ -1,7 +1,7 @@
 //! Edición conxunta: todos os axustes nunha soa exportación, sobre ficheiros reais.
 
 use std::path::{Path, PathBuf};
-use trasno_engine::edit_plan::{apply_plan, EditPlan};
+use trasno_engine::edit_plan::{apply_plan, preview_audio, EditPlan};
 use trasno_engine::ffmpeg::{self, Loudness};
 
 fn ff(args: &[&str]) {
@@ -98,4 +98,39 @@ fn os_erros_son_claros_e_non_deixan_ficheiros_a_medias() {
     ff(&["-f", "lavfi", "-i", "sine=d=2", wav.to_str().unwrap()]);
     assert!(apply_plan(&wav, &dir.path().join("m.wav"), false, &EditPlan { mute: true, ..Default::default() }).is_err(), "mudo nun audio");
     assert!(!out.exists(), "non queda ningún ficheiro a medias");
+}
+
+/// Nivel (RMS) do son decodificado, por tramos dun segundo.
+fn rms_per_second(p: &Path) -> Vec<f64> {
+    let out = std::process::Command::new(ffmpeg::ffmpeg_path().unwrap()).args(["-v", "error", "-i", p.to_str().unwrap(), "-ac", "1", "-ar", "8000", "-f", "f32le", "-"]).output().unwrap();
+    let samples: Vec<f32> = out.stdout.chunks_exact(4).map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]])).collect();
+    samples.chunks(8000).map(|c| (c.iter().map(|x| (*x as f64).powi(2)).sum::<f64>() / c.len() as f64).sqrt()).collect()
+}
+
+#[test]
+fn a_vista_previa_do_son_cae_no_seu_sitio_da_liña_de_tempo_e_da_a_volta_ao_tramo() {
+    if !ffmpeg::is_available() {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    // 10 s de tono cuxo volume sobe de 0 a 1 ao longo do ficheiro.
+    let src = dir.path().join("rampa.wav");
+    ff(&["-f", "lavfi", "-i", "sine=f=440:r=44100:d=10,volume='t/10':eval=frame", src.to_str().unwrap()]);
+    let out = dir.path().join("p.m4a");
+    preview_audio(&src, &out, 2.0, Some(8.0), false, true).unwrap();
+    assert!((duration(&out) - 10.0).abs() < 0.3, "dura o mesmo ca o orixinal: {}", duration(&out));
+    let r = rms_per_second(&out);
+    assert!(r[0] < 0.01 && r[1] < 0.01 && r[9] < 0.01, "fóra do tramo hai silencio: {r:?}");
+    // Dentro do tramo o volume baixa (antes subía): o comezo do tramo soa máis ca o final.
+    assert!(r[2] > r[7] * 2.0, "o tramo está ao revés: {r:?}");
+    // Sen darlle a volta (só ruído), o tramo segue subindo.
+    let q = dir.path().join("q.m4a");
+    preview_audio(&src, &q, 2.0, Some(8.0), true, false).unwrap();
+    let r2 = rms_per_second(&q);
+    assert!(r2[0] < 0.01 && r2[2] < r2[7], "co ruído quitado o tramo non cambia de sentido: {r2:?}");
+    // Erros: nada que facer, e dar a volta a máis de 20 minutos.
+    assert!(preview_audio(&src, &dir.path().join("x.m4a"), 0.0, None, false, false).is_err());
+    let largo = dir.path().join("largo.wav");
+    ff(&["-f", "lavfi", "-i", "anullsrc=r=8000:cl=mono", "-t", "1300", largo.to_str().unwrap()]);
+    assert!(preview_audio(&largo, &dir.path().join("y.m4a"), 0.0, None, false, true).is_err());
 }

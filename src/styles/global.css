@@ -432,6 +432,20 @@ dd {
   color: var(--text-muted);
 }
 
+/* Fila de «calcular algo»: botón curto á esquerda e, cando hai resultado, o dato grande e a súa referencia (Estimar o tamaño, Analizar silencios). */
+.estimate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.7rem;
+  min-height: var(--control-h);
+  align-content: center;
+}
+.est-main {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
 .group-note {
   margin: 0;
   font-size: var(--fs-sm);

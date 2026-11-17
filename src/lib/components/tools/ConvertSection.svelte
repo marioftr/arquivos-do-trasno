@@ -258,8 +258,7 @@
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto = mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL)")} />
       <Segmented
         label={$t("Preaxustes de calidade")}
-        info={$t("WhatsApp: 55 %. Web: 75 %. Arquivo: 95 %. O desprazador de arriba deixa poñer calquera valor.")}
-        options={PRESETS.map((p) => ({ value: p.value, label: $t(p.label), hint: $t(p.hint) }))}
+        options={PRESETS.map((p) => ({ value: p.value, label: $t(p.label), detail: `${p.value} %`, hint: $t(p.hint) }))}
         bind:value={$form.quality}
       />
       <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} supported={engine.META_EXTS.includes($form.targetExt)} disabled={$busy} />

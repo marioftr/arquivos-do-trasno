@@ -11,7 +11,7 @@
 
 <label class="toggle" class:disabled>
   <span class="lab">{label}{#if tip}<InfoTip text={tip} />{/if}</span>
-  <input type="checkbox" role="switch" bind:checked {disabled} />
+  <input type="checkbox" role="switch" bind:checked {disabled} aria-label={label} />
   <span class="track"><span class="knob"></span></span>
 </label>
 

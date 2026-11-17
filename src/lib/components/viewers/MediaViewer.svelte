@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import { formatClock } from "../../formats";
-  import { viewUrl, mediaPreview, mediaSeek, mediaTime, trimRange, type FileEntry, type MediaPreview, videoDar } from "../../files";
+  import { viewUrl, mediaPreview, mediaAux, mediaSeek, mediaTime, trimRange, type FileEntry, type MediaPreview, videoDar } from "../../files";
   import * as engine from "../../engine";
   import { get } from "svelte/store";
   import { player } from "../../player";
@@ -44,9 +44,9 @@
 
   // ---- efectos de son en directo (graves, agudos, eco, esvaecer, volume > 1): o mesmo que se aplicará ao exportar, aproximado
   // co que sabe facer o navegador. O ruído e dar a volta ao son non se poden escoitar sen exportar.
-  interface Fx { ctx: AudioContext; src: MediaElementAudioSourceNode; el: HTMLMediaElement; gain: GainNode; low: BiquadFilterNode; high: BiquadFilterNode; delay: DelayNode; wet: GainNode; fade: GainNode; probe?: AnalyserNode }
+  interface Fx { ctx: AudioContext; src: MediaElementAudioSourceNode; auxSrc?: MediaElementAudioSourceNode; gate: GainNode; el: HTMLMediaElement; gain: GainNode; low: BiquadFilterNode; high: BiquadFilterNode; delay: DelayNode; wet: GainNode; fade: GainNode; probe?: AnalyserNode }
   let fx: Fx | null = null;
-  const wantsFx = (p: MediaPreview | null) => !!p && (p.volume > 1 || !!p.bass || !!p.treble || !!p.echoMs || !!p.fadeIn || !!p.fadeOut);
+  const wantsFx = (p: MediaPreview | null, withAux: boolean) => withAux || (!!p && (p.volume > 1 || !!p.bass || !!p.treble || !!p.echoMs || !!p.fadeIn || !!p.fadeOut));
   function buildFx(target: HTMLMediaElement): Fx | null {
     try {
       const ctx = new AudioContext();
@@ -64,7 +64,9 @@
       const wet = ctx.createGain();
       wet.gain.value = 0;
       const fade = ctx.createGain();
-      src.connect(gain).connect(low).connect(high);
+      // `gate` apaga o son do ficheiro (en vez de desconectalo: un elemento cuxa saída non vai a ningures deixa de avanzar).
+      const gate = ctx.createGain();
+      src.connect(gate).connect(gain).connect(low).connect(high);
       high.connect(fade);
       high.connect(delay);
       delay.connect(feedback).connect(delay);
@@ -73,14 +75,14 @@
       const probe = import.meta.env.DEV ? ctx.createAnalyser() : undefined;
       if (probe) fade.connect(probe).connect(ctx.destination);
       else fade.connect(ctx.destination);
-      const built = { ctx, src, el: target, gain, low, high, delay, wet, fade, probe };
+      const built = { ctx, src, gate, el: target, gain, low, high, delay, wet, fade, probe };
       if (probe) (window as unknown as { __trasnoFx?: unknown }).__trasnoFx = built;
       return built;
     } catch {
       return null;
     }
   }
-  $: if (el && wantsFx($mediaPreview) && (!fx || fx.el !== el)) fx = buildFx(el);
+  $: if (el && wantsFx($mediaPreview, !!$mediaAux) && (!fx || fx.el !== el)) fx = buildFx(el);
   $: if (fx) {
     const p = $mediaPreview;
     fx.gain.gain.value = p ? p.volume : 1;
@@ -89,6 +91,50 @@
     fx.delay.delayTime.value = Math.min(2, (p?.echoMs ?? 0) / 1000) || 0.001;
     fx.wet.gain.value = p?.echoMs ? 0.5 : 0;
     if (fx.ctx.state === "suspended") void fx.ctx.resume();
+  }
+  // ---- son preparado (ruído quitado, ao revés): outro elemento de son, sincronizado co principal, que toma o seu lugar no grafo
+  let aux: HTMLAudioElement | null = null;
+  function dropAux() {
+    if (!aux) return;
+    aux.pause();
+    aux.removeAttribute("src");
+    aux.load();
+    aux = null;
+    if (fx?.auxSrc) fx.auxSrc.disconnect();
+    if (fx) fx.gate.gain.value = 1;
+    if (import.meta.env.DEV) (window as unknown as { __trasnoAux?: unknown }).__trasnoAux = null;
+  }
+  function useAux(u: string | null) {
+    if (!u) return dropAux();
+    if (aux && aux.src === u) return;
+    dropAux();
+    const a = new Audio();
+    a.crossOrigin = "anonymous";
+    a.preload = "auto";
+    a.src = u;
+    a.addEventListener("loadedmetadata", () => {
+      a.currentTime = now;
+      if (playing) a.play().catch(() => {});
+    });
+    aux = a;
+    if (import.meta.env.DEV) (window as unknown as { __trasnoAux?: unknown }).__trasnoAux = a;
+  }
+  $: useAux($mediaAux);
+  $: if (aux) {
+    aux.playbackRate = Math.min(4, Math.max(0.25, $mediaPreview?.speed ?? 1));
+    aux.volume = Math.min(1, Math.max(0, vol));
+    aux.muted = muted;
+  }
+  $: if (aux) {
+    if (playing) aux.play().catch(() => {});
+    else aux.pause();
+  }
+  $: if (fx && aux && !fx.auxSrc) fx.auxSrc = fx.ctx.createMediaElementSource(aux);
+  $: if (fx) {
+    if (aux && fx.auxSrc) {
+      fx.gate.gain.value = 0;
+      fx.auxSrc.connect(fx.gain);
+    }
   }
   // O esvaecer depende do instante: cálculase con cada fotograma mentres se reproduce.
   let fadeRaf = 0;
@@ -110,6 +156,7 @@
   $: if (fx && !fadeRaf) fadeRaf = requestAnimationFrame(fadeLoop);
   onDestroy(() => {
     cancelAnimationFrame(fadeRaf);
+    dropAux();
     void fx?.ctx.close().catch(() => {});
   });
   let stage: HTMLDivElement | undefined;
@@ -345,6 +392,7 @@
     if (ready && now > 0) playPos.set(file.path, now);
     duration = chunked ? totalDur : Number.isFinite(el.duration) && el.duration ? el.duration : (file.duration ?? 0);
     mediaTime.set(Math.round(now * 100) / 100);
+    if (aux && aux.readyState > 0 && Math.abs(aux.currentTime - now) > 0.25) aux.currentTime = now;
     if (cues.length) subText = cueAt(now);
     // O tramo seguinte vai preparándose mentres se ve este.
     if (chunked && el.currentTime > SEG * 0.4 && segStart + SEG < totalDur && !prefetched.has(segIndex + 1)) {

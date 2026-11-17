@@ -1,3 +1,8 @@
+<script context="module" lang="ts">
+  // Ao pasar o rato por moitas «i» seguidas non pestanexan: a primeira agarda un chisco e, se outra acaba de pecharse, a seguinte abre ao momento.
+  let lastClosed = 0;
+</script>
+
 <script lang="ts">
   import Icon from "../Icon.svelte";
   import { t } from "../../i18n";
@@ -25,12 +30,16 @@
   const hide = () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
-      if (!pinned && !overPop) open = false;
+      if (!pinned && !overPop && open) {
+        open = false;
+        lastClosed = performance.now();
+      }
     }, 120);
   };
   const enter = () => {
     clearTimeout(timer);
-    show();
+    if (performance.now() - lastClosed < 500) show();
+    else timer = setTimeout(show, 250);
   };
 </script>
 
@@ -69,5 +78,5 @@
 <style>
   .tip { display: inline-grid; place-items: center; width: 18px; height: 18px; padding: 0; margin-left: 0.25rem; background: none; border: none; border-radius: 50%; color: var(--text-faint); cursor: help; position: relative; z-index: 2; }
   .tip:hover, .tip[aria-expanded="true"] { color: var(--accent); }
-  .pop { position: fixed; z-index: 90; width: max-content; max-width: 280px; padding: 0.5rem 0.65rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); font-size: var(--fs-sm); line-height: 1.4; color: var(--text); user-select: text; cursor: text; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .pop { position: fixed; z-index: 90; width: max-content; max-width: 280px; padding: 0.5rem 0.65rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); font-size: var(--fs-sm); line-height: 1.4; color: var(--text); user-select: text; cursor: text; font-weight: 400; text-transform: none; letter-spacing: 0; white-space: pre-line; }
 </style>
