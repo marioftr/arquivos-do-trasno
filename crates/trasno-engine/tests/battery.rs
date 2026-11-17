@@ -91,6 +91,7 @@ fn readable(out: &Path) -> Result<(), String> {
 }
 
 #[test]
+#[ignore = "bateria exhaustiva (minutos): cargo test -p trasno-engine -- --include-ignored"]
 fn todas_as_conversions_ofrecidas_funcionan() {
     if !ffmpeg::is_available() {
         eprintln!("sen FFmpeg: batería omitida");
@@ -124,6 +125,7 @@ fn todas_as_conversions_ofrecidas_funcionan() {
 
 /// Opcións habituais (calidade, redimensionar, bitrate) sobre todos os destinos: tampouco poden fallar.
 #[test]
+#[ignore = "bateria exhaustiva (minutos): cargo test -p trasno-engine -- --include-ignored"]
 fn opcions_de_conversion_funcionan() {
     if !ffmpeg::is_available() {
         return;

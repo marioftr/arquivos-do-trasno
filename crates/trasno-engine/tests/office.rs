@@ -118,6 +118,7 @@ fn report(fails: Vec<String>) {
 }
 
 #[test]
+#[ignore = "abre Word de verdade (2 min): cargo test -p trasno-engine -- --include-ignored"]
 fn word_a_todos_os_formatos() {
     let st = office::status();
     println!("estado: {st:?}");

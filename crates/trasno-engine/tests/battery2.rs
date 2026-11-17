@@ -29,6 +29,7 @@ fn open_ok(p: &Path) -> Result<(u32, u32), String> {
 }
 
 #[test]
+#[ignore = "bateria exhaustiva (minutos): cargo test -p trasno-engine -- --include-ignored"]
 fn edicion_de_imaxes_en_todos_os_formatos() {
     let dir = tempfile::tempdir().unwrap();
     let mut failures = Vec::new();
@@ -85,6 +86,7 @@ fn recortes_imposibles_dan_erro_limpo() {
 }
 
 #[test]
+#[ignore = "bateria exhaustiva (minutos): cargo test -p trasno-engine -- --include-ignored"]
 fn compresion_de_imaxes_sobre_todas_as_mostras() {
     let dir = tempfile::tempdir().unwrap();
     let mut failures = Vec::new();
@@ -245,6 +247,7 @@ fn edicion_de_son_e_video() {
 }
 
 #[test]
+#[ignore = "bateria exhaustiva (minutos): cargo test -p trasno-engine -- --include-ignored"]
 fn cortar_e_comprimir_video_en_casos_difíciles() {
     if !ffmpeg::is_available() {
         return;
