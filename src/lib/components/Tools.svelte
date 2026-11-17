@@ -23,6 +23,7 @@
   import ExtractSection from "./tools/ExtractSection.svelte";
   import SilenceSection from "./tools/SilenceSection.svelte";
   import ModelViewSection from "./tools/ModelViewSection.svelte";
+  import VideoSubtitlesSection from "./tools/VideoSubtitlesSection.svelte";
   import SubtitleSection from "./tools/SubtitleSection.svelte";
   import PdfSplitSection from "./tools/PdfSplitSection.svelte";
   import PdfMarksSection from "./tools/PdfMarksSection.svelte";
@@ -68,7 +69,7 @@
       case "imaxe":
         return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("annotate", "Anotar"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
-        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
         return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...mkvTab(), tab("info", "Información")];
       case "documento":
@@ -135,6 +136,7 @@
     if (tab === "convert" && cat === "video" && !pdf) return [m("mp4", "A MP4 con perfís"), m("format", "A outro formato")];
     if (many) return [];
     if (!pdf) {
+      if (tab === "subtitles" && cat === "video") return [m("embed", "Incrustar"), m("burn", "Queimar"), m("extract", "Extraer")];
       // O son ten dúas tarefas: axustalo (volume, ruído, efectos) ou cortar os silencios.
       if (tab === "sound" && (cat === "video" || cat === "audio")) return [m("adjust", "Axustes"), m("silence", "Silencios")];
       return [];
@@ -220,6 +222,8 @@
           <CompressSection {selection} {category} />
         {:else if current === "edit" && first && SUBTITLE_EXTS.includes(first.ext)}
           <SubtitleSection file={first} />
+        {:else if current === "subtitles" && first && category === "video"}
+          <VideoSubtitlesSection file={first} mode={mode as "embed" | "burn" | "extract"} />
         {:else if current === "view" && first && category === "modelo3d"}
           <ModelViewSection file={first} />
         {:else if current === "sound" && mode === "silence" && first}

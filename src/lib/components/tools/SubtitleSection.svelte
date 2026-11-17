@@ -9,6 +9,7 @@
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
   import Segmented from "../ui/Segmented.svelte";
+  import Levels from "../ui/Levels.svelte";
   import NumberField from "../ui/NumberField.svelte";
   import TextField from "../ui/TextField.svelte";
   import GroupNote from "../ui/GroupNote.svelte";
@@ -16,23 +17,19 @@
 
   export let file: FileEntry;
 
-  /** Cambios de cadencia habituais (subtítulos feitos para → vídeo de). «Personalizado» deixa poñer os dous valores. */
-  const FPS_PAIRS: Record<string, [number, number]> = {
-    a: [23.976, 25],
-    b: [25, 23.976],
-    c: [24, 25],
-    d: [25, 24],
-  };
+  /** Cambios de cadencia habituais (subtítulos feitos para → vídeo de); os campos deixan poñer os dous valores á man. */
+  const FPS_LEVELS = [
+    { id: "a", label: "23,976 → 25", values: { fromFps: 23.976, toFps: 25 } },
+    { id: "b", label: "25 → 23,976", values: { fromFps: 25, toFps: 23.976 } },
+    { id: "c", label: "24 → 25", values: { fromFps: 24, toFps: 25 } },
+    { id: "d", label: "25 → 24", values: { fromFps: 25, toFps: 24 } },
+  ];
 
-  const form = createForm({ how: "shift", seconds: 0, fpsPair: "a", fromFps: 23.976, toFps: 25, firstAt: "", lastAt: "" }, "subtitulos", "subtitulos|" + file.path);
+  const form = createForm({ how: "shift", seconds: 0, fromFps: 23.976, toFps: 25, firstAt: "", lastAt: "" }, "subtitulos", "subtitulos|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();
   const busy = job.busy;
-
-  // Un cambio de cadencia fixo enche os dous valores; con «Personalizado» quedan os que poña o usuario.
-  $: pair = FPS_PAIRS[$form.fpsPair];
-  $: if (pair && ($form.fromFps !== pair[0] || $form.toFps !== pair[1])) form.update((f) => ({ ...f, fromFps: pair[0], toFps: pair[1] }));
 
   let info: engine.SubtitleInfo | null = null;
   let infoErr = "";
@@ -115,24 +112,17 @@
     {#if $form.how === "shift"}
       <NumberField label={$t("Desprazamento")} unit="s" step={0.1} min={-3600} max={3600} bind:value={$form.seconds} def={0} hint={$t("Positivo = as falas saen máis tarde; negativo = máis cedo.")} />
     {:else if $form.how === "fps"}
-      <Segmented
+      <Levels
         label={$t("Cambio de cadencia")}
         info={$t("Primeiro, a cadencia para a que se fixeron os subtítulos; despois, a do vídeo no que os vas usar.")}
-        options={[
-          { value: "a", label: "23,976 → 25" },
-          { value: "b", label: "25 → 23,976" },
-          { value: "c", label: "24 → 25" },
-          { value: "d", label: "25 → 24" },
-          { value: "custom", label: $t("Personalizado") },
-        ]}
-        bind:value={$form.fpsPair}
+        levels={FPS_LEVELS}
+        values={{ fromFps: $form.fromFps, toFps: $form.toFps }}
+        on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))}
       />
-      {#if $form.fpsPair === "custom"}
-        <div class="pair">
-          <NumberField label={$t("Subtítulos feitos para")} unit="fps" step={0.001} min={1} max={240} bind:value={$form.fromFps} def={23.976} />
-          <NumberField label={$t("Vídeo de")} unit="fps" step={0.001} min={1} max={240} bind:value={$form.toFps} def={25} />
-        </div>
-      {/if}
+      <div class="pair">
+        <NumberField label={$t("Subtítulos feitos para")} unit="fps" step={0.001} min={1} max={240} bind:value={$form.fromFps} def={23.976} />
+        <NumberField label={$t("Vídeo de")} unit="fps" step={0.001} min={1} max={240} bind:value={$form.toFps} def={25} />
+      </div>
     {:else}
       <TextField label={$t("A primeira fala debe saír en")} placeholder="0:00:02,500" bind:value={$form.firstAt} hint={info ? $t("Agora sae en {a}.", { a: clock(info.first_start) }) : ""} />
       <TextField label={$t("A última fala debe saír en")} placeholder="1:32:10,000" bind:value={$form.lastAt} hint={info ? $t("Agora sae en {a}.", { a: clock(info.last_start) }) : ""} />

@@ -417,6 +417,30 @@ pub async fn subtitle_info(path: String) -> Result<trasno_engine::subtitles::Sub
     blocking_bg(move || trasno_engine::subtitles::subtitle_info(&PathBuf::from(path)).map_err(to_err)).await
 }
 
+/// Pistas de subtítulos dun vídeo.
+#[tauri::command]
+pub async fn subtitle_tracks(path: String) -> Result<Vec<trasno_engine::subtitle_video::SubtitleTrack>, String> {
+    blocking_bg(move || trasno_engine::subtitle_video::list_tracks(&PathBuf::from(path)).map_err(to_err)).await
+}
+
+/// Mete uns subtítulos no vídeo como pista.
+#[tauri::command]
+pub async fn subtitle_embed(video: String, subs: String, output: String, overwrite: bool, language: String) -> Result<trasno_engine::subtitle_video::SubtitleVideoReport, String> {
+    blocking(move || trasno_engine::subtitle_video::embed(&PathBuf::from(video), &PathBuf::from(subs), &PathBuf::from(output), overwrite, &language).map_err(to_err)).await
+}
+
+/// Queima uns subtítulos na imaxe do vídeo.
+#[tauri::command]
+pub async fn subtitle_burn(video: String, subs: String, output: String, overwrite: bool) -> Result<trasno_engine::subtitle_video::SubtitleVideoReport, String> {
+    blocking(move || trasno_engine::subtitle_video::burn(&PathBuf::from(video), &PathBuf::from(subs), &PathBuf::from(output), overwrite).map_err(to_err)).await
+}
+
+/// Saca unha pista de subtítulos dun vídeo a ficheiro.
+#[tauri::command]
+pub async fn subtitle_extract(video: String, position: usize, output: String, overwrite: bool) -> Result<trasno_engine::subtitle_video::SubtitleVideoReport, String> {
+    blocking(move || trasno_engine::subtitle_video::extract_track(&PathBuf::from(video), position, &PathBuf::from(output), overwrite).map_err(to_err)).await
+}
+
 /// Resincroniza uns subtítulos (desprazamento, cadencia ou dous puntos) nun ficheiro novo.
 #[tauri::command]
 pub async fn retime_subtitle(input: String, output: String, overwrite: bool, shift_ms: i64, factor: f64) -> Result<trasno_engine::subtitles::RetimeReport, String> {

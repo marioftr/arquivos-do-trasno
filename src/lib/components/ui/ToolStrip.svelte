@@ -13,6 +13,7 @@
     edit: "sliders",
     sound: "volume",
     view: "cube",
+    subtitles: "type",
     annotate: "pencil",
     info: "info",
     extract: "download",

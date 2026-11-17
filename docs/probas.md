@@ -20,7 +20,7 @@ npm run e2e                      # todos os escenarios
 npm run e2e -- editar-video      # só un
 ```
 
-Escenarios (en `scripts/e2e/scenarios/`): `editar-video`, `son-procesado`, `reloxo-longo`, `ocr-imaxe`, `iconas-info`, `silencios-selector`, `accesibilidade`, `niveis-calidade`, `modelo-3d`, `pdf-niveis`. Para engadir un, copia un deles:
+Escenarios (en `scripts/e2e/scenarios/`): `editar-video`, `son-procesado`, `reloxo-longo`, `ocr-imaxe`, `iconas-info`, `silencios-selector`, `accesibilidade`, `niveis-calidade`, `modelo-3d`, `pdf-niveis`, `subtitulos-video`. Para engadir un, copia un deles:
 exporta `{ about, run(app, check) }` e usa as axudas de `harness.mjs` (`open`, `click`, `slider`, `panel`, `waitFor`, `video`, `textImage`…).
 Se falla, garda unha captura en `%TEMP%\trasno-e2e\erro-<escenario>.png`.
 

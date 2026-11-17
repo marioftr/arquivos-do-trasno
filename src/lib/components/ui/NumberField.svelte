@@ -3,6 +3,7 @@
   import { HINTS } from "../../hints";
   import Icon from "../Icon.svelte";
   import { t } from "../../i18n";
+  import { sliderDragging } from "./drag";
 
   export let label = "";
   export let value: number | null;
@@ -39,7 +40,7 @@
     </div>
   {/if}
   <label class="num">
-    <input type="number" {min} {max} {step} {placeholder} {disabled} value={value ?? ""} on:input={input} aria-label={label} />
+    <input type="number" {min} {max} {step} {placeholder} {disabled} value={value ?? ""} on:input={input} on:focus={() => sliderDragging.set(true)} on:blur={() => sliderDragging.set(false)} aria-label={label} />
     {#if unit}<span class="unit">{unit}</span>{/if}
   </label>
 </div>

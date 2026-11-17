@@ -33,6 +33,7 @@ pub mod office;
 pub mod pdf;
 pub mod pdf_tools;
 pub mod silence;
+pub mod subtitle_video;
 pub mod subtitles;
 pub mod tools_install;
 

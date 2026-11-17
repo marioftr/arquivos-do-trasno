@@ -177,6 +177,23 @@ export interface RetimeReport {
   cues: number;
   dropped: number;
 }
+export interface SubtitleTrack {
+  position: number;
+  codec: string;
+  language: string | null;
+  title: string | null;
+  text_based: boolean;
+}
+export interface SubtitleVideoReport {
+  output: string;
+  cues: number;
+}
+export const subtitleTracks = (path: string): Promise<SubtitleTrack[]> => call("subtitle_tracks", { path });
+export const subtitleEmbed = (video: string, subs: string, output: string, language: string, overwrite = false): Promise<SubtitleVideoReport> =>
+  call("subtitle_embed", { video, subs, output, language, overwrite });
+export const subtitleBurn = (video: string, subs: string, output: string, overwrite = false): Promise<SubtitleVideoReport> => call("subtitle_burn", { video, subs, output, overwrite });
+export const subtitleExtract = (video: string, position: number, output: string, overwrite = false): Promise<SubtitleVideoReport> =>
+  call("subtitle_extract", { video, position, output, overwrite });
 export const subtitleInfo = (path: string): Promise<SubtitleInfo> => call("subtitle_info", { path });
 export const retimeSubtitle = (input: string, output: string, r: Retime, overwrite = false): Promise<RetimeReport> =>
   call("retime_subtitle", { input, output, overwrite, shiftMs: r.shift_ms, factor: r.factor });
