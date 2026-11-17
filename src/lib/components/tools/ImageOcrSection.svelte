@@ -123,7 +123,7 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Texto da imaxe")}</h4>
-    <GroupNote text={$t("Le as letras da imaxe para poder seleccionalas co rato sobre o visor e copialas. Non se cambia nada no ficheiro. Todo se le neste equipo.")} />
+    <GroupNote text={$t("Le as letras da imaxe para seleccionalas co rato sobre o visor e copialas.")} />
 
     <SelectField
       label={$t("Idioma do texto")}

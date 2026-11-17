@@ -360,28 +360,6 @@ pub async fn edit_apply(input: String, output: String, overwrite: bool, plan: tr
     blocking(move || trasno_engine::edit_plan::apply_plan(&PathBuf::from(input), &PathBuf::from(output), overwrite, &plan).map_err(to_err)).await
 }
 
-/// Un anaco curto (ata `seconds`) co plan aplicado, para escoitalo antes de exportar. Devolve a ruta do ficheiro temporal.
-#[tauri::command]
-pub async fn edit_preview(input: String, plan: trasno_engine::edit_plan::EditPlan, at: f64, seconds: f64, video: bool) -> Result<String, String> {
-    blocking_bg(move || {
-        let dir = preview_dir();
-        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-        // Só se garda a última: as anteriores bórranse.
-        if let Ok(rd) = std::fs::read_dir(&dir) {
-            for e in rd.flatten() {
-                if e.file_name().to_string_lossy().starts_with("edicion-") {
-                    let _ = std::fs::remove_file(e.path());
-                }
-            }
-        }
-        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
-        let out = dir.join(format!("edicion-{stamp}.{}", if video { "mp4" } else { "wav" }));
-        trasno_engine::edit_plan::preview_plan(&PathBuf::from(input), &out, &plan, at, seconds.clamp(1.0, 30.0)).map_err(to_err)?;
-        Ok(out.to_string_lossy().to_string())
-    })
-    .await
-}
-
 #[derive(serde::Serialize)]
 pub struct NormalizeResult {
     output_path: String,

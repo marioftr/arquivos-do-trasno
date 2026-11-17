@@ -89,7 +89,7 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Resincronizar a lexenda")}</h4>
-    <GroupNote text={$t("Se a lexenda sae adiantada, atrasada ou vai perdéndose pouco a pouco, aquí axústase. Crea un ficheiro novo; o orixinal non se toca.")} />
+    <GroupNote text={$t("Se a lexenda sae adiantada, atrasada ou vai perdéndose pouco a pouco, aquí axústase.")} />
     {#if info}
       <p class="muted info">
         {$t("{n} falas · a primeira empeza en {a} e a última en {b}.", { n: info.cues, a: clock(info.first_start), b: clock(info.last_start) })}

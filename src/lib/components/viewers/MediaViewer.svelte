@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import { formatClock } from "../../formats";
-  import { viewUrl, mediaPreview, mediaSeek, mediaTime, trimRange, type FileEntry, videoDar } from "../../files";
+  import { viewUrl, mediaPreview, mediaSeek, mediaTime, trimRange, type FileEntry, type MediaPreview, videoDar } from "../../files";
   import * as engine from "../../engine";
   import { get } from "svelte/store";
   import { player } from "../../player";
@@ -36,10 +36,82 @@
   let vol = get(player).vol;
   let muted = get(player).muted;
   $: player.set({ vol, muted });
+  // Con efectos en directo o volume por riba de 1, o son pasa por WebAudio (o volume do elemento non pasa de 1): o multiplicador vai no grafo.
   $: if (el) {
-    el.volume = Math.min(1, Math.max(0, ($mediaPreview ? $mediaPreview.volume : 1) * vol));
+    el.volume = Math.min(1, Math.max(0, (fx ? 1 : $mediaPreview ? $mediaPreview.volume : 1) * vol));
     el.muted = muted;
   }
+
+  // ---- efectos de son en directo (graves, agudos, eco, esvaecer, volume > 1): o mesmo que se aplicará ao exportar, aproximado
+  // co que sabe facer o navegador. O ruído e dar a volta ao son non se poden escoitar sen exportar.
+  interface Fx { ctx: AudioContext; src: MediaElementAudioSourceNode; el: HTMLMediaElement; gain: GainNode; low: BiquadFilterNode; high: BiquadFilterNode; delay: DelayNode; wet: GainNode; fade: GainNode; probe?: AnalyserNode }
+  let fx: Fx | null = null;
+  const wantsFx = (p: MediaPreview | null) => !!p && (p.volume > 1 || !!p.bass || !!p.treble || !!p.echoMs || !!p.fadeIn || !!p.fadeOut);
+  function buildFx(target: HTMLMediaElement): Fx | null {
+    try {
+      const ctx = new AudioContext();
+      const src = ctx.createMediaElementSource(target);
+      const gain = ctx.createGain();
+      const low = ctx.createBiquadFilter();
+      low.type = "lowshelf";
+      low.frequency.value = 200;
+      const high = ctx.createBiquadFilter();
+      high.type = "highshelf";
+      high.frequency.value = 3000;
+      const delay = ctx.createDelay(2.5);
+      const feedback = ctx.createGain();
+      feedback.gain.value = 0.4;
+      const wet = ctx.createGain();
+      wet.gain.value = 0;
+      const fade = ctx.createGain();
+      src.connect(gain).connect(low).connect(high);
+      high.connect(fade);
+      high.connect(delay);
+      delay.connect(feedback).connect(delay);
+      delay.connect(wet).connect(fade);
+      // Só en desenvolvemento: un analizador que as probas da app real len para saber se o son sae de verdade (e non en silencio).
+      const probe = import.meta.env.DEV ? ctx.createAnalyser() : undefined;
+      if (probe) fade.connect(probe).connect(ctx.destination);
+      else fade.connect(ctx.destination);
+      const built = { ctx, src, el: target, gain, low, high, delay, wet, fade, probe };
+      if (probe) (window as unknown as { __trasnoFx?: unknown }).__trasnoFx = built;
+      return built;
+    } catch {
+      return null;
+    }
+  }
+  $: if (el && wantsFx($mediaPreview) && (!fx || fx.el !== el)) fx = buildFx(el);
+  $: if (fx) {
+    const p = $mediaPreview;
+    fx.gain.gain.value = p ? p.volume : 1;
+    fx.low.gain.value = p?.bass ?? 0;
+    fx.high.gain.value = p?.treble ?? 0;
+    fx.delay.delayTime.value = Math.min(2, (p?.echoMs ?? 0) / 1000) || 0.001;
+    fx.wet.gain.value = p?.echoMs ? 0.5 : 0;
+    if (fx.ctx.state === "suspended") void fx.ctx.resume();
+  }
+  // O esvaecer depende do instante: cálculase con cada fotograma mentres se reproduce.
+  let fadeRaf = 0;
+  function fadeLoop() {
+    if (fx && el) {
+      const p = $mediaPreview;
+      const r = $trimRange;
+      const t = (chunked ? segStart : 0) + el.currentTime;
+      const a = r?.start ?? 0;
+      const b = r?.end ?? (duration || t);
+      const sp = Math.max(0.25, p?.speed ?? 1);
+      const fin = p?.fadeIn ? Math.min(1, Math.max(0, (t - a) / (p.fadeIn * sp))) : 1;
+      const fout = p?.fadeOut ? Math.min(1, Math.max(0, (b - t) / (p.fadeOut * sp))) : 1;
+      fx.fade.gain.value = fin * fout;
+    }
+    fadeRaf = requestAnimationFrame(fadeLoop);
+  }
+  $: if (fx && playing && fx.ctx.state === "suspended") void fx.ctx.resume();
+  $: if (fx && !fadeRaf) fadeRaf = requestAnimationFrame(fadeLoop);
+  onDestroy(() => {
+    cancelAnimationFrame(fadeRaf);
+    void fx?.ctx.close().catch(() => {});
+  });
   let stage: HTMLDivElement | undefined;
   // Relación de aspecto elixida na conversión: o visor amósaa antes de converter (só se mostra, o ficheiro non cambia).
   let sw = 0;
@@ -591,7 +663,7 @@
       <div class="vid">
         <div class="screen" use:size>
           <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-          <video bind:this={el} style={vstyle} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={onVideoError} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
+          <video bind:this={el} crossorigin="anonymous" style={vstyle} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={onVideoError} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
           {#if subText}<div class="subs" aria-live="off">{subText}</div>{/if}
           {#if loadingSeg}<div class="segload" role="status"><span class="indet" aria-hidden="true"><span></span></span>{$t("Preparando este tramo…")}</div>{/if}
         </div>
@@ -662,7 +734,7 @@
       {#if converted}
         <p class="note audionote" role="note">{$t("Vista previa recodificada só para velo aquí. O ficheiro orixinal non cambia.")}<InfoTip text={$t(WHY_PREVIEW)} /></p>
       {/if}
-      <audio bind:this={el} src={url} on:error={() => prepare()} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></audio>
+      <audio bind:this={el} crossorigin="anonymous" src={url} on:error={() => prepare()} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={() => (playing = false)}></audio>
     </div>
   {/if}
 </div>

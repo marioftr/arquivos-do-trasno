@@ -350,6 +350,12 @@ export const videoDar = writable("");
 export interface MediaPreview {
   speed: number;
   volume: number;
+  /** Efectos de son que o visor aplica en directo (WebAudio): graves e agudos en dB, eco (atraso en ms) e esvaecer (s do resultado). */
+  bass?: number;
+  treble?: number;
+  echoMs?: number;
+  fadeIn?: number;
+  fadeOut?: number;
 }
 export const mediaPreview = writable<MediaPreview | null>(null);
 export const mediaSeek = writable<{ t: number; stamp: number } | null>(null);

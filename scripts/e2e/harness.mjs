@@ -106,8 +106,8 @@ export async function launch({ tessdata = false } = {}) {
     if (d.id && pend.has(d.id)) (pend.get(d.id)(d), pend.delete(d.id));
   };
   const send = (method, params = {}) => new Promise((r) => { const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
-  const ev = async (expr) => {
-    const r = await send("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true });
+  const ev = async (expr, gesture = false) => {
+    const r = await send("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true, userGesture: gesture });
     if (r.result?.exceptionDetails) throw new Error("JS: " + (r.result.exceptionDetails.exception?.description ?? "erro"));
     return r.result?.result?.value;
   };
@@ -117,6 +117,10 @@ export async function launch({ tessdata = false } = {}) {
     media: path.join(root, "media"),
     ev,
     sleep,
+    /** Nivel (RMS, 0 a 1) do son que sae agora do visor, medido no grafo de efectos; só en builds de desenvolvemento. */
+    async level(ms = 700) {
+      return ev(`(async()=>{const f=window.__trasnoFx; if(!f||!f.probe) return -1; const b=new Float32Array(f.probe.fftSize); let acc=0,n=0; const t0=performance.now(); while(performance.now()-t0<${ms}){f.probe.getFloatTimeDomainData(b); for(const x of b){acc+=x*x;n++} await new Promise(r=>setTimeout(r,40))} return Math.sqrt(acc/n)})()`);
+    },
     /** Espera ata que `fn` (executada na páxina, devolve valor verdadeiro) se cumpra. */
     async waitFor(js, what, ms = 20000) {
       const t0 = Date.now();
@@ -138,6 +142,12 @@ export async function launch({ tessdata = false } = {}) {
       const r = await ev(`(()=>{const t=${JSON.stringify(text)};const b=[...document.querySelectorAll('button,[role=tab],[role=radio]')].find(b=>b.textContent.trim()===t||b.title===t||b.getAttribute('aria-label')===t); if(!b) return 'sen: '+t; if(b.disabled) return 'desactivado: '+t; b.click(); return 'ok';})()`);
       if (r !== "ok") throw new Error(`Non se puido premer «${text}»: ${r}`);
       await sleep(350);
+    },
+    /** Acende ou apaga un interruptor polo seu texto. */
+    async toggle(text) {
+      const r = await ev(`(()=>{const l=[...document.querySelectorAll('.toggle')].find(x=>x.querySelector('.lab')?.textContent.trim()===${JSON.stringify(text)}); if(!l) return 'sen interruptor: '+${JSON.stringify(text)}; l.querySelector('input').click(); return 'ok';})()`);
+      if (r !== 'ok') throw new Error(r);
+      await sleep(250);
     },
     /** Mete un ficheiro como se se soltase sobre a ventá. */
     async open(file) {

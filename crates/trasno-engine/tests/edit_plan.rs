@@ -1,7 +1,7 @@
 //! Edición conxunta: todos os axustes nunha soa exportación, sobre ficheiros reais.
 
 use std::path::{Path, PathBuf};
-use trasno_engine::edit_plan::{apply_plan, preview_plan, EditPlan};
+use trasno_engine::edit_plan::{apply_plan, EditPlan};
 use trasno_engine::ffmpeg::{self, Loudness};
 
 fn ff(args: &[&str]) {
@@ -84,27 +84,18 @@ fn igualar_o_volume_mide_o_que_queda_despois_do_corte() {
 }
 
 #[test]
-fn a_vista_previa_e_un_anaco_curto_que_se_pode_reproducir_e_os_erros_son_claros() {
+fn os_erros_son_claros_e_non_deixan_ficheiros_a_medias() {
     if !ffmpeg::is_available() {
         return;
     }
     let dir = tempfile::tempdir().unwrap();
     let src = video(dir.path(), "a.mp4");
-    let plan = EditPlan { speed: 1.5, treble: -3.0, ..Default::default() };
-    let pv = dir.path().join("p.mp4");
-    let r = preview_plan(&src, &pv, &plan, 4.0, 3.0).unwrap();
-    assert!((duration(&pv) - 2.0).abs() < 0.2, "3 s a ×1,5 = 2 s, dura {}", duration(&pv));
-    assert_eq!(r.output, pv);
-    assert_eq!(stream(&pv, "video")["codec_name"], "h264");
-    // Con visor máis alá do final, tamén vale (mostra o final).
-    assert!(preview_plan(&src, &dir.path().join("q.mp4"), &plan, 99.0, 3.0).is_ok());
-
-    // Erros: nada que aplicar, valores imposibles e mudo nun ficheiro de son.
     let out = dir.path().join("x.mp4");
-    assert!(apply_plan(&src, &out, false, &EditPlan::default()).is_err());
-    assert!(apply_plan(&src, &out, false, &EditPlan { speed: 9.0, ..Default::default() }).is_err());
+    assert!(apply_plan(&src, &out, false, &EditPlan::default()).is_err(), "sen cambios");
+    assert!(apply_plan(&src, &out, false, &EditPlan { speed: 9.0, ..Default::default() }).is_err(), "velocidade imposible");
+    assert!(apply_plan(&src, &out, false, &EditPlan { start: 99.0, ..Default::default() }).is_err(), "inicio despois do final");
     let wav = dir.path().join("a.wav");
     ff(&["-f", "lavfi", "-i", "sine=d=2", wav.to_str().unwrap()]);
-    assert!(apply_plan(&wav, &dir.path().join("m.wav"), false, &EditPlan { mute: true, ..Default::default() }).is_err());
+    assert!(apply_plan(&wav, &dir.path().join("m.wav"), false, &EditPlan { mute: true, ..Default::default() }).is_err(), "mudo nun audio");
     assert!(!out.exists(), "non queda ningún ficheiro a medias");
 }

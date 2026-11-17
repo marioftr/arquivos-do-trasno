@@ -4,7 +4,7 @@
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import * as engine from "../../engine";
-  import { mediaPreview, mediaTime, trimRange, viewUrl, type FileEntry } from "../../files";
+  import { mediaPreview, mediaTime, trimRange, type FileEntry } from "../../files";
   import { fileNameOf, formatClock, TRASNO, fallo, listo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
@@ -20,8 +20,6 @@
 
   const isVideo = file.category === "video";
   const total = file.duration ?? 0;
-  /** Segundos que dura a vista previa. */
-  const PREVIEW_S = 8;
 
   /** Obxectivos de volume segundo onde se vai escoitar o ficheiro. «Personalizado» deixa poñer os tres valores á man. */
   const PROFILES: Record<string, { lufs: number; peak: number; range: number }> = {
@@ -61,9 +59,17 @@
   $: preset = PROFILES[$form.profile];
   $: if (preset && ($form.lufs !== preset.lufs || $form.peak !== preset.peak || $form.range !== preset.range)) form.update((f) => ({ ...f, ...preset }));
 
-  // O visor reproduce xa coa velocidade e o volume elixidos e amosa o corte sobre a liña de tempo (as súas asas móvense e
+  // O visor reproduce xa en directo coa velocidade, o volume, os graves, os agudos, o eco e o esvaecer elixidos e amosa o corte sobre a liña de tempo (as súas asas móvense e
   // os campos seguen sempre o que se ve).
-  $: mediaPreview.set({ speed: $form.speed, volume: $form.mute ? 0 : $form.normalize ? 1 : $form.volume });
+  $: mediaPreview.set({
+    speed: $form.speed,
+    volume: $form.mute ? 0 : $form.normalize ? 1 : $form.volume,
+    bass: $form.mute ? 0 : $form.bass,
+    treble: $form.mute ? 0 : $form.treble,
+    echoMs: !$form.mute && $form.echo ? $form.echoMs : 0,
+    fadeIn: !$form.mute && $form.fadeIn ? $form.fade : 0,
+    fadeOut: !$form.mute && $form.fadeOut ? $form.fade : 0,
+  });
   const r1 = (v: number) => Math.round(v * 10) / 10;
   $: if (total) {
     const r = { start: $form.start, end: $form.end || total };
@@ -84,7 +90,6 @@
   onDestroy(() => {
     ownPreview.release(() => mediaPreview.set(null));
     ownTrim.release(() => trimRange.set(null));
-    stopPreview();
   });
 
   const job = createJob();
@@ -110,30 +115,27 @@
   };
 
   const num = (v: number) => String(Math.round(v * 100) / 100).replace(".", ",");
-  /** Resumo do que se vai facer, en palabras. */
-  $: changes = ((): string[] => {
+  const signed = (v: number) => `${v > 0 ? "+" : "−"}${num(Math.abs(v))} dB`;
+  /** Os axustes que cambian algo, ordenados como no formulario: nome e valor. */
+  $: rows = ((): { k: string; v: string }[] => {
     const p = planOf($form);
-    const c: string[] = [];
-    if (p.start > 0 || p.end !== null) c.push(tr("cortar de {a} a {b}", { a: formatClock(p.start, 1), b: formatClock(p.end ?? total, 1) }));
-    if (p.speed !== 1) c.push(tr("velocidade ×{v}", { v: num(p.speed) }));
-    if (p.mute) c.push(tr("sen son"));
-    if (p.normalize) c.push(tr("volume igualado a {v} LUFS", { v: num(p.normalize.lufs) }));
-    else if (p.volume !== 1) c.push(tr("volume ×{v}", { v: num(p.volume) }));
-    if (p.denoise) c.push(tr("sen ruído"));
-    if (p.reverse) c.push(tr("son ao revés"));
-    if (p.fade_in) c.push(tr("esvaecer ao principio"));
-    if (p.fade_out) c.push(tr("esvaecer ao final"));
-    if (p.bass) c.push(tr("graves {v} dB", { v: num(p.bass) }));
-    if (p.treble) c.push(tr("agudos {v} dB", { v: num(p.treble) }));
-    if (p.echo_ms) c.push(tr("eco"));
-    return c;
+    const r: { k: string; v: string }[] = [];
+    if (p.start > 0 || p.end !== null) r.push({ k: tr("Tramo"), v: `${formatClock(p.start, 1)} – ${formatClock(p.end ?? total, 1)}` });
+    if (p.speed !== 1) r.push({ k: tr("Velocidade"), v: `×${num(p.speed)}` });
+    if (p.mute) r.push({ k: tr("Son"), v: tr("Quitado") });
+    if (p.normalize) r.push({ k: tr("Volume"), v: `${num(p.normalize.lufs)} LUFS` });
+    else if (p.volume !== 1) r.push({ k: tr("Volume"), v: `×${num(p.volume)}` });
+    if (p.denoise) r.push({ k: tr("Ruído"), v: tr("Reducido") });
+    if (p.reverse) r.push({ k: tr("Son"), v: tr("Ao revés") });
+    if (p.fade_in || p.fade_out) r.push({ k: tr("Esvaecer"), v: [p.fade_in ? tr("principio") : "", p.fade_out ? tr("final") : ""].filter(Boolean).join(" + ") + ` · ${num(p.fade_in || p.fade_out)} s` });
+    if (p.bass) r.push({ k: tr("Graves"), v: signed(p.bass) });
+    if (p.treble) r.push({ k: tr("Agudos"), v: signed(p.treble) });
+    if (p.echo_ms) r.push({ k: tr("Eco"), v: `${p.echo_ms} ms` });
+    return r;
   })();
+  $: changed = rows.length > 0;
   /** Duración do resultado se se coñece a do orixinal. */
   $: outLen = total ? Math.max(0, ($form.end || total) - $form.start) / $form.speed : null;
-  /** A imaxe só se cópia se non se corta nin se cambia a velocidade. */
-  $: imageCopied = onlyTrim || !(planOf($form).start > 0 || planOf($form).end !== null || $form.speed !== 1);
-  /** Só se corta: gárdase sen recodificar. */
-  $: onlyTrim = changes.length === 1 && (planOf($form).start > 0 || planOf($form).end !== null);
 
   async function exportAll() {
     try {
@@ -151,26 +153,6 @@
     }
   }
 
-  // ---- vista previa: un anaco curto co plan aplicado
-  let previewing = false;
-  let previewUrl = "";
-  let previewErr = "";
-  function stopPreview() {
-    previewUrl = "";
-  }
-  async function preview() {
-    previewErr = "";
-    previewing = true;
-    previewUrl = "";
-    try {
-      const path = await engine.editPreview(file.path, planOf($form), get(mediaTime), PREVIEW_S, isVideo);
-      previewUrl = await viewUrl(path);
-    } catch (e) {
-      previewErr = errText(e);
-    } finally {
-      previewing = false;
-    }
-  }
 </script>
 
 <div class="stack">
@@ -226,8 +208,8 @@
 
   <div class="group" class:off={$form.mute}>
     <h4 class="group-title">{$t("Son")}</h4>
-    <Toggle label={$t("Quitar ruído de fondo")} bind:checked={$form.denoise} disabled={$form.mute} hint={$t("Reduce o ruído constante (zumbido, ventilador). Non fai milagres coa voz doutras persoas.")} />
-    <Toggle label={$t("Dar a volta ao son")} bind:checked={$form.reverse} disabled={$form.mute} />
+    <Toggle label={$t("Quitar ruído de fondo")} bind:checked={$form.denoise} disabled={$form.mute} hint={$t("Reduce o ruído constante (zumbido, ventilador). Só se nota ao exportar.")} />
+    <Toggle label={$t("Dar a volta ao son")} bind:checked={$form.reverse} disabled={$form.mute} hint={$t("Só se nota ao exportar.")} />
     <Toggle label={$t("Esvaecer ao principio")} bind:checked={$form.fadeIn} disabled={$form.mute} />
     <Toggle label={$t("Esvaecer ao final")} bind:checked={$form.fadeOut} disabled={$form.mute} />
     {#if $form.fadeIn || $form.fadeOut}
@@ -241,38 +223,31 @@
     {/if}
   </div>
 
-  <div class="group">
-    <h4 class="group-title">{$t("Antes de exportar")}</h4>
-    {#if changes.length}
-      <p class="sum">{$t("Vaise aplicar: {lista}.", { lista: changes.join(" · ") })}{#if outLen !== null && !onlyTrim}&nbsp;{$t("Resultado: uns {t}.", { t: formatClock(outLen, 1) })}{/if}</p>
-      {#if isVideo}
-        <p class="sum muted">{imageCopied ? $t("A imaxe cópiase sen recodificar.") : $t("A imaxe recodifícase con moita calidade.")}</p>
-      {/if}
-    {:else}
-      <p class="sum muted">{$t("Aínda non cambiaches nada: o resultado sería igual que o orixinal.")}</p>
-    {/if}
-    <button class="btn" on:click={preview} disabled={$busy || previewing || !changes.length || onlyTrim} title={$t("Aplica os axustes a uns segundos desde onde está o visor, para oír como quedan")}>
-      {previewing ? $t("Preparando a vista previa…") : $t("Probar uns segundos ({s} s)", { s: PREVIEW_S })}
-    </button>
-    {#if previewUrl}
-      {#if isVideo}
-        <!-- svelte-ignore a11y_media_has_caption -->
-        <video class="pv" src={previewUrl} controls autoplay></video>
-      {:else}
-        <audio class="pv" src={previewUrl} controls autoplay></audio>
-      {/if}
-      {#if $form.normalize}<p class="sum muted">{$t("O volume igualado só se nota ao exportar: mide o ficheiro enteiro.")}</p>{/if}
-    {/if}
-    {#if previewErr}<p class="sum err">{previewErr}</p>{/if}
-  </div>
+  {#if changed}
+    <div class="group">
+      <h4 class="group-title">{$t("Resultado")}</h4>
+      <dl class="rows">
+        {#each rows as r}
+          <dt>{r.k}</dt>
+          <dd>{r.v}</dd>
+        {/each}
+        {#if outLen !== null}
+          <dt class="total">{$t("Duración")}</dt>
+          <dd class="total">{#if Math.abs(outLen - total) > 0.05}<span class="was">{formatClock(total, 1)}</span>&nbsp;→&nbsp;{/if}{formatClock(outLen, 1)}</dd>
+        {/if}
+      </dl>
+    </div>
+  {/if}
 
-  <button class="btn primary block" on:click={exportAll} disabled={$busy || !changes.length}>{$t("Exportar")}</button>
+  <button class="btn primary block" on:click={exportAll} disabled={$busy || !changed}>{$t("Exportar")}</button>
   <JobStatus {job} />
 </div>
 
 <style>
   .off { opacity: 0.45; }
-  .sum { margin: 0; font-size: var(--fs-sm); line-height: 1.45; user-select: text; }
-  .err { color: var(--accent-video); }
-  .pv { width: 100%; max-height: 220px; border-radius: var(--radius-sm); background: #000; }
+  .rows { display: grid; grid-template-columns: auto 1fr; column-gap: 0; row-gap: 0.35rem; margin: 0; font-size: var(--fs-md); }
+  .rows dt { color: var(--text-muted); padding-right: 1rem; }
+  .rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; user-select: text; }
+  .rows .total { padding-top: 0.45rem; border-top: 1px solid var(--border); font-weight: 600; color: var(--text); }
+  .was { color: var(--text-faint); font-weight: 400; }
 </style>

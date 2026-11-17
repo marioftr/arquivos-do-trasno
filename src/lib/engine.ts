@@ -247,9 +247,6 @@ export interface EditReport {
 }
 /** Aplica o plan enteiro nun ficheiro novo. */
 export const editApply = (input: string, output: string, plan: EditPlan, overwrite = false): Promise<EditReport> => call("edit_apply", { input, output, overwrite, plan });
-/** Un anaco curto co plan aplicado, para oílo antes de exportar; devolve a ruta do ficheiro temporal. */
-export const editPreview = (input: string, plan: EditPlan, at: number, seconds: number, video: boolean): Promise<string> => call("edit_preview", { input, plan, at, seconds, video });
-
 export interface MediaInfo {
   format?: { duration?: string; bit_rate?: string; format_long_name?: string };
   streams?: {

@@ -10,7 +10,7 @@ export const HINTS: Record<string, string> = {
   "Lado máximo": "Se a imaxe é máis grande que isto (no lado maior), redúcese mantendo a proporción. Baleiro deixa o tamaño orixinal.",
   "Altura máxima": "Se o vídeo é máis alto que isto, redúcese mantendo a proporción. Nunca se amplía. «orixinal» non toca a resolución.",
   "Bitrate de audio": "Cantidade de datos por segundo do son. 128 kbps xa soa ben para voz e música normal; 192 ou máis para música coidada.",
-  "Formato de saída": "Tipo de ficheiro que se vai crear. O orixinal non se toca: gárdase unha copia.",
+  "Formato de saída": "Tipo de ficheiro que se vai crear.",
   "Ancho": "Ancho en píxeles do resultado. Se «Manter proporción» está activo, o alto axústase só.",
   "Alto": "Alto en píxeles do resultado. Se «Manter proporción» está activo, o ancho axústase só.",
   "Manter proporción": "Ao cambiar o ancho ou o alto, o outro axústase para que a imaxe non se deforme.",

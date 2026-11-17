@@ -147,8 +147,8 @@
     <h4 class="group-title">{multi ? $t("Pistas dos ficheiros") : $t("Pistas do ficheiro")}</h4>
     <p class="group-note">
       {multi
-        ? $t("Escolle as pistas de cada ficheiro e ordénaas: sairá un só MKV. Non se recodifica nada e os orixinais non se tocan.")
-        : $t("Quita ou reordena as pistas e cambia o nome ou o idioma. Non se recodifica nada e o orixinal non se toca.")}
+        ? $t("Escolle as pistas de cada ficheiro e ordénaas: sairá un só MKV. Non se recodifica nada.")
+        : $t("Quita ou reordena as pistas e cambia o nome ou o idioma. Non se recodifica nada.")}
     </p>
     <div class="help">
       <button class="btn ghost" on:click={() => engine.openLink("iso639-2")} title={$t("Abre a lista oficial de códigos de idioma (ISO 639-2) no navegador")}><Icon name="info" size={14} /> {$t("Códigos de idioma")}</button>

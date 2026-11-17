@@ -201,14 +201,12 @@ export const CTX: Record<string, string[]> = {
   mkv: ["Cambiar as pistas dun MKV non recodifica nada: só se reempaqueta."],
   merge: ["Na unión, a orde da lista é a orde final do resultado."],
   pages: ["Marcar as páxinas nas miniaturas é máis rápido que escribir os números."],
-  marks: ["As marcas e a numeración aplícanse á copia, nunca ao orixinal."],
-  edit: ["O resultado de Editar gárdase como unha copia: o orixinal queda intacto."],
   security: ["Se se perde o contrasinal dun PDF cifrado, non hai maneira de recuperalo."],
 };
 
 /** Comentarios propios dun formato concreto. */
 const EXT_CTX: Record<string, string[]> = {
-  pdf: ["Un PDF escaneado non ten texto seleccionable: a ferramenta de texto da imaxe pode lelo.", "Unir, dividir ou reordenar un PDF fai sempre unha copia: o orixinal non se toca."],
+  pdf: ["Un PDF escaneado non ten texto seleccionable: a ferramenta de texto da imaxe pode lelo."],
   avi: ["O AVI é un contedor antigo: convertelo a MP4 adoita aforrar moito espazo.", "Os AVI vellos agochan pistas estrañas; en Pistas pódese ver o que levan."],
   mkv: ["O MKV pode levar varias pistas de audio e subtítulos: en Pistas vense todas."],
   mp4: ["O MP4 H.264 abre case en calquera sitio."],

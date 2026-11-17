@@ -156,7 +156,7 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Texto dun PDF dixitalizado")}</h4>
-    <GroupNote text={$t("Le as páxinas que son só imaxe (dixitalizacións) e engade o texto por debaixo, invisible: o PDF queda igual de aspecto, pero xa se pode buscar e copiar. As imaxes non se tocan. Todo se le neste equipo.")} />
+    <GroupNote text={$t("Le as páxinas que son só imaxe (dixitalizacións) e engade o texto por debaixo, invisible: o PDF queda igual de aspecto, pero xa se pode buscar e copiar. Tarda uns segundos por páxina.")} />
 
     <SelectField
       label={$t("Idioma do texto")}
@@ -175,12 +175,11 @@
 
     <Segmented
       label={$t("Resolución de lectura")}
-      info={$t("Cantos píxeles se usan para ler cada páxina. Máis ppp le mellor as letras pequenas pero tarda máis. Rápida: 150. Normal: 200. Alta: 300. Personalizado: os que se queiran.")}
       options={[
-        { value: "rapida", label: $t("Rápida"), hint: $t("150 ppp: borradores ou letra grande") },
-        { value: "normal", label: $t("Normal"), hint: $t("200 ppp: a maioría das dixitalizacións") },
-        { value: "alta", label: $t("Alta"), hint: $t("300 ppp: letra pequena ou dixitalizacións pobres") },
-        { value: "custom", label: $t("Personalizado"), hint: $t("Os ppp que se queiran") },
+        { value: "rapida", label: $t("Rápida"), detail: "150 ppp", hint: $t("150 ppp: borradores ou letra grande") },
+        { value: "normal", label: $t("Normal"), detail: "200 ppp", hint: $t("200 ppp: a maioría das dixitalizacións") },
+        { value: "alta", label: $t("Alta"), detail: "300 ppp", hint: $t("300 ppp: letra pequena ou dixitalizacións pobres") },
+        { value: "custom", label: $t("Personalizado"), detail: $t("Valores propios"), hint: $t("Os ppp que se queiran") },
       ]}
       bind:value={$form.profile}
     />
@@ -193,11 +192,9 @@
   </div>
 
   <button class="btn primary block" on:click={run} disabled={$busy || !installed}>{$t("Engadir texto ao PDF")}</button>
-  <p class="muted note">{$t("Tarda uns segundos por páxina. Gárdase un PDF novo: o orixinal non se toca.")}</p>
   <JobStatus {job} />
 </div>
 
 <style>
-  .note { margin: 0; font-size: var(--fs-sm); }
   .warn { margin: 0; color: var(--accent-pdf); font-size: var(--fs-sm); }
 </style>

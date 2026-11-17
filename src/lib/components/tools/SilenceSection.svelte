@@ -77,16 +77,15 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Cortar os silencios")}</h4>
-    <GroupNote text={$t("Quita os tramos sen son (pausas, respiracións, silencios longos) e xunta o que queda. Crea un ficheiro novo; o orixinal non se toca.")} />
+    <GroupNote text={$t("Quita os tramos sen son (pausas, respiracións, silencios longos) e xunta o que queda.")} />
 
     <Segmented
       label={$t("Que se considera silencio")}
-      info={$t("Suave: só pausas longas (−40 dB, 1 s). Normal: pausas habituais (−35 dB, 0,5 s). Forte: quita case todas as pausas (−30 dB, 0,3 s). Personalizado: os valores que se queiran.")}
       options={[
-        { value: "suave", label: $t("Suave"), hint: $t("Só as pausas longas") },
-        { value: "normal", label: $t("Normal"), hint: $t("As pausas habituais") },
-        { value: "forte", label: $t("Forte"), hint: $t("Case todas as pausas") },
-        { value: "custom", label: $t("Personalizado"), hint: $t("Os valores que se queiran") },
+        { value: "suave", label: $t("Suave"), detail: "−40 dB · 1 s", hint: $t("Só as pausas longas") },
+        { value: "normal", label: $t("Normal"), detail: "−35 dB · 0,5 s", hint: $t("As pausas habituais") },
+        { value: "forte", label: $t("Forte"), detail: "−30 dB · 0,3 s", hint: $t("Case todas as pausas") },
+        { value: "custom", label: $t("Personalizado"), detail: $t("Valores propios"), hint: $t("Os valores que se queiran") },
       ]}
       bind:value={$form.profile}
     />
@@ -94,10 +93,6 @@
       <Slider label={$t("Volume de corte")} unit="dB" min={-60} max={-15} step={1} bind:value={$form.thresholdDb} def={-35} hint={$t("O que soe por debaixo deste volume conta como silencio. Máis preto de 0 = quita máis (tamén o son baixo).")} />
       <Slider label={$t("Silencio mínimo")} unit="s" min={0.1} max={5} step={0.1} bind:value={$form.minSilence} def={0.5} hint={$t("Só se cortan os silencios que duran isto ou máis.")} />
       <Slider label={$t("Pausa que se deixa")} unit="s" min={0} max={1} step={0.05} bind:value={$form.padding} def={0.1} hint={$t("Silencio que queda a cada lado de cada corte, para que as palabras non soen cortadas de golpe.")} />
-    {/if}
-
-    {#if isVideo}
-      <GroupNote text={$t("Nos vídeos recodifícase a imaxe con moita calidade (os cortes non caen en fotogramas clave) e consérvase só a primeira pista de son. Imaxe e son quedan sincronizados.")} />
     {/if}
   </div>
 

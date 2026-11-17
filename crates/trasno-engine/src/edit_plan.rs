@@ -144,41 +144,10 @@ fn media_duration(info: &serde_json::Value) -> Option<f64> {
 
 /// Aplica todo o plan nun ficheiro novo.
 pub fn apply_plan(input: &Path, output: &Path, overwrite: bool, plan: &EditPlan) -> Result<EditReport> {
-    run(input, output, overwrite, plan, false)
+    run(input, output, overwrite, plan)
 }
 
-/// Un anaco curto (ata `seconds`) co plan aplicado, para escoitar como queda antes de exportar. Non se iguala o volume (esixe medir
-/// o ficheiro enteiro) e os esvaeceres só se aplican se o anaco chega ao principio ou ao final do corte. A saída é MP4 (vídeo) ou WAV (son).
-pub fn preview_plan(input: &Path, output: &Path, plan: &EditPlan, at: f64, seconds: f64) -> Result<EditReport> {
-    plan.validate()?;
-    let info = ffmpeg::probe(input)?;
-    let total = media_duration(&info);
-    let end = plan.end.or(total);
-    let start = if at.is_finite() { at.max(plan.start) } else { plan.start };
-    let start = match end {
-        // Se o visor está despois do final do corte, enséñase o final.
-        Some(e) if start >= e - 0.2 => (e - seconds.min(e - plan.start)).max(plan.start),
-        _ => start,
-    };
-    let clip_end = end.map(|e| (start + seconds).min(e)).unwrap_or(start + seconds);
-    let mut p = plan.clone();
-    p.start = start;
-    p.end = Some(clip_end);
-    p.normalize = None;
-    if start > plan.start {
-        p.fade_in = 0.0;
-    }
-    if end.map(|e| clip_end < e - 1e-6).unwrap_or(true) {
-        p.fade_out = 0.0;
-    }
-    if p.is_empty() {
-        // Sen axustes que oír: o mesmo tramo tal cal.
-        p.start = start;
-    }
-    run(input, output, true, &p, true)
-}
-
-fn run(input: &Path, output: &Path, overwrite: bool, plan: &EditPlan, preview: bool) -> Result<EditReport> {
+fn run(input: &Path, output: &Path, overwrite: bool, plan: &EditPlan) -> Result<EditReport> {
     plan.validate()?;
     if plan.is_empty() {
         return bad("Non hai nada que aplicar: todos os axustes están como no orixinal.");
@@ -200,7 +169,7 @@ fn run(input: &Path, output: &Path, overwrite: bool, plan: &EditPlan, preview: b
     if plan.audio_effects() && !has_audio && !plan.mute {
         return bad("Este ficheiro non ten son para aplicarlle ese axuste.");
     }
-    if plan.trim_only() && !preview {
+    if plan.trim_only() {
         return ffmpeg::trim_media(input, output, overwrite, plan.start, plan.end).map(|o| EditReport { output: o, duration: total.map(|t| plan.end.unwrap_or(t).min(t) - plan.start), video_copied: true });
     }
 
@@ -231,12 +200,6 @@ fn run(input: &Path, output: &Path, overwrite: bool, plan: &EditPlan, preview: b
         }
         if video_copy {
             args.extend(["-c:v".into(), "copy".into()]);
-        } else if preview {
-            args.extend(["-c:v".into(), "libx264".into(), "-preset".into(), "veryfast".into(), "-crf".into(), "26".into(), "-pix_fmt".into(), "yuv420p".into()]);
-            // A imaxe de preview non precisa ser grande.
-            if plan.speed == 1.0 {
-                args.extend(["-vf".into(), "scale=-2:'min(480,ih)'".into()]);
-            }
         } else {
             args.extend(crate::silence::video_encoder_args(output));
         }
@@ -261,16 +224,10 @@ fn run(input: &Path, output: &Path, overwrite: bool, plan: &EditPlan, preview: b
         if !af.is_empty() {
             args.extend(["-af".into(), af]);
         }
-        if preview {
-            if has_video {
-                args.extend(["-c:a".into(), "aac".into(), "-b:a".into(), "160k".into()]);
-            }
-        } else {
-            args.extend(ffmpeg::keep_audio_args(input, output));
-            if plan.normalize.is_some() && !args.iter().any(|a| a == "-ar") {
-                // O filtro traballa por dentro a 192 kHz: sen fixar a frecuencia, o contedor podería quedarse con ela.
-                args.extend(["-ar".into(), "48000".into()]);
-            }
+        args.extend(ffmpeg::keep_audio_args(input, output));
+        if plan.normalize.is_some() && !args.iter().any(|a| a == "-ar") {
+            // O filtro traballa por dentro a 192 kHz: sen fixar a frecuencia, o contedor podería quedarse con ela.
+            args.extend(["-ar".into(), "48000".into()]);
         }
     }
     ffmpeg::set_expected_duration(out_dur);
