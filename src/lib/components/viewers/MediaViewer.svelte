@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import { formatClock } from "../../formats";
-  import { viewUrl, mediaPreview, mediaAux, mediaSeek, mediaTime, trimRange, type FileEntry, type MediaPreview, videoDar } from "../../files";
+  import { viewUrl, mediaPreview, mediaAux, mediaLook, mediaStill, mediaSeek, mediaTime, trimRange, type FileEntry, type MediaPreview, videoDar } from "../../files";
   import * as engine from "../../engine";
   import { get } from "svelte/store";
   import { player } from "../../player";
@@ -207,6 +207,8 @@
     const y1 = Math.floor((sy + (sh + h) / 2) * sd + e);
     return `position:absolute;flex:none;object-fit:${darNum ? "fill" : "contain"};left:${x0 / sd - sx}px;top:${y0 / sd - sy}px;width:${(x1 - x0) / sd}px;height:${(y1 - y0) / sd}px;`;
   })();
+  // Cor en directo (ferramenta Restaurar): CSS aproximado do que fará FFmpeg (brillo, contraste e saturación).
+  $: look = $mediaLook ? `filter:brightness(${(1 + 2 * $mediaLook.brightness).toFixed(3)}) contrast(${$mediaLook.contrast}) saturate(${$mediaLook.saturation});` : "";
   function fullscreen() {
     if (document.fullscreenElement) document.exitFullscreen();
     else stage?.requestFullscreen?.();
@@ -711,7 +713,8 @@
       <div class="vid">
         <div class="screen" use:size>
           <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-          <video bind:this={el} crossorigin="anonymous" style={vstyle} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={onVideoError} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
+          <video bind:this={el} crossorigin="anonymous" style={vstyle + look} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={onVideoError} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
+          {#if $mediaStill}<img class="still" style={vstyle} src={$mediaStill} alt="" draggable="false" />{/if}
           {#if subText}<div class="subs" aria-live="off">{subText}</div>{/if}
           {#if loadingSeg}<div class="segload" role="status"><span class="indet" aria-hidden="true"><span></span></span>{$t("Preparando este tramo…")}</div>{/if}
         </div>
@@ -793,6 +796,7 @@
   .vrow { display: flex; width: 100%; height: 100%; min-height: 0; }
   .vid { position: relative; display: flex; flex-direction: column; flex: 1; min-width: 0; height: 100%; min-height: 0; }
   .screen { position: relative; flex: 1; min-height: 0; display: flex; }
+  .still { pointer-events: none; }
   .subs { position: absolute; left: 6%; right: 6%; bottom: 7%; text-align: center; white-space: pre-line; pointer-events: none; color: #fff; font-size: clamp(0.9rem, 2.2vw, 1.5rem); line-height: 1.3; text-shadow: 0 0 3px #000, 0 0 6px #000, 1px 1px 2px #000; }
   .btn.on { border-color: var(--accent-conversor); color: var(--accent-conversor); }
   video { flex: 1; min-height: 0; width: 100%; object-fit: contain; cursor: pointer; background: transparent; }

@@ -194,6 +194,45 @@ export const subtitleEmbed = (video: string, subs: string, output: string, langu
 export const subtitleBurn = (video: string, subs: string, output: string, overwrite = false): Promise<SubtitleVideoReport> => call("subtitle_burn", { video, subs, output, overwrite });
 export const subtitleExtract = (video: string, position: number, output: string, overwrite = false): Promise<SubtitleVideoReport> =>
   call("subtitle_extract", { video, position, output, overwrite });
+export interface RestorePlan {
+  stabilize: number;
+  denoise: number;
+  sharpen: number;
+  deinterlace: boolean;
+  deflicker: boolean;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+}
+export const restoreApply = (input: string, output: string, plan: RestorePlan, overwrite = false): Promise<{ output: string; stabilizer: string | null }> =>
+  call("restore_apply", { input, output, overwrite, plan });
+export const restoreFrame = (input: string, time: number, plan: RestorePlan): Promise<string> => call("restore_frame", { input, time, plan });
+export interface MusicTags {
+  title: string;
+  artist: string;
+  album: string;
+  album_artist: string;
+  composer: string;
+  genre: string;
+  comment: string;
+  lyrics: string;
+  year: number | null;
+  track: number | null;
+  track_total: number | null;
+  disc: number | null;
+  disc_total: number | null;
+}
+export interface TagInfo {
+  tags: MusicTags;
+  cover: { mime: string; bytes: number } | null;
+  format: string;
+  duration: number;
+}
+export type CoverAction = { kind: "keep" } | { kind: "remove" } | { kind: "replace"; path: string };
+export const tagsRead = (path: string): Promise<TagInfo> => call("tags_read", { path });
+export const tagsCover = (path: string): Promise<string> => call("tags_cover", { path });
+export const tagsWrite = (input: string, output: string, tags: MusicTags, cover: CoverAction, overwrite = false): Promise<{ output: string; not_saved: string[] }> =>
+  call("tags_write", { input, output, overwrite, tags, cover });
 export const subtitleInfo = (path: string): Promise<SubtitleInfo> => call("subtitle_info", { path });
 export const retimeSubtitle = (input: string, output: string, r: Retime, overwrite = false): Promise<RetimeReport> =>
   call("retime_subtitle", { input, output, overwrite, shiftMs: r.shift_ms, factor: r.factor });

@@ -46,7 +46,7 @@ pub fn is_available() -> bool {
 }
 
 /// En Windows evita que salte unha xanela de consola ao lanzar ffmpeg.
-fn hide_console(cmd: &mut Command) {
+pub(crate) fn hide_console(cmd: &mut Command) {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -950,7 +950,25 @@ pub fn probe(path: &Path) -> Result<serde_json::Value> {
         .output()
         .map_err(EngineError::Io)?;
     check_success(&out)?;
-    serde_json::from_slice(&out.stdout).map_err(|e| EngineError::IntegrityCheck(e.to_string()))
+    let mut info: serde_json::Value = serde_json::from_slice(&out.stdout).map_err(|e| EngineError::IntegrityCheck(e.to_string()))?;
+    // O AAC en bruto (ADTS) non garda a duración: ffprobe estímaa polo tamaño e o bitrate, e pode errar por moito. Mídese decodificando.
+    if info["format"]["format_name"] == "aac" {
+        if let Some(d) = decoded_duration(path) {
+            info["format"]["duration"] = serde_json::Value::String(format!("{d:.6}"));
+        }
+    }
+    Ok(info)
+}
+
+/// Segundos que dá de verdade o son do ficheiro, medidos ao decodificalo (rápido: sen imaxe nin saída).
+fn decoded_duration(path: &Path) -> Option<f64> {
+    let mut cmd = Command::new(ffmpeg_path().ok()?);
+    hide_console(&mut cmd);
+    let out = cmd.args(["-v", "error", "-stats", "-vn", "-i"]).arg(path).args(["-f", "null", "-"]).output().ok()?;
+    let log = String::from_utf8_lossy(&out.stderr).replace(char::from(13), " ");
+    let t = log.rsplit("time=").next()?.split_whitespace().next()?;
+    let secs = t.split(':').try_fold(0.0, |a, x| x.parse::<f64>().ok().map(|v| a * 60.0 + v))?;
+    (secs.is_finite() && secs > 0.0).then_some(secs)
 }
 
 /// Como `probe`, pero tamén cos grupos de fluxos (teselas dunha cuadrícula HEIF/AVIF).

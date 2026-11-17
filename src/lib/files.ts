@@ -360,6 +360,10 @@ export interface MediaPreview {
 export const mediaPreview = writable<MediaPreview | null>(null);
 /** Son preparado co ruído quitado e/ou ao revés (URL): o visor reprodúceo, sincronizado, no lugar do son do ficheiro. */
 export const mediaAux = writable<string | null>(null);
+/** Cor que o visor aplica en directo ao vídeo (a vista previa de «Restaurar»): brillo, contraste e saturación. */
+export const mediaLook = writable<{ brightness: number; contrast: number; saturation: number } | null>(null);
+/** Fotograma restaurado (URL) que o visor amosa por riba do vídeo mentres se compara co orixinal. */
+export const mediaStill = writable<string | null>(null);
 export const mediaSeek = writable<{ t: number; stamp: number } | null>(null);
 /** Instante (s) en que está o reprodutor do visor, para usalo nas ferramentas. */
 export const mediaTime = writable<number>(0);

@@ -77,7 +77,7 @@ fn normalizar_en_duas_pasadas_conserva_a_dinamica() {
     let dir = tempfile::tempdir().unwrap();
     // Catro segundos baixos e catro altos (26 dB de diferenza). Nunha soa pasada o filtro vai corrixindo segundo le e deixa as
     // dúas partes case iguais (esmaga a dinámica); en dúas, sobe todo o mesmo e o baixo segue sendo baixo.
-    let src = make(dir.path(), "sube.wav", "anoisesrc=d=8:c=pink:a=0.3:r=44100,volume='if(lt(t,4),0.05,1)':eval=frame", &[]);
+    let src = make(dir.path(), "sube.wav", "anoisesrc=d=8:c=pink:a=0.3:r=44100:seed=7,volume='if(lt(t,4),0.05,1)':eval=frame", &[]);
     let step = |p: &Path| mean_db(p, "4.5", "3") - mean_db(p, "0", "3.5");
     let before = step(&src);
     assert!(before > 20.0, "a mostra ten un salto grande: {before}");

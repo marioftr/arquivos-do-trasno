@@ -13,6 +13,8 @@
     edit: "sliders",
     sound: "volume",
     view: "cube",
+    tags: "tag",
+    restore: "sparkles",
     subtitles: "type",
     annotate: "pencil",
     info: "info",

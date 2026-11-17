@@ -441,6 +441,64 @@ pub async fn subtitle_extract(video: String, position: usize, output: String, ov
     blocking(move || trasno_engine::subtitle_video::extract_track(&PathBuf::from(video), position, &PathBuf::from(output), overwrite).map_err(to_err)).await
 }
 
+/// Restaura o vídeo (estabilizar, ruído, nitidez, cor…) nun ficheiro novo.
+#[tauri::command]
+pub async fn restore_apply(input: String, output: String, overwrite: bool, plan: trasno_engine::restore::RestorePlan) -> Result<trasno_engine::restore::RestoreReport, String> {
+    blocking(move || trasno_engine::restore::restore_video(&PathBuf::from(input), &PathBuf::from(output), overwrite, &plan).map_err(to_err)).await
+}
+
+/// O fotograma de `time` co que quedaría o vídeo (sen estabilizar), para compararlo no visor. Devolve a ruta do JPG temporal.
+#[tauri::command]
+pub async fn restore_frame(input: String, time: f64, plan: trasno_engine::restore::RestorePlan) -> Result<String, String> {
+    blocking_bg(move || {
+        let dir = preview_dir();
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        if let Ok(rd) = std::fs::read_dir(&dir) {
+            for e in rd.flatten() {
+                if e.file_name().to_string_lossy().starts_with("restaurar-") {
+                    let _ = std::fs::remove_file(e.path());
+                }
+            }
+        }
+        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
+        let out = dir.join(format!("restaurar-{stamp}.jpg"));
+        trasno_engine::restore::preview_frame(&PathBuf::from(input), &out, time, &plan).map_err(to_err)?;
+        Ok(out.to_string_lossy().to_string())
+    })
+    .await
+}
+
+/// Le as etiquetas dun ficheiro de música (título, artista, portada…).
+#[tauri::command]
+pub async fn tags_read(path: String) -> Result<trasno_engine::music_tags::TagInfo, String> {
+    blocking(move || trasno_engine::music_tags::read_tags(&PathBuf::from(path)).map_err(to_err)).await
+}
+
+/// Garda a portada dun ficheiro de música nun ficheiro temporal para amosala; devolve a ruta.
+#[tauri::command]
+pub async fn tags_cover(path: String) -> Result<String, String> {
+    blocking(move || {
+        use std::hash::{Hash, Hasher};
+        let dir = preview_dir();
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        path.hash(&mut h);
+        let stamp = std::fs::metadata(&path).and_then(|m| m.modified()).ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_millis()).unwrap_or(0);
+        let out = dir.join(format!("{:x}.portada-{stamp}.jpg", h.finish()));
+        if !out.exists() {
+            trasno_engine::music_tags::extract_cover(&PathBuf::from(&path), &out).map_err(to_err)?;
+        }
+        Ok(out.to_string_lossy().to_string())
+    })
+    .await
+}
+
+/// Garda unha copia do ficheiro de música coas etiquetas (e a portada) novas.
+#[tauri::command]
+pub async fn tags_write(input: String, output: String, overwrite: bool, tags: trasno_engine::music_tags::Tags, cover: trasno_engine::music_tags::CoverAction) -> Result<trasno_engine::music_tags::TagReport, String> {
+    blocking(move || trasno_engine::music_tags::write_tags(&PathBuf::from(input), &PathBuf::from(output), overwrite, &tags, &cover).map_err(to_err)).await
+}
+
 /// Resincroniza uns subtítulos (desprazamento, cadencia ou dous puntos) nun ficheiro novo.
 #[tauri::command]
 pub async fn retime_subtitle(input: String, output: String, overwrite: bool, shift_ms: i64, factor: f64) -> Result<trasno_engine::subtitles::RetimeReport, String> {

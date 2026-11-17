@@ -172,6 +172,9 @@
     <rect x="3.5" y="3.5" width="17" height="17" rx="2" />
   {:else if name === "circle"}
     <circle cx="12" cy="12" r="9" />
+  {:else if name === "tag"}
+    <path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z" />
+    <circle cx="7.5" cy="7.5" r="1" />
   {:else if name === "type"}
     <polyline points="4 7 4 4 20 4 20 7" />
     <line x1="9" y1="20" x2="15" y2="20" />

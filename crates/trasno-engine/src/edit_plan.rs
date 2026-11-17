@@ -223,7 +223,11 @@ fn run(input: &Path, output: &Path, overwrite: bool, plan: &EditPlan) -> Result<
     if plan.audio_effects() && !has_audio && !plan.mute {
         return bad("Este ficheiro non ten son para aplicarlle ese axuste.");
     }
-    if plan.trim_only() {
+    // Cortar copiando só vale se non se perde nada: cun vídeo, un inicio que non sexa o principio caería no fotograma clave anterior
+    // ou posterior (a imaxe quedaría desaliñada do son ou desapareceria), e o FLAC copiado conserva a duración do ficheiro enteiro.
+    let flac = crate::formats::extension_of(output).as_deref() == Some("flac");
+    let copy_cut_is_exact = !flac && !(has_video && plan.start > 0.0);
+    if plan.trim_only() && copy_cut_is_exact {
         return ffmpeg::trim_media(input, output, overwrite, plan.start, plan.end).map(|o| EditReport { output: o, duration: total.map(|t| plan.end.unwrap_or(t).min(t) - plan.start), video_copied: true });
     }
 

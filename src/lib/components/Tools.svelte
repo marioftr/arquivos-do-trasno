@@ -21,6 +21,8 @@
   import ImageOcrSection from "./tools/ImageOcrSection.svelte";
   import EditMediaSection from "./tools/EditMediaSection.svelte";
   import ExtractSection from "./tools/ExtractSection.svelte";
+  import RestoreSection from "./tools/RestoreSection.svelte";
+  import TagsSection from "./tools/TagsSection.svelte";
   import SilenceSection from "./tools/SilenceSection.svelte";
   import ModelViewSection from "./tools/ModelViewSection.svelte";
   import VideoSubtitlesSection from "./tools/VideoSubtitlesSection.svelte";
@@ -69,9 +71,9 @@
       case "imaxe":
         return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("annotate", "Anotar"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
-        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...(ext === "gif" ? [] : [tab("restore", "Restaurar")]), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
-        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...mkvTab(), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), tab("tags", "Etiquetas"), ...mkvTab(), tab("info", "Información")];
       case "documento":
         return pdf
           ? [
@@ -226,6 +228,10 @@
           <VideoSubtitlesSection file={first} mode={mode as "embed" | "burn" | "extract"} />
         {:else if current === "view" && first && category === "modelo3d"}
           <ModelViewSection file={first} />
+        {:else if current === "restore" && first && category === "video"}
+          <RestoreSection file={first} />
+        {:else if current === "tags" && first && category === "audio"}
+          <TagsSection file={first} />
         {:else if current === "sound" && mode === "silence" && first}
           <SilenceSection file={first} />
         {:else if current === "sound" && first}

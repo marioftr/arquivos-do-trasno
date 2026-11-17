@@ -116,14 +116,18 @@ pub fn embed(video: &Path, subs: &Path, output: &Path, overwrite: bool, language
     let scratch = Scratch::new()?;
     let file = write_utf8(&sub, to, &scratch.0, "subtitulos")?;
 
-    let mut args: Vec<String> = ["-map", "0:v", "-map", "0:a?", "-map", "0:s?", "-map", "1:0", "-c", "copy", "-c:s", codec].iter().map(|s| s.to_string()).collect();
+    let mut args: Vec<String> = ["-map", "0:v", "-map", "0:a?", "-map", "0:s?", "-map", "1:0", "-c", "copy"].iter().map(|s| s.to_string()).collect();
+    // O códec novo só vale para a pista que se engade: as que o vídeo xa tiña (tamén as de imaxe, PGS) pasan tal cal.
+    args.extend([format!("-c:s:{existing}"), codec.to_string()]);
     if !language.is_empty() {
         args.extend([format!("-metadata:s:s:{existing}"), format!("language={language}")]);
     }
     if existing == 0 {
         args.extend([format!("-disposition:s:{existing}"), "default".into()]);
     }
-    let out = ffmpeg::convert_media_inputs(&[video, &file], output, overwrite, &[], &args)?;
+    // Algúns contedores (MPEG, AVI) non traen marcas de tempo en todos os paquetes: FFmpeg ten que as inventar para poder copialos.
+    let pre: Vec<String> = vec!["-fflags".into(), "+genpts".into()];
+    let out = ffmpeg::convert_media_inputs(&[video, &file], output, overwrite, &pre, &args)?;
     Ok(SubtitleVideoReport { output: out, cues: sub.cues.len() })
 }
 

@@ -20,13 +20,15 @@ npm run e2e                      # todos os escenarios
 npm run e2e -- editar-video      # só un
 ```
 
-Escenarios (en `scripts/e2e/scenarios/`): `editar-video`, `son-procesado`, `reloxo-longo`, `ocr-imaxe`, `iconas-info`, `silencios-selector`, `accesibilidade`, `niveis-calidade`, `modelo-3d`, `pdf-niveis`, `subtitulos-video`. Para engadir un, copia un deles:
+Escenarios (en `scripts/e2e/scenarios/`): `editar-video`, `son-procesado`, `reloxo-longo`, `ocr-imaxe`, `iconas-info`, `silencios-selector`, `accesibilidade`, `niveis-calidade`, `modelo-3d`, `pdf-niveis`, `subtitulos-video`, `etiquetas-musica`, `restaurar-video`. Para engadir un, copia un deles:
 exporta `{ about, run(app, check) }` e usa as axudas de `harness.mjs` (`open`, `click`, `slider`, `panel`, `waitFor`, `video`, `textImage`…).
 Se falla, garda unha captura en `%TEMP%\trasno-e2e\erro-<escenario>.png`.
 
 Requisitos: FFmpeg no PATH (ou en `C:\ffmpeg\bin`), `npm install` feito e, para o OCR, un paquete de idioma instalado na app (copiase ao perfil illado).
 
 ## Probas lentas
+
+`tests/matriz.rs` pasa a edición, os silencios, o igualado de volume e os subtítulos (incrustar, queimar, sacar) por todos os contedores de audio e vídeo, con rutas raras e subtítulos en varias codificacións: comproba que o resultado decodifica limpo, dura o agardado e que o orixinal non cambia nin un byte (`cargo test -p trasno-engine --test matriz -- --include-ignored`, ≈ 1 min).
 
 As baterías de `battery.rs` e `battery2.rs` (todas as conversións e edicións con todas as mostras) e a de Word en `office.rs` (abre Word de
 verdade) tardan minutos en total (≈ 5). Corren só co indicador `--include-ignored` (antes de unha versión ou se tocas conversións de imaxe en xeral).

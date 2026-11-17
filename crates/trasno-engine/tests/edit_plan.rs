@@ -61,9 +61,16 @@ fn se_so_se_toca_o_son_a_imaxe_copiase_sen_recodificar() {
     assert_eq!(v0["codec_name"], v1["codec_name"]);
     // O eco deixa unha pequena cola de son despois do final (300 ms de atraso).
     assert!((duration(&out) - 10.0).abs() < 0.5, "dura {}", duration(&out));
-    // Só cortar tamén é unha copia.
+    // Cortar desde o principio é unha copia; cortar desde outro instante recodifica a imaxe para que o corte sexa exacto
+    // (copiar caería no fotograma clave máis próximo e a imaxe quedaría desaliñada do son ou desaparecería).
+    let head = dir.path().join("h.mp4");
+    assert!(apply_plan(&src, &head, false, &EditPlan { end: Some(4.0), ..Default::default() }).unwrap().video_copied);
     let cut = dir.path().join("c.mp4");
-    assert!(apply_plan(&src, &cut, false, &EditPlan { start: 1.0, end: Some(4.0), ..Default::default() }).unwrap().video_copied);
+    let r = apply_plan(&src, &cut, false, &EditPlan { start: 1.0, end: Some(4.0), ..Default::default() }).unwrap();
+    assert!(!r.video_copied);
+    assert!((duration(&cut) - 3.0).abs() < 0.15, "dura {}", duration(&cut));
+    let frames: f64 = stream(&cut, "video")["nb_frames"].as_str().unwrap().parse().unwrap();
+    assert!((frames - 75.0).abs() <= 2.0, "{frames} fotogramas");
 }
 
 #[test]

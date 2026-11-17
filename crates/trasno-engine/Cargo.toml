@@ -26,6 +26,7 @@ ureq = { version = "2", features = ["json"] }
 sevenz-rust = { version = "0.6", default-features = false }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 uuid = { version = "1", features = ["v4"] }
+lofty = "0.25.5"
 
 [dev-dependencies]
 tempfile = "3"

@@ -9,12 +9,26 @@ export default {
     fs.writeFileSync(path.join(dir, "cubo.mtl"), "newmtl vermello\nKd 0.9 0.1 0.1\nnewmtl azul\nKd 0.1 0.1 0.9\n");
     const quad = (z, m) => `usemtl ${m}\nf ${1 + z * 4} ${2 + z * 4} ${3 + z * 4} ${4 + z * 4}\n`;
     const verts = [0, 1].flatMap((z) => [[0, 0, z], [1, 0, z], [1, 1, z], [0, 1, z]]).map((v) => `v ${v.join(" ")}`).join("\n");
-    fs.writeFileSync(path.join(dir, "cubo.obj"), `mtllib cubo.mtl\n${verts}\n${quad(0, "vermello")}${quad(1, "azul")}`);
+    fs.writeFileSync(path.join(dir, "cubo.obj"), `mtllib cubo.mtl\n${verts}\n${quad(0, "vermello")}${quad(1, "azul")}usemtl vermello
+f 1 2 6 5
+f 2 3 7 6
+f 3 4 8 7
+f 4 1 5 8
+`);
     await app.open(path.join(dir, "cubo.obj"));
     await app.waitFor(`document.querySelector('.canvas canvas')`, "o visor 3D", 20000);
     const tabs = await app.tabs();
     c.ok(tabs.includes("Vista"), "hai unha pestana Vista", tabs.join(","));
     c.ok(!(await app.ev(`!!document.querySelector('[id=modelo], .side')`)) && !(await app.ev(`/Agochar panel|Panel do modelo/.test(document.body.innerText)`)), "o visor xa non leva panel flotante");
+    // A malla debuxa os 12 bordos do cubo (polígonos), non os 18 das diagonais dos triángulos.
+    await app.ev(`document.querySelector('.bar input[type=checkbox]').click()`);
+    await app.sleep(500);
+    const wire = await app.ev(`window.__trasnoWire?.()`);
+    c.ok(wire && wire.tris === 12 && wire.lines === 12, "a malla amosa 12 arestas de polígono nun cubo de 12 triángulos", JSON.stringify(wire));
+    if (process.env.TRASNO_SHOTS) await app.shot("malla.png");
+    await app.ev(`document.querySelector('.bar input[type=checkbox]').click()`);
+    await app.sleep(300);
+    c.ok((await app.ev(`window.__trasnoWire?.().lines`)) === 0, "sen malla non hai liñas");
     await app.click("Vista");
     await app.waitFor(`document.querySelectorAll('.stack .mat').length === 2`, "os dous materiais na pestana", 15000);
     const text = await app.panel();

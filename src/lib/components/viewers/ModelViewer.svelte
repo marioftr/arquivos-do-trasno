@@ -8,6 +8,8 @@
   import { TRASNO } from "../../formats";
   import { modelLight, modelShow, modelInfo } from "../../modelView";
   import { resolvedTheme } from "../../settings";
+  import InfoTip from "../ui/InfoTip.svelte";
+  import { polygonEdges } from "../../wire";
   import {
     loadModelDetailed,
     fallbackMaterial,
@@ -56,6 +58,7 @@
 
   const overlays: THREE.Material[] = [];
   const clay = fallbackMaterial();
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xdcdce2 });
 
   // Ao engadir ou quitar unha textura desde a pestana, o modelo recárgase sen mover a cámara.
   $: importsKey = JSON.stringify($textureImports[file.path] ?? []);
@@ -108,6 +111,7 @@
     ro?.disconnect();
     clear();
     controls?.dispose();
+    lineMat.dispose();
     renderer?.dispose();
   });
 
@@ -119,6 +123,7 @@
     const mats = (Array.isArray(gridHelper.material) ? gridHelper.material : [gridHelper.material]) as THREE.LineBasicMaterial[];
     mats[0]?.color.set(light ? 0xa9abb6 : 0x3a3a42);
     mats[1]?.color.set(light ? 0xc6c8d1 : 0x26262c);
+    lineMat.color.set(light ? 0x1b1c22 : 0xdcdce2);
   }
   $: if (ready) applyView(channel, wireframe, isolated);
   $: if (ready) updateLight(azimuth, elevation, intensity, ambient, showMarker, radius, center);
@@ -207,6 +212,7 @@
     scene.remove(model);
     model.traverse((o: any) => {
       o.geometry?.dispose?.();
+      if (o.isLineSegments) return; // a malla de polígonos comparte o material de liñas
       const originals = o.userData?.orig ? (Array.isArray(o.userData.orig) ? o.userData.orig : [o.userData.orig]) : materialsOf(o);
       originals.forEach((m: any) => m.dispose?.());
     });
@@ -239,7 +245,23 @@
       };
       const next = orig.map(pick);
       o.material = isArray ? next : next[0];
-      materialsOf(o).forEach((m: any) => (m.wireframe = wire));
+      // A malla móstrase por polígonos (sen as diagonais dos triángulos); se o modelo é moi grande, triángulo a triángulo.
+      if (wire && o.userData.poly === undefined) {
+        const seg = polygonEdges(o.geometry);
+        if (seg) {
+          const g = new THREE.BufferGeometry();
+          g.setAttribute("position", new THREE.BufferAttribute(seg, 3));
+          o.userData.poly = new THREE.LineSegments(g, lineMat);
+          o.add(o.userData.poly);
+        } else o.userData.poly = null;
+      }
+      const poly: THREE.LineSegments | null = o.userData.poly ?? null;
+      if (poly) poly.visible = wire;
+      orig.forEach((m: any) => (m.visible = true));
+      materialsOf(o).forEach((m: any) => {
+        m.wireframe = wire && !poly;
+        m.visible = !(wire && poly);
+      });
       o.visible = !isoRef || orig.includes(isoRef);
     });
   }
@@ -288,6 +310,7 @@
       if (isolated !== null && isolated >= report.length) modelShow.update((v) => ({ ...v, isolated: null }));
       applyView(channel, wireframe, isolated);
       status = "";
+      if (import.meta.env.DEV) (window as any).__trasnoWire = () => { let lines = 0; model?.traverse((o: any) => { if (o.isLineSegments && o.visible) lines += o.geometry.attributes.position.count / 2; }); return { lines, tris: Math.round(tris) }; };
     } catch (e) {
       status = tr("Non puiden abrir o modelo: {error}", { error: errText(e) });
     }
@@ -323,7 +346,7 @@
   </div>
   <div class="bar">
     <button class="btn" title={$t("Axustar o modelo ao espazo dispoñible")} on:click={() => model && frame(model, true)}>{$t("Recentrar")}</button>
-    <label class="chk"><input type="checkbox" bind:checked={wireframe} /> {$t("Malla")}</label>
+    <label class="chk"><input type="checkbox" bind:checked={wireframe} /> {$t("Malla")}</label><InfoTip text={$t("Debuxa os polígonos do modelo, non os triángulos en que se parten ao cargalo.")} />
     <label class="chk"><input type="checkbox" bind:checked={grid} /> {$t("Cuadrícula")}</label>
     <span class="muted stats">{stats || $t("Arrastra para rotar · roda para zoom · botón dereito para mover")}</span>
   </div>
