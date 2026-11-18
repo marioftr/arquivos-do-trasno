@@ -655,6 +655,40 @@
     }
   }
 
+  /** Arrastrar sobre unha páxina debuxa unha zona a tapar (os cambios van en % da páxina). */
+  function drawRedact(ev: PointerEvent, rd: NonNullable<PdfOverlay["redact"]>, p: PageInfo) {
+    if (ev.button !== 0 || (ev.target as HTMLElement).closest(".ov")) return;
+    ev.preventDefault();
+    const r = p.wrap.getBoundingClientRect();
+    const x0 = ev.clientX - r.left;
+    const y0 = ev.clientY - r.top;
+    const el = document.createElement("div");
+    el.className = "ov";
+    el.style.cssText = "position:absolute;background:rgba(0,0,0,.45);outline:2px dashed #fff;pointer-events:none;";
+    p.wrap.appendChild(el);
+    const clamp = (v: number, max: number) => Math.max(0, Math.min(max, v));
+    const box = (e: PointerEvent) => {
+      const x1 = clamp(e.clientX - r.left, r.width);
+      const y1 = clamp(e.clientY - r.top, r.height);
+      return { l: Math.min(x0, x1), t: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) };
+    };
+    const mv = (e: PointerEvent) => {
+      const b = box(e);
+      el.style.cssText += `left:${b.l}px;top:${b.t}px;width:${b.w}px;height:${b.h}px;`;
+    };
+    const end = (e: PointerEvent) => {
+      window.removeEventListener("pointermove", mv);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      el.remove();
+      const b = box(e);
+      if (b.w >= 6 && b.h >= 6) rd.onAdd(p.n, (b.l / r.width) * 100, (b.t / r.height) * 100, (b.w / r.width) * 100, (b.h / r.height) * 100);
+    };
+    window.addEventListener("pointermove", mv);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+  }
+
   /** Debuxa os cambios pendentes por riba das páxinas (non toca o PDF). */
   function paint(ov: PdfOverlay | null, list: PageInfo[]) {
     for (const p of list) {
@@ -668,6 +702,7 @@
       p.canvas.style.position = "";
       p.wrap.style.width = `${p.w}px`;
       p.wrap.style.height = `${p.h}px`;
+      p.wrap.onpointerdown = null;
       if (!ov) continue;
 
       if (ov.select && ov.select.length) p.wrap.classList.add(ov.select.includes(p.n) ? "sel" : "dim");
@@ -695,7 +730,8 @@
         add(e);
         return e;
       };
-      p.wrap.style.cursor = ov.items ? "crosshair" : "";
+      p.wrap.style.cursor = ov.items || ov.redact ? "crosshair" : "";
+      p.wrap.onpointerdown = ov.redact ? (ev: PointerEvent) => drawRedact(ev, ov.redact!, p) : null;
       p.wrap.onclick = ov.items
         ? (ev: MouseEvent) => {
             // Un clic sobre unha zona baleira coloca un texto novo; sobre un texto xa o trata el.
@@ -726,6 +762,24 @@
         txt(o.text, o.size, o.color, p.w * (o.xPct / 100), p.h * (1 - o.yPct / 100), `opacity:${o.opacity};transform:translate(-50%,-50%) rotate(${-o.angle}deg);`, o.font);
       }
       if (ov.items) paintItems(ov.items, p, txt);
+      if (ov.redact) {
+        for (const b of ov.redact.boxes) {
+          if (b.page !== p.n) continue;
+          const e = document.createElement("div");
+          e.style.cssText = `position:absolute;left:${b.x}%;top:${b.y}%;width:${b.w}%;height:${b.h}%;background:rgba(0,0,0,.85);outline:1px solid #e5484d;`;
+          const x = document.createElement("button");
+          x.textContent = "×";
+          x.title = $t("Quitar esta zona");
+          x.setAttribute("aria-label", $t("Quitar esta zona"));
+          x.style.cssText = "position:absolute;right:-1px;top:-1px;transform:translateY(-100%);width:18px;height:18px;padding:0;line-height:16px;border:none;border-radius:4px 4px 0 0;background:#e5484d;color:#fff;font-size:14px;cursor:pointer;";
+          x.onclick = (ev) => {
+            ev.stopPropagation();
+            ov.redact!.onRemove(b.id);
+          };
+          e.appendChild(x);
+          add(e);
+        }
+      }
       if (ov.numbers && inPages(ov.numbers.pages ?? null)) {
         const o = ov.numbers;
         const label = o.format.replace("{n}", String(o.start + p.n - 1)).replace("{total}", String(o.start + list.length - 1));

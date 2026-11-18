@@ -607,6 +607,38 @@ export interface TextLayerReport {
 }
 export const pdfAddTextLayer = (input: string, output: string, pages: { page: number; words: OcrTextWord[] }[], overwrite = false): Promise<TextLayerReport> =>
   call("pdf_add_text_layer", { input, output, overwrite, pages });
+
+// ---- PDF: limpar, índice, tapar e formularios
+export interface SanitizeOptions { metadata: boolean; scripts: boolean; attachments: boolean; links: boolean; comments: boolean }
+export interface SanitizeReport { output_path: string; metadata: number; scripts: number; attachments: number; links: number; comments: number }
+export const pdfSanitize = (input: string, output: string, options: SanitizeOptions, overwrite = false): Promise<SanitizeReport> => call("pdf_sanitize", { input, output, overwrite, options });
+export interface OutlineEntry { title: string; page: number; level: number }
+export const pdfSetOutline = (input: string, output: string, entries: OutlineEntry[], overwrite = false): Promise<string> => call("pdf_set_outline", { input, output, overwrite, entries });
+export interface RedactReport { output_path: string; pages: number; fields_removed: number }
+/** Cada páxina chega xa debuxada (JPEG, co negro por riba): na saída pasa a ser unha soa imaxe. */
+export function pdfRedact(input: string, output: string, pages: { page: number; jpeg: Uint8Array }[], overwrite = false): Promise<RedactReport> {
+  const body = new Uint8Array(pages.reduce((n, p) => n + p.jpeg.length, 0));
+  let at = 0;
+  for (const p of pages) {
+    body.set(p.jpeg, at);
+    at += p.jpeg.length;
+  }
+  const meta = { input, output, overwrite, pages: pages.map((p) => [p.page, p.jpeg.length]) };
+  return call("pdf_redact", body, { headers: { "x-meta": encodeURIComponent(JSON.stringify(meta)) } });
+}
+export interface FormField {
+  name: string;
+  kind: "text" | "check" | "radio" | "choice";
+  value: string;
+  options: { value: string; label: string }[];
+  page: number;
+  rect: [number, number, number, number];
+  read_only: boolean;
+  multiline: boolean;
+}
+export const pdfFormFields = (input: string): Promise<FormField[]> => call("pdf_form_fields", { input });
+export interface FillReport { output_path: string; filled: number; flattened: boolean }
+export const pdfFillForm = (input: string, output: string, values: { name: string; value: string }[], flatten: boolean, overwrite = false): Promise<FillReport> => call("pdf_fill_form", { input, output, overwrite, values, flatten });
 export const cancelJob = (): Promise<boolean> => call("cancel_job");
 export const discardOutput = (path: string): Promise<boolean> => call("discard_output", { path });
 export const enableProgress = (): Promise<void> => call("enable_progress");

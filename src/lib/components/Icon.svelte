@@ -286,6 +286,11 @@
   {:else if name === "eye"}
     <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
     <circle cx="12" cy="12" r="3" />
+  {:else if name === "form"}
+    <rect x="4" y="3.5" width="16" height="17" rx="2" />
+    <polyline points="7.5 8.5 9 10 11.5 7" />
+    <line x1="13.5" y1="8.5" x2="16.5" y2="8.5" />
+    <rect x="7" y="13" width="10" height="4" rx="1" />
   {:else if name === "eye-off"}
     <path d="M10.6 5.1A10.5 10.5 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1" />
     <path d="M6.3 6.4C3.6 8.2 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1" />

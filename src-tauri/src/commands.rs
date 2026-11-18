@@ -1190,6 +1190,83 @@ pub async fn pdf_add_text_layer(
     .await
 }
 
+/// Limpa un PDF (metadatos, scripts, anexos, ligazóns, comentarios) e di canto quitou de cada tipo.
+#[tauri::command]
+pub async fn pdf_sanitize(input: String, output: String, overwrite: bool, options: trasno_engine::pdf_more::Sanitize) -> Result<trasno_engine::pdf_more::SanitizeReport, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        trasno_engine::pdf_more::sanitize_pdf(&i, &o, overwrite, &options).map_err(to_err)
+    })
+    .await
+}
+
+/// Pon (ou quita, se a lista vai baleira) o índice dun PDF.
+#[tauri::command]
+pub async fn pdf_set_outline(input: String, output: String, overwrite: bool, entries: Vec<trasno_engine::pdf_more::OutlineEntry>) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        done(trasno_engine::pdf_more::set_outline(&i, &o, overwrite, &entries))
+    })
+    .await
+}
+
+#[derive(serde::Deserialize)]
+struct RedactMeta {
+    input: String,
+    output: String,
+    overwrite: bool,
+    /// Páxina e cantos bytes ocupa o seu JPEG dentro do corpo, en orde.
+    pages: Vec<(u32, usize)>,
+}
+
+/// Tapa zonas de verdade: cada páxina chega xa debuxada (JPEG, co negro por riba) no corpo, e pasa a ser unha soa imaxe.
+#[tauri::command]
+pub async fn pdf_redact(request: tauri::ipc::Request<'_>) -> Result<trasno_engine::pdf_more::RedactReport, String> {
+    let tauri::ipc::InvokeBody::Raw(data) = request.body() else {
+        return Err(msg("Non chegaron datos para gardar.", serde_json::json!({})));
+    };
+    let data = data.clone();
+    let meta: RedactMeta = request
+        .headers()
+        .get("x-meta")
+        .and_then(|v| v.to_str().ok())
+        .map(percent_decode)
+        .and_then(|j| serde_json::from_str(&j).ok())
+        .ok_or_else(|| msg("Falta a ruta de destino.", serde_json::json!({})))?;
+    blocking(move || {
+        let mut at = 0usize;
+        let mut pages = Vec::new();
+        for (page, len) in &meta.pages {
+            let end = at.checked_add(*len).filter(|e| *e <= data.len()).ok_or_else(|| msg("Non chegaron datos para gardar.", serde_json::json!({})))?;
+            pages.push(trasno_engine::pdf_more::RedactPage { page: *page, jpeg: data[at..end].to_vec() });
+            at = end;
+        }
+        let (i, o) = paths(meta.input, meta.output);
+        trasno_engine::pdf_more::redact_pages(&i, &o, meta.overwrite, &pages).map_err(to_err)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_form_fields(input: String) -> Result<Vec<trasno_engine::pdf_more::FormField>, String> {
+    blocking(move || trasno_engine::pdf_more::form_fields(&PathBuf::from(input)).map_err(to_err)).await
+}
+
+#[tauri::command]
+pub async fn pdf_fill_form(
+    input: String,
+    output: String,
+    overwrite: bool,
+    values: Vec<trasno_engine::pdf_more::FieldValue>,
+    flatten: bool,
+) -> Result<trasno_engine::pdf_more::FillReport, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        trasno_engine::pdf_more::fill_form(&i, &o, overwrite, &values, flatten).map_err(to_err)
+    })
+    .await
+}
+
 /// Captura da zona útil da xanela principal (o que se ve agora, menús incluídos) para o coagotas de cor.
 /// Devolve 8 bytes (ancho e alto, u32 little-endian) seguidos dos píxeles RGBA.
 #[tauri::command]

@@ -84,6 +84,7 @@
               tab("pages", "Páxinas"),
               tab("shape", "Xirar e recortar"),
               tab("marks", "Marcas"),
+              tab("form", "Formulario"),
               tab("optimize", "Comprimir e reparar"),
               tab("ocr", "Recoñecer texto (OCR)"),
               tab("security", "Seguridade"),
@@ -147,8 +148,8 @@
       return [];
     }
     switch (tab) {
-      case "convert": return [m("images", "A imaxes"), m("format", "A outro formato")];
-      case "pages": return [m("organize", "Ordenar"), m("extract", "Extraer"), m("split", "Dividir")];
+      case "convert": return [m("images", "A imaxes"), m("format", "A outro formato"), m("markdown", "A Markdown"), m("tables", "Táboas")];
+      case "pages": return [m("organize", "Ordenar"), m("extract", "Extraer"), m("split", "Dividir"), m("outline", "Índice")];
       case "shape": return [m("rotate", "Xirar"), m("crop", "Recortar")];
       case "optimize": return [m("compress", "Comprimir"), m("repair", "Reparar")];
       default: return [];
@@ -224,6 +225,12 @@
           <MkvTracksSection {selection} />
         {:else if current === "convert" && mode === "images" && first}
           <Lazy loader={() => import("./tools/PdfImagesSection.svelte")} file={first} />
+        {:else if current === "convert" && mode === "markdown" && first && isPdf}
+          <Lazy loader={() => import("./tools/PdfMarkdownSection.svelte")} file={first} />
+        {:else if current === "convert" && mode === "tables" && first && isPdf}
+          <Lazy loader={() => import("./tools/PdfTablesSection.svelte")} file={first} />
+        {:else if current === "form" && first && isPdf}
+          <Lazy loader={() => import("./tools/PdfFormSection.svelte")} file={first} />
         {:else if current === "convert" && category === "video" && mode === "mp4"}
           <CompressSection {selection} category="video" />
         {:else if current === "convert"}
@@ -260,6 +267,8 @@
           <ExtractSection file={first} />
         {:else if current === "pages" && mode === "extract" && first}
           <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} part="extract" />
+        {:else if current === "pages" && mode === "outline" && first}
+          <Lazy loader={() => import("./tools/PdfOutlineSection.svelte")} file={first} />
         {:else if current === "pages" && mode === "split" && first}
           <PdfSplitSection file={first} />
         {:else if current === "pages" && first}

@@ -104,7 +104,7 @@ for (const url of rustFiles) {
     for (const m of src.matchAll(new RegExp(String.raw`\n\s+${str},\n\s+json!`, "g"))) add(unesc(m[1]), where);
   }
   for (const m of src.matchAll(new RegExp(String.raw`EngineError::(?:IntegrityCheck|Pdf|Model3d)\(\s*${str}`, "g"))) add(unesc(m[1]), where);
-  for (const m of src.matchAll(new RegExp(String.raw`\bbad\(\s*${str}`, "g"))) add(unesc(m[1]), where);
+  for (const m of src.matchAll(new RegExp(String.raw`\b(?:bad|pdf_err)\(\s*${str}`, "g"))) add(unesc(m[1]), where);
   for (const m of src.matchAll(new RegExp(String.raw`\bmsg\(\s*${str}`, "g"))) add(unesc(m[1]), where);
 }
 

@@ -11,11 +11,13 @@
   import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
+  import PdfSanitizeSection from "./PdfSanitizeSection.svelte";
+  import PdfRedactSection from "./PdfRedactSection.svelte";
 
   export let file: FileEntry;
 
   let encrypted: boolean | null = null;
-  let mode: "protect" | "unprotect" = "protect";
+  let mode: "protect" | "unprotect" | "sanitize" | "redact" = "protect";
   let password = "";
   let owner = "";
   let allowPrint = true;
@@ -34,7 +36,7 @@
 
   async function run() {
     try {
-      const suffix = { protect: "-protexido", unprotect: "-desbloqueado" }[mode];
+      const suffix = mode === "unprotect" ? "-desbloqueado" : "-protexido";
       const out = await askOutput(file, tr(suffix), "pdf");
       if (!out) return;
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
@@ -55,10 +57,17 @@
     options={[
       { value: "protect", label: $t("Protexer") },
       { value: "unprotect", label: $t("Desbloquear") },
+      { value: "sanitize", label: $t("Limpar") },
+      { value: "redact", label: $t("Tapar") },
     ]}
     bind:value={mode}
   />
 
+  {#if mode === "sanitize"}
+    <PdfSanitizeSection {file} />
+  {:else if mode === "redact"}
+    <PdfRedactSection {file} />
+  {:else}
   <div class="group">
     {#if mode === "protect"}
       <label class="pw">
@@ -86,6 +95,7 @@
     {mode === "protect" ? $t("Protexer o PDF") : $t("Desbloquear o PDF")}
   </button>
   <JobStatus {job} />
+  {/if}
 </div>
 
 <style>

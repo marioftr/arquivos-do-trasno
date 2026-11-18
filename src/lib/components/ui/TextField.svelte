@@ -6,12 +6,13 @@
   export let value: string;
   export let placeholder = "";
   export let hint = "";
+  export let disabled = false;
   $: tip = label && HINTS[label] ? $t(HINTS[label]) : "";
 </script>
 
 <div class="field">
   {#if label}<span class="lab">{label}{#if tip}<InfoTip text={tip} />{/if}</span>{/if}
-  <input type="text" bind:value {placeholder} aria-label={label} />
+  <input type="text" bind:value {placeholder} {disabled} aria-label={label} />
   {#if hint}<span class="hint">{hint}</span>{/if}
 </div>
 

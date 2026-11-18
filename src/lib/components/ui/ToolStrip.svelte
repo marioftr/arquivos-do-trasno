@@ -27,6 +27,7 @@
     pages: "pages",
     shape: "crop",
     marks: "type",
+    form: "form",
     optimize: "wrench",
     ocr: "scan-text",
     security: "lock",

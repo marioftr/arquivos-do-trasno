@@ -293,6 +293,12 @@ export interface PdfOverlay {
   text?: { text: string; xPct: number; yPct: number; size: number; color: string; opacity: number; angle: number; centered: boolean; pages: number[] | null; font?: FontSpec };
   numbers?: { position: string; format: string; start: number; size: number; margin: number; color: string; pages?: number[] | null; font?: FontSpec };
   image?: { url: string; xPct: number; yPct: number; widthPct: number; opacity: number; pages: number[] | null };
+  /** Zonas a tapar: arrástrase sobre a páxina para debuxalas; cada unha leva un «×» para quitala. En % da páxina, desde arriba á esquerda. */
+  redact?: {
+    boxes: RedactBox[];
+    onAdd: (page: number, x: number, y: number, w: number, h: number) => void;
+    onRemove: (id: number) => void;
+  };
   /** Textos colocados sobre as páxinas: seleccionables, arrastrables e redimensionables directamente no visor. */
   items?: {
     list: PdfTextBox[];
@@ -306,6 +312,15 @@ export interface PdfOverlay {
     onEdit: (id: number, text: string, style?: { bold: boolean; italic: boolean }) => void;
     onEditing: (id: number | null) => void;
   };
+}
+/** Unha zona a tapar, en % da páxina desde arriba á esquerda. */
+export interface RedactBox {
+  id: number;
+  page: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 /** Un texto sobre unha páxina. A posición é a esquina de arriba á esquerda, en % da páxina desde abaixo á esquerda. */
 export interface PdfTextBox {

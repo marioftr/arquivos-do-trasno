@@ -32,6 +32,7 @@ pub mod model3d;
 pub mod music_tags;
 pub mod office;
 pub mod pdf;
+pub mod pdf_more;
 pub mod pdf_tools;
 pub mod resize;
 pub mod restore;
