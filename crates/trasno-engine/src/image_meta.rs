@@ -152,7 +152,7 @@ pub fn add_to_webp_file(path: &Path, carried: &Carried) -> Result<()> {
     if image::open(tmp.path()).is_err() {
         return Ok(());
     }
-    tmp.persist(path).map_err(|e| crate::error::EngineError::Io(e.error))?;
+    crate::integrity::persist_retry(tmp, path).map_err(crate::error::EngineError::Io)?;
     Ok(())
 }
 

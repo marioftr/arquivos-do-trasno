@@ -62,10 +62,40 @@ impl AtomicOutput {
             return Err(EngineError::EmptyOrCorruptOutput);
         }
         self.temp.as_file().sync_all()?;
-        self.temp
-            .persist(&self.destination)
-            .map_err(|e| EngineError::Io(e.error))?;
+        persist_retry(self.temp, &self.destination).map_err(EngineError::Io)?;
         Ok(self.destination)
+    }
+}
+
+/// Move un temporal ao destino repetindo uns poucos intentos se Windows di «acceso denegado» (o antivirus ou o indexador teñen o
+/// ficheiro aberto un instante).
+pub fn persist_retry(temp: tempfile::NamedTempFile, to: &Path) -> std::io::Result<()> {
+    let mut temp = temp;
+    let mut tries = 0u32;
+    loop {
+        match temp.persist(to) {
+            Ok(_) => return Ok(()),
+            Err(e) if tries < 8 && e.error.kind() == std::io::ErrorKind::PermissionDenied => {
+                tries += 1;
+                temp = e.file;
+                std::thread::sleep(std::time::Duration::from_millis(60 * tries as u64));
+            }
+            Err(e) => return Err(e.error),
+        }
+    }
+}
+
+/// `rename` que repite uns poucos intentos se Windows di «acceso denegado» (o antivirus ou o indexador teñen o ficheiro aberto un instante).
+pub fn rename_retry(from: &Path, to: &Path) -> std::io::Result<()> {
+    let mut tries = 0u32;
+    loop {
+        match std::fs::rename(from, to) {
+            Err(e) if tries < 8 && e.kind() == std::io::ErrorKind::PermissionDenied => {
+                tries += 1;
+                std::thread::sleep(std::time::Duration::from_millis(60 * tries as u64));
+            }
+            r => return r,
+        }
     }
 }
 

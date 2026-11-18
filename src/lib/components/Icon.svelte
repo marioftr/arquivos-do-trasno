@@ -259,6 +259,11 @@
     <circle cx="9" cy="7" r="1.6" />
     <circle cx="15" cy="12" r="1.6" />
     <circle cx="8" cy="17" r="1.6" />
+  {:else if name === "stitch"}
+    <rect x="5" y="3" width="14" height="8" rx="1.6" />
+    <rect x="5" y="13" width="14" height="8" rx="1.6" />
+    <line x1="12" y1="9" x2="12" y2="15" />
+    <polyline points="9.5 12.5 12 15 14.5 12.5" />
   {:else if name === "eye"}
     <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
     <circle cx="12" cy="12" r="3" />

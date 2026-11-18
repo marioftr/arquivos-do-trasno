@@ -423,6 +423,54 @@ export async function compressImage(
 export const COMPRESS_KEEP = ["jpg", "jpeg", "png", "webp", "avif", "jxl", "jp2", "gif"];
 export const compressExt = (ext: string) => (COMPRESS_KEEP.includes(ext.toLowerCase()) ? ext.toLowerCase() : "jpg");
 
+export type ResizeFit =
+  | { mode: "within"; width: number | null; height: number | null; no_upscale: boolean }
+  | { mode: "percent"; percent: number }
+  | { mode: "exact"; width: number; height: number; crop: boolean };
+
+export interface ResizeReport {
+  output_path: string;
+  from: [number, number];
+  to: [number, number];
+  bytes_written: number;
+}
+
+export async function resizeImage(
+  input: string,
+  output: string,
+  fit: ResizeFit,
+  opts: { quality?: number; background?: [number, number, number]; metadata?: PhotoMetadata } = {},
+  overwrite = false,
+): Promise<ResizeReport> {
+  return call("resize_image", { input, output, overwrite, fit, quality: opts.quality ?? null, background: opts.background ?? null, metadata: opts.metadata ?? null });
+}
+
+/** Tamaño actual e tamaño que sairía con ese axuste (sen tocar nada). */
+export async function resizePreview(input: string, fit: ResizeFit): Promise<[[number, number], [number, number]]> {
+  return call("resize_preview", { input, fit });
+}
+
+export interface StitchOptions {
+  direction: "vertical" | "horizontal";
+  align: "narrowest" | "widest";
+  remove_overlap: boolean;
+  gap: number;
+  background: [number, number, number];
+  quality: number | null;
+}
+
+export interface StitchReport {
+  output_path: string;
+  size: [number, number];
+  /** Por cada unión: píxeles repetidos que se quitaron, ou null se non se atopou onde se solapan. */
+  joins: (number | null)[];
+  bytes_written: number;
+}
+
+export async function stitchImages(inputs: string[], output: string, options: StitchOptions, overwrite = false): Promise<StitchReport> {
+  return call("stitch_images", { inputs, output, overwrite, options });
+}
+
 export async function estimateImage(input: string, ext: string, quality: number, maxSide?: number, background?: [number, number, number]): Promise<number> {
   return call("estimate_image", { input, ext, quality, maxSide: maxSide ?? null, background: background ?? null });
 }

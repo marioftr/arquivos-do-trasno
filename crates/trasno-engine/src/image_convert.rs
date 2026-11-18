@@ -17,6 +17,8 @@ pub struct ImageConvertOptions {
     /// deformar a imaxe se a proporción non coincide coa orixinal; a UI
     /// ofrece "manter proporción" calculando o lado que falta primeiro).
     pub resize: Option<(u32, u32)>,
+    /// Con `resize`: en vez de esticar, escala ata encher o tamaño e recorta o que sobra polo centro.
+    pub fill: bool,
     /// Sen perdas (só JPEG XL e JPEG 2000, que se escriben con FFmpeg).
     pub lossless: bool,
     /// Fondo (RGB) sobre o que se compón a transparencia se o formato de destino non a admite (JPG, BMP, PNM). Por defecto, branco.
@@ -97,7 +99,11 @@ pub fn convert_image(
         if w == 0 || h == 0 {
             return Err(EngineError::EmptyOrCorruptOutput);
         }
-        img = img.resize_exact(w, h, image::imageops::FilterType::Lanczos3);
+        // Se xa ten ese tamaño non se toca (volver amostrar sen cambiar nada só gastaría tempo).
+        if (w, h) != (img.width(), img.height()) {
+            let f = image::imageops::FilterType::Lanczos3;
+            img = if options.fill { img.resize_to_fill(w, h, f) } else { img.resize_exact(w, h, f) };
+        }
     }
 
     if img.width() == 0 || img.height() == 0 {
@@ -340,7 +346,7 @@ fn write_dynamic<W: std::io::Write + std::io::Seek>(img: &image::DynamicImage, w
 }
 
 /// Garda `img` de forma atómica e comproba que se pode reabrir.
-fn write_verified(
+pub(crate) fn write_verified(
     img: &image::DynamicImage,
     output: &Path,
     overwrite: bool,
@@ -381,7 +387,7 @@ mod tests {
         image::DynamicImage::ImageRgb8(img).save(&input).unwrap();
 
         let output = dir.path().join("destino.jpg");
-        let opts = ImageConvertOptions { quality: Some(85), resize: None, lossless: false, background: None, metadata: Default::default() };
+        let opts = ImageConvertOptions { quality: Some(85), resize: None, lossless: false, ..Default::default() };
         let result = convert_image(&input, &output, false, &opts).unwrap();
 
         assert!(result.exists());
@@ -413,7 +419,7 @@ mod tests {
             .save(&input)
             .unwrap();
         let output = dir.path().join("destino.png");
-        let opts = ImageConvertOptions { quality: None, resize: Some((20, 10)), lossless: false, background: None, metadata: Default::default() };
+        let opts = ImageConvertOptions { quality: None, resize: Some((20, 10)), lossless: false, ..Default::default() };
         let result = convert_image(&input, &output, false, &opts).unwrap();
 
         let decoded = image::open(&result).unwrap();

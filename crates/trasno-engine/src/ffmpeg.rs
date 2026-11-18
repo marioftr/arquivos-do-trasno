@@ -511,7 +511,7 @@ pub fn convert_media_inputs(
         }
     }
 
-    std::fs::rename(&temp_path, output_final).map_err(EngineError::Io)?;
+    crate::integrity::rename_retry(&temp_path, output_final).map_err(EngineError::Io)?;
     Ok(output_final.to_path_buf())
 }
 
@@ -627,7 +627,7 @@ pub fn concat_media(inputs: &[PathBuf], output_final: &Path, overwrite: bool) ->
         return Err(e);
     }
 
-    std::fs::rename(&temp_path, output_final).map_err(EngineError::Io)?;
+    crate::integrity::rename_retry(&temp_path, output_final).map_err(EngineError::Io)?;
     Ok(output_final.to_path_buf())
 }
 

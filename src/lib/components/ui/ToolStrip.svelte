@@ -21,6 +21,8 @@
     extract: "download",
     mkv: "tracks",
     merge: "merge",
+    resize: "expand",
+    stitch: "stitch",
     pages: "pages",
     shape: "crop",
     marks: "type",

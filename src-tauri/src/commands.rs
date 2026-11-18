@@ -1026,6 +1026,40 @@ pub async fn compress_image(
 }
 
 #[tauri::command]
+pub async fn resize_image(
+    input: String,
+    output: String,
+    overwrite: bool,
+    fit: trasno_engine::resize::Fit,
+    quality: Option<u8>,
+    background: Option<[u8; 3]>,
+    metadata: Option<trasno_engine::image_meta::Metadata>,
+) -> Result<trasno_engine::resize::ResizeReport, String> {
+    blocking(move || {
+        trasno_engine::resize::resize_image(&PathBuf::from(input), &PathBuf::from(output), overwrite, &fit, quality, background, metadata.unwrap_or_default())
+            .map_err(to_err)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn stitch_images(inputs: Vec<String>, output: String, overwrite: bool, options: trasno_engine::stitch::StitchOptions) -> Result<trasno_engine::stitch::StitchReport, String> {
+    let inputs: Vec<PathBuf> = inputs.into_iter().map(PathBuf::from).collect();
+    blocking(move || trasno_engine::stitch::stitch_images(&inputs, &PathBuf::from(output), overwrite, &options).map_err(to_err)).await
+}
+
+/// Tamaño actual (como se ve, coa orientación aplicada) e tamaño que sairía con ese axuste, sen tocar nada.
+#[tauri::command]
+pub async fn resize_preview(input: String, fit: trasno_engine::resize::Fit) -> Result<((u32, u32), (u32, u32)), String> {
+    blocking(move || {
+        let from = trasno_engine::resize::oriented_dimensions(&PathBuf::from(input)).map_err(to_err)?;
+        let to = trasno_engine::resize::target_size(from, &fit).map_err(to_err)?;
+        Ok((from, to))
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn estimate_image(input: String, ext: Option<String>, quality: u8, max_side: Option<u32>, background: Option<[u8; 3]>) -> Result<u64, String> {
     blocking(move || {
         trasno_engine::compress::estimate_image_bytes(&PathBuf::from(input), ext.as_deref().unwrap_or("jpg"), quality, max_side, background).map_err(to_err)

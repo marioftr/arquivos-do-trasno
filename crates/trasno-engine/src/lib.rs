@@ -33,8 +33,10 @@ pub mod music_tags;
 pub mod office;
 pub mod pdf;
 pub mod pdf_tools;
+pub mod resize;
 pub mod restore;
 pub mod silence;
+pub mod stitch;
 pub mod subtitle_video;
 pub mod subtitles;
 pub mod tools_install;
@@ -96,6 +98,7 @@ pub fn convert_file(input: &Path, output: &Path, options: &ConvertOptions) -> Re
                 lossless: options.lossless,
                 background: options.background,
                 metadata: options.metadata,
+                ..Default::default()
             },
         )?,
         // Vídeo → GIF ou WebP animado: paleta propia, cadencia e ancho medidos (ver `animated::video_to_animation`).

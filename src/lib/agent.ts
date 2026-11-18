@@ -274,10 +274,22 @@ const LABEL: Record<string, string> = {
   cropOn: "o recorte", cw: "o recorte", cx: "o recorte", cy: "o recorte", wmText: "o texto da marca", wmSize: "o tamaño da marca", wmColor: "a cor da marca",
   wmOpacity: "a opacidade da marca", wmAngle: "o xiro da marca", wmFamily: "a letra da marca", wmBold: "a negriña da marca", wmItalic: "a cursiva da marca",
   lossless: "o modo sen perdas", mode: "o modo", compat: "a compatibilidade", sizeValue: "o tamaño obxectivo", select: "a pista escollida", kind: "o modo",
+  // Restaurar vídeo, Redimensionar e Xuntar capturas
+  stabilize: "a estabilización", denoise: "o ruído", sharpen: "a nitidez", deflicker: "o parpadeo", saturation: "a saturación",
+  how: "o modo de axuste", width: "o ancho", height: "o alto", percent: "a porcentaxe", noUpscale: "non ampliar as imaxes pequenas", crop: "o que facer coa proporción",
+  direction: "a dirección", align: "a igualación do tamaño", removeOverlap: "quitar o que se repite", gap: "o espazo entre capturas", background: "o fondo", format: "o formato",
 };
 // Valores de texto que se amosan tal cal; para os demais amósase só o que cambiou (nunca un código interno).
-const RAW_VALUE = new Set(["targetExt", "pageSpec", "wmText", "wmFamily", "dar", "maxHeight", "wmColor"]);
-const VALUE_LABEL: Record<string, Record<string, string>> = { mode: { quality: "calidade", bitrate: "bitrate", size: "tamaño máximo" } };
+const RAW_VALUE = new Set(["targetExt", "pageSpec", "wmText", "wmFamily", "dar", "maxHeight", "wmColor", "format", "background"]);
+const LEVEL_NAMES = { 0: "non", 1: "suave", 2: "normal", 3: "forte" };
+const VALUE_LABEL: Record<string, Record<string, string>> = {
+  mode: { quality: "calidade", bitrate: "bitrate", size: "tamaño máximo" },
+  stabilize: LEVEL_NAMES, denoise: LEVEL_NAMES, sharpen: LEVEL_NAMES,
+  how: { 0: "dentro dun cadro", 1: "porcentaxe", 2: "tamaño exacto" },
+  crop: { 0: "recortar polo centro", 1: "esticar" },
+  direction: { vertical: "unha debaixo doutra", horizontal: "unha ao carón doutra" },
+  align: { narrowest: "á máis pequena", widest: "á máis grande" },
+};
 export function describeForm(before: Record<string, any>, after: Record<string, any>, restore?: () => void) {
   const seen = new Set<string>();
   for (const k of Object.keys(after)) {
@@ -287,8 +299,8 @@ export function describeForm(before: Record<string, any>, after: Record<string, 
     seen.add(LABEL[k]);
     const what = tr(LABEL[k]);
     if (typeof v === "boolean") noteHere(v ? "O trasno activou {what}" : "O trasno desactivou {what}", { what }, restore);
-    else if (typeof v === "number" || RAW_VALUE.has(k)) noteHere("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" ? String(v).toUpperCase() : String(v) }, restore);
     else if (VALUE_LABEL[k]?.[v]) noteHere("O trasno cambiou {what} a {value}", { what, value: tr(VALUE_LABEL[k][v]) }, restore);
+    else if (typeof v === "number" || RAW_VALUE.has(k)) noteHere("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" || k === "format" ? String(v).toUpperCase() : String(v) }, restore);
     else noteHere("O trasno cambiou {what}", { what }, restore);
     if (seen.size >= 2) break;
   }

@@ -22,6 +22,8 @@
   import EditMediaSection from "./tools/EditMediaSection.svelte";
   import ExtractSection from "./tools/ExtractSection.svelte";
   import RestoreSection from "./tools/RestoreSection.svelte";
+  import ResizeSection from "./tools/ResizeSection.svelte";
+  import StitchSection from "./tools/StitchSection.svelte";
   import TagsSection from "./tools/TagsSection.svelte";
   import SilenceSection from "./tools/SilenceSection.svelte";
   import ModelViewSection from "./tools/ModelViewSection.svelte";
@@ -62,14 +64,14 @@
     if (!cat) return [];
     if (many) {
       if (pdf) return [tab("merge", "Unir")];
-      if (cat === "imaxe") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("merge", "Unir")];
+      if (cat === "imaxe") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("resize", "Redimensionar"), tab("merge", "Unir"), tab("stitch", "Xuntar capturas")];
       if (cat === "video") return [tab("convert", "Converter"), tab("merge", "Unir"), ...multiMkv()];
       if (cat === "audio") return [tab("convert", "Converter"), tab("merge", "Unir"), ...multiMkv()];
       return [tab("convert", "Converter")];
     }
     switch (cat) {
       case "imaxe":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("annotate", "Anotar"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("resize", "Redimensionar"), tab("edit", "Editar"), tab("annotate", "Anotar"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
         return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...(ext === "gif" ? [] : [tab("restore", "Restaurar")]), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
@@ -225,6 +227,10 @@
           <CompressSection {selection} category="video" />
         {:else if current === "convert"}
           <ConvertSection {selection} {category} />
+        {:else if current === "resize" && category === "imaxe"}
+          <ResizeSection {selection} />
+        {:else if current === "stitch" && category === "imaxe"}
+          <StitchSection {selection} />
         {:else if current === "compress" && category === "imaxe"}
           <CompressSection {selection} {category} />
         {:else if current === "edit" && first && SUBTITLE_EXTS.includes(first.ext)}
