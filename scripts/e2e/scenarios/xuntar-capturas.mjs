@@ -91,7 +91,7 @@ export default {
 
     // Formato de saída: elixido (TIFF) e «Igual que o orixinal» con imaxes que non son PNG (BMP).
     const fmt = (v) => app.ev(`(()=>{const s=document.querySelector('.stack select[aria-label=Formato]'); s.value=${JSON.stringify(v)}; s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
-    c.ok((await app.ev(`[...document.querySelectorAll('.stack select[aria-label=Formato] option')].map(o=>o.textContent.trim()).join()`)) === "Igual que o orixinal,PNG,JPG,WebP,TIFF,BMP", "o formato ofrece «Igual que o orixinal» e cinco formatos");
+    c.ok((await app.ev(`[...document.querySelectorAll('.stack select[aria-label=Formato] option')].map(o=>o.textContent.trim()).join()`)) === "Igual que o orixinal (.png),PNG,JPG,WebP,TIFF,BMP", "con PNG de orixe, o formato di «Igual que o orixinal (.png)» e ofrece cinco formatos");
     await fmt("tiff");
     await app.click("Xuntar 3 capturas");
     const tif = path.join(app.media, "capturas-xuntadas.tiff");
@@ -110,5 +110,13 @@ export default {
     const bmpOut = path.join(app.media, "capturas-xuntadas.bmp");
     for (let i = 0; i < 60 && !fs.existsSync(bmpOut); i++) await app.sleep(300);
     c.ok(fs.existsSync(bmpOut), "con BMP de orixe, «Igual que o orixinal» deixa un BMP");
+    c.ok((await app.ev(`document.querySelector('.stack select[aria-label=Formato] option')?.textContent.trim()`)) === "Igual que o orixinal (.bmp)", "e a opción leva o formato entre parénteses");
+
+    // Con formatos mesturados non hai «Igual que o orixinal» e o formato de partida é PNG.
+    await pick(["captura-1.png", "bmp-1.bmp"]);
+    await app.click("Xuntar capturas");
+    await app.waitFor(`document.querySelectorAll('.stack ol.order li').length === 2`, "a lista ordenable mesturada");
+    c.ok((await app.ev(`[...document.querySelectorAll('.stack select[aria-label=Formato] option')].map(o=>o.textContent.trim()).join()`)) === "PNG,JPG,WebP,TIFF,BMP", "con formatos distintos non hai «Igual que o orixinal»", await app.ev(`[...document.querySelectorAll('.stack select[aria-label=Formato] option')].map(o=>o.textContent.trim()).join()`));
+    c.ok((await app.ev(`(()=>{const s=document.querySelector('.stack select[aria-label=Formato]'); return s.options[s.selectedIndex].textContent.trim()})()`)) === "PNG", "e o formato marcado é PNG");
   },
 };

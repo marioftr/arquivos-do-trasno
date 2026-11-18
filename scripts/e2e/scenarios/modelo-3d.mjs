@@ -28,7 +28,7 @@ f 4 1 5 8
     c.ok(!(await app.ev(`!!document.querySelector('.bar input[type=checkbox]')`)), "a barra do visor xa non leva a malla nin a cuadrícula");
     await app.click("Escena");
     await app.waitFor(`document.querySelector('.stack [role=radiogroup]')`, "os grupos do panel");
-    c.ok((await parts()) === "Obxectos e aspecto,Materiais e texturas,Luz", "tres grupos arriba: obxectos e aspecto, materiais e texturas, luz", await parts());
+    c.ok((await parts()) === "Visor,Apariencia,Luz", "tres grupos arriba: visor, apariencia, luz", await parts());
     c.ok(!(await app.ev(`[...document.querySelectorAll('.stack .group-title')].some(b=>b.tagName==='BUTTON')`)), "os grupos non se pregan: o título é só texto");
     // O grupo de obxectos e aspecto: a malla e a cuadrícula.
     // A malla debuxa os 12 bordos do cubo (polígonos), non os 18 das diagonais dos triángulos.
@@ -44,8 +44,8 @@ f 4 1 5 8
     c.ok(!(await app.ev(`!!document.querySelector('.stack .nodes')`)), "con un só obxecto non hai lista de obxectos");
     c.ok(!(await app.ev(`!!document.querySelector('.stack input[aria-label=Azimut]')`)) && !(await app.ev(`!!document.querySelector('.stack .mat')`)), "a luz e os materiais non se ven neste grupo");
 
-    // Materiais e texturas.
-    await part("Materiais e texturas");
+    // Apariencia.
+    await part("Apariencia");
     await app.waitFor(`document.querySelectorAll('.stack .mat').length === 2`, "os dous materiais", 15000);
     const text = await app.panel();
     c.ok(/Materiais[\s|]*2/i.test(text) && /Texturas/i.test(text), "materiais e texturas van xuntos", text.slice(0, 200));
@@ -60,7 +60,7 @@ f 4 1 5 8
     await app.waitFor(`document.querySelector('.stack input[aria-label=Azimut]')`, "a luz");
     await app.slider("Azimut", 120);
     c.near(await app.ev(`Number([...document.querySelectorAll('.stack input[type=range]')].find(x=>x.getAttribute('aria-label')==='Azimut').value)`), 120, 0.1, "o desprazador da luz fica onde se puxo");
-    await part("Materiais e texturas");
+    await part("Apariencia");
     await part("Luz");
     c.near(await app.ev(`Number([...document.querySelectorAll('.stack input[type=range]')].find(x=>x.getAttribute('aria-label')==='Azimut').value)`), 120, 0.1, "ao volver á luz segue onde estaba");
 
@@ -88,7 +88,7 @@ f 4 1 5 8
     await app.open(path.join(dir, "escena.gltf"));
     await app.waitFor(`document.querySelector('.canvas canvas')`, "o visor 3D");
     await app.click("Escena");
-    await part("Obxectos e aspecto");
+    await part("Visor");
     await app.waitFor(`document.querySelectorAll('.stack .nodes li').length === 5`, "cinco obxectos na lista", 15000);
     const names = await app.ev(`[...document.querySelectorAll('.stack .nodes .nn')].map(x=>x.textContent.trim())`);
     c.ok(["Grupo_A", "a1", "a2", "Grupo_B", "b1"].every((n) => names.includes(n)), "a lista leva os nomes do ficheiro", names.join(","));
@@ -137,6 +137,7 @@ f 4 1 5 8
     await app.ev(`document.querySelector('[title="Despregar todos os grupos"]').click()`);
     await app.sleep(200);
     c.ok((await app.ev(`document.querySelectorAll('.stack .nodes li').length`)) === 5, "despregar todos devolve as filas");
+    c.ok(await app.ev(`!!document.querySelector('[title="Pregar todos os grupos"]') && !document.querySelector('[title="Despregar todos os grupos"]')`), "co todo despregado o botón di «Pregar todos os grupos»");
     c.ok(await app.ev(`!document.querySelector('[title="Ampliar a lista"]')`), "con poucas filas non hai botón de ampliar a lista (non hai desprazamento)");
 
     // Con moitas filas a lista desprázase e aparece o botón de ampliala.
@@ -145,7 +146,7 @@ f 4 1 5 8
     await app.open(path.join(dir, "moitos.gltf"));
     await app.waitFor(`document.querySelector('.canvas canvas')`, "o visor 3D");
     await app.click("Escena");
-    await part("Obxectos e aspecto");
+    await part("Visor");
     await app.waitFor(`document.querySelectorAll('.stack .nodes li').length === 30`, "trinta obxectos", 15000);
     await app.waitFor(`document.querySelector('[title="Ampliar a lista"]')`, "o botón de ampliar a lista");
     await app.ev(`document.querySelector('[title="Ampliar a lista"]').click()`);

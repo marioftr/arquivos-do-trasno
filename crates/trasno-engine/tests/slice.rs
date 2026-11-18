@@ -95,7 +95,7 @@ fn nunca_pisa_e_o_xogo_enteiro_pasa_a_outro_nome() {
     let first = slice_image(&src, d.path(), "foto", "png", &opts((0, 0, 600, 200), 3, 1)).unwrap();
     let kept: Vec<Vec<u8>> = first.outputs.iter().map(|p| std::fs::read(p).unwrap()).collect();
     let second = slice_image(&src, d.path(), "foto", "png", &opts((0, 0, 600, 200), 3, 1)).unwrap();
-    assert_eq!(second.outputs[0].file_name().unwrap().to_str().unwrap(), "foto (2)-1.png");
+    assert_eq!(second.outputs[0].file_name().unwrap().to_str().unwrap(), "foto-1 (2).png");
     for (p, bytes) in first.outputs.iter().zip(kept) {
         assert_eq!(std::fs::read(p).unwrap(), bytes, "as partes anteriores non se tocan");
     }
@@ -103,7 +103,7 @@ fn nunca_pisa_e_o_xogo_enteiro_pasa_a_outro_nome() {
     std::fs::remove_file(&first.outputs[0]).unwrap();
     std::fs::remove_file(&first.outputs[2]).unwrap();
     let third = slice_image(&src, d.path(), "foto", "png", &opts((0, 0, 600, 200), 3, 1)).unwrap();
-    assert_eq!(third.outputs[0].file_name().unwrap().to_str().unwrap(), "foto (3)-1.png");
+    assert_eq!(third.outputs[0].file_name().unwrap().to_str().unwrap(), "foto-1 (3).png");
 }
 
 #[test]

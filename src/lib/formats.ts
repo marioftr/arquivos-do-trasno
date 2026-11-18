@@ -59,26 +59,34 @@ export const PDF_TO_DOC = ["docx", "doc", "odt", "rtf"];
 
 /** Formatos en que se gardan as imaxes que se compoñen a partir doutras (xuntar capturas, cortar en partes). */
 export const COMPOSE_FORMATS = ["png", "jpg", "webp", "tiff", "bmp"];
-/** O formato que sae: o elixido ou, con «same», o dos orixinais (se todos teñen o mesmo e se pode gardar; se non, PNG). */
-export function composeFormat(choice: string, exts: string[]): string {
-  if (choice !== "same") return choice;
+/** O formato común dos orixinais, se todos o teñen igual e se pode gardar nel; se non, baleiro. */
+export function composeSame(exts: string[]): string {
   const norm = (e: string) => {
     const x = e.toLowerCase();
     return IMAGE_ALIAS[x] ?? x;
   };
   const kinds = new Set(exts.map(norm));
   const only = kinds.size === 1 ? [...kinds][0] : "";
-  return COMPOSE_FORMATS.includes(only) ? only : "png";
+  return COMPOSE_FORMATS.includes(only) ? only : "";
 }
-/** Opcións do selector de formato de saída: «Igual que o orixinal» e os formatos nos que se pode gardar. */
-export const composeOptions = (tt: (k: string) => string) => [
-  { value: "same", label: tt("Igual que o orixinal") },
-  { value: "png", label: "PNG" },
-  { value: "jpg", label: "JPG" },
-  { value: "webp", label: "WebP" },
-  { value: "tiff", label: "TIFF" },
-  { value: "bmp", label: "BMP" },
-];
+/** O formato que sae: o elixido ou, con «same», o dos orixinais (se non hai un común que se poida gardar, PNG). */
+export function composeFormat(choice: string, exts: string[]): string {
+  return choice !== "same" ? choice : composeSame(exts) || "png";
+}
+/** Opcións do selector de formato de saída. «Igual que o orixinal (.ext)» só sae se hai un formato común que se pode gardar. */
+export const composeOptions = (tt: (k: string) => string, exts: string[]) => {
+  const same = composeSame(exts);
+  return [
+    ...(same ? [{ value: "same", label: `${tt("Igual que o orixinal")} (.${same})` }] : []),
+    { value: "png", label: "PNG" },
+    { value: "jpg", label: "JPG" },
+    { value: "webp", label: "WebP" },
+    { value: "tiff", label: "TIFF" },
+    { value: "bmp", label: "BMP" },
+  ];
+};
+/** O que amosa o selector: se a opción «Igual que o orixinal» non está dispoñible, PNG (a preferencia gardada non se perde). */
+export const composeShown = (choice: string, exts: string[]) => (choice === "same" && !composeSame(exts) ? "png" : choice);
 
 export const AUDIO_TARGETS = ["mp3", "wav", "flac", "ogg", "opus", "m4a", "aac", "aiff"];
 

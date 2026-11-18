@@ -120,7 +120,7 @@
     {#if !$form.rotateAll}
       <NumberField label={$t("Páxina")} min={1} max={file.pages} bind:value={$form.rotatePage} def={1} unit={file.pages ? `/ ${file.pages}` : ""} />
     {/if}
-    <Segmented label={$t("Ángulo")} options={[{ value: 0, label: "0°" }, { value: 90, label: "90°" }, { value: 180, label: "180°" }, { value: 270, label: "270°" }]} bind:value={$form.degrees} />
+    <Segmented label={$t("Ángulo")} options={[{ value: 0, label: "0°", glyph: { k: "turn", deg: 0 } }, { value: 90, label: "90°", glyph: { k: "turn", deg: 90 } }, { value: 180, label: "180°", glyph: { k: "turn", deg: 180 } }, { value: 270, label: "270°", glyph: { k: "turn", deg: 270 } }]} bind:value={$form.degrees} />
     <button class="btn block" on:click={rotate} disabled={$busy || !$form.degrees}>{$t("Rotar a un novo PDF")}</button>
   </div>
   {/if}

@@ -3,7 +3,7 @@
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
-  import { fileNameOf, formatBytes, TRASNO, fallo, composeFormat, composeOptions } from "../../formats";
+  import { fileNameOf, formatBytes, TRASNO, fallo, composeFormat, composeOptions, composeShown, composeSame } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
@@ -44,7 +44,9 @@
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   };
   $: horizontal = v.direction === "horizontal";
-  $: outExt = composeFormat(v.format, items.map((f) => f.ext));
+  $: exts = items.map((f) => f.ext);
+  $: outExt = composeFormat(v.format, exts);
+  $: sameExt = composeSame(exts);
   $: lossy = outExt === "jpg";
 
   async function run() {
@@ -92,12 +94,12 @@
     <Segmented
       label={$t("Dirección")}
       options={[
-        { value: "vertical", label: $t("Unha debaixo doutra") },
-        { value: "horizontal", label: $t("Unha ao carón doutra") },
+        { value: "vertical", label: $t("Unha debaixo doutra"), glyph: { k: "stack", dir: "v" } },
+        { value: "horizontal", label: $t("Unha ao carón doutra"), glyph: { k: "stack", dir: "h" } },
       ]}
       bind:value={$form.direction}
     />
-    <Toggle label={$t("Capturas de desprazamento")} bind:checked={$form.removeOverlap} hint={$t("Para capturas dunha mesma páxina tomadas desprazando: únense sen repetir o tramo que comparten, cabeceiras e pés fixos incluídos.")} />
+    <Toggle label={$t("Capturas de desprazamento")} bind:checked={$form.removeOverlap} hint={$t("Para capturas seguidas dunha páxina feitas ao baixar polo contido: únense sen repetir o tramo común, cabeceiras e pés fixos incluídos.")} />
     <Segmented
       label={horizontal ? $t("Igualar o alto") : $t("Igualar o ancho")}
       info={$t("Se as capturas miden distinto, todas pasan ao tamaño da máis pequena ou da máis grande, sen deformalas.")}
@@ -113,10 +115,11 @@
     </div>
     <SelectField
       label={$t("Formato")}
-      bind:value={$form.format}
-      options={composeOptions($t)}
-      hint={$t("Igual que o orixinal usa o formato das imaxes; se hai varios, ou non se pode gardar así, sae en PNG.")}
-      def={form.defaults.format}
+      value={composeShown(v.format, exts)}
+      on:change={(e) => ($form.format = String(e.detail))}
+      options={composeOptions($t, exts)}
+      hint={sameExt ? $t("PNG, TIFF e BMP non perden calidade; JPG e WebP si, e deixan axustala.") : $t("Con formatos distintos non hai «Igual que o orixinal»; por defecto sae PNG, que non perde calidade.")}
+      def={sameExt ? "same" : "png"}
     />
     {#if lossy}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} />

@@ -18,26 +18,29 @@
   import Toggle from "../ui/Toggle.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
-  /** Redimensionar imaxes: por porcentaxe, polo lado maior ou por ancho e alto. Unha ou varias de vez; sempre ficheiros novos e no mesmo formato. */
+  /** Redimensionar imaxes: por porcentaxe ou en píxeles (ancho e alto, ou un tamaño con nome que fixa o lado maior). Unha ou varias de vez; sempre ficheiros novos e no mesmo formato. */
   export let selection: FileEntry[];
 
   const multi = selection.length > 1;
   const first = selection[0];
 
-  // Tamaños do «lado maior» máis usados; calquera outro vai en «Personalizado».
+  // Tamaños con nome: fixan o lado maior. Calquera outra medida vai en «Personalizado».
   const SIDES = [
-    { id: "peq", label: "Pequena", px: 640 },
-    { id: "media", label: "Media", px: 1280 },
+    { id: "peq", label: "Pequeno", px: 640 },
+    { id: "medio", label: "Mediano", px: 1280 },
     { id: "grande", label: "Grande", px: 1920 },
   ];
 
-  // `how`: 0 porcentaxe, 1 lado maior, 2 ancho e alto. `lock`: manter a proporción. `crop`: 0 recortar polo centro, 1 estirar.
+  // `how`: 0 porcentaxe, 1 píxeles. `lock`: manter a proporción. `crop`: 0 recortar polo centro, 1 estirar.
   const form = createForm(
-    { how: 1, percent: 50, side: 1920 as number | null, width: 1920 as number | null, height: null as number | null, lock: true, noUpscale: true, crop: 0, quality: 90, keepMeta: false, keepGps: false },
+    { how: 1, percent: 50, width: 1920 as number | null, height: 1920 as number | null, lock: true, noUpscale: true, crop: 0, quality: 90, keepMeta: false, keepGps: false },
     "redimensionar",
     "redimensionar|" + selection.map((f) => f.path).join("|"),
   );
-  onMount(() => useForm(form));
+  onMount(() => {
+    if ($form.how > 1) $form.how = 1; // o modo «lado maior» xa non existe: é o de píxeles
+    return useForm(form);
+  });
   $: v = $form;
 
   const job = createJob();
@@ -72,14 +75,44 @@
   // O axuste tal como o entende o motor.
   $: fit = (v.how === 0
     ? { mode: "percent", percent: v.percent }
-    : v.how === 1
-      ? { mode: "within", width: v.side || null, height: v.side || null, no_upscale: v.noUpscale }
-      : v.lock
-        ? { mode: "within", width: v.width || null, height: v.height || null, no_upscale: v.noUpscale }
-        : { mode: "exact", width: v.width || 0, height: v.height || 0, crop: v.crop === 0 }) as engine.ResizeFit;
+    : v.lock
+      ? { mode: "within", width: v.width || null, height: v.height || null, no_upscale: v.noUpscale }
+      : { mode: "exact", width: v.width || 0, height: v.height || 0, crop: v.crop === 0 }) as engine.ResizeFit;
 
-  // Niveis do lado maior: ao tocar o valor á man pasa a «Personalizado».
-  $: sideLevels = SIDES.map((s) => ({ id: s.id, label: $t(s.label), detail: `${s.px} px`, values: { side: s.px } }));
+  // Cunha soa imaxe e a proporción mantida, o ancho e o alto van ligados: cambiar un cambia o outro no campo.
+  let dims: [number, number] | null = null;
+  $: if (!multi && usable[0]) void engine.resizePreview(usable[0].path, { mode: "percent", percent: 100 }).then(([from]) => (dims = from)).catch(() => (dims = null));
+  $: aspect = dims ? dims[0] / dims[1] : 0;
+  $: linked = !multi && v.how === 1 && v.lock && aspect > 0;
+  /** O maior tamaño coa proporción da imaxe que cabe nun cadro. */
+  const fitBox = (bw: number, bh: number): [number, number] => {
+    const [w, h] = dims as [number, number];
+    const k = Math.min(bw / w, bh / h);
+    return [Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k))];
+  };
+  function setSide(which: "width" | "height", raw: string) {
+    const n = raw === "" ? null : Number(raw);
+    form.update((f) => {
+      const next = { ...f, [which]: n };
+      if (linked && n && n > 0) {
+        if (which === "width") next.height = Math.max(1, Math.round(n / aspect));
+        else next.width = Math.max(1, Math.round(n * aspect));
+      }
+      return next;
+    });
+  }
+  // Se ao activar a proporción as dúas medidas non a respectan, ténsase o cadro que forman: a imaxe cabe nel.
+  $: if (linked && v.width && v.height && Math.abs(v.width - v.height * aspect) > 1 && Math.abs(v.height - v.width / aspect) > 1) {
+    const [w, h] = fitBox(v.width, v.height);
+    // Fóra desta pasada de reactividade, para que os campos se repinten co valor novo.
+    queueMicrotask(() => form.update((f) => ({ ...f, width: w, height: h })));
+  }
+
+  // Tamaños con nome: cunha soa imaxe, o lado maior vale ese tamaño e o outro calcúlase; con varias, cada unha cabe nun cadro dese lado.
+  $: sideLevels = SIDES.map((s) => {
+    const [w, h] = dims && linked ? fitBox(s.px, s.px) : [s.px, s.px];
+    return { id: s.id, label: $t(s.label), detail: `${s.px} px`, values: { width: w, height: h } };
+  });
 
   // Taboa co tamaño de cada imaxe e o que lle quedará.
   type Row = { file: FileEntry; from?: [number, number]; to?: [number, number]; error?: string; state: "agarda" | "feito" | "erro"; text?: string };
@@ -174,11 +207,10 @@
   <div class="locked-tools" class:on={allBlocked} inert={allBlocked}>
     <Segmented
       label={$t("Medida")}
-      info={$t("Porcentaxe escala todas por igual; Lado maior limita o lado máis longo; Ancho e alto fixa unha medida ou as dúas.")}
+      info={$t("Porcentaxe escala todas por igual; Píxeles fixa o ancho e o alto.")}
       options={[
         { value: 0, label: $t("Porcentaxe") },
-        { value: 1, label: $t("Lado maior") },
-        { value: 2, label: $t("Ancho e alto") },
+        { value: 1, label: $t("Píxeles") },
       ]}
       bind:value={$form.how}
     />
@@ -186,16 +218,15 @@
     <div class="group">
       {#if v.how === 0}
         <Slider label={$t("Porcentaxe")} unit="%" min={1} max={400} bind:value={$form.percent} def={form.defaults.percent} />
-      {:else if v.how === 1}
-        <Levels label={$t("Tamaño")} levels={sideLevels} values={{ side: v.side ?? 0 }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
-        <NumberField label={$t("Lado maior")} unit="px" min={1} bind:value={$form.side} def={form.defaults.side} />
-        <Toggle label={$t("Non ampliar as imaxes pequenas")} bind:checked={$form.noUpscale} hint={$t("As imaxes que xa caben no tamaño elixido quedan como están.")} />
       {:else}
+        {#if v.lock}
+          <Levels label={$t("Tamaño")} info={$t("Pequeno, Mediano e Grande fixan o lado maior en 640, 1280 e 1920 px; a outra medida calcúlase pola proporción.")} levels={sideLevels} values={{ width: v.width ?? 0, height: v.height ?? 0 }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
+        {/if}
         <div class="pair">
-          <NumberField label={$t("Ancho")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} bind:value={$form.width} def={form.defaults.width} />
-          <NumberField label={$t("Alto")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} bind:value={$form.height} def={form.defaults.height} />
+          <NumberField label={$t("Ancho")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} value={v.width} onInput={(r) => setSide("width", r)} />
+          <NumberField label={$t("Alto")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} value={v.height} onInput={(r) => setSide("height", r)} />
         </div>
-        <Toggle label={$t("Manter proporción")} bind:checked={$form.lock} hint={$t("Se só se fixa o ancho ou o alto, a outra medida calcúlase. Con ambas, a imaxe cabe no cadro sen deformarse.")} />
+        <Toggle label={$t("Manter proporción")} bind:checked={$form.lock} hint={multi ? $t("Cada imaxe cabe no cadro de ancho e alto sen deformarse. Sen isto, todas toman o tamaño exacto escrito.") : $t("O ancho e o alto axústanse un ao outro pola proporción da imaxe. Sen isto, a imaxe toma o tamaño exacto escrito.")} />
         {#if v.lock}
           <Toggle label={$t("Non ampliar as imaxes pequenas")} bind:checked={$form.noUpscale} hint={$t("As imaxes que xa caben no tamaño elixido quedan como están.")} />
         {:else}

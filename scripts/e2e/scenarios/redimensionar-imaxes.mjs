@@ -12,7 +12,7 @@ const dims = (f) => {
 };
 
 export default {
-  about: "Redimensionar imaxes: unha e varias, previsualización, niveis, porcentaxe, tamaño exacto, nomes novos e orixinais intactos",
+  about: "Redimensionar imaxes: unha e varias, previsualización, tamaños con nome, campos ligados pola proporción, porcentaxe, tamaño exacto, nomes novos e orixinais intactos",
   async run(app, c) {
     const a = await app.textImage("uno.png", ["Un"]); // 900 × 140
     const b = await app.textImage("dous.png", ["Dous", "liñas"]); // 900 × 220
@@ -37,44 +37,49 @@ export default {
     await app.waitFor(`document.querySelectorAll('.stack .results li').length === 1 && /→/.test(document.querySelector('.stack .results li').innerText)`, "o tamaño que quedará");
     const modes = () => app.ev(`[...document.querySelectorAll('.stack [role=radiogroup][aria-label="Medida"] button')].map(b=>b.innerText.split(String.fromCharCode(10))[0].trim()).join()`);
     const levelNames = () => app.ev(`[...document.querySelectorAll('.stack [role=radiogroup][aria-label="Tamaño"] button')].map(b=>b.innerText.split(String.fromCharCode(10))[0].trim()).join()`);
-    c.ok((await modes()) === "Porcentaxe,Lado maior,Ancho e alto", "tres formas de medir: porcentaxe, lado maior e ancho e alto", await modes());
-    c.ok((await levelNames()) === "Pequena,Media,Grande,Personalizado", "só tres tamaños con nome máis «Personalizado»", await levelNames());
+    const field = (label) => app.ev(`document.querySelector('.stack input[type=number][aria-label=${JSON.stringify(label)}]')?.value`);
+    c.ok((await modes()) === "Porcentaxe,Píxeles", "dúas formas de medir: porcentaxe e píxeles", await modes());
+    c.ok((await levelNames()) === "Pequeno,Mediano,Grande,Personalizado", "tres tamaños con nome (masculino) máis «Personalizado»", await levelNames());
     c.ok(!/Esticar/.test(await app.panel()), "xa non hai «Esticar» mal escrito");
     c.ok((await row(0)).includes("900 × 140 → 900 × 140"), "por defecto («Grande», sen ampliar) unha imaxe pequena non cambia", await row(0));
     c.ok((await marked()) === "Grande", "o tamaño marcado é «Grande»", await marked());
-    await level("Pequena");
+    c.ok((await field("Ancho")) === "1920" && (await field("Alto")) === "299", "con «Grande» o lado maior vale 1920 e o alto calcúlase no campo", `${await field("Ancho")} × ${await field("Alto")}`);
+    await level("Pequeno");
     await app.waitFor(`/900 × 140 → 640 × 100/.test(document.querySelector('.stack .results li')?.innerText||'')`, "a previsualización de 640");
-    c.ok(true, "«Pequena» deixa 640 × 100");
-    // Tocar un valor á man deixa «Personalizado».
-    await num("Lado maior", 500);
+    c.ok((await field("Ancho")) === "640" && (await field("Alto")) === "100", "«Pequeno» deixa 640 × 100 nos campos", `${await field("Ancho")} × ${await field("Alto")}`);
+    // Tocar un valor á man deixa «Personalizado», e o outro campo cámbiase á vista pola proporción.
+    await num("Ancho", 500);
     await app.sleep(500);
-    c.ok((await marked()) === "Personalizado", "cambiar o lado maior á man marca «Personalizado»", await marked());
-    await app.waitFor(`/900 × 140 → 500 × 78/.test(document.querySelector('.stack .results li')?.innerText||'')`, "500 no lado maior");
-    await level("Pequena");
-    await app.sleep(500);
+    c.ok((await marked()) === "Personalizado", "cambiar o ancho á man marca «Personalizado»", await marked());
+    c.ok((await field("Alto")) === "78", "e o campo do alto cambia a 78", await field("Alto"));
+    await app.waitFor(`/900 × 140 → 500 × 78/.test(document.querySelector('.stack .results li')?.innerText||'')`, "500 de ancho");
+    await num("Alto", 70);
+    await app.waitFor(`/→ 450 × 70/.test(document.querySelector('.stack .results li')?.innerText||'')`, "70 de alto");
+    c.ok((await field("Ancho")) === "450", "cambiar o alto cambia o campo do ancho", await field("Ancho"));
     // Porcentaxe
     await app.click("Porcentaxe");
     await app.slider("Porcentaxe", 50);
     await app.waitFor(`/→ 450 × 70/.test(document.querySelector('.stack .results li')?.innerText||'')`, "50 % = 450 × 70");
     c.ok(!(await levelNames()), "co modo de porcentaxe non hai tamaños con nome");
-    // Ancho e alto: coa proporción mantida, un só dato calcula o outro.
-    await app.click("Ancho e alto");
-    await num("Ancho", 300);
-    await app.waitFor(`/→ 300 × 47/.test(document.querySelector('.stack .results li')?.innerText||'')`, "só o ancho: o alto calcúlase");
-    await num("Alto", 100);
-    await app.waitFor(`/→ 300 × 47/.test(document.querySelector('.stack .results li')?.innerText||'')`, "con ambos cabe no cadro sen deformarse");
-    c.ok(!/Recortar polo centro/.test(await app.panel()), "coa proporción mantida non se pregunta que facer con ela");
+    await app.click("Píxeles");
     // Sen manter a proporción é un tamaño exacto, e aí pregúntase que facer.
+    c.ok(!/Recortar polo centro/.test(await app.panel()), "coa proporción mantida non se pregunta que facer con ela");
     await app.toggle("Manter proporción");
+    await num("Ancho", 300);
     await num("Alto", 300);
     await app.waitFor(`/→ 300 × 300/.test(document.querySelector('.stack .results li')?.innerText||'')`, "300 × 300 exacto");
+    c.ok(!(await levelNames()), "sen manter a proporción non hai tamaños con nome");
     c.ok(/Recortar polo centro/.test(await app.panel()) && /Estirar/.test(await app.panel()), "o tamaño exacto pregunta: recortar polo centro ou estirar");
     // Un valor imposible non deixa continuar.
     await num("Ancho", 0);
     await app.sleep(700);
     c.ok(await app.ev(`[...document.querySelectorAll('.stack .btn.primary')].find(b=>/^Redimensionar/.test(b.textContent))?.disabled`), "con un tamaño imposible o botón queda desactivado");
-    await app.click("Lado maior");
-    await level("Pequena");
+    // Ao volver activar a proporción, as medidas axústanse ao cadro e hai tamaños con nome outra vez.
+    await num("Ancho", 640);
+    await app.toggle("Manter proporción");
+    await app.sleep(500);
+    c.ok((await field("Ancho")) === "640" && (await field("Alto")) === "100", "ao manter a proporción o cadro 640 × 300 queda en 640 × 100", `${await field("Ancho")} × ${await field("Alto")}`);
+    c.ok((await marked()) === "Pequeno", "e o tamaño marcado é «Pequeno»", await marked());
     await app.waitFor(`/→ 640 × 100/.test(document.querySelector('.stack .results li')?.innerText||'')`, "volta a 640");
     if (process.env.TRASNO_SHOTS) await app.shot("redimensionar.png");
     await app.click("Redimensionar imaxe");
@@ -93,7 +98,7 @@ export default {
     c.ok((await app.tabs()).join(",").includes("Redimensionar") && (await app.tabs()).includes("Xuntar capturas"), "con varias imaxes hai Redimensionar e Xuntar capturas", (await app.tabs()).join(","));
     await app.click("Redimensionar");
     await app.waitFor(`document.querySelectorAll('.stack .results li').length === 3`, "tres filas");
-    await level("Pequena");
+    await level("Pequeno");
     await app.waitFor(`/→ 640 × 213/.test(document.querySelectorAll('.stack .results li')[2]?.innerText||'')`, "a previsualización das tres");
     c.ok(/→ 640 × 100/.test(await row(0)) && /→ 640 × 156/.test(await row(1)) && /→ 640 × 213/.test(await row(2)), "cada unha ten o seu tamaño", [await row(0), await row(1), await row(2)].join(" | "));
     await app.click("Redimensionar 3 imaxes");

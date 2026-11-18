@@ -62,13 +62,13 @@ pub fn part_number(c: u32, r: u32, cols: u32, rows: u32, by_columns: bool) -> u3
     }
 }
 
-/// Nomes das partes: `nome-1.ext`… (con ceros á esquerda se hai máis de 9). Se algún xa existe, todo o xogo pasa a `nome (2)-1.ext`…,
+/// Nomes das partes: `nome-1.ext`… (con ceros á esquerda se hai máis de 9). Se algún xa existe, todo o xogo pasa a `nome-1 (2).ext`…,
 /// para que as partes dun mesmo corte non se mesturen con outras.
 pub fn plan_outputs(dir: &Path, stem: &str, ext: &str, parts: u32) -> Result<Vec<PathBuf>> {
     let width = parts.to_string().len();
     for k in 1..=1000u32 {
-        let base = if k == 1 { stem.to_string() } else { format!("{stem} ({k})") };
-        let names: Vec<PathBuf> = (1..=parts).map(|n| dir.join(format!("{base}-{n:0width$}.{ext}"))).collect();
+        let tail = if k == 1 { String::new() } else { format!(" ({k})") };
+        let names: Vec<PathBuf> = (1..=parts).map(|n| dir.join(format!("{stem}-{n:0width$}{tail}.{ext}"))).collect();
         if names.iter().all(|p| !p.exists()) {
             return Ok(names);
         }

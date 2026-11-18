@@ -5,7 +5,7 @@
   import { errText } from "../../errors";
   import * as engine from "../../engine";
   import { imageCrop, imageCropAspect, imageCropEnabled, imageSlice, imageNatural, type FileEntry } from "../../files";
-  import { fileNameOf, formatBytes, TRASNO, fallo, composeFormat, composeOptions, animatedNotice, readOnlyLabel } from "../../formats";
+  import { fileNameOf, formatBytes, TRASNO, fallo, composeFormat, composeOptions, composeShown, composeSame, animatedNotice, readOnlyLabel } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
@@ -24,19 +24,19 @@
 
   // Forma de cada parte (ancho / alto); a zona do visor ten a proporción que sae de multiplicala por columnas e filas.
   const SHAPES = [
-    { id: 0, label: "Libre", ar: null as number | null },
-    { id: 1, label: "1:1", ar: 1 },
-    { id: 2, label: "4:5", ar: 4 / 5 },
-    { id: 3, label: "3:4", ar: 3 / 4 },
-    { id: 4, label: "9:16", ar: 9 / 16 },
-    { id: 5, label: "16:9", ar: 16 / 9 },
+    { id: 0, label: "Libre", ar: null as number | null, w: 1, h: 1 },
+    { id: 1, label: "1:1", ar: 1, w: 1, h: 1 },
+    { id: 2, label: "4:5", ar: 4 / 5, w: 4, h: 5 },
+    { id: 3, label: "3:4", ar: 3 / 4, w: 3, h: 4 },
+    { id: 4, label: "9:16", ar: 9 / 16, w: 9, h: 16 },
+    { id: 5, label: "16:9", ar: 16 / 9, w: 16, h: 9 },
   ];
+  // Tres plantillas de uso común (o nome é curto; debaixo vai o que fan) e «Personalizado».
   const PRESETS = [
-    { id: "carrusel", label: "Carrusel cadrado", values: { cols: 3, rows: 1, shape: 1 } },
-    { id: "vertical", label: "Carrusel vertical", values: { cols: 3, rows: 1, shape: 2 } },
-    { id: "grella", label: "Cuadrícula 3×3", values: { cols: 3, rows: 3, shape: 1 } },
-    { id: "metades", label: "Metades", values: { cols: 2, rows: 1, shape: 0 } },
-  ];
+    { id: "carrusel", label: "Carrusel", detail: "3 × 1 · 1:1", values: { cols: 3, rows: 1, shape: 1 }, glyph: { k: "grid", cols: 3, rows: 1, w: 1, h: 1 } },
+    { id: "vertical", label: "Vertical", detail: "3 × 1 · 4:5", values: { cols: 3, rows: 1, shape: 2 }, glyph: { k: "grid", cols: 3, rows: 1, w: 4, h: 5 } },
+    { id: "grella", label: "Cuadrícula", detail: "3 × 3 · 1:1", values: { cols: 3, rows: 3, shape: 1 }, glyph: { k: "grid", cols: 3, rows: 3, w: 1, h: 1 } },
+  ] as const;
 
   const form = createForm({ cols: 3 as number | null, rows: 1 as number | null, shape: 1, order: 0, format: "same", quality: 92 }, "cortar", "cortar|" + file.path);
   onMount(() => useForm(form));
@@ -51,7 +51,9 @@
 
   $: W = $imageNatural.w || file.width || 0;
   $: H = $imageNatural.h || file.height || 0;
-  $: outExt = composeFormat(v.format, [file.ext]);
+  $: exts = [file.ext];
+  $: outExt = composeFormat(v.format, exts);
+  $: sameExt = composeSame(exts);
   $: cols = Math.max(1, Math.min(20, Math.round(v.cols || 1)));
   $: rows = Math.max(1, Math.min(20, Math.round(v.rows || 1)));
   $: shapeAr = SHAPES.find((s) => s.id === v.shape)?.ar ?? null;
@@ -117,7 +119,7 @@
   $: tooSmall = !!zone && (pw < 1 || ph < 1);
   $: problem = tooMany ? tr("O máximo son 100 partes: baixa as columnas ou as filas.") : tooSmall ? tr("Cada parte sairía de menos dun píxel: amplía a zona ou fai menos partes.") : "";
 
-  $: levels = PRESETS.map((p) => ({ id: p.id, label: $t(p.label), values: p.values }));
+  $: levels = PRESETS.map((p) => ({ id: p.id, label: $t(p.label), detail: p.detail, glyph: p.glyph, values: { ...p.values } }));
 
   async function run() {
     const c = get(imageCrop);
@@ -163,18 +165,17 @@
         <NumberField label={$t("Columnas")} min={1} max={20} bind:value={$form.cols} def={form.defaults.cols} />
         <NumberField label={$t("Filas")} min={1} max={20} bind:value={$form.rows} def={form.defaults.rows} />
       </div>
-      <SelectField
+      <Segmented
         label={$t("Forma de cada parte")}
+        info={$t("Proporción de cada parte (ancho:alto). Libre usa a que dea a zona.")}
+        options={SHAPES.map((s) => ({ value: s.id, label: s.id === 0 ? $t(s.label) : s.label, glyph: s.ar ? ({ k: "ratio", w: s.w, h: s.h } as const) : ({ k: "free" } as const) }))}
         bind:value={$form.shape}
-        options={SHAPES.map((s) => ({ value: s.id, label: s.id === 0 ? $t(s.label) : s.label }))}
-        hint={$t("Proporción de cada parte (ancho:alto). Libre usa a que dea a zona.")}
-        def={form.defaults.shape}
       />
       <Segmented
         label={$t("Numerar")}
         options={[
-          { value: 0, label: $t("Por filas") },
-          { value: 1, label: $t("Por columnas") },
+          { value: 0, label: $t("Por filas"), glyph: { k: "order", by: "rows" } },
+          { value: 1, label: $t("Por columnas"), glyph: { k: "order", by: "cols" } },
         ]}
         bind:value={$form.order}
       />
@@ -184,10 +185,11 @@
     <div class="group">
       <SelectField
         label={$t("Formato")}
-        bind:value={$form.format}
-        options={composeOptions($t)}
-        hint={$t("Igual que o orixinal usa o formato da imaxe; se non se pode gardar así, sae en PNG.")}
-        def={form.defaults.format}
+        value={composeShown(v.format, exts)}
+        on:change={(e) => ($form.format = String(e.detail))}
+        options={composeOptions($t, exts)}
+        hint={sameExt ? $t("PNG, TIFF e BMP non perden calidade; JPG e WebP si, e deixan axustala.") : $t("Esta imaxe non se pode gardar no seu formato, así que non hai «Igual que o orixinal». PNG non perde calidade.")}
+        def={sameExt ? "same" : "png"}
       />
       {#if outExt === "jpg"}
         <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} />

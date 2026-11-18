@@ -25,6 +25,7 @@ export default {
     const num = (label, v) => app.ev(`(()=>{const i=document.querySelector('.stack input[type=number][aria-label=${JSON.stringify(label)}]'); if(!i) return 'sen '+${JSON.stringify(label)}; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,String(${v})); i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); i.dispatchEvent(new Event('blur')); return 'ok'})()`);
     const select = (label, v) => app.ev(`(()=>{const s=document.querySelector('.stack select[aria-label=${JSON.stringify(label)}]'); s.value=${JSON.stringify(v)}; s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
     const preset = (name) => app.ev(`(()=>{const b=[...document.querySelectorAll('.stack [role=radiogroup][aria-label="Plantilla"] button')].find(b=>b.innerText.split(String.fromCharCode(10))[0].trim()===${JSON.stringify(name)}); if(!b) return 'sen '+${JSON.stringify(name)}; b.click(); return 'ok'})()`);
+    const shape = (name) => app.ev(`(()=>{const b=[...document.querySelectorAll('.stack [role=radiogroup][aria-label="Forma de cada parte"] button')].find(b=>b.innerText.trim()===${JSON.stringify(name)}); if(!b) return 'sen '+${JSON.stringify(name)}; b.click(); return 'ok'})()`);
     const marked = () => app.ev(`[...document.querySelectorAll('.stack [role=radiogroup][aria-label="Plantilla"] button')].find(b=>b.getAttribute('aria-checked')==='true')?.innerText.split(String.fromCharCode(10))[0].trim()`);
     const row = (name) => app.ev(`[...document.querySelectorAll('.stack .results li')].find(li=>li.querySelector('.rname')?.textContent.trim()===${JSON.stringify(name)})?.querySelector('.rstate')?.textContent.trim()`);
     const badges = () => app.ev(`document.querySelectorAll('.crop .part b').length`);
@@ -39,30 +40,32 @@ export default {
     await app.waitFor(`document.querySelectorAll('.crop .part b').length === 3`, "a zona dividida no visor con tres números");
 
     // Plantilla de partida: carrusel cadrado, 3 × 1.
-    c.ok((await marked()) === "Carrusel cadrado", "a plantilla de partida é «Carrusel cadrado»", await marked());
+    c.ok((await marked()) === "Carrusel", "a plantilla de partida é «Carrusel»", await marked());
+    c.ok((await app.ev(`[...document.querySelectorAll('.stack [role=radiogroup][aria-label="Plantilla"] button')].map(b=>b.innerText.split(String.fromCharCode(10))[0].trim()).join()`)) === "Carrusel,Vertical,Cuadrícula,Personalizado", "tres plantillas e «Personalizado»");
+    c.ok(await app.ev(`document.querySelectorAll('.stack [role=radiogroup][aria-label="Plantilla"] button svg').length`) === 3, "cada plantilla leva o seu debuxo");
     c.ok((await row("Partes")) === "3 × 1 = 3" && (await row("Cada parte")) === "400 × 400 px" && (await row("Zona")) === "1200 × 400 px", "a táboa di partes, tamaño de cada unha e zona", [await row("Partes"), await row("Cada parte"), await row("Zona")].join(" | "));
     c.ok((await label()) === "3 × 1 · 400 × 400", "o visor di as columnas × filas e o tamaño de cada parte", await label());
     c.ok(await app.ev(`document.querySelectorAll('.crop .handle').length`) === 4, "coa forma fixa só hai as catro esquinas para escalar (manteñen a proporción)");
     if (process.env.TRASNO_SHOTS) await app.shot("cortar.png");
 
     // Outras plantillas cambian a zona no visor.
-    await preset("Carrusel vertical");
+    await preset("Vertical");
     await app.waitFor(`document.querySelector('.crop .size')?.textContent.includes('320 × 400')`, "partes de 4:5");
     c.ok((await row("Zona")) === "960 × 400 px", "con 4:5 a zona encolle ata ter esa proporción", await row("Zona"));
-    await preset("Cuadrícula 3×3");
+    await preset("Cuadrícula");
     await app.waitFor(`document.querySelectorAll('.crop .part b').length === 9`, "nove partes");
     c.ok((await row("Cada parte")) === "133 × 133 px", "a cuadrícula 3×3 dá cadrados", await row("Cada parte"));
     await num("Filas", 2);
     await app.waitFor(`document.querySelectorAll('.crop .part b').length === 6`, "seis partes");
     c.ok((await marked()) === "Personalizado", "tocar as filas marca «Personalizado»", await marked());
-    await select("Forma de cada parte", "0");
+    await shape("Libre");
     await app.waitFor(`document.querySelectorAll('.crop .handle').length === 8`, "coa forma libre hai oito asas");
     await num("Columnas", 25);
     await app.sleep(400);
     c.ok(/Cortar en 40 partes/.test(await app.panel()), "o máximo son 20 columnas: o botón di 40 partes", await app.panel());
 
     // Cortar: tres cadrados.
-    await preset("Carrusel cadrado");
+    await preset("Carrusel");
     await app.waitFor(`document.querySelector('.crop .size')?.textContent.includes('3 × 1 · 400 × 400')`, "de volta ao carrusel");
 
     // A zona escálase tirando dunha esquina (co rato de verdade) e mantén a proporción dos cadrados; móvese arrastrándoa.
@@ -86,7 +89,7 @@ export default {
     await app.waitFor(`document.querySelector('.crop .size')?.textContent.includes('3 × 1 · 400 × 400')`, "a zona volta a cubrir a imaxe");
     c.ok(/Cortar en 3 partes/.test(await app.panel()), "o botón di en cantas partes corta");
     await app.click("Cortar en 3 partes");
-    const out = (n, ext = "png", base = "foto") => path.join(app.media, `${base}-${n}.${ext}`);
+    const out = (n, ext = "png", tail = "") => path.join(app.media, `foto-${n}${tail}.${ext}`);
     for (let i = 0; i < 60 && !fs.existsSync(out(3)); i++) await app.sleep(300);
     c.ok([1, 2, 3].every((n) => fs.existsSync(out(n))), "gardáronse foto-1.png, foto-2.png e foto-3.png ao carón");
     c.ok([1, 2, 3].every((n) => dims(out(n)) === "400,400"), "cada parte mide 400 × 400", [1, 2, 3].map((n) => dims(out(n))).join(" "));
@@ -98,10 +101,11 @@ export default {
 
     // Outra vez: non pisa nada, todo o xogo pasa a «(2)».
     await app.click("Cortar en 3 partes");
-    for (let i = 0; i < 60 && !fs.existsSync(out(3, "png", "foto (2)")); i++) await app.sleep(300);
-    c.ok([1, 2, 3].every((n) => fs.existsSync(out(n, "png", "foto (2)"))) && fs.existsSync(out(1)), "a segunda vez non pisa as partes: o xogo novo leva «(2)»");
+    for (let i = 0; i < 60 && !fs.existsSync(out(3, "png", " (2)")); i++) await app.sleep(300);
+    c.ok([1, 2, 3].every((n) => fs.existsSync(out(n, "png", " (2)"))) && fs.existsSync(out(1)), "a segunda vez non pisa as partes: o xogo novo leva «(2)» ao final, antes da extensión (foto-1 (2).png)");
 
     // Outro formato e numeración por columnas.
+    c.ok((await app.ev(`[...document.querySelectorAll('.stack select[aria-label=Formato] option')][0]?.textContent.trim()`)) === "Igual que o orixinal (.png)", "o formato di «Igual que o orixinal (.png)»");
     await select("Formato", "jpg");
     await app.waitFor(`!!document.querySelector('.stack input[type=range][aria-label=Calidade]')`, "a calidade do JPG");
     await app.click("Por columnas");

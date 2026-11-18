@@ -49,7 +49,9 @@
     });
   }
   $: anyHidden = nodes.some((n) => n.own && hidden.has(n.id));
-  $: allFolded = parents.size > 0 && [...parents].every((p) => collapsed.has(p));
+  // O botón di o que fará: se algún grupo á vista está despregado, pregar todos; se todos están pregados, despregar.
+  $: openGroups = rows.some((n) => parents.has(n.id) && !collapsed.has(n.id));
+  $: allFolded = parents.size > 0 && !openGroups;
 
   const indeterminate = (el: HTMLInputElement, v: boolean) => {
     el.indeterminate = v;
@@ -70,8 +72,8 @@
 <div class="stack">
   <Segmented
     options={[
-      { value: "objects", label: $t("Obxectos e aspecto") },
-      { value: "materials", label: $t("Materiais e texturas") },
+      { value: "objects", label: $t("Visor") },
+      { value: "materials", label: $t("Apariencia") },
       { value: "light", label: $t("Luz") },
     ]}
     bind:value={$modelPart}
@@ -114,7 +116,7 @@
       </TitleGroup>
     {/if}
 
-    <TitleGroup title={$t("Aspecto")}>
+    <TitleGroup title={$t("Visualización")}>
       <div class="chan">
         {#each channels as c}
           <button class="ch" class:on={$modelShow.channel === c.id} on:click={() => ($modelShow.channel = c.id)}>{$t(c.label)}</button>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import Segmented from "./Segmented.svelte";
+  import type { GlyphSpec } from "./Glyph.svelte";
   import { sliderDragging } from "./drag";
   import { t } from "../../i18n";
 
@@ -10,7 +11,7 @@
    *  desprazador a selección non cambia: só ao soltalo. Premer «Personalizado» déixao fixo ata escoller outro nivel. */
   export let label: string;
   export let info = "";
-  export let levels: { id: string; label: string; detail?: string; hint?: string; values: Vals }[];
+  export let levels: { id: string; label: string; detail?: string; hint?: string; glyph?: GlyphSpec; values: Vals }[];
   export let values: Vals;
   const dispatch = createEventDispatcher<{ apply: Vals }>();
 
@@ -29,7 +30,7 @@
 <Segmented
   {label}
   {info}
-  options={[...levels.map((l) => ({ value: l.id, label: l.label, detail: l.detail, hint: l.hint })), { value: "custom", label: $t("Personalizado") }]}
+  options={[...levels.map((l) => ({ value: l.id, label: l.label, detail: l.detail, hint: l.hint, glyph: l.glyph })), { value: "custom", label: $t("Personalizado") }]}
   value={selected}
   on:pick={(e) => pick(String(e.detail))}
 />

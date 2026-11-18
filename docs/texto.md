@@ -15,3 +15,5 @@ Regras que cumpre todo texto visible. `npm run check:copy` comproba as que se po
 | Os botóns de cálculo son curtos, á esquerda, na fila `.estimate`. | «Estimar o tamaño», «Analizar silencios». |
 | Os datos van ordenados (táboa), non en prosa. | «Así quedará o ficheiro». |
 | O fin dun traballo lese en voz alta aos lectores de pantalla coa mesma mensaxe do trasno (rexión viva en `App.svelte`). Os comentarios de compañía non. | `trasnoSay(…, { quiet: true })`. |
+| Un selector pode levar un debuxo (`glyph`) enriba do nome só se o debuxo di algo que o texto non di: forma, orde, sentido, cor. Nunca decorativo. | Proporcións do recorte (rectángulo coa forma), numerar por filas ou columnas, ángulo das páxinas, mostra de cor. |
+| Se un ficheiro de saída xa existe, o « (2)» vai sempre ao final do nome, antes da extensión; nunca no medio. | `foto-1 (2).png`, `uno-redimensionado (2).png`. |

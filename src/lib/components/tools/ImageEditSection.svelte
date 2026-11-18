@@ -228,12 +228,12 @@
     <Segmented
       label={$t("Proporción")}
       options={[
-        { value: "free", label: $t("Libre") },
-        { value: "1", label: "1:1" },
-        { value: "1.3333", label: "4:3" },
-        { value: "1.7778", label: "16:9" },
-        { value: "0.75", label: "3:4" },
-        { value: "0.5625", label: "9:16" },
+        { value: "free", label: $t("Libre"), glyph: { k: "free" } },
+        { value: "1", label: "1:1", glyph: { k: "ratio", w: 1, h: 1 } },
+        { value: "1.3333", label: "4:3", glyph: { k: "ratio", w: 4, h: 3 } },
+        { value: "1.7778", label: "16:9", glyph: { k: "ratio", w: 16, h: 9 } },
+        { value: "0.75", label: "3:4", glyph: { k: "ratio", w: 3, h: 4 } },
+        { value: "0.5625", label: "9:16", glyph: { k: "ratio", w: 9, h: 16 } },
       ]}
       bind:value={aspect}
       on:pick={() => aspect === lastAspect && setAspect(aspect)}
@@ -266,7 +266,7 @@
       <Segmented
         label={$t("Fondo")}
         info={$t("A imaxe ten transparencia e este formato non a admite: hai que escoller un fondo sobre o que compoñela.")}
-        options={[{ value: "white", label: $t("Branco") }, { value: "black", label: $t("Negro") }, { value: "gray", label: $t("Gris neutro") }]}
+        options={[{ value: "white", label: $t("Branco"), glyph: { k: "swatch", color: "#ffffff" } }, { value: "black", label: $t("Negro"), glyph: { k: "swatch", color: "#000000" } }, { value: "gray", label: $t("Gris neutro"), glyph: { k: "swatch", color: "#808080" } }]}
         bind:value={$form.bg}
       />
     {/if}

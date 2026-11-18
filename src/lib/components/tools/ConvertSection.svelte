@@ -240,7 +240,7 @@
       <Segmented
         label={$t("Fondo")}
         info={$t("A imaxe ten transparencia e este formato non a admite: hai que escoller un fondo sobre o que compoñela.")}
-        options={[{ value: "white", label: $t("Branco") }, { value: "black", label: $t("Negro") }, { value: "gray", label: $t("Gris neutro") }]}
+        options={[{ value: "white", label: $t("Branco"), glyph: { k: "swatch", color: "#ffffff" } }, { value: "black", label: $t("Negro"), glyph: { k: "swatch", color: "#000000" } }, { value: "gray", label: $t("Gris neutro"), glyph: { k: "swatch", color: "#808080" } }]}
         bind:value={$form.bg}
       />
     {/if}

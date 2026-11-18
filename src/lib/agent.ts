@@ -286,7 +286,7 @@ const LEVEL_NAMES = { 0: "non", 1: "suave", 2: "normal", 3: "forte" };
 const VALUE_LABEL: Record<string, Record<string, string>> = {
   mode: { quality: "calidade", bitrate: "bitrate", size: "tamaño máximo" },
   stabilize: LEVEL_NAMES, denoise: LEVEL_NAMES, sharpen: LEVEL_NAMES,
-  how: { 0: "porcentaxe", 1: "lado maior", 2: "ancho e alto" },
+  how: { 0: "porcentaxe", 1: "píxeles" },
   crop: { 0: "recortar polo centro", 1: "estirar" },
   shape: { 0: "libre", 1: "1:1", 2: "4:5", 3: "3:4", 4: "9:16", 5: "16:9" },
   order: { 0: "por filas", 1: "por columnas" },
