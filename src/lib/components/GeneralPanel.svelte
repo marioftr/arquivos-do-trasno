@@ -67,7 +67,7 @@
 
   <section>
     <h3>{$t("Trasno")}</h3>
-    <Toggle label={$t("Consellos do trasno")} bind:checked={$tipsOn} hint={$t("Comento de cando en vez cousas útiles sobre o ficheiro e a ferramenta abertos. Os avisos importantes sempre saen.")} />
+    <Toggle label={$t("Consellos do trasno")} bind:checked={$tipsOn} hint={$t("Amosa de cando en vez consellos útiles sobre o ficheiro e a ferramenta abertos. Os avisos importantes sempre saen.")} />
     <div class="row">
       <span class="lab">{$t("Ao premer o trasno")}<InfoTip text={$t("Que ocorre ao premer directamente o trasno da barra inferior.")} /></span>
       <IconSelect label={$t("Ao premer o trasno")} options={CLICK_ITEMS.map((c) => ({ value: c.id, label: $t(c.action), icon: c.icon }))} bind:value={clickV} />

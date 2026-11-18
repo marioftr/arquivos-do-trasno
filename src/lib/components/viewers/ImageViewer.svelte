@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from "svelte";
-  import { viewUrl, imageEdit, imageCrop, imageCropAspect, imageCropEnabled, imageUrl, imageNatural, type FileEntry } from "../../files";
+  import { viewUrl, imageEdit, imageCrop, imageCropAspect, imageCropEnabled, imageSlice, imageUrl, imageNatural, type FileEntry } from "../../files";
   import * as engine from "../../engine";
   import { t } from "../../i18n";
   import AnnotLayer from "../ui/AnnotLayer.svelte";
@@ -358,8 +358,18 @@
               on:pointerup={up}
               role="presentation"
             >
-              <span class="third v1"></span><span class="third v2"></span><span class="third h1"></span><span class="third h2"></span>
-              {#each HANDLES as h}
+              {#if $imageSlice}
+                {#each Array.from({ length: $imageSlice.cols - 1 }, (_, i) => i + 1) as i}<span class="third vline" style={`left:${(i / $imageSlice.cols) * 100}%`}></span>{/each}
+                {#each Array.from({ length: $imageSlice.rows - 1 }, (_, i) => i + 1) as i}<span class="third hline" style={`top:${(i / $imageSlice.rows) * 100}%`}></span>{/each}
+                {#each Array.from({ length: $imageSlice.cols * $imageSlice.rows }, (_, i) => i) as i}
+                  {@const c = $imageSlice.byColumns ? Math.floor(i / $imageSlice.rows) : i % $imageSlice.cols}
+                  {@const r = $imageSlice.byColumns ? i % $imageSlice.rows : Math.floor(i / $imageSlice.cols)}
+                  <span class="part" style={`left:${(c / $imageSlice.cols) * 100}%;top:${(r / $imageSlice.rows) * 100}%;width:${100 / $imageSlice.cols}%;height:${100 / $imageSlice.rows}%`}><b>{i + 1}</b></span>
+                {/each}
+              {:else}
+                <span class="third v1"></span><span class="third v2"></span><span class="third h1"></span><span class="third h2"></span>
+              {/if}
+              {#each $imageSlice && $imageCropAspect ? HANDLES.filter((h) => h.length === 2) : HANDLES as h}
                 <span
                   class="handle"
                   style={pos(h)}
@@ -369,7 +379,7 @@
                   role="presentation"
                 ></span>
               {/each}
-              <span class="size">{$imageCrop.w} × {$imageCrop.h}</span>
+              <span class="size" class:inside={!!$imageSlice}>{$imageSlice ? `${$imageSlice.cols} × ${$imageSlice.rows} · ${Math.floor($imageCrop.w / $imageSlice.cols)} × ${Math.floor($imageCrop.h / $imageSlice.rows)}` : `${$imageCrop.w} × ${$imageCrop.h}`}</span>
             </div>
           </div>
         {/if}
@@ -377,7 +387,7 @@
     </div>
   </div>
   {#if converted}
-    <p class="note" role="note">{$t("Vista previa convertida a PNG")}<InfoTip text={$t("O visor é o dun navegador e non le {ext}: uso unha copia en PNG só para velo. As ferramentas parten sempre do orixinal.", { ext: file.ext.toUpperCase() })} /></p>
+    <p class="note" role="note">{$t("Vista previa convertida a PNG")}<InfoTip text={$t("O visor é o dun navegador e non le {ext}: móstrase unha copia en PNG só para velo. As ferramentas parten sempre do orixinal.", { ext: file.ext.toUpperCase() })} /></p>
   {/if}
   <div class="bar" class:tinybar={tiny} bind:clientWidth={barW}>
     <button class="btn" class:on={fit} on:click={() => (fit = true)}>{$t("Axustar")}</button>
@@ -411,8 +421,13 @@
   .third { position: absolute; background: rgba(255, 255, 255, 0.35); pointer-events: none; }
   .v1, .v2 { top: 0; bottom: 0; width: 1px; }
   .h1, .h2 { left: 0; right: 0; height: 1px; }
+  .vline { top: 0; bottom: 0; width: 1px; background: rgba(255, 255, 255, 0.8); }
+  .hline { left: 0; right: 0; height: 1px; background: rgba(255, 255, 255, 0.8); }
+  .part { position: absolute; display: grid; place-items: center; pointer-events: none; }
+  .part b { font-size: var(--fs-lg); font-weight: 650; color: #fff; background: rgba(0, 0, 0, 0.55); border-radius: 999px; min-width: 1.7em; padding: 0.05em 0.4em; text-align: center; }
   .v1 { left: 33.33%; } .v2 { left: 66.66%; } .h1 { top: 33.33%; } .h2 { top: 66.66%; }
   .handle { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; background: #fff; border: 1.5px solid #111; border-radius: 2px; touch-action: none; }
+  .size.inside { bottom: auto; top: 8px; transform: translateX(-50%); }
   .size { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -6px); background: rgba(0, 0, 0, 0.75); color: #fff; font-size: var(--fs-xs); padding: 2px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
   /* Barra de abaixo: unha soa fila fixa; nada cambia de sitio nin de tamaño ao usar o OCR. */
   .bar { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem 0.5rem max(0.9rem, var(--dock-gap, 0px)); border-top: 1px solid var(--border); font-size: var(--fs-md); overflow: hidden; }

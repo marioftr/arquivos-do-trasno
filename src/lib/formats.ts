@@ -19,9 +19,9 @@ export function sameFormat(ext: string): string | null {
 }
 
 /** Ferramentas que gardan no formato do orixinal e poden quedar bloqueadas para un ficheiro. */
-export type LockTool = "editar" | "anotar" | "comprimir" | "redimensionar";
-const VERB: Record<LockTool, string> = { editar: "editar", anotar: "anotar", comprimir: "comprimir", redimensionar: "redimensionar" };
-const VERB_LO: Record<LockTool, string> = { editar: "Editalo", anotar: "Anotalo", comprimir: "Comprimilo", redimensionar: "Redimensionalo" };
+export type LockTool = "editar" | "anotar" | "comprimir" | "redimensionar" | "cortar";
+const VERB: Record<LockTool, string> = { editar: "editar", anotar: "anotar", comprimir: "comprimir", redimensionar: "redimensionar", cortar: "cortar" };
+const VERB_LO: Record<LockTool, string> = { editar: "Editalo", anotar: "Anotalo", comprimir: "Comprimilo", redimensionar: "Redimensionalo", cortar: "Cortalo" };
 
 /** Texto curto que se ve cando unha ferramenta está bloqueada; a explicación vai no «i». */
 export const readOnlyLabel = () => tr("Só modo lectura");
@@ -30,7 +30,7 @@ export const readOnlyLabel = () => tr("Só modo lectura");
 export function cannotSaveNotice(ext: string, tool: LockTool): string {
   const fmt = ext.toUpperCase();
   const verb = tr(VERB[tool]);
-  return tr("Só sei ler {fmt}, non gardalo: para {verb} hai que convertelo antes a PNG ou JPG, en Converter.", { fmt, verb });
+  return tr("Só se pode ler {fmt}, non gardalo: para {verb} hai que convertelo antes a PNG ou JPG, en Converter.", { fmt, verb });
 }
 
 /** Formatos que se poden gardar pero non teñen compresión propia (BMP, TIFF…): comprimir mantendo o formato non ten sentido. */
@@ -42,8 +42,8 @@ export function noCompressionNotice(ext: string): string {
 export function animatedNotice(ext: string, tool: LockTool): string {
   const fmt = ext.toUpperCase();
   const verb = tr(VERB[tool]);
-  if (tool === "redimensionar") return tr("Este {fmt} é animado: só sei redimensionar GIF e WebP animados sen perder a animación.", { fmt });
-  const gifOnly = tool === "editar" ? "" : " " + tr("Só sei {verb} GIF sen perder a animación.", { verb });
+  if (tool === "redimensionar") return tr("Este {fmt} é animado: só se poden redimensionar GIF e WebP animados sen perder a animación.", { fmt });
+  const gifOnly = tool === "editar" || tool === "cortar" ? "" : " " + tr("Só se pode {verb} GIF sen perder a animación.", { verb });
   return tr("Este {fmt} é animado: {verbLo} só gardaría un fotograma.", { fmt, verb, verbLo: tr(VERB_LO[tool]).toLowerCase() }) + gifOnly;
 }
 
@@ -56,6 +56,29 @@ export function firstFrameNotice(from: string, to: string): string {
 export const OFFICE_EXTS = ["docx", "doc", "docm", "odt", "rtf", "xlsx", "xls", "xlsm", "ods", "pptx", "ppt", "pptm", "ppsx", "pps", "odp"];
 /** Saídas de documento que un PDF só dá con Word. */
 export const PDF_TO_DOC = ["docx", "doc", "odt", "rtf"];
+
+/** Formatos en que se gardan as imaxes que se compoñen a partir doutras (xuntar capturas, cortar en partes). */
+export const COMPOSE_FORMATS = ["png", "jpg", "webp", "tiff", "bmp"];
+/** O formato que sae: o elixido ou, con «same», o dos orixinais (se todos teñen o mesmo e se pode gardar; se non, PNG). */
+export function composeFormat(choice: string, exts: string[]): string {
+  if (choice !== "same") return choice;
+  const norm = (e: string) => {
+    const x = e.toLowerCase();
+    return IMAGE_ALIAS[x] ?? x;
+  };
+  const kinds = new Set(exts.map(norm));
+  const only = kinds.size === 1 ? [...kinds][0] : "";
+  return COMPOSE_FORMATS.includes(only) ? only : "png";
+}
+/** Opcións do selector de formato de saída: «Igual que o orixinal» e os formatos nos que se pode gardar. */
+export const composeOptions = (tt: (k: string) => string) => [
+  { value: "same", label: tt("Igual que o orixinal") },
+  { value: "png", label: "PNG" },
+  { value: "jpg", label: "JPG" },
+  { value: "webp", label: "WebP" },
+  { value: "tiff", label: "TIFF" },
+  { value: "bmp", label: "BMP" },
+];
 
 export const AUDIO_TARGETS = ["mp3", "wav", "flac", "ogg", "opus", "m4a", "aac", "aiff"];
 

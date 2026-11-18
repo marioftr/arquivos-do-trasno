@@ -117,6 +117,7 @@ pub fn run() {
             commands::resize_image,
             commands::resize_preview,
             commands::stitch_images,
+            commands::slice_image,
             commands::estimate_image,
             commands::compress_video,
             commands::open_url,

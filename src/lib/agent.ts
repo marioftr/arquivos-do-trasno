@@ -276,8 +276,9 @@ const LABEL: Record<string, string> = {
   lossless: "o modo sen perdas", mode: "o modo", compat: "a compatibilidade", sizeValue: "o tamaño obxectivo", select: "a pista escollida", kind: "o modo",
   // Restaurar vídeo, Redimensionar e Xuntar capturas
   stabilize: "a estabilización", denoise: "o ruído", sharpen: "a nitidez", deflicker: "o parpadeo", saturation: "a saturación",
-  how: "o modo de axuste", width: "o ancho", height: "o alto", percent: "a porcentaxe", noUpscale: "non ampliar as imaxes pequenas", crop: "o que facer coa proporción",
-  direction: "a dirección", align: "a igualación do tamaño", removeOverlap: "quitar o que se repite", gap: "o espazo entre capturas", background: "o fondo", format: "o formato",
+  how: "o modo de axuste", width: "o ancho", height: "o alto", percent: "a porcentaxe", noUpscale: "non ampliar as imaxes pequenas", crop: "o que facer coa proporción", side: "o lado maior", lock: "manter a proporción",
+  cols: "as columnas", rows: "as filas", shape: "a forma das partes", order: "a numeración",
+  direction: "a dirección", align: "a igualación do tamaño", removeOverlap: "o modo de capturas de desprazamento", gap: "o espazo entre capturas", background: "o fondo", format: "o formato",
 };
 // Valores de texto que se amosan tal cal; para os demais amósase só o que cambiou (nunca un código interno).
 const RAW_VALUE = new Set(["targetExt", "pageSpec", "wmText", "wmFamily", "dar", "maxHeight", "wmColor", "format", "background"]);
@@ -285,8 +286,11 @@ const LEVEL_NAMES = { 0: "non", 1: "suave", 2: "normal", 3: "forte" };
 const VALUE_LABEL: Record<string, Record<string, string>> = {
   mode: { quality: "calidade", bitrate: "bitrate", size: "tamaño máximo" },
   stabilize: LEVEL_NAMES, denoise: LEVEL_NAMES, sharpen: LEVEL_NAMES,
-  how: { 0: "dentro dun cadro", 1: "porcentaxe", 2: "tamaño exacto" },
-  crop: { 0: "recortar polo centro", 1: "esticar" },
+  how: { 0: "porcentaxe", 1: "lado maior", 2: "ancho e alto" },
+  crop: { 0: "recortar polo centro", 1: "estirar" },
+  shape: { 0: "libre", 1: "1:1", 2: "4:5", 3: "3:4", 4: "9:16", 5: "16:9" },
+  order: { 0: "por filas", 1: "por columnas" },
+  format: { same: "igual que o orixinal" },
   direction: { vertical: "unha debaixo doutra", horizontal: "unha ao carón doutra" },
   align: { narrowest: "á máis pequena", widest: "á máis grande" },
 };

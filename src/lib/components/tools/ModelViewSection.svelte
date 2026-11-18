@@ -1,22 +1,26 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
   import { tr, t } from "../../i18n";
   import { fileNameOf } from "../../formats";
   import { TEXTURE_SLOTS, textureImports, addTextureImport, removeTextureImport } from "../../model3d";
-  import { modelLight, modelShow, modelInfo, modelHidden, modelOptions, modelFolds, modelCollapsed, nodeCounts, toggleNode, soloNode, isSolo } from "../../modelView";
+  import { modelLight, modelShow, modelInfo, modelHidden, modelOptions, modelPart, modelCollapsed, nodeCounts, toggleNode, soloNode, isSolo } from "../../modelView";
   import type { FileEntry } from "../../files";
   import Slider from "../ui/Slider.svelte";
   import SelectField from "../ui/SelectField.svelte";
+  import Segmented from "../ui/Segmented.svelte";
   import InfoTip from "../ui/InfoTip.svelte";
-  import FoldGroup from "../ui/FoldGroup.svelte";
+  import TitleGroup from "../ui/TitleGroup.svelte";
   import Icon from "../Icon.svelte";
 
-  /** Escena do modelo 3D: obxectos, aspecto, materiais, texturas e luz. Só cambia o que se ve no visor; non exporta nada. */
+  /** Escena do modelo 3D en tres grupos: obxectos e aspecto, materiais e texturas, e luz. Só cambia o que se ve no visor; non exporta nada. */
   export let file: FileEntry;
 
   let importSlot = "map";
   let importMaterial: number | "all" = "all";
   let wide = false;
+  let list: HTMLUListElement | undefined;
+  let overflow = false;
   $: imports = $textureImports[file.path] ?? [];
   $: ({ report, channels, hasTextures, missing, notes, status, nodes } = $modelInfo);
 
@@ -35,6 +39,18 @@
   const flip = (id: string) => modelHidden.set(toggleNode(nodes, hidden, id));
   const solo = (id: string) => modelHidden.set(isSolo(nodes, hidden, id) ? [] : soloNode(nodes, id));
   const fold = (id: string) => modelCollapsed.update((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
+
+  // O botón de ampliar a lista só aparece cando sobran filas (hai desprazamento) ou xa está ampliada.
+  $: if (list) {
+    void rows;
+    void wide;
+    void tick().then(() => {
+      if (list && !wide) overflow = list.scrollHeight > list.clientHeight + 1;
+    });
+  }
+  $: anyHidden = nodes.some((n) => n.own && hidden.has(n.id));
+  $: allFolded = parents.size > 0 && [...parents].every((p) => collapsed.has(p));
+
   const indeterminate = (el: HTMLInputElement, v: boolean) => {
     el.indeterminate = v;
     return { update: (x: boolean) => (el.indeterminate = x) };
@@ -52,108 +68,125 @@
 </script>
 
 <div class="stack">
-  {#if nodes.length > 1}
-    <FoldGroup title={$t("Obxectos")} meta={`${nodes.length} · ${totalTris.toLocaleString()} ${$t("triángulos")}`} bind:open={$modelFolds.objects}>
-      <div class="tools">
-        <button class="btn ghost icon" on:click={() => modelHidden.set([])} title={$t("Amosar todos os obxectos")} aria-label={$t("Amosar todos os obxectos")}><Icon name="eye" size={15} /></button>
-        <button class="btn ghost icon" on:click={() => modelHidden.set(nodes.filter((n) => n.own).map((n) => n.id))} title={$t("Agochar todos os obxectos")} aria-label={$t("Agochar todos os obxectos")}><Icon name="eye-off" size={15} /></button>
-        <button class="btn ghost icon" on:click={() => modelCollapsed.set([])} title={$t("Despregar todos os grupos")} aria-label={$t("Despregar todos os grupos")}><Icon name="tri-down" size={15} /></button>
-        <button class="btn ghost icon" on:click={() => modelCollapsed.set([...parents])} title={$t("Pregar todos os grupos")} aria-label={$t("Pregar todos os grupos")}><Icon name="tri-right" size={15} /></button>
-        <button class="btn ghost icon" class:on={wide} aria-pressed={wide} on:click={() => (wide = !wide)} title={wide ? $t("Limitar a altura da lista") : $t("Ampliar a lista")} aria-label={wide ? $t("Limitar a altura da lista") : $t("Ampliar a lista")}><Icon name="expand" size={15} /></button>
+  <Segmented
+    options={[
+      { value: "objects", label: $t("Obxectos e aspecto") },
+      { value: "materials", label: $t("Materiais e texturas") },
+      { value: "light", label: $t("Luz") },
+    ]}
+    bind:value={$modelPart}
+  />
+
+  {#if $modelPart === "objects"}
+    {#if nodes.length > 1}
+      <TitleGroup title={$t("Obxectos")} meta={`${nodes.length} · ${totalTris.toLocaleString()} ${$t("triángulos")}`}>
+        <div class="tools">
+          {#if anyHidden}
+            <button class="btn ghost icon" on:click={() => modelHidden.set([])} title={$t("Amosar todos os obxectos")} aria-label={$t("Amosar todos os obxectos")}><Icon name="eye" size={15} /></button>
+          {:else}
+            <button class="btn ghost icon" on:click={() => modelHidden.set(nodes.filter((n) => n.own).map((n) => n.id))} title={$t("Agochar todos os obxectos")} aria-label={$t("Agochar todos os obxectos")}><Icon name="eye-off" size={15} /></button>
+          {/if}
+          {#if parents.size}
+            <button class="btn ghost icon" on:click={() => modelCollapsed.set(allFolded ? [] : [...parents])} title={allFolded ? $t("Despregar todos os grupos") : $t("Pregar todos os grupos")} aria-label={allFolded ? $t("Despregar todos os grupos") : $t("Pregar todos os grupos")}><Icon name={allFolded ? "unfold-all" : "fold-all"} size={15} /></button>
+          {/if}
+          {#if overflow || wide}
+            <button class="btn ghost icon" class:on={wide} aria-pressed={wide} on:click={() => (wide = !wide)} title={wide ? $t("Limitar a altura da lista") : $t("Ampliar a lista")} aria-label={wide ? $t("Limitar a altura da lista") : $t("Ampliar a lista")}><Icon name="expand" size={15} /></button>
+          {/if}
+        </div>
+        <div class="cols muted"><span>{$t("Obxecto")}</span><span>{$t("Triángulos")}</span></div>
+        <ul class="nodes" class:wide bind:this={list}>
+          {#each rows as n (n.id)}
+            {@const st = stateOf(counts.get(n.id))}
+            {@const only = isSolo(nodes, hidden, n.id)}
+            <li style={`padding-left:${n.depth * 0.9}rem`} class:off={st === "none"}>
+              {#if parents.has(n.id)}
+                <button class="fold" on:click={() => fold(n.id)} aria-expanded={!collapsed.has(n.id)} aria-label={`${collapsed.has(n.id) ? $t("Despregar") : $t("Pregar")}: ${n.name}`} title={collapsed.has(n.id) ? $t("Despregar") : $t("Pregar")}><Icon name={collapsed.has(n.id) ? "chevron-right" : "chevron-down"} size={14} /></button>
+              {:else}<span class="fold"></span>{/if}
+              <label class="node">
+                <input type="checkbox" checked={st !== "none"} use:indeterminate={st === "some"} on:change={() => flip(n.id)} aria-label={n.name} />
+                <span class="nn" title={n.name}>{n.name}</span>
+                <span class="muted nt">{n.tris.toLocaleString()}</span>
+              </label>
+              <button class="btn ghost icon solo" class:on={only} on:click={() => solo(n.id)} aria-pressed={only} aria-label={`${$t("Ver só este obxecto")}: ${n.name}`} title={$t("Ver só este obxecto")}><Icon name="focus" size={14} /></button>
+            </li>
+          {/each}
+        </ul>
+      </TitleGroup>
+    {/if}
+
+    <TitleGroup title={$t("Aspecto")}>
+      <div class="chan">
+        {#each channels as c}
+          <button class="ch" class:on={$modelShow.channel === c.id} on:click={() => ($modelShow.channel = c.id)}>{$t(c.label)}</button>
+        {/each}
       </div>
-      <div class="cols muted"><span>{$t("Obxecto")}</span><span>{$t("Triángulos")}</span></div>
-      <ul class="nodes" class:wide>
-        {#each rows as n (n.id)}
-          {@const st = stateOf(counts.get(n.id))}
-          {@const only = isSolo(nodes, hidden, n.id)}
-          <li style={`padding-left:${n.depth * 0.9}rem`} class:off={st === "none"}>
-            {#if parents.has(n.id)}
-              <button class="fold" on:click={() => fold(n.id)} aria-expanded={!collapsed.has(n.id)} aria-label={`${collapsed.has(n.id) ? $t("Despregar") : $t("Pregar")}: ${n.name}`} title={collapsed.has(n.id) ? $t("Despregar") : $t("Pregar")}><Icon name={collapsed.has(n.id) ? "tri-right" : "tri-down"} size={12} /></button>
-            {:else}<span class="fold"></span>{/if}
-            <label class="node">
-              <input type="checkbox" checked={st !== "none"} use:indeterminate={st === "some"} on:change={() => flip(n.id)} aria-label={n.name} />
-              <span class="nn" title={n.name}>{n.name}</span>
-              <span class="muted nt">{n.tris.toLocaleString()}</span>
-            </label>
-            <button class="btn ghost icon solo" class:on={only} on:click={() => solo(n.id)} aria-pressed={only} aria-label={`${$t("Ver só este obxecto")}: ${n.name}`} title={$t("Ver só este obxecto")}><Icon name="focus" size={14} /></button>
-          </li>
-        {/each}
-      </ul>
-    </FoldGroup>
-  {/if}
-
-  <FoldGroup title={$t("Aspecto")} bind:open={$modelFolds.look}>
-    <div class="chan">
-      {#each channels as c}
-        <button class="ch" class:on={$modelShow.channel === c.id} on:click={() => ($modelShow.channel = c.id)}>{$t(c.label)}</button>
-      {/each}
-    </div>
-    <span class="chk-tip"><label class="chk"><input type="checkbox" bind:checked={$modelOptions.wire} /> {$t("Malla")}</label><InfoTip text={$t("Amosa o modelo en arames, só coas arestas das caras (sen as diagonais dos triángulos).")} /></span>
-    <label class="chk"><input type="checkbox" bind:checked={$modelOptions.grid} /> {$t("Cuadrícula")}</label>
-  </FoldGroup>
-
-  <FoldGroup title={$t("Materiais")} meta={report.length ? String(report.length) : ""} info={report.length ? $t("Preme un material para velo só a el.") : ""} bind:open={$modelFolds.materials}>
-    {#if report.length}
-      <ul class="mats">
-        {#each report as m, i}
-          <li>
-            <button class="mat" class:on={$modelShow.isolated === i} on:click={() => ($modelShow.isolated = $modelShow.isolated === i ? null : i)}>
-              <div class="mname">
-                {#if m.color}<span class="sw" style={`background:${m.color}`}></span>{/if}
-                <span class="mn">{m.name}</span>
-                <span class="muted">{m.color ?? ""}</span>
-              </div>
-              {#if m.slots.length}
-                <div class="slots">
-                  {#each m.slots as s}
-                    <span class:bad={!s.ok}>{$t(s.label)}{s.ok ? "" : ` · ${$t("non cargou")}`}</span>
-                  {/each}
+      <span class="chk-tip"><label class="chk"><input type="checkbox" bind:checked={$modelOptions.wire} /> {$t("Malla")}</label><InfoTip text={$t("Amosa o modelo en arames, só coas arestas das caras (sen as diagonais dos triángulos).")} /></span>
+      <label class="chk"><input type="checkbox" bind:checked={$modelOptions.grid} /> {$t("Cuadrícula")}</label>
+    </TitleGroup>
+  {:else if $modelPart === "materials"}
+    <TitleGroup title={$t("Materiais")} meta={report.length ? String(report.length) : ""} info={report.length ? $t("Preme un material para velo só a el.") : ""}>
+      {#if report.length}
+        <ul class="mats">
+          {#each report as m, i}
+            <li>
+              <button class="mat" class:on={$modelShow.isolated === i} on:click={() => ($modelShow.isolated = $modelShow.isolated === i ? null : i)}>
+                <div class="mname">
+                  {#if m.color}<span class="sw" style={`background:${m.color}`}></span>{/if}
+                  <span class="mn">{m.name}</span>
+                  <span class="muted">{m.color ?? ""}</span>
                 </div>
-              {:else}
-                <div class="slots muted">{$t("sen texturas")}</div>
-              {/if}
-            </button>
-          </li>
-        {/each}
-      </ul>
-      {#if $modelShow.isolated !== null}
-        <button class="btn ghost" on:click={() => ($modelShow.isolated = null)}>{$t("Mostrar todos os materiais")}</button>
+                {#if m.slots.length}
+                  <div class="slots">
+                    {#each m.slots as s}
+                      <span class:bad={!s.ok}>{$t(s.label)}{s.ok ? "" : ` · ${$t("non cargou")}`}</span>
+                    {/each}
+                  </div>
+                {:else}
+                  <div class="slots muted">{$t("sen texturas")}</div>
+                {/if}
+              </button>
+            </li>
+          {/each}
+        </ul>
+        {#if $modelShow.isolated !== null}
+          <button class="btn ghost" on:click={() => ($modelShow.isolated = null)}>{$t("Mostrar todos os materiais")}</button>
+        {/if}
+      {:else if !status}
+        <p class="muted tiny">{$t("Este modelo non ten materiais: úsoo en gris.")}</p>
       {/if}
-    {:else if !status}
-      <p class="muted tiny">{$t("Este modelo non ten materiais: úsoo en gris.")}</p>
-    {/if}
-  </FoldGroup>
+    </TitleGroup>
 
-  <FoldGroup title={$t("Texturas")} meta={imports.length ? String(imports.length) : ""} info={$t("As texturas importadas tamén se levan ao converter o modelo.")} bind:open={$modelFolds.textures}>
-    {#if !hasTextures && !imports.length && !status}
-      <p class="muted tiny">{$t("Este modelo non ten texturas: importa unha imaxe para pintalo.")}</p>
-    {/if}
-    <SelectField label={$t("Tipo de textura")} bind:value={importSlot} options={TEXTURE_SLOTS.map((s) => ({ value: s.slot, label: $t(s.label) }))} />
-    <SelectField label={$t("Aplicar a")} bind:value={importMaterial} options={[{ value: "all", label: $t("Todos os materiais") }, ...report.map((r, i) => ({ value: i, label: r.name }))]} />
-    <button class="btn block" on:click={importTexture}><Icon name="plus" size={14} /> {$t("Importar textura…")}</button>
-    {#if imports.length}
-      <ul class="imps">
-        {#each imports as imp, i}
-          <li>
-            <span class="in" title={imp.path}>{$t(slotLabel(imp.slot))}: {fileNameOf(imp.path)}</span>
-            <button class="btn ghost icon" on:click={() => removeTextureImport(file.path, i)} aria-label={$t("Quitar")} title={$t("Quitar")}><Icon name="close" size={13} /></button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
-    {#if missing.length}
-      <p class="warn selectable">{$t("Texturas que o modelo pide e non estaban no cartafol: {list}", { list: missing.join(", ") })}</p>
-    {/if}
-    {#each notes as n}<p class="muted tiny selectable">·&nbsp;{n}</p>{/each}
-  </FoldGroup>
-
-  <FoldGroup title={$t("Luz")} bind:open={$modelFolds.light}>
-    <Slider label={$t("Azimut")} unit="°" min={0} max={360} bind:value={$modelLight.azimuth} def={45} />
-    <Slider label={$t("Altura")} unit="°" min={-90} max={90} bind:value={$modelLight.elevation} def={50} />
-    <Slider label={$t("Forza")} min={0} max={5} step={0.1} bind:value={$modelLight.intensity} def={1.6} />
-    <Slider label={$t("Ambiente")} min={0} max={4} step={0.1} bind:value={$modelLight.ambient} def={1.1} />
-    <label class="chk"><input type="checkbox" bind:checked={$modelLight.showMarker} /> {$t("Amosar a luz (podes arrastrala)")}</label>
-  </FoldGroup>
+    <TitleGroup title={$t("Texturas")} meta={imports.length ? String(imports.length) : ""} info={$t("As texturas importadas tamén se levan ao converter o modelo.")}>
+      {#if !hasTextures && !imports.length && !status}
+        <p class="muted tiny">{$t("Este modelo non ten texturas: importa unha imaxe para pintalo.")}</p>
+      {/if}
+      <SelectField label={$t("Tipo de textura")} bind:value={importSlot} options={TEXTURE_SLOTS.map((s) => ({ value: s.slot, label: $t(s.label) }))} />
+      <SelectField label={$t("Aplicar a")} bind:value={importMaterial} options={[{ value: "all", label: $t("Todos os materiais") }, ...report.map((r, i) => ({ value: i, label: r.name }))]} />
+      <button class="btn block" on:click={importTexture}><Icon name="plus" size={14} /> {$t("Importar textura…")}</button>
+      {#if imports.length}
+        <ul class="imps">
+          {#each imports as imp, i}
+            <li>
+              <span class="in" title={imp.path}>{$t(slotLabel(imp.slot))}: {fileNameOf(imp.path)}</span>
+              <button class="btn ghost icon" on:click={() => removeTextureImport(file.path, i)} aria-label={$t("Quitar")} title={$t("Quitar")}><Icon name="close" size={13} /></button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      {#if missing.length}
+        <p class="warn selectable">{$t("Texturas que o modelo pide e non estaban no cartafol: {list}", { list: missing.join(", ") })}</p>
+      {/if}
+      {#each notes as n}<p class="muted tiny selectable">·&nbsp;{n}</p>{/each}
+    </TitleGroup>
+  {:else}
+    <TitleGroup title={$t("Luz")}>
+      <Slider label={$t("Azimut")} unit="°" min={0} max={360} bind:value={$modelLight.azimuth} def={45} />
+      <Slider label={$t("Altura")} unit="°" min={-90} max={90} bind:value={$modelLight.elevation} def={50} />
+      <Slider label={$t("Forza")} min={0} max={5} step={0.1} bind:value={$modelLight.intensity} def={1.6} />
+      <Slider label={$t("Ambiente")} min={0} max={4} step={0.1} bind:value={$modelLight.ambient} def={1.1} />
+      <label class="chk"><input type="checkbox" bind:checked={$modelLight.showMarker} /> {$t("Amosar a luz (podes arrastrala)")}</label>
+    </TitleGroup>
+  {/if}
 </div>
 
 <style>

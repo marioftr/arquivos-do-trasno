@@ -157,6 +157,15 @@ export async function launch({ tessdata = false } = {}) {
       await ev(`window.__TAURI_INTERNALS__.invoke('plugin:event|emit', {event:'tauri://drag-drop', payload:{type:'drop', paths:[${JSON.stringify(file)}], position:{x:300,y:300}}})`);
       await sleep(3000);
     },
+    /** Arrastra co rato (de verdade, por CDP) desde un punto da ventá a outro. */
+    async drag([x0, y0], [x1, y1], steps = 10) {
+      const mouse = (type, x, y, extra = {}) => send("Input.dispatchMouseEvent", { type, x, y, button: "left", buttons: type === "mouseReleased" ? 0 : 1, clickCount: 1, ...extra });
+      await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: x0, y: y0 });
+      await mouse("mousePressed", x0, y0);
+      for (let i = 1; i <= steps; i++) await mouse("mouseMoved", x0 + ((x1 - x0) * i) / steps, y0 + ((y1 - y0) * i) / steps);
+      await mouse("mouseReleased", x1, y1);
+      await sleep(250);
+    },
     async slider(label, value) {
       const r = await ev(`(()=>{const i=[...document.querySelectorAll('.stack input[type=range]')].find(x=>x.getAttribute('aria-label')===${JSON.stringify(label)}); if(!i) return 'sen slider '+${JSON.stringify(label)}; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,String(${value})); i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); return 'ok';})()`);
       if (r !== "ok") throw new Error(r);

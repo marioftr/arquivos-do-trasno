@@ -36,6 +36,7 @@ pub mod pdf_tools;
 pub mod resize;
 pub mod restore;
 pub mod silence;
+pub mod slice;
 pub mod stitch;
 pub mod subtitle_video;
 pub mod subtitles;

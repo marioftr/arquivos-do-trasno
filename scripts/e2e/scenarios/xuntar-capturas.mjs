@@ -73,7 +73,7 @@ export default {
     c.ok(/Listo! Xunteinas nunha imaxe de 400×1600 px/.test(await app.ev(`document.body.innerText`)), "o trasno di o tamaño que saíu");
 
     // ---- sen quitar o repetido, con espazo: todo tal cal
-    await app.toggle("Quitar o que se repite");
+    await app.toggle("Capturas de desprazamento");
     await app.ev(`(()=>{const i=document.querySelector('.stack input[type=number][aria-label="Espazo entre capturas"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,'20'); i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); i.dispatchEvent(new Event('blur'));})()`);
     await app.sleep(300);
     await app.click("Xuntar 3 capturas");
@@ -88,5 +88,27 @@ export default {
     c.ok(await app.ev(`[...document.querySelectorAll('.stack ol.order li .nm')].map(x=>x.textContent.trim()).join()`) === "captura-2.png,captura-1.png,captura-3.png", "baixar unha cambia a orde");
     c.ok(await app.ev(`[...document.querySelectorAll('li[role=option] .nome')].map(x=>x.textContent.trim()).filter(n=>/^captura-/.test(n)).join()`) === "captura-1.png,captura-2.png,captura-3.png", "sen mexer na lista de ficheiros");
     c.ok(/Xuntar 3 capturas/.test(await app.panel()), "o botón segue dicindo 3 capturas");
+
+    // Formato de saída: elixido (TIFF) e «Igual que o orixinal» con imaxes que non son PNG (BMP).
+    const fmt = (v) => app.ev(`(()=>{const s=document.querySelector('.stack select[aria-label=Formato]'); s.value=${JSON.stringify(v)}; s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    c.ok((await app.ev(`[...document.querySelectorAll('.stack select[aria-label=Formato] option')].map(o=>o.textContent.trim()).join()`)) === "Igual que o orixinal,PNG,JPG,WebP,TIFF,BMP", "o formato ofrece «Igual que o orixinal» e cinco formatos");
+    await fmt("tiff");
+    await app.click("Xuntar 3 capturas");
+    const tif = path.join(app.media, "capturas-xuntadas.tiff");
+    for (let i = 0; i < 60 && !fs.existsSync(tif); i++) await app.sleep(300);
+    c.ok(fs.existsSync(tif), "en TIFF sae capturas-xuntadas.tiff");
+    const bmps = files.map((f, i) => {
+      const o = path.join(app.media, `bmp-${i + 1}.bmp`);
+      spawnSync(ffmpegBin(), ["-v", "error", "-y", "-i", f, o]);
+      return o;
+    });
+    for (const b of bmps) await app.open(b);
+    await pick(["bmp-1.bmp", "bmp-2.bmp", "bmp-3.bmp"]);
+    await app.click("Xuntar capturas");
+    await app.waitFor(`document.querySelectorAll('.stack ol.order li').length === 3`, "a lista ordenable dos BMP");
+    await app.click("Xuntar 3 capturas");
+    const bmpOut = path.join(app.media, "capturas-xuntadas.bmp");
+    for (let i = 0; i < 60 && !fs.existsSync(bmpOut); i++) await app.sleep(300);
+    c.ok(fs.existsSync(bmpOut), "con BMP de orixe, «Igual que o orixinal» deixa un BMP");
   },
 };

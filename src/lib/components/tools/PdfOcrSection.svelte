@@ -167,7 +167,7 @@
       disabled={$busy}
     />
     {#if !installed}
-      <GroupNote text={$t("Para ler {lang} teño que descargar o seu paquete de idioma (uns {size}, de Tesseract en GitHub).", { lang: langName, size: OCR_SIZE })} />
+      <GroupNote text={$t("Para ler {lang} hai que descargar o seu paquete de idioma (uns {size}, de Tesseract en GitHub).", { lang: langName, size: OCR_SIZE })} />
       <button class="btn block" on:click={download} disabled={$busy || !!$ocrDownload}>
         {$ocrDownload ? $t("Descargando… {p} %", { p: Math.round($ocrDownload.progress * 100) }) : $t("Descargar o paquete de idioma")}
       </button>

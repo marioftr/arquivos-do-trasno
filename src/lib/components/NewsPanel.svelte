@@ -51,7 +51,7 @@
           <ul class="notes selectable">{#each notes as n}<li>{n}</li>{/each}</ul>
         {/if}
         {#if hasMenu}
-          <Toggle label={$t("Actualizar tamén as entradas do menú do clic dereito")} bind:checked={refreshMenu} hint={$t("As entradas do Explorador apuntan ao programa instalado. Se está marcado, créoas de novo coa versión nova ao reiniciar.")} />
+          <Toggle label={$t("Actualizar tamén as entradas do menú do clic dereito")} bind:checked={refreshMenu} hint={$t("As entradas do Explorador apuntan ao programa instalado. Se está marcado, créanse de novo coa versión nova ao reiniciar.")} />
         {/if}
         <button class="btn primary" on:click={() => installUpdate(hasMenu && refreshMenu)}><Icon name="download" size={14} /> {$t("Instalar e reiniciar")}</button>
       </div>

@@ -35,34 +35,45 @@ export default {
     c.ok((await app.tabs()).includes("Redimensionar"), "as imaxes teñen a pestana Redimensionar", (await app.tabs()).join(","));
     await app.click("Redimensionar");
     await app.waitFor(`document.querySelectorAll('.stack .results li').length === 1 && /→/.test(document.querySelector('.stack .results li').innerText)`, "o tamaño que quedará");
+    const modes = () => app.ev(`[...document.querySelectorAll('.stack [role=radiogroup][aria-label="Medida"] button')].map(b=>b.innerText.split(String.fromCharCode(10))[0].trim()).join()`);
+    const levelNames = () => app.ev(`[...document.querySelectorAll('.stack [role=radiogroup][aria-label="Tamaño"] button')].map(b=>b.innerText.split(String.fromCharCode(10))[0].trim()).join()`);
+    c.ok((await modes()) === "Porcentaxe,Lado maior,Ancho e alto", "tres formas de medir: porcentaxe, lado maior e ancho e alto", await modes());
+    c.ok((await levelNames()) === "Pequena,Media,Grande,Personalizado", "só tres tamaños con nome máis «Personalizado»", await levelNames());
+    c.ok(!/Esticar/.test(await app.panel()), "xa non hai «Esticar» mal escrito");
     c.ok((await row(0)).includes("900 × 140 → 900 × 140"), "por defecto («Grande», sen ampliar) unha imaxe pequena non cambia", await row(0));
     c.ok((await marked()) === "Grande", "o tamaño marcado é «Grande»", await marked());
     await level("Pequena");
     await app.waitFor(`/900 × 140 → 640 × 100/.test(document.querySelector('.stack .results li')?.innerText||'')`, "a previsualización de 640");
     c.ok(true, "«Pequena» deixa 640 × 100");
     // Tocar un valor á man deixa «Personalizado».
-    await num("Ancho máximo", 500);
+    await num("Lado maior", 500);
     await app.sleep(500);
-    c.ok((await marked()) === "Personalizado", "cambiar o ancho á man marca «Personalizado»", await marked());
-    await app.waitFor(`/900 × 140 → 500 × 78/.test(document.querySelector('.stack .results li')?.innerText||'')`, "500 de ancho con alto libre ata 1920");
+    c.ok((await marked()) === "Personalizado", "cambiar o lado maior á man marca «Personalizado»", await marked());
+    await app.waitFor(`/900 × 140 → 500 × 78/.test(document.querySelector('.stack .results li')?.innerText||'')`, "500 no lado maior");
     await level("Pequena");
     await app.sleep(500);
     // Porcentaxe
     await app.click("Porcentaxe");
     await app.slider("Porcentaxe", 50);
     await app.waitFor(`/→ 450 × 70/.test(document.querySelector('.stack .results li')?.innerText||'')`, "50 % = 450 × 70");
-    c.ok((await marked()) === "Personalizado", "co modo de porcentaxe tampouco hai tamaño con nome");
-    // Tamaño exacto
-    await app.click("Tamaño exacto");
+    c.ok(!(await levelNames()), "co modo de porcentaxe non hai tamaños con nome");
+    // Ancho e alto: coa proporción mantida, un só dato calcula o outro.
+    await app.click("Ancho e alto");
     await num("Ancho", 300);
+    await app.waitFor(`/→ 300 × 47/.test(document.querySelector('.stack .results li')?.innerText||'')`, "só o ancho: o alto calcúlase");
+    await num("Alto", 100);
+    await app.waitFor(`/→ 300 × 47/.test(document.querySelector('.stack .results li')?.innerText||'')`, "con ambos cabe no cadro sen deformarse");
+    c.ok(!/Recortar polo centro/.test(await app.panel()), "coa proporción mantida non se pregunta que facer con ela");
+    // Sen manter a proporción é un tamaño exacto, e aí pregúntase que facer.
+    await app.toggle("Manter proporción");
     await num("Alto", 300);
     await app.waitFor(`/→ 300 × 300/.test(document.querySelector('.stack .results li')?.innerText||'')`, "300 × 300 exacto");
-    c.ok(/Recortar polo centro/.test(await app.panel()) && /Esticar/.test(await app.panel()), "o tamaño exacto pregunta que facer coa proporción");
-    // Un valor imposible non deixa continuar e di por que.
+    c.ok(/Recortar polo centro/.test(await app.panel()) && /Estirar/.test(await app.panel()), "o tamaño exacto pregunta: recortar polo centro ou estirar");
+    // Un valor imposible non deixa continuar.
     await num("Ancho", 0);
     await app.sleep(700);
     c.ok(await app.ev(`[...document.querySelectorAll('.stack .btn.primary')].find(b=>/^Redimensionar/.test(b.textContent))?.disabled`), "con un tamaño imposible o botón queda desactivado");
-    await app.click("Dentro dun cadro");
+    await app.click("Lado maior");
     await level("Pequena");
     await app.waitFor(`/→ 640 × 100/.test(document.querySelector('.stack .results li')?.innerText||'')`, "volta a 640");
     if (process.env.TRASNO_SHOTS) await app.shot("redimensionar.png");

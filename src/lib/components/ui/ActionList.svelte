@@ -99,7 +99,6 @@
     <p><b>{$t("Desfacer este cambio?")}</b></p>
     <p class="cqt">{$actions[revertIdx].text}</p>
     <p class="muted">{revertCount($actions, revertIdx) === 1 ? $t("Desfarase só este cambio.") : $t("Desfaranse este cambio e os posteriores ({n} en total).", { n: revertCount($actions, revertIdx) })}</p>
-    <p class="muted">{$t("Só se desfán cambios da lista e das anotacións: os ficheiros do disco non se tocan.")}</p>
     <div class="cacts">
       <button class="btn danger" on:click={() => { revertTo(revertIdx ?? 0); revertIdx = null; }}>{$t("Si, desfacer")}</button>
       <button class="btn ghost" on:click={() => (revertIdx = null)}>{$t("Cancelar")}</button>

@@ -321,8 +321,8 @@
   <Segmented
     label={$t("Como se axusta o peso")}
     info={isImage
-      ? $t("Por calidade: calidade fixa; o peso depende da imaxe. Tamaño máximo: busco a calidade máis alta que quede por debaixo do límite.")
-      : $t("Por calidade: calidade fixa; o peso depende do vídeo. Por bitrate: datos por segundo fixos. Tamaño máximo: busco a calidade máis alta que quede por debaixo do límite.")}
+      ? $t("Por calidade: calidade fixa; o peso depende da imaxe. Tamaño máximo: búscase a calidade máis alta que quede por debaixo do límite.")
+      : $t("Por calidade: calidade fixa; o peso depende do vídeo. Por bitrate: datos por segundo fixos. Tamaño máximo: búscase a calidade máis alta que quede por debaixo do límite.")}
     options={isImage
       ? [
           { value: "quality", label: $t("Por calidade") },

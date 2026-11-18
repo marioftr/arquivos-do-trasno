@@ -18,23 +18,22 @@
   import Toggle from "../ui/Toggle.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
-  /** Redimensionar imaxes: dentro dun cadro, por porcentaxe ou a un tamaño exacto. Unha ou varias de vez; sempre ficheiros novos e no mesmo formato. */
+  /** Redimensionar imaxes: por porcentaxe, polo lado maior ou por ancho e alto. Unha ou varias de vez; sempre ficheiros novos e no mesmo formato. */
   export let selection: FileEntry[];
 
   const multi = selection.length > 1;
   const first = selection[0];
 
-  const SIZES = [
-    { id: "mini", label: "Miniatura", px: 256 },
+  // Tamaños do «lado maior» máis usados; calquera outro vai en «Personalizado».
+  const SIDES = [
     { id: "peq", label: "Pequena", px: 640 },
     { id: "media", label: "Media", px: 1280 },
     { id: "grande", label: "Grande", px: 1920 },
-    { id: "enorme", label: "Moi grande", px: 3840 },
   ];
 
-  // `how`: 0 dentro dun cadro, 1 porcentaxe, 2 tamaño exacto. `crop`: 0 recortar polo centro, 1 esticar.
+  // `how`: 0 porcentaxe, 1 lado maior, 2 ancho e alto. `lock`: manter a proporción. `crop`: 0 recortar polo centro, 1 estirar.
   const form = createForm(
-    { how: 0, width: 1920 as number | null, height: 1920 as number | null, noUpscale: true, percent: 50, crop: 0, quality: 90, keepMeta: false, keepGps: false },
+    { how: 1, percent: 50, side: 1920 as number | null, width: 1920 as number | null, height: null as number | null, lock: true, noUpscale: true, crop: 0, quality: 90, keepMeta: false, keepGps: false },
     "redimensionar",
     "redimensionar|" + selection.map((f) => f.path).join("|"),
   );
@@ -64,7 +63,7 @@
   $: blocked = selection.filter((f) => blockedWhy(f, animated));
   $: usable = selection.filter((f) => !blockedWhy(f, animated));
   $: allBlocked = usable.length === 0;
-  $: blockedText = blocked.length === 1 ? (blockedWhy(blocked[0], animated) ?? "") : tr("{n} ficheiros non se redimensionan: ou só sei lelos, ou son animados e non se poden gardar así. Convérteos antes a PNG ou JPG, en Converter.", { n: blocked.length });
+  $: blockedText = blocked.length === 1 ? (blockedWhy(blocked[0], animated) ?? "") : tr("{n} ficheiros non se redimensionan: ou só se poden ler, ou son animados e non se poden gardar así. Convérteos antes a PNG ou JPG, en Converter.", { n: blocked.length });
 
   const lossy = (f: FileEntry) => ["jpg", "jpeg", "webp", "avif", "jxl", "jp2"].includes(f.ext.toLowerCase());
   $: hasLossy = usable.some(lossy);
@@ -72,13 +71,15 @@
 
   // O axuste tal como o entende o motor.
   $: fit = (v.how === 0
-    ? { mode: "within", width: v.width || null, height: v.height || null, no_upscale: v.noUpscale }
+    ? { mode: "percent", percent: v.percent }
     : v.how === 1
-      ? { mode: "percent", percent: v.percent }
-      : { mode: "exact", width: v.width || 0, height: v.height || 0, crop: v.crop === 0 }) as engine.ResizeFit;
+      ? { mode: "within", width: v.side || null, height: v.side || null, no_upscale: v.noUpscale }
+      : v.lock
+        ? { mode: "within", width: v.width || null, height: v.height || null, no_upscale: v.noUpscale }
+        : { mode: "exact", width: v.width || 0, height: v.height || 0, crop: v.crop === 0 }) as engine.ResizeFit;
 
-  // Niveis de tamaño con nome (cadro cadrado): ao tocar o ancho, o alto ou o modo pasa a «Personalizado».
-  $: sizeLevels = SIZES.map((s) => ({ id: s.id, label: $t(s.label), detail: `${s.px} px`, values: { how: 0, width: s.px, height: s.px } }));
+  // Niveis do lado maior: ao tocar o valor á man pasa a «Personalizado».
+  $: sideLevels = SIDES.map((s) => ({ id: s.id, label: $t(s.label), detail: `${s.px} px`, values: { side: s.px } }));
 
   // Taboa co tamaño de cada imaxe e o que lle quedará.
   type Row = { file: FileEntry; from?: [number, number]; to?: [number, number]; error?: string; state: "agarda" | "feito" | "erro"; text?: string };
@@ -171,35 +172,39 @@
 <div class="stack">
   {#if blocked.length}<LockNote label={allBlocked ? readOnlyLabel() : tr("{n} sen redimensionar", { n: blocked.length })} text={blockedText} />{/if}
   <div class="locked-tools" class:on={allBlocked} inert={allBlocked}>
-    <Levels label={$t("Tamaño")} info={$t("Encolle cada imaxe ata que caiba nun cadro cadrado dese lado, sen deformala.")} levels={sizeLevels} values={{ how: v.how, width: v.width ?? 0, height: v.height ?? 0 }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
-
     <Segmented
-      label={$t("Como axustar")}
-      info={$t("Dentro dun cadro mantén a proporción. Tamaño exacto pode recortar ou esticar a imaxe.")}
+      label={$t("Medida")}
+      info={$t("Porcentaxe escala todas por igual; Lado maior limita o lado máis longo; Ancho e alto fixa unha medida ou as dúas.")}
       options={[
-        { value: 0, label: $t("Dentro dun cadro") },
-        { value: 1, label: $t("Porcentaxe") },
-        { value: 2, label: $t("Tamaño exacto") },
+        { value: 0, label: $t("Porcentaxe") },
+        { value: 1, label: $t("Lado maior") },
+        { value: 2, label: $t("Ancho e alto") },
       ]}
       bind:value={$form.how}
     />
 
     <div class="group">
-      {#if v.how === 1}
+      {#if v.how === 0}
         <Slider label={$t("Porcentaxe")} unit="%" min={1} max={400} bind:value={$form.percent} def={form.defaults.percent} />
+      {:else if v.how === 1}
+        <Levels label={$t("Tamaño")} levels={sideLevels} values={{ side: v.side ?? 0 }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
+        <NumberField label={$t("Lado maior")} unit="px" min={1} bind:value={$form.side} def={form.defaults.side} />
+        <Toggle label={$t("Non ampliar as imaxes pequenas")} bind:checked={$form.noUpscale} hint={$t("As imaxes que xa caben no tamaño elixido quedan como están.")} />
       {:else}
         <div class="pair">
-          <NumberField label={v.how === 0 ? $t("Ancho máximo") : $t("Ancho")} unit="px" min={1} placeholder={v.how === 0 ? $t("libre") : ""} bind:value={$form.width} def={form.defaults.width} />
-          <NumberField label={v.how === 0 ? $t("Alto máximo") : $t("Alto")} unit="px" min={1} placeholder={v.how === 0 ? $t("libre") : ""} bind:value={$form.height} def={form.defaults.height} />
+          <NumberField label={$t("Ancho")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} bind:value={$form.width} def={form.defaults.width} />
+          <NumberField label={$t("Alto")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} bind:value={$form.height} def={form.defaults.height} />
         </div>
-        {#if v.how === 0}
-          <Toggle label={$t("Non ampliar as imaxes pequenas")} bind:checked={$form.noUpscale} hint={$t("As imaxes que xa caben no cadro quedan co seu tamaño.")} />
+        <Toggle label={$t("Manter proporción")} bind:checked={$form.lock} hint={$t("Se só se fixa o ancho ou o alto, a outra medida calcúlase. Con ambas, a imaxe cabe no cadro sen deformarse.")} />
+        {#if v.lock}
+          <Toggle label={$t("Non ampliar as imaxes pequenas")} bind:checked={$form.noUpscale} hint={$t("As imaxes que xa caben no tamaño elixido quedan como están.")} />
         {:else}
           <Segmented
-            label={$t("Se a proporción non coincide")}
+            label={$t("Se a proporción cambia")}
+            info={$t("Recortar polo centro enche o tamaño e corta o que sobra; Estirar deforma a imaxe para que encaixe.")}
             options={[
               { value: 0, label: $t("Recortar polo centro") },
-              { value: 1, label: $t("Esticar") },
+              { value: 1, label: $t("Estirar") },
             ]}
             bind:value={$form.crop}
           />

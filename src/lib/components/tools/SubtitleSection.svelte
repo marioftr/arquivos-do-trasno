@@ -104,7 +104,7 @@
       options={[
         { value: "shift", label: $t("Desprazar"), hint: $t("Todos os subtítulos van igual de adiantados ou atrasados: suma ou resta segundos.") },
         { value: "fps", label: $t("Cadencia"), hint: $t("Feitos para un vídeo con outra cadencia (23,976, 24, 25…): van perdendo o paso aos poucos.") },
-        { value: "points", label: $t("Dous puntos"), hint: $t("Indica cando debe saír a primeira e a última fala e axusto todo o demais.") },
+        { value: "points", label: $t("Dous puntos"), hint: $t("Indica cando debe saír a primeira e a última fala; todo o demais axústase.") },
       ]}
       bind:value={$form.how}
     />

@@ -1,9 +1,9 @@
-// Modelo 3D: a pestana Escena (obxectos, aspecto, materiais, texturas e luz) controla o visor sen exportar nada.
+// Modelo 3D: a pestana Escena (tres grupos: obxectos e aspecto, materiais e texturas, luz) controla o visor sen exportar nada.
 import fs from "node:fs";
 import path from "node:path";
 
 export default {
-  about: "Modelo 3D: pestana Escena con lista de obxectos en árbore, malla, materiais e luz plegables que controlan o visor",
+  about: "Modelo 3D: pestana Escena en tres grupos con lista de obxectos en árbore, botóns que alternan, malla, materiais e luz",
   async run(app, c) {
     const dir = app.media;
     fs.writeFileSync(path.join(dir, "cubo.mtl"), "newmtl vermello\nKd 0.9 0.1 0.1\nnewmtl azul\nKd 0.1 0.1 0.9\n");
@@ -15,10 +15,9 @@ f 2 3 7 6
 f 3 4 8 7
 f 4 1 5 8
 `);
-    const tabsIn = async () => (await app.tabs()).join(",");
-    // Abre ou pecha unha xanela interna do panel polo seu título.
-    const fold = (title) => app.ev(`[...document.querySelectorAll('.stack .group-title')].find(b=>b.textContent.trim().startsWith(${JSON.stringify(title)}))?.click()`);
-    const isOpen = (title) => app.ev(`[...document.querySelectorAll('.stack .group-title')].find(b=>b.textContent.trim().startsWith(${JSON.stringify(title)}))?.getAttribute('aria-expanded')==='true'`);
+    // Os tres grupos do panel van arriba, como Protexer e Desbloquear nos PDF.
+    const part = (name) => app.click(name);
+    const parts = () => app.ev(`[...document.querySelectorAll('.stack [role=radiogroup] button')].map(b=>b.innerText.split(String.fromCharCode(10))[0].trim()).join()`);
     const malla = () => app.ev(`[...document.querySelectorAll('.stack label.chk')].find(l=>/Malla/.test(l.textContent)).querySelector('input').click()`);
 
     await app.open(path.join(dir, "cubo.obj"));
@@ -28,7 +27,10 @@ f 4 1 5 8
     c.ok(!(await app.ev(`!!document.querySelector('[id=modelo], .side')`)) && !(await app.ev(`/Agochar panel|Panel do modelo/.test(document.body.innerText)`)), "o visor xa non leva panel flotante");
     c.ok(!(await app.ev(`!!document.querySelector('.bar input[type=checkbox]')`)), "a barra do visor xa non leva a malla nin a cuadrícula");
     await app.click("Escena");
-    await app.waitFor(`document.querySelectorAll('.stack .mat').length === 2`, "os dous materiais na pestana", 15000);
+    await app.waitFor(`document.querySelector('.stack [role=radiogroup]')`, "os grupos do panel");
+    c.ok((await parts()) === "Obxectos e aspecto,Materiais e texturas,Luz", "tres grupos arriba: obxectos e aspecto, materiais e texturas, luz", await parts());
+    c.ok(!(await app.ev(`[...document.querySelectorAll('.stack .group-title')].some(b=>b.tagName==='BUTTON')`)), "os grupos non se pregan: o título é só texto");
+    // O grupo de obxectos e aspecto: a malla e a cuadrícula.
     // A malla debuxa os 12 bordos do cubo (polígonos), non os 18 das diagonais dos triángulos.
     await malla();
     await app.sleep(500);
@@ -38,29 +40,29 @@ f 4 1 5 8
     await malla();
     await app.sleep(300);
     c.ok((await app.ev(`window.__trasnoWire?.().lines`)) === 0, "sen malla non hai liñas");
-    c.ok(await app.ev(`!!document.querySelector('.stack label.chk input[type=checkbox]')`) && (await app.ev(`[...document.querySelectorAll('.stack label.chk')].some(l=>/Cuadrícula/.test(l.textContent))`)), "a cuadrícula está na pestana");
-
-    // Cada categoría ten a súa xanela: a luz vai debaixo de materiais e texturas, e a xanela pregada non se amosa.
-    const titles = await app.ev(`[...document.querySelectorAll('.stack .group-title')].map(b=>b.textContent.trim().split(/\\s+/)[0])`);
-    c.ok(titles.join(",") === "Aspecto,Materiais,Texturas,Luz", "orde das xanelas: aspecto, materiais, texturas e luz", titles.join(","));
-    c.ok(!(await isOpen("Luz")) && !(await app.ev(`!!document.querySelector('.stack input[aria-label=Azimut]')`)), "a luz empeza pregada");
-    await fold("Luz");
-    await app.waitFor(`document.querySelector('.stack input[aria-label=Azimut]')`, "a luz despregada");
-    const text = await app.panel();
-    c.ok(/Azimut/i.test(text) && /Materiais[\s|]*2/i.test(text) && /Texturas/i.test(text), "Escena ten luz, materiais e texturas", text.slice(0, 200));
-    c.ok(!/Exportar|Converter a/.test(text), "e ningún botón de exportar");
+    c.ok(await app.ev(`[...document.querySelectorAll('.stack label.chk')].some(l=>/Cuadrícula/.test(l.textContent))`), "a cuadrícula está no mesmo grupo");
     c.ok(!(await app.ev(`!!document.querySelector('.stack .nodes')`)), "con un só obxecto non hai lista de obxectos");
+    c.ok(!(await app.ev(`!!document.querySelector('.stack input[aria-label=Azimut]')`)) && !(await app.ev(`!!document.querySelector('.stack .mat')`)), "a luz e os materiais non se ven neste grupo");
+
+    // Materiais e texturas.
+    await part("Materiais e texturas");
+    await app.waitFor(`document.querySelectorAll('.stack .mat').length === 2`, "os dous materiais", 15000);
+    const text = await app.panel();
+    c.ok(/Materiais[\s|]*2/i.test(text) && /Texturas/i.test(text), "materiais e texturas van xuntos", text.slice(0, 200));
+    c.ok(!/Exportar|Converter a/.test(text), "e ningún botón de exportar");
     // Illar un material desde a pestana mostra só ese no visor.
     await app.ev(`document.querySelectorAll('.stack .mat')[1].click()`);
     await app.sleep(300);
     c.ok(await app.ev(`document.querySelectorAll('.stack .mat')[1].classList.contains('on')`), "premer un material déixao marcado");
-    // A luz móvese co desprazador.
+
+    // A luz ten o seu grupo e móvese co desprazador.
+    await part("Luz");
+    await app.waitFor(`document.querySelector('.stack input[aria-label=Azimut]')`, "a luz");
     await app.slider("Azimut", 120);
     c.near(await app.ev(`Number([...document.querySelectorAll('.stack input[type=range]')].find(x=>x.getAttribute('aria-label')==='Azimut').value)`), 120, 0.1, "o desprazador da luz fica onde se puxo");
-    await fold("Luz");
-    c.ok(!(await app.ev(`!!document.querySelector('.stack input[aria-label=Azimut]')`)), "pregar a luz agocha os desprazadores");
-    await fold("Luz");
-    c.near(await app.ev(`Number([...document.querySelectorAll('.stack input[type=range]')].find(x=>x.getAttribute('aria-label')==='Azimut').value)`), 120, 0.1, "e ao despregala a luz segue onde estaba");
+    await part("Materiais e texturas");
+    await part("Luz");
+    c.near(await app.ev(`Number([...document.querySelectorAll('.stack input[type=range]')].find(x=>x.getAttribute('aria-label')==='Azimut').value)`), 120, 0.1, "ao volver á luz segue onde estaba");
 
     // Un ficheiro glTF con grupos dentro de grupos: A (a1, a2) e B (b1). Cada malla leva un triángulo.
     const tri = (x) => [x, 0, 0, x + 1, 0, 0, x, 1, 0];
@@ -86,6 +88,7 @@ f 4 1 5 8
     await app.open(path.join(dir, "escena.gltf"));
     await app.waitFor(`document.querySelector('.canvas canvas')`, "o visor 3D");
     await app.click("Escena");
+    await part("Obxectos e aspecto");
     await app.waitFor(`document.querySelectorAll('.stack .nodes li').length === 5`, "cinco obxectos na lista", 15000);
     const names = await app.ev(`[...document.querySelectorAll('.stack .nodes .nn')].map(x=>x.textContent.trim())`);
     c.ok(["Grupo_A", "a1", "a2", "Grupo_B", "b1"].every((n) => names.includes(n)), "a lista leva os nomes do ficheiro", names.join(","));
@@ -120,18 +123,34 @@ f 4 1 5 8
     await app.sleep(400);
     c.ok((await shown()) === 2 && (await states()) === "on,on,on,off,off", "ver só un grupo deixa as súas mallas", `${await shown()} ${await states()}`);
 
-    // Pregar un grupo quita as súas filas; o botón de ver todo devolve todo.
+    // Pregar un grupo quita as súas filas. Os botóns da barra alternan: só hai o que serve en cada momento.
+    c.ok(await app.ev(`!!document.querySelector('[title="Amosar todos os obxectos"]') && !document.querySelector('[title="Agochar todos os obxectos"]')`), "con obxectos agochados só hai o botón de amosar todos");
     await app.ev(`document.querySelector('[title="Amosar todos os obxectos"]').click()`);
     await app.sleep(300);
+    c.ok(await app.ev(`!!document.querySelector('[title="Agochar todos os obxectos"]') && !document.querySelector('[title="Amosar todos os obxectos"]')`), "co todo á vista só hai o botón de agochar todos");
     await click(0, "button.fold");
     await app.sleep(200);
     c.ok((await app.ev(`document.querySelectorAll('.stack .nodes li').length`)) === 3, "pregar un grupo agocha as súas filas");
+    await app.ev(`document.querySelector('[title="Pregar todos os grupos"]').click()`);
+    await app.sleep(200);
+    c.ok((await app.ev(`document.querySelectorAll('.stack .nodes li').length`)) === 2 && (await app.ev(`!document.querySelector('[title="Pregar todos os grupos"]') && !!document.querySelector('[title="Despregar todos os grupos"]')`)), "pregar todos deixa só os dous grupos e o botón pasa a despregar");
     await app.ev(`document.querySelector('[title="Despregar todos os grupos"]').click()`);
     await app.sleep(200);
     c.ok((await app.ev(`document.querySelectorAll('.stack .nodes li').length`)) === 5, "despregar todos devolve as filas");
+    c.ok(await app.ev(`!document.querySelector('[title="Ampliar a lista"]')`), "con poucas filas non hai botón de ampliar a lista (non hai desprazamento)");
+
+    // Con moitas filas a lista desprázase e aparece o botón de ampliala.
+    const many = { asset: { version: "2.0" }, scene: 0, scenes: [{ nodes: Array.from({ length: 30 }, (_, i) => i) }], nodes: Array.from({ length: 30 }, (_, i) => ({ name: `m${i + 1}`, mesh: 0 })), meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [acc(0)], bufferViews: [{ buffer: 0, byteLength: 108 }], buffers: [{ byteLength: 108, uri: `data:application/octet-stream;base64,${buf.toString("base64")}` }] };
+    fs.writeFileSync(path.join(dir, "moitos.gltf"), JSON.stringify(many));
+    await app.open(path.join(dir, "moitos.gltf"));
+    await app.waitFor(`document.querySelector('.canvas canvas')`, "o visor 3D");
+    await app.click("Escena");
+    await part("Obxectos e aspecto");
+    await app.waitFor(`document.querySelectorAll('.stack .nodes li').length === 30`, "trinta obxectos", 15000);
+    await app.waitFor(`document.querySelector('[title="Ampliar a lista"]')`, "o botón de ampliar a lista");
     await app.ev(`document.querySelector('[title="Ampliar a lista"]').click()`);
     await app.sleep(200);
-    c.ok(await app.ev(`document.querySelector('.stack .nodes').classList.contains('wide')`), "a lista pódese ampliar sen desprazamento");
+    c.ok(await app.ev(`document.querySelector('.stack .nodes').classList.contains('wide') && !!document.querySelector('[title="Limitar a altura da lista"]')`), "a lista pódese ampliar sen desprazamento e o botón pasa a limitar");
     if (process.env.TRASNO_SHOTS) await app.shot("escena.png");
   },
 };

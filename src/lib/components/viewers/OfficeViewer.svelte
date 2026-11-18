@@ -56,7 +56,7 @@
     </div>
   {:else if pdf}
     <div class="pdf"><PdfViewer file={pdf} /></div>
-    <p class="note" role="note">{$t("Vista previa convertida a PDF")}<InfoTip text={$t("Convirto o documento a PDF con Microsoft Office ou LibreOffice para amosalo; a maquetación pode variar un pouco.")} /></p>
+    <p class="note" role="note">{$t("Vista previa convertida a PDF")}<InfoTip text={$t("O documento convértese a PDF con Microsoft Office ou LibreOffice para amosalo; a maquetación pode variar un pouco.")} /></p>
   {/if}
 </div>
 

@@ -4,7 +4,7 @@
 //   2. O trasno fala en primeira persoa nas mensaxes, avisos e erros («Non puiden…», non «O trasno non puido…»).
 //      O historial de accións (noteAction) e a páxina «Sobre o trasno» están en terceira por deseño.
 //   3. «Subtítulos», nunca «lexendas».
-//   4. Unha «i» vai ao grano: máximo 140 caracteres.
+//   4. Unha «i» vai ao grano: máximo 140 caracteres, e é impersoal (nunca en primeira persoa).
 //   5. Nin «Personalizado» con texto, nin explicacións en hover (`title`) que repitan o botón.
 import fs from "node:fs";
 import path from "node:path";
@@ -13,6 +13,8 @@ import { fileURLToPath } from "node:url";
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const root = path.join(repo, "src");
 const MAX_INFO = 140;
+// Unha «i» é impersoal: nunca en primeira persoa («busco», «convirto», «só sei»…).
+const FIRST_PERSON = /\b(busco|convirto|quito|axusto|comento|teño|preparo|parto|detecto|deixo|gardo|descargo|fago|vexo|estou|podo|atopo|intento|calculo|escribo|ignoro|elimino|engado|recoñezo|miro|só sei|non sei|uso (unha|a|o|un))\b/i;
 
 const BANNED = [
   [/orixinal non se toca/i, "«o orixinal non se toca» sobreentendese: todo resultado é un ficheiro novo"],
@@ -78,12 +80,15 @@ for (const f of files.filter((x) => !x.endsWith(".rs"))) {
   const lines = s.split("\n");
   for (const m of s.matchAll(INFO_RE)) {
     const text = m[1] ?? m[2];
-    if (text.length > MAX_INFO) report(f, s.slice(0, m.index).split("\n").length - 1, `«i» de ${text.length} caracteres (máximo ${MAX_INFO}): «${text.slice(0, 50)}…»`);
+    const at = s.slice(0, m.index).split("\n").length - 1;
+    if (text.length > MAX_INFO) report(f, at, `«i» de ${text.length} caracteres (máximo ${MAX_INFO}): «${text.slice(0, 50)}…»`);
+    if (FIRST_PERSON.test(text)) report(f, at, `«i» en primeira persoa: «${text.slice(0, 50)}…»`);
   }
   if (f.endsWith("hints.ts")) {
     lines.forEach((l, i) => {
       const m = l.match(/^\s+"[^"]+":\s+"((?:[^"\\]|\\.)*)"/);
       if (m && m[1].length > MAX_INFO) report(f, i, `«i» de ${m[1].length} caracteres (máximo ${MAX_INFO}): «${m[1].slice(0, 50)}…»`);
+      if (m && FIRST_PERSON.test(m[1])) report(f, i, `«i» en primeira persoa: «${m[1].slice(0, 50)}…»`);
     });
   }
 }

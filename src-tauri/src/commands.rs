@@ -1048,6 +1048,12 @@ pub async fn stitch_images(inputs: Vec<String>, output: String, overwrite: bool,
     blocking(move || trasno_engine::stitch::stitch_images(&inputs, &PathBuf::from(output), overwrite, &options).map_err(to_err)).await
 }
 
+/// Corta unha imaxe en partes iguais dentro dunha zona e garda cada parte nun ficheiro novo.
+#[tauri::command]
+pub async fn slice_image(input: String, dir: String, stem: String, ext: String, options: trasno_engine::slice::SliceOptions) -> Result<trasno_engine::slice::SliceReport, String> {
+    blocking(move || trasno_engine::slice::slice_image(&PathBuf::from(input), &PathBuf::from(dir), &stem, &ext, &options).map_err(to_err)).await
+}
+
 /// Tamaño actual (como se ve, coa orientación aplicada) e tamaño que sairía con ese axuste, sen tocar nada.
 #[tauri::command]
 pub async fn resize_preview(input: String, fit: trasno_engine::resize::Fit) -> Result<((u32, u32), (u32, u32)), String> {

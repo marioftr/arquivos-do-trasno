@@ -471,6 +471,26 @@ export async function stitchImages(inputs: string[], output: string, options: St
   return call("stitch_images", { inputs, output, overwrite, options });
 }
 
+export interface SliceOptions {
+  /** Zona que se reparte (x, y, ancho, alto), en píxeles da imaxe tal como se ve. */
+  rect: [number, number, number, number];
+  cols: number;
+  rows: number;
+  by_columns: boolean;
+  quality: number | null;
+  background: [number, number, number];
+}
+export interface SliceReport {
+  outputs: string[];
+  piece: [number, number];
+  bytes_written: number;
+}
+
+/** Corta unha imaxe en partes iguais e garda cada unha como `stem-N.ext` en `dir` (nunca pisa un ficheiro). */
+export async function sliceImage(input: string, dir: string, stem: string, ext: string, options: SliceOptions): Promise<SliceReport> {
+  return call("slice_image", { input, dir, stem, ext, options });
+}
+
 export async function estimateImage(input: string, ext: string, quality: number, maxSide?: number, background?: [number, number, number]): Promise<number> {
   return call("estimate_image", { input, ext, quality, maxSide: maxSide ?? null, background: background ?? null });
 }

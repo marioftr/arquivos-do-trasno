@@ -133,7 +133,7 @@ ${errText(e)}`);
 
   <div class="group">
     <h4 class="group-title">{$t("Portada")}</h4>
-    <GroupNote text={$t("Acepto JPEG e PNG. Se escolles outro formato, como WebP ou BMP, convértoo a PNG.")} />
+    <GroupNote text={$t("Formatos admitidos: JPEG e PNG. Calquera outra imaxe (WebP, BMP…) convértese a PNG.")} />
     <div class="cover">
       {#if coverUrl}
         <img src={coverUrl} alt={$t("Portada")} draggable="false" />

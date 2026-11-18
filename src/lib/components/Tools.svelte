@@ -24,6 +24,7 @@
   import RestoreSection from "./tools/RestoreSection.svelte";
   import ResizeSection from "./tools/ResizeSection.svelte";
   import StitchSection from "./tools/StitchSection.svelte";
+  import SliceSection from "./tools/SliceSection.svelte";
   import TagsSection from "./tools/TagsSection.svelte";
   import SilenceSection from "./tools/SilenceSection.svelte";
   import ModelViewSection from "./tools/ModelViewSection.svelte";
@@ -71,7 +72,7 @@
     }
     switch (cat) {
       case "imaxe":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("resize", "Redimensionar"), tab("edit", "Editar"), tab("annotate", "Anotar"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("resize", "Redimensionar"), tab("slice", "Cortar en partes"), tab("annotate", "Anotar"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
         return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...(ext === "gif" ? [] : [tab("restore", "Restaurar")]), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
@@ -231,6 +232,8 @@
           <ResizeSection {selection} />
         {:else if current === "stitch" && category === "imaxe"}
           <StitchSection {selection} />
+        {:else if current === "slice" && category === "imaxe" && first}
+          <SliceSection file={first} />
         {:else if current === "compress" && category === "imaxe"}
           <CompressSection {selection} {category} />
         {:else if current === "edit" && first && SUBTITLE_EXTS.includes(first.ext)}

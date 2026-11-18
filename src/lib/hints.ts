@@ -4,7 +4,7 @@
 export const HINTS: Record<string, string> = {
   "Perfil de saída": "Axustes preparados para un uso concreto; despois podes afinalos.",
   "Relación de aspecto": "Forma da imaxe (4:3 case cadrada, 16:9 panorámica). «orixinal» respecta a do ficheiro.",
-  "Pesar menos de": "Tamaño máximo do resultado. Axusto a calidade para quedar por debaixo; con pouco espazo, a imaxe perde nitidez.",
+  "Pesar menos de": "Tamaño máximo do resultado. A calidade axústase para quedar por debaixo; con pouco espazo, a imaxe perde nitidez.",
   "Calidade": "Máis alto: máis detalle e máis peso. Por riba de 90 % case non se nota a diferenza.",
   "Lado máximo": "Reduce a imaxe se o seu lado maior pasa deste valor, mantendo a proporción. Baleiro: tamaño orixinal.",
   "Altura máxima": "Reduce o vídeo se é máis alto ca isto, mantendo a proporción. Nunca o amplía.",

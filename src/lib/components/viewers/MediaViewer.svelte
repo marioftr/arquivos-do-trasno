@@ -576,7 +576,7 @@
 
   const tick_ = () => new Promise((r) => setTimeout(r, 120));
   const WHY_PREVIEW =
-    "O visor é o dun navegador e só le uns poucos formatos (sobre todo MP4 e WebM): preparo unha copia temporal só para velo, coa mesma resolución. Ao exportar parto sempre do ficheiro orixinal.";
+    "O visor é o dun navegador e só le uns poucos formatos (sobre todo MP4 e WebM): prepárase unha copia temporal só para velo, coa mesma resolución. Ao exportar pártese sempre do ficheiro orixinal.";
   let preparing = false;
   let converted = false; // a vista previa non é o ficheiro orixinal (recodificada)
   let failMsg = "";

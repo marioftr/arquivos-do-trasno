@@ -372,6 +372,8 @@ export const trimRange = writable<{ start: number; end: number } | null>(null);
 
 /** Proporción fixa do recorte (ancho / alto) ou null para libre. */
 export const imageCropAspect = writable<number | null>(null);
+/** «Cortar en partes»: o recorte do visor móstrase dividido en columnas × filas, cada parte numerada. */
+export const imageSlice = writable<{ cols: number; rows: number; byColumns: boolean } | null>(null);
 
 // ----------------------------------------------------- lembrar a sesión
 

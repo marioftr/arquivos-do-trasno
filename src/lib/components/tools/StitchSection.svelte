@@ -3,7 +3,7 @@
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
   import type { FileEntry } from "../../files";
-  import { fileNameOf, formatBytes, TRASNO, fallo } from "../../formats";
+  import { fileNameOf, formatBytes, TRASNO, fallo, composeFormat, composeOptions } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
@@ -23,7 +23,7 @@
   export let selection: FileEntry[];
 
   const form = createForm(
-    { direction: "vertical", align: "narrowest", removeOverlap: true, gap: 0, background: "#ffffff", format: "png", quality: 90 },
+    { direction: "vertical", align: "narrowest", removeOverlap: true, gap: 0, background: "#ffffff", format: "same", quality: 90 },
     "xuntar-capturas",
     "xuntar|" + selection.map((f) => f.path).join("|"),
   );
@@ -44,11 +44,12 @@
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   };
   $: horizontal = v.direction === "horizontal";
-  $: lossy = v.format === "jpg" || v.format === "webp";
+  $: outExt = composeFormat(v.format, items.map((f) => f.ext));
+  $: lossy = outExt === "jpg";
 
   async function run() {
     const dir = items[0].path.replace(/[\\/][^\\/]*$/, "");
-    const out = await askPath(await join(dir, `${tr("capturas-xuntadas")}.${v.format}`));
+    const out = await askPath(await join(dir, `${tr("capturas-xuntadas")}.${outExt}`));
     if (!out) return;
     const inputs = items.map((f) => f.path);
     if (inputs.some((p) => samePath(p, out))) {
@@ -96,7 +97,7 @@
       ]}
       bind:value={$form.direction}
     />
-    <Toggle label={$t("Quitar o que se repite")} bind:checked={$form.removeOverlap} hint={$t("Busco onde cada captura continúa a anterior e quito a franxa repetida, incluídas as cabeceiras e os pés fixos.")} />
+    <Toggle label={$t("Capturas de desprazamento")} bind:checked={$form.removeOverlap} hint={$t("Para capturas dunha mesma páxina tomadas desprazando: únense sen repetir o tramo que comparten, cabeceiras e pés fixos incluídos.")} />
     <Segmented
       label={horizontal ? $t("Igualar o alto") : $t("Igualar o ancho")}
       info={$t("Se as capturas miden distinto, todas pasan ao tamaño da máis pequena ou da máis grande, sen deformalas.")}
@@ -107,17 +108,14 @@
       bind:value={$form.align}
     />
     <div class="pair">
-      <NumberField label={$t("Espazo entre capturas")} unit="px" min={0} bind:value={$form.gap} def={form.defaults.gap} hint={$t("Só onde non se solapan.")} />
+      <NumberField label={$t("Espazo entre capturas")} unit="px" min={0} bind:value={$form.gap} def={form.defaults.gap} hint={$t("Non se aplica onde as capturas se unen por solapamento.")} />
       <ColorField label={$t("Fondo")} bind:value={$form.background} />
     </div>
     <SelectField
       label={$t("Formato")}
       bind:value={$form.format}
-      options={[
-        { value: "png", label: "PNG" },
-        { value: "jpg", label: "JPG" },
-        { value: "webp", label: "WebP" },
-      ]}
+      options={composeOptions($t)}
+      hint={$t("Igual que o orixinal usa o formato das imaxes; se hai varios, ou non se pode gardar así, sae en PNG.")}
       def={form.defaults.format}
     />
     {#if lossy}

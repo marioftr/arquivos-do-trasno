@@ -36,12 +36,12 @@
 <style>
   .wrap { display: flex; flex-direction: column; gap: 0.2rem; }
   .lab { display: inline-flex; align-items: center; font-size: var(--fs-sm); color: var(--text-muted); }
-  .seg { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-md); height: var(--control-h); background: var(--bg-input); }
-  .seg.two { height: auto; }
+  /* Se as opcións non caben nunha fila, pasan á seguinte en vez de quedar cortadas. */
+  .seg { display: flex; flex-wrap: wrap; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-md); min-height: var(--control-h); background: var(--bg-input); }
   .seg.two button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; min-height: calc(var(--control-h) + 0.7rem); padding: 0.3em 0.5em; }
   small { font-size: var(--fs-xs); font-weight: 400; color: var(--text-faint); font-variant-numeric: tabular-nums; }
   button.on small { color: var(--text-muted); }
-  button { flex: 1; background: transparent; border: none; border-radius: var(--radius-sm); color: var(--text-muted); font-size: var(--fs-md); padding: 0 0.5em; white-space: nowrap; }
+  button { flex: 1 0 auto; min-height: calc(var(--control-h) - 6px); background: transparent; border: none; border-radius: var(--radius-sm); color: var(--text-muted); font-size: var(--fs-md); padding: 0 0.5em; white-space: nowrap; }
   button:hover { color: var(--text); background: var(--bg-hover); }
   button.on { background: var(--bg-hover); color: var(--text); font-weight: 600; box-shadow: 0 0 0 1px var(--border-strong); }
 </style>

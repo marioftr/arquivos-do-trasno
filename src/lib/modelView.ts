@@ -19,8 +19,8 @@ export interface SceneNode {
 export const modelHidden = writable<string[]>([]);
 /** Malla e cuadrícula do visor: móvense desde a pestana Escena. */
 export const modelOptions = writable({ wire: false, grid: true });
-/** Seccións da pestana Escena abertas e grupos da lista de obxectos pregados (para non perdelos ao cambiar de pestana). */
-export const modelFolds = writable<Record<string, boolean>>({ objects: true, look: true, materials: true, textures: false, light: false });
+/** Grupo da pestana Escena que está aberto e grupos da lista de obxectos pregados (para non perdelos ao cambiar de pestana). */
+export const modelPart = writable<"objects" | "materials" | "light">("objects");
 export const modelCollapsed = writable<string[]>([]);
 
 /** O obxecto e todo o que leva dentro. */

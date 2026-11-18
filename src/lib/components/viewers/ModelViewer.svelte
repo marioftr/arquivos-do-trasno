@@ -59,6 +59,11 @@
   $: ({ azimuth, elevation, intensity, ambient, showMarker } = $modelLight);
   $: ({ channel, isolated } = $modelShow);
 
+  let until = 0;
+  const invalidate = (ms = 120) => {
+    until = Math.max(until, performance.now() + ms);
+  };
+
   const overlays: THREE.Material[] = [];
   const clay = fallbackMaterial();
   const lineMat = new THREE.LineBasicMaterial({ color: 0xdcdce2 });
@@ -75,7 +80,7 @@
     scene.background = new THREE.Color(0x141417);
     camera = new THREE.PerspectiveCamera(45, 1, 0.01, 10000);
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     host.appendChild(renderer.domElement);
 
     hemi = new THREE.HemisphereLight(0xffffff, 0x404048, ambient);
@@ -88,7 +93,13 @@
     scene.add(gridHelper);
 
     controls = new OrbitControls(camera, renderer.domElement);
+    // Controis áxiles: pouca inercia, xiro e zoom máis vivos e zoom cara ao punteiro.
     controls.enableDamping = true;
+    controls.dampingFactor = 0.14;
+    controls.rotateSpeed = 1.15;
+    controls.zoomSpeed = 1.4;
+    controls.panSpeed = 1.2;
+    controls.zoomToCursor = true;
 
     const dom = renderer.domElement;
     dom.addEventListener("pointerdown", onDown);
@@ -98,10 +109,10 @@
     ro = new ResizeObserver(resize);
     ro.observe(host);
     resize();
+    // Só se debuxa cando algo cambia (a cámara, a luz, a vista...): en repouso a GPU non traballa.
     const tick = () => {
       raf = requestAnimationFrame(tick);
-      controls.update();
-      renderer.render(scene, camera);
+      if (controls.update() || performance.now() < until) renderer.render(scene, camera);
     };
     tick();
     ready = true;
@@ -120,7 +131,10 @@
   });
 
   $: if (ready) load(file, false);
-  $: if (ready) gridHelper.visible = grid;
+  $: if (ready) {
+    gridHelper.visible = grid;
+    invalidate();
+  }
   $: if (ready) {
     const light = $resolvedTheme === "light";
     scene.background = new THREE.Color(light ? 0xe4e5ea : 0x141417);
@@ -128,6 +142,7 @@
     mats[0]?.color.set(light ? 0xa9abb6 : 0x3a3a42);
     mats[1]?.color.set(light ? 0xc6c8d1 : 0x26262c);
     lineMat.color.set(light ? 0x1b1c22 : 0xdcdce2);
+    invalidate();
   }
   $: if (ready) applyView(channel, wireframe, isolated, $modelHidden);
   $: if (ready) updateLight(azimuth, elevation, intensity, ambient, showMarker, radius, center);
@@ -161,6 +176,7 @@
     marker.position.copy(c).addScaledVector(dir, r * 1.15);
     marker.scale.setScalar(Math.max(r * 0.05, 0.001));
     marker.visible = mark;
+    invalidate();
   }
 
   // ---- arrastrar a luz co rato ----
@@ -186,6 +202,7 @@
   }
 
   function onMove(e: PointerEvent) {
+    if (!dragging && !showMarker) return;
     const r = pointerRay(e);
     if (!dragging) {
       renderer.domElement.style.cursor = overMarker() ? "grab" : "";
@@ -226,6 +243,7 @@
   /** Aplica a canle (cor, normais...), a malla e o material illado. */
   function applyView(ch: string, wire: boolean, iso: number | null, hiddenIds: string[] = get(modelHidden)) {
     if (!model) return;
+    invalidate();
     const hidden = new Set(hiddenIds);
     overlays.forEach((m) => m.dispose());
     overlays.length = 0;
@@ -321,6 +339,7 @@
       if (!channels.some((c) => c.id === channel)) modelShow.update((v) => ({ ...v, channel: "full" }));
       if (isolated !== null && isolated >= report.length) modelShow.update((v) => ({ ...v, isolated: null }));
       applyView(channel, wireframe, isolated);
+      invalidate(4000); // as texturas poden chegar un chisco despois
       status = "";
       if (import.meta.env.DEV) (window as any).__trasnoWire = () => { let lines = 0, shown = 0; const on = (o: any) => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }; model?.traverse((o: any) => { if (o.isLineSegments && o.visible && o.layers.isEnabled(0)) lines += o.geometry.attributes.position.count / 2; if (o.isMesh && on(o) && o.layers.isEnabled(0)) shown++; }); return { lines, shown, tris: Math.round(tris) }; };
     } catch (e) {
@@ -364,6 +383,7 @@
     obj.position.set(-c.x, -box.min.y, -c.z);
     center = new THREE.Vector3(0, size.y / 2, 0);
     gridHelper.scale.setScalar(radius / 5);
+    invalidate();
     if (resetCamera) {
       camera.near = radius / 100;
       camera.far = radius * 100;
