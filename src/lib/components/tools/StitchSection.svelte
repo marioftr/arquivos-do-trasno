@@ -104,8 +104,8 @@
       label={horizontal ? $t("Igualar o alto") : $t("Igualar o ancho")}
       info={$t("Se as capturas miden distinto, todas pasan ao tamaño da máis pequena ou da máis grande, sen deformalas.")}
       options={[
-        { value: "narrowest", label: horizontal ? $t("Á máis baixa") : $t("Á máis estreita") },
-        { value: "widest", label: horizontal ? $t("Á máis alta") : $t("Á máis ancha") },
+        { value: "narrowest", label: horizontal ? $t("Á máis baixa") : $t("Á máis estreita"), glyph: { k: "match", to: "small", dir: horizontal ? "h" : "v" } },
+        { value: "widest", label: horizontal ? $t("Á máis alta") : $t("Á máis ancha"), glyph: { k: "match", to: "large", dir: horizontal ? "h" : "v" } },
       ]}
       bind:value={$form.align}
     />

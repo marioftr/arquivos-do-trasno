@@ -34,7 +34,7 @@
   // Tres plantillas de uso común (o nome é curto; debaixo vai o que fan) e «Personalizado».
   const PRESETS = [
     { id: "carrusel", label: "Carrusel", detail: "3 × 1 · 1:1", values: { cols: 3, rows: 1, shape: 1 }, glyph: { k: "grid", cols: 3, rows: 1, w: 1, h: 1 } },
-    { id: "vertical", label: "Vertical", detail: "3 × 1 · 4:5", values: { cols: 3, rows: 1, shape: 2 }, glyph: { k: "grid", cols: 3, rows: 1, w: 4, h: 5 } },
+    { id: "vertical", label: "Vertical", detail: "3 × 1 · 3:4", values: { cols: 3, rows: 1, shape: 3 }, glyph: { k: "grid", cols: 3, rows: 1, w: 3, h: 4 } },
     { id: "grella", label: "Cuadrícula", detail: "3 × 3 · 1:1", values: { cols: 3, rows: 3, shape: 1 }, glyph: { k: "grid", cols: 3, rows: 3, w: 1, h: 1 } },
   ] as const;
 

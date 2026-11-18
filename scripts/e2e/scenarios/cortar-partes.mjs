@@ -50,8 +50,8 @@ export default {
 
     // Outras plantillas cambian a zona no visor.
     await preset("Vertical");
-    await app.waitFor(`document.querySelector('.crop .size')?.textContent.includes('320 × 400')`, "partes de 4:5");
-    c.ok((await row("Zona")) === "960 × 400 px", "con 4:5 a zona encolle ata ter esa proporción", await row("Zona"));
+    await app.waitFor(`document.querySelector('.crop .size')?.textContent.includes('300 × 400')`, "partes de 3:4");
+    c.ok((await row("Zona")) === "900 × 400 px", "con 3:4 a zona encolle ata ter esa proporción", await row("Zona"));
     await preset("Cuadrícula");
     await app.waitFor(`document.querySelectorAll('.crop .part b').length === 9`, "nove partes");
     c.ok((await row("Cada parte")) === "133 × 133 px", "a cuadrícula 3×3 dá cadrados", await row("Cada parte"));

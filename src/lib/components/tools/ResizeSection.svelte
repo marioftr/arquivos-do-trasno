@@ -110,7 +110,7 @@
 
   // Tamaños con nome: cunha soa imaxe, o lado maior vale ese tamaño e o outro calcúlase; con varias, cada unha cabe nun cadro dese lado.
   $: sideLevels = SIDES.map((s) => {
-    const [w, h] = dims && linked ? fitBox(s.px, s.px) : [s.px, s.px];
+    const [w, h] = dims && !multi ? fitBox(s.px, s.px) : [s.px, s.px];
     return { id: s.id, label: $t(s.label), detail: `${s.px} px`, values: { width: w, height: h } };
   });
 
@@ -219,27 +219,24 @@
       {#if v.how === 0}
         <Slider label={$t("Porcentaxe")} unit="%" min={1} max={400} bind:value={$form.percent} def={form.defaults.percent} />
       {:else}
-        {#if v.lock}
-          <Levels label={$t("Tamaño")} info={$t("Pequeno, Mediano e Grande fixan o lado maior en 640, 1280 e 1920 px; a outra medida calcúlase pola proporción.")} levels={sideLevels} values={{ width: v.width ?? 0, height: v.height ?? 0 }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
-        {/if}
+        <Toggle label={$t("Manter proporción")} bind:checked={$form.lock} hint={multi ? $t("Cada imaxe cabe no cadro de ancho e alto sen deformarse. Sen isto, todas toman o tamaño exacto escrito.") : $t("Ao cambiar o ancho ou o alto, o outro axústase pola proporción da imaxe. Sen isto, cada un vale o que se escriba.")} />
+        <Levels label={$t("Tamaño")} info={$t("Pequeno, Mediano e Grande fixan o lado maior en 640, 1280 e 1920 px, tamén nas imaxes verticais; a outra medida calcúlase.")} levels={sideLevels} values={{ width: v.width ?? 0, height: v.height ?? 0 }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
         <div class="pair">
           <NumberField label={$t("Ancho")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} value={v.width} onInput={(r) => setSide("width", r)} />
           <NumberField label={$t("Alto")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} value={v.height} onInput={(r) => setSide("height", r)} />
         </div>
-        <Toggle label={$t("Manter proporción")} bind:checked={$form.lock} hint={multi ? $t("Cada imaxe cabe no cadro de ancho e alto sen deformarse. Sen isto, todas toman o tamaño exacto escrito.") : $t("O ancho e o alto axústanse un ao outro pola proporción da imaxe. Sen isto, a imaxe toma o tamaño exacto escrito.")} />
-        {#if v.lock}
-          <Toggle label={$t("Non ampliar as imaxes pequenas")} bind:checked={$form.noUpscale} hint={$t("As imaxes que xa caben no tamaño elixido quedan como están.")} />
-        {:else}
+        <Toggle label={$t("Non ampliar as imaxes pequenas")} bind:checked={$form.noUpscale} disabled={!v.lock} hint={$t("As imaxes que xa caben no tamaño elixido quedan como están. Só con proporción mantida.")} />
+        <div class="locked-tools" class:on={v.lock} inert={v.lock}>
           <Segmented
             label={$t("Se a proporción cambia")}
-            info={$t("Recortar polo centro enche o tamaño e corta o que sobra; Estirar deforma a imaxe para que encaixe.")}
+            info={$t("Recortar polo centro enche o tamaño e corta o que sobra; Estirar deforma a imaxe. Só sen proporción mantida.")}
             options={[
               { value: 0, label: $t("Recortar polo centro") },
               { value: 1, label: $t("Estirar") },
             ]}
             bind:value={$form.crop}
           />
-        {/if}
+        </div>
       {/if}
       {#if hasLossy}
         <Slider label={$t("Calidade (JPG, WebP…)")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("As imaxes con perdas vólvense gardar a esta calidade. O PNG non perde nada.")} />

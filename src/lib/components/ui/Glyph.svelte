@@ -7,7 +7,8 @@
     | { k: "order"; by: "rows" | "cols" } // numeración das partes
     | { k: "stack"; dir: "v" | "h" } // dúas pezas unha debaixo ou ao carón da outra
     | { k: "turn"; deg: number } // páxina xirada (a frecha marca a parte de arriba)
-    | { k: "swatch"; color: string }; // mostra de cor
+    | { k: "swatch"; color: string } // mostra de cor
+    | { k: "match"; to: "small" | "large"; dir: "v" | "h" }; // igualar o ancho (v) ou o alto (h) á peza máis pequena ou á máis grande
 </script>
 
 <script lang="ts">
@@ -28,6 +29,16 @@
 
   $: box = spec.k === "ratio" ? fit(spec.w / spec.h, 26, 22) : spec.k === "grid" ? fit((spec.cols * (spec.w ?? 1)) / (spec.rows * (spec.h ?? 1)), 32, 24) : { x: 0, y: 0, w: 0, h: 0 };
   $: cells = spec.k === "grid" ? { cw: box.w / spec.cols, ch: box.h / spec.rows } : { cw: 0, ch: 0 };
+  // Igualar medidas: dúas pezas de distinto ancho (ou alto) pasan á mesma; o contorno a trazos é o tamaño que tiña a que cambia.
+  $: match = spec.k === "match" ? matchRects(spec.to, spec.dir) : null;
+  function matchRects(to: "small" | "large", dir: "v" | "h") {
+    const A = dir === "v" ? 28 : 22; // a peza grande (medida de cruzamento)
+    const B = dir === "v" ? 18 : 12; // a pequena
+    const m = to === "small" ? B : A;
+    const at = (i: number, len: number) => (dir === "v" ? { x: (W - len) / 2, y: i ? 17 : 4, w: len, h: 9 } : { x: i ? 22 : 4, y: (H - len) / 2, w: 14, h: len });
+    const ghost = at(to === "small" ? 0 : 1, to === "small" ? A : B);
+    return { a: at(0, m), b: at(1, m), ghost };
+  }
   // Cadrícula de numeración: 3 columnas × 2 filas.
   const nums = (by: "rows" | "cols") => Array.from({ length: 6 }, (_, i) => {
     const c = by === "rows" ? i % 3 : Math.floor(i / 2);
@@ -73,6 +84,10 @@
       <rect x="12.5" y="4.5" width="15" height="21" rx="1.5" fill="currentColor" fill-opacity="0.14" />
       <polygon points="20,8.5 15.8,15.5 24.2,15.5" fill="currentColor" stroke-width="1" />
     </g>
+  {:else if spec.k === "match" && match}
+    <rect x={match.ghost.x} y={match.ghost.y} width={match.ghost.w} height={match.ghost.h} rx="1.5" stroke-dasharray="2.4 2" stroke-width="1.1" opacity="0.6" />
+    <rect x={match.a.x} y={match.a.y} width={match.a.w} height={match.a.h} rx="1.5" fill="currentColor" fill-opacity="0.14" />
+    <rect x={match.b.x} y={match.b.y} width={match.b.w} height={match.b.h} rx="1.5" fill="currentColor" fill-opacity="0.14" />
   {:else if spec.k === "swatch"}
     <rect x="11" y="5" width="18" height="20" rx="3" fill={spec.color} stroke="var(--border-strong)" stroke-width="1.2" />
   {/if}

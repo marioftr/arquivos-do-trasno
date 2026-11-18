@@ -63,12 +63,13 @@ export default {
     c.ok(!(await levelNames()), "co modo de porcentaxe non hai tamaños con nome");
     await app.click("Píxeles");
     // Sen manter a proporción é un tamaño exacto, e aí pregúntase que facer.
-    c.ok(!/Recortar polo centro/.test(await app.panel()), "coa proporción mantida non se pregunta que facer con ela");
+    c.ok(await app.ev(`!!document.querySelector('.stack .locked-tools.on [role=radiogroup][aria-label="Se a proporción cambia"]')`), "coa proporción mantida «Se a proporción cambia» queda apagado, non agochado");
     await app.toggle("Manter proporción");
     await num("Ancho", 300);
     await num("Alto", 300);
     await app.waitFor(`/→ 300 × 300/.test(document.querySelector('.stack .results li')?.innerText||'')`, "300 × 300 exacto");
-    c.ok(!(await levelNames()), "sen manter a proporción non hai tamaños con nome");
+    c.ok((await levelNames()) === "Pequeno,Mediano,Grande,Personalizado", "sen manter a proporción nada desaparece: os tamaños con nome seguen aí");
+    c.ok(await app.ev(`[...document.querySelectorAll('.stack .toggle')].find(x=>x.querySelector('.lab')?.textContent.trim()==='Non ampliar as imaxes pequenas')?.querySelector('input').disabled`), "e «Non ampliar» queda apagado, non agochado");
     c.ok(/Recortar polo centro/.test(await app.panel()) && /Estirar/.test(await app.panel()), "o tamaño exacto pregunta: recortar polo centro ou estirar");
     // Un valor imposible non deixa continuar.
     await num("Ancho", 0);
@@ -90,6 +91,25 @@ export default {
     c.ok(sha(a) === hashes[0], "o orixinal queda igual, byte a byte");
     await app.waitFor(`/Listo/.test(document.body.innerText)`, "a mensaxe de remate", 5000).catch(() => {});
     c.ok(/640×100 px/.test(await app.ev(`document.body.innerText`)), "e o trasno di que tamaño quedou");
+
+    // ---- imaxe vertical: «Grande» fixa o lado maior (o alto) e o ancho calcúlase
+    const made = await app.ev(`(()=>{const k=document.createElement('canvas'); k.width=300; k.height=600; const g=k.getContext('2d'); g.fillStyle='#14b414'; g.fillRect(0,0,300,600); return k.toDataURL('image/png').split(',')[1];})()`);
+    const tall = path.join(app.media, "alta.png");
+    fs.writeFileSync(tall, Buffer.from(made, "base64"));
+    await app.open(tall);
+    await pick([]);
+    await app.click("Redimensionar");
+    await app.waitFor(`/300 × 600/.test(document.querySelector('.stack .results li')?.innerText||'')`, "a imaxe vertical");
+    await app.toggle("Non ampliar as imaxes pequenas");
+    await level("Grande");
+    await app.waitFor(`/→ 960 × 1920/.test(document.querySelector('.stack .results li')?.innerText||'')`, "960 × 1920");
+    c.ok((await field("Ancho")) === "960" && (await field("Alto")) === "1920", "nunha imaxe vertical o lado maior é o alto e o ancho calcúlase", `${await field("Ancho")} × ${await field("Alto")}`);
+    await level("Pequeno");
+    await app.waitFor(`/→ 320 × 640/.test(document.querySelector('.stack .results li')?.innerText||'')`, "320 × 640");
+    c.ok((await field("Ancho")) === "320" && (await field("Alto")) === "640", "«Pequeno» nunha vertical: 320 × 640", `${await field("Ancho")} × ${await field("Alto")}`);
+    await num("Alto", 1000);
+    await app.sleep(400);
+    c.ok((await field("Ancho")) === "500", "e cambiar o alto cambia o ancho no campo", await field("Ancho"));
 
     // ---- varias: o lote
     await app.open(b);

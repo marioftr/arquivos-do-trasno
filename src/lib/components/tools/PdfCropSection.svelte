@@ -60,7 +60,7 @@
     <h4 class="group-title">{$t("Márxenes que se quitan")}</h4>
     <GroupNote text={$t("As zonas escuras do visor son o que se vai cortar.")} />
     <Toggle label={$t("Os catro márxenes iguais")} bind:checked={$form.same} />
-    <Slider label={$t("Esquerda")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.left} def={0} />
+    <Slider label={f.same ? $t("Todos os lados") : $t("Esquerda")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.left} def={0} />
     {#if !f.same}
       <Slider label={$t("Dereita")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.right} def={0} />
       <Slider label={$t("Arriba")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.top} def={0} />

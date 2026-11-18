@@ -1914,7 +1914,6 @@
   "Medida": "Measure",
   "As imaxes que xa caben no tamaño elixido quedan como están.": "Images that already fit the chosen size are left as they are.",
   "Se a proporción cambia": "If the proportions change",
-  "Recortar polo centro enche o tamaño e corta o que sobra; Estirar deforma a imaxe para que encaixe.": "Crop from the center fills the size and cuts off the excess; Stretch distorts the image to fit.",
   "Estirar": "Stretch",
   "O máximo son 100 partes: baixa as columnas ou as filas.": "The maximum is 100 parts: lower the columns or rows.",
   "Cada parte sairía de menos dun píxel: amplía a zona ou fai menos partes.": "Each part would be under one pixel: enlarge the area or make fewer parts.",
@@ -1958,9 +1957,7 @@
   "Mediano": "Medium",
   "Píxeles": "Pixels",
   "Porcentaxe escala todas por igual; Píxeles fixa o ancho e o alto.": "Percentage scales all of them equally; Pixels sets the width and height.",
-  "Pequeno, Mediano e Grande fixan o lado maior en 640, 1280 e 1920 px; a outra medida calcúlase pola proporción.": "Small, Medium and Large set the longest side to 640, 1280 and 1920 px; the other side follows the proportion.",
   "Cada imaxe cabe no cadro de ancho e alto sen deformarse. Sen isto, todas toman o tamaño exacto escrito.": "Each image fits inside the width and height box without distortion. Without this, all take the exact size typed.",
-  "O ancho e o alto axústanse un ao outro pola proporción da imaxe. Sen isto, a imaxe toma o tamaño exacto escrito.": "Width and height follow each other by the image's proportion. Without this, the image takes the exact size typed.",
   "Visor": "Viewer",
   "Apariencia": "Appearance",
   "Visualización": "Display",
@@ -1969,5 +1966,10 @@
   "Con formatos distintos non hai «Igual que o orixinal»; por defecto sae PNG, que non perde calidade.": "With mixed formats there is no «Same as the original»; PNG is the default and loses no quality.",
   "Esta imaxe non se pode gardar no seu formato, así que non hai «Igual que o orixinal». PNG non perde calidade.": "This image cannot be saved in its own format, so there is no «Same as the original». PNG loses no quality.",
   "Carrusel": "Carousel",
-  "píxeles": "pixels"
+  "píxeles": "pixels",
+  "Todos os lados": "All sides",
+  "Ao cambiar o ancho ou o alto, o outro axústase pola proporción da imaxe. Sen isto, cada un vale o que se escriba.": "Changing the width or height adjusts the other by the image's proportion. Without this, each keeps what is typed.",
+  "Pequeno, Mediano e Grande fixan o lado maior en 640, 1280 e 1920 px, tamén nas imaxes verticais; a outra medida calcúlase.": "Small, Medium and Large set the longest side to 640, 1280 and 1920 px, in portrait images too; the other side is calculated.",
+  "As imaxes que xa caben no tamaño elixido quedan como están. Só con proporción mantida.": "Images that already fit the chosen size stay as they are. Only with the proportion kept.",
+  "Recortar polo centro enche o tamaño e corta o que sobra; Estirar deforma a imaxe. Só sen proporción mantida.": "Crop from the centre fills the size and cuts the excess; Stretch distorts the image. Only without the proportion kept."
 }
