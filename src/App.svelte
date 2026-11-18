@@ -30,6 +30,7 @@
   import ActionList from "./lib/components/ui/ActionList.svelte";
   import AlertMark from "./lib/components/ui/AlertMark.svelte";
   import Splitter from "./lib/components/ui/Splitter.svelte";
+  import Tooltips from "./lib/components/ui/Tooltips.svelte";
   import CommandPalette from "./lib/components/CommandPalette.svelte";
 
   let dragging = false;
@@ -374,6 +375,7 @@
   </div>
 
   <!-- O que di o trasno (resultados, avisos, erros) lese en voz alta aos lectores de pantalla; os comentarios de compañía non. -->
+  <Tooltips />
   <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{#if $bubble && $bubble.kind === "info" && !$bubble.quiet}{$t($bubble.text)}{/if}</div>
   <div class="sr-only" role="alert" aria-live="assertive" aria-atomic="true">{#if $bubble?.kind === "warn"}{$t($bubble.text)}{/if}</div>
 

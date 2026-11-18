@@ -21,7 +21,10 @@
   $: tip = hint || (label && HINTS[label] ? $t(HINTS[label]) : "");
   $: span = max - min;
   $: pct = span > 0 ? ((Math.min(Math.max(value, min), max) - min) / span) * 100 : 0;
-  $: changed = def !== undefined && value !== def;
+  $: changedNow = def !== undefined && value !== def;
+  // Arrastrando, o botón de restaurar non vai e ven: aparece ou desaparece cando se solta.
+  let changed = false;
+  $: if (!$sliderDragging) changed = changedNow;
 
   function typed(e: Event) {
     const v = Number((e.currentTarget as HTMLInputElement).value);

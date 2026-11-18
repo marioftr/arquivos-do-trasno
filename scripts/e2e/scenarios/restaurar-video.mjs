@@ -28,14 +28,46 @@ export default {
 
     const level = (group, text) => app.ev(`[...document.querySelector('.stack [role=radiogroup][aria-label=${JSON.stringify(group)}]').querySelectorAll('button')].find(b=>b.textContent.trim().split('\\n')[0]===${JSON.stringify(text)}).click()`);
 
-    // ---- cor en directo no visor
+    // ---- cor en directo no visor (filtro que imita o do motor) e sen fotograma preparado: non hai salto ao desmarcar «Ver o orixinal»
     await app.slider("Brillo", 0.3);
     await app.sleep(300);
     const filter = await app.ev(`document.querySelector('video')?.style.filter || ''`);
-    c.ok(/brightness\(1\.6/.test(filter), "o visor aplica o brillo en directo", filter);
+    const values = await app.ev(`document.querySelector('#trasno-look feColorMatrix')?.getAttribute('values') || ''`);
+    c.ok(/trasno-look/.test(filter) && /0\.349/.test(values), "o visor aplica o brillo en directo", `${filter} ${values.slice(-24)}`);
+    // O botón de restaurar de cada axuste leva a súa etiqueta ao pasar o rato.
+    await app.ev(`document.querySelector('.stack .reset').dispatchEvent(new PointerEvent('pointerover',{bubbles:true}))`);
+    await app.waitFor(`document.querySelector('.tt[role=tooltip]')`, "a etiqueta do botón de restaurar", 3000);
+    c.ok(/Restaurar o valor por defecto \(0\)/.test(await app.ev(`document.querySelector('.tt[role=tooltip]').textContent`)), "a etiqueta di o valor por defecto");
+    await app.ev(`document.body.dispatchEvent(new PointerEvent('pointerover',{bubbles:true}))`);
+    await app.sleep(1200);
+    c.ok(!(await app.ev(`!!document.querySelector('img.still')`)), "só con cor non hai fotograma preparado que substitúa o vídeo");
+    await app.toggle("Ver o orixinal");
+    await app.sleep(300);
+    c.ok(!(await app.ev(`document.querySelector('video')?.style.filter || ''`)), "«Ver o orixinal» quita a cor");
+    await app.toggle("Ver o orixinal");
+    await app.sleep(1200);
+    c.ok(/trasno-look/.test(await app.ev(`document.querySelector('video')?.style.filter || ''`)) && !(await app.ev(`!!document.querySelector('img.still')`)), "ao volver, a cor está no vídeo ao momento e nada máis cambia");
     await app.slider("Brillo", 0);
     await app.sleep(300);
     c.ok(!(await app.ev(`document.querySelector('video')?.style.filter || ''`)), "sen cor cambiada o visor queda limpo");
+
+    // ---- arrastrar un desprazador: os botóns de arriba e «Restaurar» non pestanexan e deciden ao soltar
+    const state = () => app.ev(`[!document.querySelectorAll('header .bar button')[2].disabled, [...document.querySelectorAll('.stack .btn')].some(b=>/^Restaurar$/.test(b.textContent)&&!b.disabled)].join()`);
+    const idle = await state();
+    await app.ev(`(()=>{const i=[...document.querySelectorAll('.stack input[type=range]')].find(x=>x.getAttribute('aria-label')==='Brillo'); i.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));})()`);
+    const seen = new Set();
+    for (const v of [0.1, 0, -0.1, 0, 0.2]) {
+      // Só `input` (sen `change`): o que pasa mentres o rato segue premido.
+      await app.ev(`(()=>{const i=[...document.querySelectorAll('.stack input[type=range]')].find(x=>x.getAttribute('aria-label')==='Brillo'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,String(${v})); i.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+      await app.sleep(60);
+      seen.add(await state());
+    }
+    c.ok(seen.size === 1 && seen.has(idle), "arrastrando, os botóns non cambian de estado", [...seen].join(" | "));
+    await app.ev(`window.dispatchEvent(new PointerEvent('pointerup'))`);
+    await app.sleep(300);
+    c.ok((await state()) !== idle, "ao soltar, os botóns miran o valor final", await state());
+    await app.slider("Brillo", 0);
+    await app.sleep(300);
 
     // ---- o visor amosa o resultado sen botóns: ao activar un axuste de imaxe sae o fotograma procesado
     c.ok(!(await app.ev(`!!document.querySelector('img.still')`)), "sen axustes de imaxe o visor amosa o vídeo tal cal");
@@ -59,6 +91,8 @@ export default {
     // ---- os botóns de arriba (desfacer, refacer, restablecer) sobreviven ao cambiar de pestana
     await level("Nitidez", "Forte");
     await app.sleep(700);
+    const lastLog = await app.ev(`document.body.innerText`);
+    c.ok(/O trasno [^\n]*en «treme\.mp4» \(Restaurar\)/.test(lastLog), "o historial di en que ficheiro e menú se fixo o cambio", lastLog.split("\n").filter((l) => /O trasno/.test(l)).slice(0, 2).join(" / "));
     const bar = () => app.ev(`[...document.querySelectorAll('header .bar button')].map(b=>!b.disabled)`);
     c.ok(JSON.stringify(await bar()) === "[true,false,true]", "con axustes cambiados: desfacer e restablecer activos", JSON.stringify(await bar()));
     await app.click("Información");

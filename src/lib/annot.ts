@@ -3,7 +3,7 @@
 
 import { writable, get } from "svelte/store";
 import { tr } from "./i18n";
-import { noteAction } from "./agent";
+import { noteHere } from "./agent";
 import { cssFamily } from "./fonts";
 
 export type Tool = "select" | "pen" | "highlight" | "line" | "arrow" | "rect" | "ellipse" | "text" | "eraser";
@@ -137,19 +137,19 @@ function narrate(before: Shape[], after: Shape[]) {
   const a = new Map(after.map((s) => [s.id, s]));
   const added = after.filter((s) => !b.has(s.id));
   const removed = before.filter((s) => !a.has(s.id));
-  if (added.length === 1 && !removed.length) return noteAction("O trasno debuxou {what}", { what: tr(NOUN[added[0].type]) }, undo);
-  if (!after.length && removed.length > 1) return noteAction("O trasno borrou todas as anotacións", undefined, undo);
-  if (removed.length === 1 && !added.length) return noteAction("O trasno borrou {what}", { what: tr(NOUN[removed[0].type]) }, undo);
-  if (removed.length > 1) return noteAction("O trasno borrou {n} anotacións", { n: removed.length }, undo);
+  if (added.length === 1 && !removed.length) return noteHere("O trasno debuxou {what}", { what: tr(NOUN[added[0].type]) }, undo);
+  if (!after.length && removed.length > 1) return noteHere("O trasno borrou todas as anotacións", undefined, undo);
+  if (removed.length === 1 && !added.length) return noteHere("O trasno borrou {what}", { what: tr(NOUN[removed[0].type]) }, undo);
+  if (removed.length > 1) return noteHere("O trasno borrou {n} anotacións", { n: removed.length }, undo);
   for (const s of after) {
     const o = b.get(s.id);
     if (!o) continue;
     const what = tr(NOUN[s.type]);
-    if ((o.angle ?? 0) !== (s.angle ?? 0)) return noteAction("O trasno xirou {what}", { what }, undo);
-    if (s.type === "text" && o.text !== s.text) return noteAction("O trasno editou o texto", undefined, undo);
-    if (o.size !== s.size || o.width !== s.width) return noteAction("O trasno cambiou o tamaño de {what}", { what }, undo);
-    if (o.color !== s.color || o.fill !== s.fill || o.fillColor !== s.fillColor || o.family !== s.family || o.bold !== s.bold || o.italic !== s.italic) return noteAction("O trasno cambiou o aspecto de {what}", { what }, undo);
-    if (JSON.stringify(o) !== JSON.stringify(s)) return noteAction("O trasno moveu {what}", { what }, undo);
+    if ((o.angle ?? 0) !== (s.angle ?? 0)) return noteHere("O trasno xirou {what}", { what }, undo);
+    if (s.type === "text" && o.text !== s.text) return noteHere("O trasno editou o texto", undefined, undo);
+    if (o.size !== s.size || o.width !== s.width) return noteHere("O trasno cambiou o tamaño de {what}", { what }, undo);
+    if (o.color !== s.color || o.fill !== s.fill || o.fillColor !== s.fillColor || o.family !== s.family || o.bold !== s.bold || o.italic !== s.italic) return noteHere("O trasno cambiou o aspecto de {what}", { what }, undo);
+    if (JSON.stringify(o) !== JSON.stringify(s)) return noteHere("O trasno moveu {what}", { what }, undo);
   }
 }
 
@@ -182,7 +182,7 @@ export function undo() {
   shapes.set(prev);
   selected.set(null);
   sync();
-  noteAction("O trasno desfixo o último cambio das anotacións", undefined, () => restoreShapesFor(path, cur));
+  noteHere("O trasno desfixo o último cambio das anotacións", undefined, () => restoreShapesFor(path, cur));
 }
 export function redo() {
   flushLive();
@@ -194,7 +194,7 @@ export function redo() {
   shapes.set(nxt);
   selected.set(null);
   sync();
-  noteAction("O trasno refixo o cambio das anotacións", undefined, () => restoreShapesFor(path, cur));
+  noteHere("O trasno refixo o cambio das anotacións", undefined, () => restoreShapesFor(path, cur));
 }
 /** Borra só o debuxado polo usuario (a imaxe non se toca). Pódese desfacer. */
 export function clearAll() {

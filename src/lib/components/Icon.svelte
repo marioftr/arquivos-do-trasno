@@ -259,6 +259,20 @@
     <circle cx="9" cy="7" r="1.6" />
     <circle cx="15" cy="12" r="1.6" />
     <circle cx="8" cy="17" r="1.6" />
+  {:else if name === "eye"}
+    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  {:else if name === "eye-off"}
+    <path d="M10.6 5.1A10.5 10.5 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1" />
+    <path d="M6.3 6.4C3.6 8.2 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    <line x1="3" y1="3" x2="21" y2="21" />
+  {:else if name === "focus"}
+    <circle cx="12" cy="12" r="3.2" />
+    <path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9" />
+    <path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9" />
+    <path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15" />
+    <path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" />
   {:else if name === "copy"}
     <rect x="9" y="9" width="12" height="12" rx="2" />
     <path d="M5 15V5a2 2 0 0 1 2-2h10" />

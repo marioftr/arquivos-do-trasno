@@ -2,8 +2,9 @@
 // valores por defecto (restaurar un campo ou todos). Os campos úsanse con
 // `bind:value={$form.campo}`; Ctrl+Z / Ctrl+Y actúan sobre o formulario activo.
 
-import { describeForm, noteAction } from "./agent";
+import { describeForm, noteHere } from "./agent";
 import { writable, get, type Readable, type Writable } from "svelte/store";
+import { sliderDragging } from "./components/ui/drag";
 
 export interface Form<T extends Record<string, any>> extends Writable<T> {
   defaults: T;
@@ -16,9 +17,15 @@ export interface Form<T extends Record<string, any>> extends Writable<T> {
   canUndo: Readable<boolean>;
   canRedo: Readable<boolean>;
   dirty: Readable<boolean>;
+  /** Pon ao día os botóns de arriba (despois de arrastrar un desprazador). */
+  refresh: () => void;
 }
 
 export const activeForm = writable<Form<any> | null>(null);
+// Os botóns de arriba só miran o valor cando se solta o desprazador: arrastrando non pestanexan ao pasar polo valor por defecto.
+sliderDragging.subscribe((on) => {
+  if (!on) get(activeForm)?.refresh();
+});
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -81,7 +88,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
   const sync = () => {
     canUndo.set(past.length > 0 || burstStart !== null);
     canRedo.set(future.length > 0);
-    dirty.set(!same(last, defaults));
+    if (!get(sliderDragging)) dirty.set(!same(last, defaults));
   };
 
   /** Cada rolda de cambios seguidos (p. ex. arrastrar un slider) é un só paso. */
@@ -133,7 +140,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
       future.push({ ...last });
       apply(prev);
       sync();
-      noteAction("O trasno desfixo o último cambio dos axustes", undefined, () => form.restore(snap));
+      noteHere("O trasno desfixo o último cambio dos axustes", undefined, () => form.restore(snap));
     },
     redo() {
       flush();
@@ -143,7 +150,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
       past.push({ ...last });
       apply(next);
       sync();
-      noteAction("O trasno refixo o cambio dos axustes", undefined, () => form.restore(snap));
+      noteHere("O trasno refixo o cambio dos axustes", undefined, () => form.restore(snap));
     },
     restore(v) {
       flush();
@@ -160,11 +167,12 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
       future.length = 0;
       apply({ ...defaults });
       sync();
-      noteAction("O trasno restableceu os axustes", undefined, () => form.restore(snap));
+      noteHere("O trasno restableceu os axustes", undefined, () => form.restore(snap));
     },
     canUndo,
     canRedo,
     dirty,
+    refresh: () => dirty.set(!same(last, defaults)),
   };
   sync(); // ao volver a unha pestana, os botóns de arriba reflicten o que xa había
   return form;

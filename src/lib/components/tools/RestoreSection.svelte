@@ -10,6 +10,7 @@
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
+  import { sliderDragging } from "../ui/drag";
   import Slider from "../ui/Slider.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
@@ -37,11 +38,15 @@
 
   const planOf = (f: typeof $form): engine.RestorePlan => ({ ...f });
   $: color = $form.brightness !== 0 || $form.contrast !== 1 || $form.saturation !== 1;
-  $: frameEffects = $form.denoise > 0 || $form.sharpen > 0 || $form.deinterlace || $form.deflicker || color;
-  $: changed = frameEffects || $form.stabilize > 0;
+  // Só o que cambia a imaxe cadro a cadro (non a cor, que o visor aplica en directo) pide un fotograma preparado polo motor.
+  $: frameEffects = $form.denoise > 0 || $form.sharpen > 0 || $form.deinterlace || $form.deflicker;
+  $: changedNow = frameEffects || color || $form.stabilize > 0;
+  // Mentres se arrastra un desprazador o botón non pestanexa: mira o valor cando se solta.
+  let changed = false;
+  $: if (!$sliderDragging) changed = changedNow;
 
-  // O visor amosa o resultado en directo: a cor aplícase ao vídeo (aproximada) e o resto nun fotograma que se prepara co motor para o
-  // instante en que está parado. «Ver o orixinal» devolve o vídeo sen axustes para comparar.
+  // O visor amosa o resultado en directo: a cor aplícase ao vídeo cun filtro que imita o do motor e o resto nun fotograma que se prepara
+  // co motor para o instante en que está parado. «Ver o orixinal» devolve o vídeo sen axustes para comparar.
   const ownLook = claim("mediaLook");
   const ownStill = claim("mediaStill");
   let original = false;

@@ -41,10 +41,21 @@ export const sessionStart = Date.now();
 export const jobEnd = writable<{ kind: "done" | "cancelled" | "error"; title: string; at: number } | null>(null);
 /** Últimas accións, a máis recente primeiro. Sempre en terceira persoa: o programa conta o que fixo o trasno. */
 export const actions = writable<Action[]>([]);
-export function noteAction(gl: string, vars?: Record<string, string | number>, undo?: () => void, copy?: string, outputs?: string[]) {
-  const text = tr(gl, vars);
+/** Ficheiro e menú que hai á vista: os cambios de axustes e anotacións cóntanse con eles («en «foto.png» (Editar)»). */
+export const where = writable<{ file: string; menu: string }>({ file: "", menu: "" });
+export function noteAction(gl: string, vars?: Record<string, string | number>, undo?: () => void, copy?: string, outputs?: string[], here = false) {
+  let text = tr(gl, vars);
+  if (here) {
+    const w = get(where);
+    if (w.file && w.menu) text += ` ${tr("en «{file}» ({menu})", w)}`;
+    else if (w.file) text += ` ${tr("en «{file}»", w)}`;
+    else if (w.menu) text += ` ${tr("en {menu}", w)}`;
+  }
   actions.update((l) => (l[0]?.text === text && Date.now() - l[0].at < 4000 ? [{ text, at: Date.now(), undo: l[0].undo ?? undo, copy: copy ?? l[0].copy, outputs: outputs ?? l[0].outputs }, ...l.slice(1)] : [{ text, at: Date.now(), undo, copy, outputs }, ...l].slice(0, 300)));
 }
+
+/** Un cambio feito no ficheiro e menú que hai á vista. */
+export const noteHere = (gl: string, vars?: Record<string, string | number>, undo?: () => void) => noteAction(gl, vars, undo, undefined, undefined, true);
 
 /** Número de cambios que se desfán ao premer a acción `idx` (0 é a máis recente): ela e todas as posteriores. */
 export const revertCount = (list: Action[], idx: number) => list.slice(0, idx + 1).filter((a) => a.undo).length;
@@ -275,11 +286,11 @@ export function describeForm(before: Record<string, any>, after: Record<string, 
     if (v === "" || v === null || v === undefined || typeof v === "object") continue;
     seen.add(LABEL[k]);
     const what = tr(LABEL[k]);
-    if (typeof v === "boolean") noteAction(v ? "O trasno activou {what}" : "O trasno desactivou {what}", { what }, restore);
-    else if (typeof v === "number" || RAW_VALUE.has(k)) noteAction("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" ? String(v).toUpperCase() : String(v) }, restore);
-    else if (VALUE_LABEL[k]?.[v]) noteAction("O trasno cambiou {what} a {value}", { what, value: tr(VALUE_LABEL[k][v]) }, restore);
-    else noteAction("O trasno cambiou {what}", { what }, restore);
+    if (typeof v === "boolean") noteHere(v ? "O trasno activou {what}" : "O trasno desactivou {what}", { what }, restore);
+    else if (typeof v === "number" || RAW_VALUE.has(k)) noteHere("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" ? String(v).toUpperCase() : String(v) }, restore);
+    else if (VALUE_LABEL[k]?.[v]) noteHere("O trasno cambiou {what} a {value}", { what, value: tr(VALUE_LABEL[k][v]) }, restore);
+    else noteHere("O trasno cambiou {what}", { what }, restore);
     if (seen.size >= 2) break;
   }
-  if (!seen.size && Object.keys(after).some((k) => before[k] !== after[k])) noteAction("O trasno cambiou un axuste", undefined, restore);
+  if (!seen.size && Object.keys(after).some((k) => before[k] !== after[k])) noteHere("O trasno cambiou un axuste", undefined, restore);
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { lookMatrix } from "../../look";
   import { onDestroy } from "svelte";
   import { formatClock } from "../../formats";
   import { viewUrl, mediaPreview, mediaAux, mediaLook, mediaStill, mediaSeek, mediaTime, trimRange, type FileEntry, type MediaPreview, videoDar } from "../../files";
@@ -207,8 +208,9 @@
     const y1 = Math.floor((sy + (sh + h) / 2) * sd + e);
     return `position:absolute;flex:none;object-fit:${darNum ? "fill" : "contain"};left:${x0 / sd - sx}px;top:${y0 / sd - sy}px;width:${(x1 - x0) / sd}px;height:${(y1 - y0) / sd}px;`;
   })();
-  // Cor en directo (ferramenta Restaurar): CSS aproximado do que fará FFmpeg (brillo, contraste e saturación).
-  $: look = $mediaLook ? `filter:brightness(${(1 + 2 * $mediaLook.brightness).toFixed(3)}) contrast(${$mediaLook.contrast}) saturate(${$mediaLook.saturation});` : "";
+  // Cor en directo (ferramenta Restaurar): un filtro SVG que imita o `eq` de FFmpeg (brillo, contraste e saturación).
+  $: look = $mediaLook ? "filter:url(#trasno-look);" : "";
+  $: lookValues = $mediaLook ? lookMatrix($mediaLook.brightness, $mediaLook.contrast, $mediaLook.saturation) : "";
   function fullscreen() {
     if (document.fullscreenElement) document.exitFullscreen();
     else stage?.requestFullscreen?.();
@@ -713,6 +715,7 @@
     <div class="vrow" class:fs class:idle={fs && idle} style={fs ? `--bar-h:${barH}px` : ""} bind:this={stage} on:mousemove={wake} on:pointerdown={wake}>
       <div class="vid">
         <div class="screen" use:size>
+          <svg class="lookdef" width="0" height="0" aria-hidden="true"><filter id="trasno-look" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values={lookValues || "1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0"} /></filter></svg>
           <!-- svelte-ignore a11y_media_has_caption, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
           <video bind:this={el} crossorigin="anonymous" style={vstyle + look} src={url} on:click={toggle} on:dblclick={fullscreen} on:error={onVideoError} on:timeupdate={tick} on:seeked={tick} on:loadedmetadata={onMeta} on:play={() => (playing = true)} on:pause={() => (playing = false)} on:ended={onEnded}></video>
           {#if $mediaStill}<img class="still" style={vstyle} src={$mediaStill} alt="" draggable="false" />{/if}
@@ -792,6 +795,7 @@
 </div>
 
 <style>
+  .lookdef { position: absolute; width: 0; height: 0; pointer-events: none; }
   .wrap { position: relative; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--viewer-bg); }
   .note.audionote { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; padding: 0.5rem 1rem 0.5rem max(1rem, var(--dock-gap, 0px)); background: var(--bg-rail); border-top: 1px solid var(--border); }
   .vrow { display: flex; width: 100%; height: 100%; min-height: 0; }

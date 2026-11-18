@@ -7,9 +7,8 @@
   import { t, tr, lang } from "../../i18n";
   import { TRASNO } from "../../formats";
   import { get } from "svelte/store";
-  import { modelLight, modelShow, modelInfo, modelHidden, type SceneNode } from "../../modelView";
+  import { modelLight, modelShow, modelInfo, modelHidden, modelOptions, type SceneNode } from "../../modelView";
   import { resolvedTheme } from "../../settings";
-  import InfoTip from "../ui/InfoTip.svelte";
   import { polygonEdges } from "../../wire";
   import {
     loadModelDetailed,
@@ -51,10 +50,12 @@
 
   let wireframe = false;
   let grid = true;
+  // Malla e cuadrícula mándanse desde a pestana Escena.
+  $: ({ wire: wireframe, grid } = $modelOptions);
   let azimuth = 45, elevation = 50, intensity = 1.6, ambient = 1.1, showMarker = true;
   let channel = "full";
   let isolated: number | null = null;
-  // A pestana «Vista» das ferramentas manda sobre a luz, a canle e o material illado (índice ou null).
+  // A pestana «Escena» das ferramentas manda sobre a luz, a canle e o material illado (índice ou null).
   $: ({ azimuth, elevation, intensity, ambient, showMarker } = $modelLight);
   $: ({ channel, isolated } = $modelShow);
 
@@ -231,11 +232,7 @@
     const cache = new Map<any, THREE.Material>();
     const isoRef = iso !== null ? report[iso]?.ref : null;
     model.traverse((o: any) => {
-      // Grupos e demais obxectos: agóchanse ou amósanse (os seus fillos seguen o pai).
-      if (!o.isMesh) {
-        if (o !== model && !o.isLineSegments && !o.isLight) o.visible = !hidden.has(o.uuid);
-        return;
-      }
+      if (!o.isMesh) return;
       if (!o.userData.orig) o.userData.orig = o.material;
       const isArray = Array.isArray(o.userData.orig);
       const orig: any[] = isArray ? o.userData.orig : [o.userData.orig];
@@ -270,7 +267,11 @@
         m.wireframe = wire && !poly;
         m.visible = !(wire && poly);
       });
-      o.visible = !hidden.has(o.uuid) && (!isoRef || orig.includes(isoRef));
+      // Agochar unha malla non agocha as que leva dentro: por iso se fai coas capas e non con `visible`.
+      const show = !hidden.has(o.uuid) && (!isoRef || orig.includes(isoRef));
+      const layer = (x: THREE.Object3D) => (show ? x.layers.enable(0) : x.layers.disable(0));
+      layer(o);
+      if (poly) layer(poly);
     });
   }
 
@@ -321,7 +322,7 @@
       if (isolated !== null && isolated >= report.length) modelShow.update((v) => ({ ...v, isolated: null }));
       applyView(channel, wireframe, isolated);
       status = "";
-      if (import.meta.env.DEV) (window as any).__trasnoWire = () => { let lines = 0, shown = 0; const on = (o: any) => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }; model?.traverse((o: any) => { if (o.isLineSegments && o.visible) lines += o.geometry.attributes.position.count / 2; if (o.isMesh && on(o)) shown++; }); return { lines, shown, tris: Math.round(tris) }; };
+      if (import.meta.env.DEV) (window as any).__trasnoWire = () => { let lines = 0, shown = 0; const on = (o: any) => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }; model?.traverse((o: any) => { if (o.isLineSegments && o.visible && o.layers.isEnabled(0)) lines += o.geometry.attributes.position.count / 2; if (o.isMesh && on(o) && o.layers.isEnabled(0)) shown++; }); return { lines, shown, tris: Math.round(tris) }; };
     } catch (e) {
       status = tr("Non puiden abrir o modelo: {error}", { error: errText(e) });
     }
@@ -346,7 +347,7 @@
         const { meshes, tris } = count(c);
         if (!meshes) continue;
         n++;
-        out.push({ id: c.uuid, name: c.name || (c.isMesh ? tr("Malla {n}", { n }) : tr("Grupo {n}", { n })), depth, parent, meshes, tris });
+        out.push({ id: c.uuid, name: c.name || (c.isMesh ? tr("Malla {n}", { n }) : tr("Grupo {n}", { n })), depth, parent, meshes, tris, own: !!c.isMesh });
         walk(c, depth + 1, c.uuid);
       }
     };
@@ -384,8 +385,6 @@
   </div>
   <div class="bar">
     <button class="btn" title={$t("Axustar o modelo ao espazo dispoñible")} on:click={() => model && frame(model, true)}>{$t("Recentrar")}</button>
-    <span class="chk-tip"><label class="chk"><input type="checkbox" bind:checked={wireframe} /> {$t("Malla")}</label><InfoTip text={$t("Amosa o modelo en arames, só coas arestas das caras (sen as diagonais dos triángulos).")} /></span>
-    <label class="chk"><input type="checkbox" bind:checked={grid} /> {$t("Cuadrícula")}</label>
     <span class="muted stats">{stats || $t("Arrastra para rotar · roda para zoom · botón dereito para mover")}</span>
   </div>
 </div>
@@ -397,7 +396,5 @@
   .canvas :global(canvas) { display: block; }
   .status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 2rem; text-align: center; pointer-events: none; }
   .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem; padding: 0.5rem 0.9rem 0.5rem max(0.9rem, var(--dock-gap, 0px)); border-top: 1px solid var(--border); font-size: var(--fs-md); }
-  .chk-tip { display: inline-flex; align-items: center; gap: 0.1rem; }
-  .chk { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--text-muted); }
   .stats { margin-left: auto; }
 </style>

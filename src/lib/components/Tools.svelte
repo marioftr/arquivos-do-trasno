@@ -8,7 +8,7 @@
   import { activeForm } from "../forms";
   import { canUndo, canRedo, shapes, undo, redo, clearAll, resetAnnoStyle } from "../annot";
   import { derived } from "svelte/store";
-  import { viewCtx } from "../agent";
+  import { viewCtx, where } from "../agent";
   const hasShapes = derived(shapes, (l) => l.length > 0);
   // Restablecer en Anotar: fóra as anotacións e o aspecto volve ao por defecto.
   const resetAnno = () => {
@@ -155,6 +155,11 @@
   $: modes = modesFor(current, isPdf, multi, category, $t);
   $: if (modes.length && !modes.some((x) => x.value === sub[current])) sub[current] = modes[0].value;
   $: mode = modes.length ? sub[current] : "";
+  // O historial conta cada cambio co ficheiro e o menú onde se fixo.
+  $: where.set({
+    file: multi ? $t("{n} ficheiros", { n: selection.length }) : (first?.name ?? ""),
+    menu: [tabs.find((x) => x.id === current)?.label, modes.find((x) => x.value === mode)?.label].filter(Boolean).join(" · "),
+  });
 
   // Ctrl+K: lista das ferramentas dispoñibles e salto directo a unha delas.
   $: toolActions.set(
