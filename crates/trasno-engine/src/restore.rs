@@ -246,11 +246,18 @@ pub fn preview_frame(input: &Path, output: &Path, time: f64, plan: &RestorePlan)
     if !plan.has_frame_effects() {
         return bad("Non hai nada que ver nun fotograma: a estabilización só se ve ao exportar.");
     }
+    // Un fotograma menos medio: o último que sae é o do instante pedido, non o seguinte (o visor mostra ese).
+    let fps = ffmpeg::probe(input)
+        .ok()
+        .and_then(|i| i["streams"].as_array().and_then(|l| l.iter().find(|s| s["codec_type"] == "video").cloned()))
+        .and_then(|v| v["avg_frame_rate"].as_str().and_then(|r| r.split_once('/').map(|(n, d)| (n.parse::<f64>().ok(), d.parse::<f64>().ok()))).and_then(|(n, d)| Some(n? / d?)))
+        .filter(|f| f.is_finite() && *f >= 1.0 && *f <= 240.0)
+        .unwrap_or(25.0);
     let lead = time.min(0.8);
     let pre = vec!["-ss".to_string(), format!("{:.3}", time - lead)];
     let mut chain = plan.chain(None);
     chain.push("scale='min(1280,iw)':-2".into());
-    let args: Vec<String> = ["-an", "-t", &format!("{:.3}", lead + 0.05), "-vf", &chain.join(","), "-q:v", "3", "-update", "1"].iter().map(|s| s.to_string()).collect();
+    let args: Vec<String> = ["-an", "-t", &format!("{:.4}", lead + 0.5 / fps), "-vf", &chain.join(","), "-q:v", "3", "-update", "1"].iter().map(|s| s.to_string()).collect();
     ffmpeg::convert_media_seek(input, output, true, &pre, &args)
 }
 

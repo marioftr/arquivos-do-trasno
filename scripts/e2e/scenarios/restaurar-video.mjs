@@ -37,19 +37,42 @@ export default {
     await app.sleep(300);
     c.ok(!(await app.ev(`document.querySelector('video')?.style.filter || ''`)), "sen cor cambiada o visor queda limpo");
 
-    // ---- fotograma restaurado por riba do vídeo
-    c.ok(await app.ev(`${btn("/Ver fotograma restaurado/")}.disabled`), "sen axustes de imaxe non hai fotograma que comparar");
+    // ---- o visor amosa o resultado sen botóns: ao activar un axuste de imaxe sae o fotograma procesado
+    c.ok(!(await app.ev(`!!document.querySelector('img.still')`)), "sen axustes de imaxe o visor amosa o vídeo tal cal");
     await level("Quitar ruído", "Normal");
-    await app.sleep(200);
-    await app.ev(`${btn("/Ver fotograma restaurado/")}.click()`);
-    await app.waitFor(`document.querySelector('img.still')`, "o fotograma restaurado no visor", 20000);
+    await app.waitFor(`document.querySelector('img.still')`, "o fotograma restaurado no visor, sen premer nada", 20000);
     if (process.env.TRASNO_SHOTS) await app.shot("restaurar.png");
     c.ok(await app.ev(`(()=>{const i=document.querySelector('img.still'); return i.naturalWidth>100 && i.complete})()`), "o fotograma é unha imaxe de verdade");
-    c.ok(/Ver o orixinal/.test(await app.ev(`document.querySelector('.stack').innerText`)), "o botón pasa a «Ver o orixinal»");
-    await app.ev(`${btn("/Ver o orixinal/")}.click()`);
-    await app.sleep(300);
-    c.ok(!(await app.ev(`!!document.querySelector('img.still')`)), "«Ver o orixinal» quita o fotograma");
+    const same = async () => app.ev(`(()=>{const i=document.querySelector('img.still'),v=document.querySelector('video'); return !!i && !!v})()`);
+    c.ok(!/Comparar|Ver fotograma/.test(await app.ev(`document.querySelector('.stack').innerText`)), "non hai botón de «comparar»");
+    // «Ver o orixinal» é un interruptor: quita o fotograma procesado e volve con el.
+    await app.toggle("Ver o orixinal");
+    await app.sleep(500);
+    c.ok(!(await app.ev(`!!document.querySelector('img.still')`)), "«Ver o orixinal» amosa o vídeo sen axustes");
+    await app.toggle("Ver o orixinal");
+    await app.waitFor(`document.querySelector('img.still')`, "o fotograma procesado de volta", 20000);
+    c.ok(await same(), "volve o fotograma procesado");
     await level("Quitar ruído", "Non");
+    await app.sleep(600);
+    c.ok(!(await app.ev(`!!document.querySelector('img.still')`)), "sen axustes de imaxe o fotograma procesado desaparece");
+
+    // ---- os botóns de arriba (desfacer, refacer, restablecer) sobreviven ao cambiar de pestana
+    await level("Nitidez", "Forte");
+    await app.sleep(700);
+    const bar = () => app.ev(`[...document.querySelectorAll('header .bar button')].map(b=>!b.disabled)`);
+    c.ok(JSON.stringify(await bar()) === "[true,false,true]", "con axustes cambiados: desfacer e restablecer activos", JSON.stringify(await bar()));
+    await app.click("Información");
+    await app.click("Restaurar");
+    await app.waitFor(`document.querySelector('.stack [role=radiogroup][aria-label="Nitidez"]')`, "volver a Restaurar");
+    c.ok(JSON.stringify(await bar()) === "[true,false,true]", "ao volver, os botóns de arriba seguen activos", JSON.stringify(await bar()));
+    c.ok(/Forte/.test(await app.ev(`document.querySelector('[role=radiogroup][aria-label="Nitidez"] .on, [role=radiogroup][aria-label="Nitidez"] [aria-checked=true]')?.textContent||''`)), "e a nitidez segue en «Forte»");
+    await app.ev(`document.querySelectorAll('header .bar button')[2].click()`);
+    await app.sleep(400);
+    c.ok(/Non/.test(await app.ev(`document.querySelector('[role=radiogroup][aria-label="Nitidez"] [aria-checked=true]')?.textContent||''`)), "restablecer deixa a nitidez en «Non»");
+    await app.ev(`document.querySelectorAll('header .bar button')[0].click()`);
+    await app.sleep(400);
+    c.ok(/Forte/.test(await app.ev(`document.querySelector('[role=radiogroup][aria-label="Nitidez"] [aria-checked=true]')?.textContent||''`)), "desfacer volve a poñela en «Forte» (o historial sobreviviu)");
+    await level("Nitidez", "Non");
 
     // ---- exportar estabilizado
     await level("Estabilizar", "Normal");

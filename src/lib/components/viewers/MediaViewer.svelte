@@ -555,13 +555,14 @@
       const ctx = new AudioContext();
       const audio = await ctx.decodeAudioData(buf);
       await ctx.close();
-      const COLS = 900;
-      const ch = audio.getChannelData(0);
-      const step = Math.max(1, Math.floor(ch.length / COLS));
+      const COLS = 1600;
+      const chans = Array.from({ length: audio.numberOfChannels }, (_, c) => audio.getChannelData(c));
+      const len = audio.length;
+      const step = Math.max(1, Math.floor(len / COLS));
       const out: number[] = [];
       for (let i = 0; i < COLS; i++) {
         let max = 0;
-        for (let j = i * step; j < Math.min(ch.length, (i + 1) * step); j += Math.max(1, step >> 6)) max = Math.max(max, Math.abs(ch[j]));
+        for (const ch of chans) for (let j = i * step; j < Math.min(len, (i + 1) * step); j += Math.max(1, step >> 6)) max = Math.max(max, Math.abs(ch[j]));
         out.push(max);
       }
       peaks = out;
@@ -774,7 +775,7 @@
   {:else if url}
     <div class="audio">
       <div class="nome">{file.name}</div>
-      <Timeline {duration} {now} {peaks} height={150} on:seek={(e) => seek(e.detail)} />
+      <Timeline {duration} {now} {peaks} height={200} on:seek={(e) => seek(e.detail)} />
       {#if !peaks.length}<span class="muted ph">{$t("Estou lendo as ondas do son…")}</span>{/if}
       <div class="ctl center">
         <button class="btn icon" on:click={toggle} aria-label={playing ? $t("Pausa") : $t("Reproducir")} title={`${playing ? $t("Pausa") : $t("Reproducir")} (${$t("Espazo")})`}><Icon name={playing ? "pause" : "play"} size={15} /></button>

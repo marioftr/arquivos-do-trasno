@@ -3,7 +3,7 @@
   import { tr, t } from "../../i18n";
   import { fileNameOf } from "../../formats";
   import { TEXTURE_SLOTS, textureImports, addTextureImport, removeTextureImport } from "../../model3d";
-  import { modelLight, modelShow, modelInfo } from "../../modelView";
+  import { modelLight, modelShow, modelInfo, modelHidden } from "../../modelView";
   import type { FileEntry } from "../../files";
   import Slider from "../ui/Slider.svelte";
   import SelectField from "../ui/SelectField.svelte";
@@ -16,7 +16,30 @@
   let importSlot = "map";
   let importMaterial: number | "all" = "all";
   $: imports = $textureImports[file.path] ?? [];
-  $: ({ report, channels, hasTextures, missing, notes, status } = $modelInfo);
+  $: ({ report, channels, hasTextures, missing, notes, status, nodes } = $modelInfo);
+
+  // Obxectos da escena: cada un pódese agochar, e «só» deixa visible ese (co que leva dentro e os grupos que o conteñen).
+  $: hidden = new Set($modelHidden);
+  const toggleNode = (id: string) => modelHidden.update((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
+  function related(id: string): Set<string> {
+    const keep = new Set<string>([id]);
+    for (let p = nodes.find((n) => n.id === id)?.parent; p; p = nodes.find((n) => n.id === p)?.parent ?? null) keep.add(p);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const n of nodes) if (n.parent && keep.has(n.parent) && !keep.has(n.id)) (keep.add(n.id), (grew = true));
+    }
+    return keep;
+  }
+  $: soloOf = (id: string) => {
+    const keep = related(id);
+    return nodes.every((n) => keep.has(n.id) !== hidden.has(n.id));
+  };
+  function solo(id: string) {
+    if (soloOf(id)) return modelHidden.set([]);
+    const keep = related(id);
+    modelHidden.set(nodes.filter((n) => !keep.has(n.id)).map((n) => n.id));
+  }
 
   async function importTexture() {
     const picked = await open({
@@ -30,6 +53,27 @@
 </script>
 
 <div class="stack">
+  {#if nodes.length > 1}
+    <div class="group">
+      <h4 class="group-title">{$t("Obxectos")} · {nodes.length}</h4>
+      <ul class="nodes">
+        {#each nodes as n}
+          <li style={`padding-left:${n.depth * 0.9}rem`}>
+            <label class="node" class:off={hidden.has(n.id)}>
+              <input type="checkbox" checked={!hidden.has(n.id)} on:change={() => toggleNode(n.id)} aria-label={n.name} />
+              <span class="nn">{n.name}</span>
+              <span class="muted nt">{n.tris.toLocaleString()}</span>
+            </label>
+            <button class="btn ghost solo" class:on={soloOf(n.id)} on:click={() => solo(n.id)} aria-pressed={soloOf(n.id)} aria-label={`${$t("Só")}: ${n.name}`}>{$t("Só")}</button>
+          </li>
+        {/each}
+      </ul>
+      {#if hidden.size}
+        <button class="btn ghost" on:click={() => modelHidden.set([])}>{$t("Amosar todos os obxectos")}</button>
+      {/if}
+    </div>
+  {/if}
+
   <div class="group">
     <h4 class="group-title">{$t("Luz")}</h4>
     <Slider label={$t("Azimut")} unit="°" min={0} max={360} bind:value={$modelLight.azimuth} def={45} />
@@ -40,7 +84,7 @@
   </div>
 
   <div class="group">
-    <h4 class="group-title">{$t("Vista")}</h4>
+    <h4 class="group-title">{$t("Canle")}</h4>
     <div class="chan">
       {#each channels as c}
         <button class="ch" class:on={$modelShow.channel === c.id} on:click={() => ($modelShow.channel = c.id)}>{$t(c.label)}</button>
@@ -114,6 +158,14 @@
   .ch { background: transparent; border: 1px solid var(--border-strong); color: var(--text-muted); border-radius: var(--radius-sm); padding: 0.28em 0.6em; font-size: var(--fs-sm); }
   .ch:hover { color: var(--text); }
   .ch.on { border-color: var(--accent); color: var(--accent); }
+  .nodes { list-style: none; margin: 0; padding: 0; max-height: 16rem; overflow-y: auto; display: flex; flex-direction: column; }
+  .nodes li { display: flex; align-items: center; gap: 0.3rem; }
+  .node { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.45rem; min-height: var(--control-h); cursor: pointer; }
+  .node.off .nn { color: var(--text-faint); text-decoration: line-through; }
+  .nn { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nt { font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+  .solo { padding: 0.15rem 0.5rem; font-size: var(--fs-sm); }
+  .solo.on { color: var(--accent); }
   .mats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
   .mat { width: 100%; text-align: left; background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 0.45rem 0.6rem; display: flex; flex-direction: column; gap: 0.15rem; }
   .mat:hover { background: var(--bg-hover); border-color: var(--border-strong); }

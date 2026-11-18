@@ -15,7 +15,7 @@ export default {
   about: "Audio → Etiquetas: ler, editar, portada e gardar unha copia con ficheiros reais",
   async run(app, c) {
     const song = path.join(app.media, "03 - Os Cañotas - A Rula.mp3");
-    const r = spawnSync(ffmpegBin(), ["-v", "error", "-y", "-f", "lavfi", "-i", "sine=f=440:r=44100:d=3", "-metadata", "title=Vella", "-metadata", "album=Álbum Vello", song]);
+    const r = spawnSync(ffmpegBin(), ["-v", "error", "-y", "-f", "lavfi", "-i", "anoisesrc=d=3:a=0.6:r=44100,volume='0.15+0.85*abs(sin(t*5))':eval=frame", "-metadata", "title=Vella", "-metadata", "album=Álbum Vello", song]);
     if (r.status !== 0) throw new Error("non puiden crear a canción de proba");
     const before = sha(song);
     const cover = await app.textImage("portada.png", ["PORTADA"]);
@@ -28,6 +28,10 @@ export default {
     const val = (label) => app.ev(`document.querySelector('.stack input[aria-label=${JSON.stringify(label)}], .stack textarea[aria-label=${JSON.stringify(label)}]')?.value`);
     c.ok((await val("Título")) === "Vella" && (await val("Álbum")) === "Álbum Vello", "le as etiquetas que xa tiña", `${await val("Título")} / ${await val("Álbum")}`);
     c.ok(await app.ev(`[...document.querySelectorAll('.stack .btn.primary')].find(b=>/Gardar etiquetas/.test(b.textContent)).disabled`), "sen cambios non se pode gardar");
+    c.ok(await app.ev(`[...document.querySelectorAll('.stack input')].every(i=>!i.placeholder)`), "ningún campo leva guión nin texto de exemplo: todos baleiros por igual");
+    c.ok(!(await app.ev(`[...document.querySelectorAll('.stack .btn')].some(b=>/^Desfacer$/.test(b.textContent.trim()))`)), "non hai un segundo botón de desfacer xunto a gardar");
+    await app.waitFor(`document.querySelector('.audio canvas')`, "a onda de son");
+    await app.sleep(1500);
 
     const set = (label, v) =>
       app.ev(`(()=>{const i=document.querySelector('.stack input[aria-label=${JSON.stringify(label)}], .stack textarea[aria-label=${JSON.stringify(label)}]'); const proto=i.tagName==='TEXTAREA'?HTMLTextAreaElement:HTMLInputElement; Object.getOwnPropertyDescriptor(proto.prototype,'value').set.call(i,${JSON.stringify(v)}); i.dispatchEvent(new Event('input',{bubbles:true}));})()`);
@@ -38,6 +42,14 @@ export default {
     await app.click("Sacar do nome do ficheiro");
     c.ok((await val("Artista")) === "Os Cañotas" && (await val("Título")) === "A Rula dos Trasnos" && (await val("Pista")) === "3", "o nome do ficheiro enche o artista e a pista sen pisar o título", `${await val("Artista")} / ${await val("Título")} / ${await val("Pista")}`);
 
+    // Os botóns de arriba (desfacer, refacer, restablecer) e os datos sobreviven ao cambiar de pestana.
+    const bar = () => app.ev(`[...document.querySelectorAll('header .bar button')].map(b=>!b.disabled)`);
+    c.ok(JSON.stringify(await bar()) === "[true,false,true]", "con cambios: desfacer e restablecer activos", JSON.stringify(await bar()));
+    await app.click("Información");
+    await app.click("Etiquetas");
+    await app.waitFor(`document.querySelector('.stack input[aria-label="Título"]')`, "volver a Etiquetas");
+    c.ok((await val("Título")) === "A Rula dos Trasnos" && (await val("Letra")).includes("Segunda liña"), "ao volver, os campos seguen como se deixaron");
+    c.ok(JSON.stringify(await bar()) === "[true,false,true]", "ao volver, os botóns de arriba seguen activos", JSON.stringify(await bar()));
     await app.waitFor(`typeof window.__trasnoCover === 'function'`, "o selector de portada");
     await app.ev(`window.__trasnoCover(${JSON.stringify(cover)})`);
     await app.waitFor(`document.querySelector('.stack .cover img')`, "a portada nova no panel");

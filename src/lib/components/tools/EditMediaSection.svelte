@@ -188,7 +188,7 @@
       const p = planOf($form);
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
         const r = await engine.editApply(file.path, out, p, true);
-        const how = isVideo ? (r.video_copied ? tr("A imaxe copiouse sen recodificar.") : tr("A imaxe recodificouse con calidade alta.")) : "";
+        const how = isVideo ? (r.video_copied ? tr("A imaxe copiouse sen recodificar.") : "") : "";
         const len = r.duration ? tr("Dura {t}.", { t: formatClock(r.duration, 1) }) : "";
         return `${listo()} ${fileNameOf(r.output)}\n${[len, how].filter(Boolean).join(" ")}`;
       });

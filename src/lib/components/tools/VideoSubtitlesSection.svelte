@@ -126,7 +126,7 @@
       <h4 class="group-title">{mode === "embed" ? $t("Incrustar subtítulos") : $t("Queimar subtítulos")}</h4>
       <GroupNote
         text={mode === "embed"
-          ? $t("Engade uns subtítulos como pista que se acende e apaga no reprodutor. A imaxe non se recodifica.")
+          ? $t("Engade uns subtítulos como pista que se acende e apaga no reprodutor.")
           : $t("Pasan a formar parte da imaxe: saen en calquera reprodutor, pero non se poden apagar. Recodifica o vídeo.")}
       />
       <button class="btn block" on:click={chooseSubs} disabled={$busy}>{subsPath ? fileNameOf(subsPath) : $t("Escoller subtítulos…")}</button>

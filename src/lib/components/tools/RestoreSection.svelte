@@ -13,7 +13,6 @@
   import Slider from "../ui/Slider.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
-  import GroupNote from "../ui/GroupNote.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   /** Restaurar vídeo: estabilizar, ruído, nitidez, desentrelazar, parpadeo e cor, todo nunha soa exportación. */
@@ -41,53 +40,44 @@
   $: frameEffects = $form.denoise > 0 || $form.sharpen > 0 || $form.deinterlace || $form.deflicker || color;
   $: changed = frameEffects || $form.stabilize > 0;
 
-  // A cor vese en directo no visor (aproximada); o resto, nun fotograma que se prepara co motor.
+  // O visor amosa o resultado en directo: a cor aplícase ao vídeo (aproximada) e o resto nun fotograma que se prepara co motor para o
+  // instante en que está parado. «Ver o orixinal» devolve o vídeo sen axustes para comparar.
   const ownLook = claim("mediaLook");
   const ownStill = claim("mediaStill");
-  $: mediaLook.set(color ? { brightness: $form.brightness, contrast: $form.contrast, saturation: $form.saturation } : null);
+  let original = false;
+  $: mediaLook.set(color && !original ? { brightness: $form.brightness, contrast: $form.contrast, saturation: $form.saturation } : null);
   onDestroy(() => {
+    clearTimeout(timer);
+    token++;
     ownLook.release(() => mediaLook.set(null));
     ownStill.release(() => mediaStill.set(null));
   });
 
-  let showing = false;
-  let stillAt = 0;
-  let frameBusy = false;
-  let frameErr = "";
+  let stillAt = -1;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   let token = 0;
-  async function toggleFrame() {
-    if (showing) {
+  $: schedule($form, $mediaTime, original, frameEffects);
+  function schedule(_f: unknown, now: number, orig: boolean, effects: boolean) {
+    clearTimeout(timer);
+    token++; // calquera fotograma que se estea preparando xa non vale
+    // Se se move o vídeo ou cambia un axuste, o fotograma amosado xa non vale; prepárase outro cando quede quieto.
+    if (get(mediaStill) && (orig || Math.abs(now - stillAt) > 0.005 || !effects)) {
       mediaStill.set(null);
-      showing = false;
-      return;
     }
+    if (orig || !effects) return;
+    timer = setTimeout(render, 350);
+  }
+  async function render() {
     const mine = ++token;
-    frameBusy = true;
-    frameErr = "";
+    const at = get(mediaTime);
     try {
-      const at = get(mediaTime);
-      const url = await viewUrl(await engine.restoreFrame(file.path, at, planOf($form)));
+      const url = await viewUrl(await engine.restoreFrame(file.path, at, planOf(get(form))));
       if (mine !== token) return;
       stillAt = at;
       mediaStill.set(url);
-      showing = true;
-    } catch (e) {
-      frameErr = errText(e);
-    } finally {
-      frameBusy = false;
+    } catch {
+      // sen fotograma: o visor segue co vídeo (e a cor aproximada)
     }
-  }
-  // Se se move o vídeo, ou se cambia un axuste, o fotograma amosado xa non vale: volve o orixinal.
-  $: if (showing && Math.abs($mediaTime - stillAt) > 0.05) clearStill();
-  $: {
-    JSON.stringify($form);
-    clearStill();
-  }
-  function clearStill() {
-    if (!showing) return;
-    token++;
-    mediaStill.set(null);
-    showing = false;
   }
 
   async function exportAll() {
@@ -107,10 +97,11 @@
 </script>
 
 <div class="stack">
+  <Toggle label={$t("Ver o orixinal")} bind:checked={original} />
+
   <div class="group">
     <h4 class="group-title">{$t("Imaxe")}</h4>
-    <GroupNote text={$t("A imaxe recodifícase con calidade alta; o son non se toca.")} />
-    <Segmented label={$t("Estabilizar")} info={$t("Compensa o tremor da cámara. Le o vídeo dúas veces e achega un pouco a imaxe para non deixar bordos.")} options={levels()} bind:value={$form.stabilize} />
+    <Segmented label={$t("Estabilizar")} info={$t("Compensa o tremor da cámara e achega un pouco a imaxe para non deixar bordos. Só se ve ao exportar.")} options={levels()} bind:value={$form.stabilize} />
     <Segmented label={$t("Quitar ruído")} info={$t("Limpa o gran dos vídeos con pouca luz. Canto máis forte, máis suaviza os detalles finos.")} options={levels()} bind:value={$form.denoise} />
     <Segmented label={$t("Nitidez")} info={$t("Realza os bordos dos vídeos borrosos. Moita nitidez tamén realza o ruído.")} options={levels()} bind:value={$form.sharpen} />
     <Toggle label={$t("Desentrelazar")} bind:checked={$form.deinterlace} hint={$t("Quita as liñas en pente dos vídeos de televisión antiga ou gravados en entrelazado.")} />
@@ -119,17 +110,9 @@
 
   <div class="group">
     <h4 class="group-title">{$t("Cor")}</h4>
-    <GroupNote text={$t("O visor amosa a cor en directo, de forma aproximada.")} />
     <Slider label={$t("Brillo")} min={-0.5} max={0.5} step={0.01} bind:value={$form.brightness} def={0} />
     <Slider label={$t("Contraste")} unit="×" min={0.5} max={2} step={0.05} bind:value={$form.contrast} def={1} />
     <Slider label={$t("Saturación")} unit="×" min={0} max={3} step={0.05} bind:value={$form.saturation} def={1} hint={$t("0 = branco e negro")} />
-  </div>
-
-  <div class="group">
-    <h4 class="group-title">{$t("Comparar")}</h4>
-    <GroupNote text={$t("Ensina no visor como queda o fotograma onde estás. A estabilización só se ve ao exportar.")} />
-    <button class="btn block" on:click={toggleFrame} disabled={$busy || frameBusy || !frameEffects}>{showing ? $t("Ver o orixinal") : frameBusy ? $t("Preparando o fotograma…") : $t("Ver fotograma restaurado")}</button>
-    {#if frameErr}<p class="warn" role="alert">{frameErr}</p>{/if}
   </div>
 
   <button class="btn primary block" on:click={exportAll} disabled={$busy || !changed}>{$t("Restaurar")}</button>
@@ -137,5 +120,4 @@
 </div>
 
 <style>
-  .warn { margin: 0; font-size: var(--fs-sm); color: var(--accent-pdf); }
 </style>

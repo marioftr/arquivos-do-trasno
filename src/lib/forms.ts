@@ -49,10 +49,13 @@ function remember(key: string, value: Record<string, unknown>) {
 
 // Axustes de cada ficheiro mentres a app está aberta: ao volver a un ficheiro, volven os que levaba.
 const fileMemory = new Map<string, Record<string, unknown>>();
+// O historial (desfacer/refacer) de cada ficheiro tamén se lembra: ao volver a unha pestana os botóns seguen onde estaban.
+const historyMemory = new Map<string, { past: any[]; future: any[] }>();
 
 /** Esquece os axustes que lembraba un ficheiro (para reimportalo desde cero). */
 export function forgetFile(path: string) {
   for (const k of [...fileMemory.keys()]) if (k.includes(path)) fileMemory.delete(k);
+  for (const k of [...historyMemory.keys()]) if (k.includes(path)) historyMemory.delete(k);
 }
 
 export function createForm<T extends Record<string, any>>(defaults: T, memoryKey?: string, fileKey?: string): Form<T> {
@@ -61,13 +64,15 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
   // Un ficheiro novo (con `fileKey`) arranca cos valores por defecto, non cos que se usaron noutro.
   const saved = fileKey ? fileMemory.get(fileKey) : memoryKey ? loadMemory()[memoryKey] : undefined;
   const start = { ...defaults } as T;
-  if (saved) for (const k of Object.keys(defaults)) if (k in saved && typeof saved[k] === typeof defaults[k]) (start as any)[k] = saved[k];
+  if (saved) for (const k of Object.keys(defaults)) if (k in saved && (typeof saved[k] === typeof defaults[k] || saved[k] === null || defaults[k] === null)) (start as any)[k] = saved[k];
   const store = writable<T>({ ...start });
   const canUndo = writable(false);
   const canRedo = writable(false);
   const dirty = writable(false);
-  const past: T[] = [];
-  let future: T[] = [];
+  const hist = (fileKey && historyMemory.get(fileKey)) || { past: [] as T[], future: [] as T[] };
+  if (fileKey) historyMemory.set(fileKey, hist);
+  const past: T[] = hist.past;
+  const future: T[] = hist.future;
   let last: T = { ...start };
   let burstStart: T | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -85,7 +90,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
       past.push(burstStart);
       if (past.length > 100) past.shift();
       burstStart = null;
-      future = [];
+      future.length = 0;
     }
     clearTimeout(timer);
   };
@@ -152,7 +157,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
       flush();
       const snap = { ...last };
       past.push({ ...last });
-      future = [];
+      future.length = 0;
       apply({ ...defaults });
       sync();
       noteAction("O trasno restableceu os axustes", undefined, () => form.restore(snap));
@@ -161,6 +166,7 @@ export function createForm<T extends Record<string, any>>(defaults: T, memoryKey
     canRedo,
     dirty,
   };
+  sync(); // ao volver a unha pestana, os botóns de arriba reflicten o que xa había
   return form;
 }
 

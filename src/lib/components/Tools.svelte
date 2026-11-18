@@ -92,7 +92,7 @@
             ? [tab("convert", "Converter"), tab("info", "Información")]
             : [tab("info", "Información")];
       case "modelo3d":
-        return [tab("convert", "Converter"), tab("view", "Vista"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("view", "Escena"), tab("info", "Información")];
       default:
         return [tab("convert", "Converter"), tab("info", "Información")];
     }

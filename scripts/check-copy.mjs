@@ -17,6 +17,8 @@ const MAX_INFO = 140;
 const BANNED = [
   [/orixinal non se toca/i, "«o orixinal non se toca» sobreentendese: todo resultado é un ficheiro novo"],
   [/orixinal (queda intacto|queda como estaba|non cambia|non se modifica)/i, "«o orixinal non cambia» sobreentendese"],
+  [/(son|audio|imaxe|vídeo|video) (non se toca|non se recodifica|cópiase sen tocar|queda igual)/i, "«o son non se toca» e semellantes sobreentendense"],
+  [/recodifícase con calidade alta/i, "«recodifícase con calidade alta» é un detalle técnico que non axuda a quen usa a ferramenta"],
   [/crea un ficheiro novo/i, "«crea un ficheiro novo» sobreentendese"],
   [/m[áa]is informaci[óo]n/i, "liñas xenéricas de «Máis información»: a «i» vai ao carón do que explica"],
   [/recodif[íi]case con moita calidade/i, "recheo sobre a recodificación da imaxe"],

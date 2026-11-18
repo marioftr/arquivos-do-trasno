@@ -6,7 +6,8 @@
   import type { FileEntry } from "../../files";
   import { t, tr, lang } from "../../i18n";
   import { TRASNO } from "../../formats";
-  import { modelLight, modelShow, modelInfo } from "../../modelView";
+  import { get } from "svelte/store";
+  import { modelLight, modelShow, modelInfo, modelHidden, type SceneNode } from "../../modelView";
   import { resolvedTheme } from "../../settings";
   import InfoTip from "../ui/InfoTip.svelte";
   import { polygonEdges } from "../../wire";
@@ -46,6 +47,7 @@
   let report: MaterialReport[] = [];
   let channels: { id: string; label: string }[] = [];
   let hasTextures = false;
+  let nodes: SceneNode[] = [];
 
   let wireframe = false;
   let grid = true;
@@ -65,7 +67,7 @@
   let loadedKey = "";
   let loadedFile = "";
   $: if (ready && importsKey !== loadedKey && loadedFile === file.path) void load(file, true);
-  $: modelInfo.set({ status, report, channels, hasTextures, missing, notes });
+  $: modelInfo.set({ nodes, status, report, channels, hasTextures, missing, notes });
 
   onMount(() => {
     scene = new THREE.Scene();
@@ -106,7 +108,8 @@
 
   onDestroy(() => {
     cancelAnimationFrame(raf);
-    modelInfo.set({ status: "", report: [], channels: [], hasTextures: false, missing: [], notes: [] });
+    modelHidden.set([]);
+    modelInfo.set({ nodes: [], status: "", report: [], channels: [], hasTextures: false, missing: [], notes: [] });
     modelShow.set({ channel: "full", isolated: null });
     ro?.disconnect();
     clear();
@@ -125,7 +128,7 @@
     mats[1]?.color.set(light ? 0xc6c8d1 : 0x26262c);
     lineMat.color.set(light ? 0x1b1c22 : 0xdcdce2);
   }
-  $: if (ready) applyView(channel, wireframe, isolated);
+  $: if (ready) applyView(channel, wireframe, isolated, $modelHidden);
   $: if (ready) updateLight(azimuth, elevation, intensity, ambient, showMarker, radius, center);
 
   function resize() {
@@ -220,14 +223,19 @@
   }
 
   /** Aplica a canle (cor, normais...), a malla e o material illado. */
-  function applyView(ch: string, wire: boolean, iso: number | null) {
+  function applyView(ch: string, wire: boolean, iso: number | null, hiddenIds: string[] = get(modelHidden)) {
     if (!model) return;
+    const hidden = new Set(hiddenIds);
     overlays.forEach((m) => m.dispose());
     overlays.length = 0;
     const cache = new Map<any, THREE.Material>();
     const isoRef = iso !== null ? report[iso]?.ref : null;
     model.traverse((o: any) => {
-      if (!o.isMesh) return;
+      // Grupos e demais obxectos: agóchanse ou amósanse (os seus fillos seguen o pai).
+      if (!o.isMesh) {
+        if (o !== model && !o.isLineSegments && !o.isLight) o.visible = !hidden.has(o.uuid);
+        return;
+      }
       if (!o.userData.orig) o.userData.orig = o.material;
       const isArray = Array.isArray(o.userData.orig);
       const orig: any[] = isArray ? o.userData.orig : [o.userData.orig];
@@ -262,7 +270,7 @@
         m.wireframe = wire && !poly;
         m.visible = !(wire && poly);
       });
-      o.visible = !isoRef || orig.includes(isoRef);
+      o.visible = !hidden.has(o.uuid) && (!isoRef || orig.includes(isoRef));
     });
   }
 
@@ -277,6 +285,8 @@
     if (!keepView) modelShow.set({ channel: "full", isolated: null });
     clear();
     report = [];
+    nodes = [];
+    modelHidden.set([]);
     try {
       const loaded = await loadModelDetailed(f.path, f.ext);
       const obj = loaded.obj;
@@ -299,6 +309,7 @@
       notes = loaded.notes;
       missing = loaded.missing;
       report = inspectMaterials(obj);
+      nodes = sceneNodes(obj);
       const present = TEXTURE_SLOTS.filter(({ slot }) => report.some((r) => r.slots.some((s) => s.slot === slot && s.ok)));
       hasTextures = present.length > 0;
       channels = [
@@ -310,10 +321,37 @@
       if (isolated !== null && isolated >= report.length) modelShow.update((v) => ({ ...v, isolated: null }));
       applyView(channel, wireframe, isolated);
       status = "";
-      if (import.meta.env.DEV) (window as any).__trasnoWire = () => { let lines = 0; model?.traverse((o: any) => { if (o.isLineSegments && o.visible) lines += o.geometry.attributes.position.count / 2; }); return { lines, tris: Math.round(tris) }; };
+      if (import.meta.env.DEV) (window as any).__trasnoWire = () => { let lines = 0, shown = 0; const on = (o: any) => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }; model?.traverse((o: any) => { if (o.isLineSegments && o.visible) lines += o.geometry.attributes.position.count / 2; if (o.isMesh && on(o)) shown++; }); return { lines, shown, tris: Math.round(tris) }; };
     } catch (e) {
       status = tr("Non puiden abrir o modelo: {error}", { error: errText(e) });
     }
+  }
+
+  /** Lista de obxectos do ficheiro (grupos e mallas) co seu fondo, para poder agochalos ou velos sós. */
+  function sceneNodes(root: THREE.Object3D): SceneNode[] {
+    const out: SceneNode[] = [];
+    const count = (o: any): { meshes: number; tris: number } => {
+      let meshes = 0, tris = 0;
+      o.traverse((c: any) => {
+        if (!c.isMesh) return;
+        meshes++;
+        tris += (c.geometry.index ? c.geometry.index.count : c.geometry.attributes.position.count) / 3;
+      });
+      return { meshes, tris: Math.round(tris) };
+    };
+    let n = 0;
+    const walk = (o: any, depth: number, parent: string | null) => {
+      for (const c of o.children) {
+        if (c.isLineSegments || c.isLight || c.isCamera) continue;
+        const { meshes, tris } = count(c);
+        if (!meshes) continue;
+        n++;
+        out.push({ id: c.uuid, name: c.name || (c.isMesh ? tr("Malla {n}", { n }) : tr("Grupo {n}", { n })), depth, parent, meshes, tris });
+        walk(c, depth + 1, c.uuid);
+      }
+    };
+    walk(root, 0, null);
+    return out;
   }
 
   function frame(obj: THREE.Object3D, resetCamera: boolean) {
@@ -329,7 +367,7 @@
       camera.near = radius / 100;
       camera.far = radius * 100;
       camera.updateProjectionMatrix();
-      camera.position.set(radius * 1.2, radius * 0.9, radius * 1.5);
+      camera.position.set(radius * 1.6, radius * 1.2, radius * 2);
       controls.target.copy(center);
       controls.update();
     }
@@ -346,7 +384,7 @@
   </div>
   <div class="bar">
     <button class="btn" title={$t("Axustar o modelo ao espazo dispoñible")} on:click={() => model && frame(model, true)}>{$t("Recentrar")}</button>
-    <label class="chk"><input type="checkbox" bind:checked={wireframe} /> {$t("Malla")}</label><InfoTip text={$t("Debuxa os polígonos do modelo, non os triángulos en que se parten ao cargalo.")} />
+    <span class="chk-tip"><label class="chk"><input type="checkbox" bind:checked={wireframe} /> {$t("Malla")}</label><InfoTip text={$t("Amosa o modelo en arames, só coas arestas das caras (sen as diagonais dos triángulos).")} /></span>
     <label class="chk"><input type="checkbox" bind:checked={grid} /> {$t("Cuadrícula")}</label>
     <span class="muted stats">{stats || $t("Arrastra para rotar · roda para zoom · botón dereito para mover")}</span>
   </div>
@@ -359,6 +397,7 @@
   .canvas :global(canvas) { display: block; }
   .status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 2rem; text-align: center; pointer-events: none; }
   .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem; padding: 0.5rem 0.9rem 0.5rem max(0.9rem, var(--dock-gap, 0px)); border-top: 1px solid var(--border); font-size: var(--fs-md); }
+  .chk-tip { display: inline-flex; align-items: center; gap: 0.1rem; }
   .chk { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--text-muted); }
   .stats { margin-left: auto; }
 </style>
