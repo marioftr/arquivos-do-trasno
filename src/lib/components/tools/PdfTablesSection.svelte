@@ -3,7 +3,7 @@
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
   import { errText, isCancelled } from "../../errors";
-  import type { FileEntry } from "../../files";
+  import { jumpToPdfPage, type FileEntry } from "../../files";
   import { fallo, fileNameOf, listo, TRASNO } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
@@ -102,7 +102,7 @@
             <label class="head">
               <input type="checkbox" bind:checked={on[i]} aria-label={`${$t("Táboa")} ${i + 1}`} />
               <span>{$t("Táboa {n}", { n: i + 1 })}</span>
-              <span class="muted">{$t("páxina {p}", { p: tb.page })} · {tb.rows.length} × {tb.rows[0]?.length ?? 0}</span>
+              <span class="muted"><button type="button" class="pg" on:click|preventDefault={() => jumpToPdfPage(tb.page)} title={$t("Ir á páxina")}>{$t("páxina {p}", { p: tb.page })}</button> · {tb.rows.length} × {tb.rows[0]?.length ?? 0}</span>
             </label>
             <div class="scroll">
               <table>
@@ -140,6 +140,8 @@
   .tbls { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.7rem; }
   .head { display: flex; align-items: center; gap: 0.5rem; font-size: var(--fs-md); }
   .head .muted { margin-left: auto; font-size: var(--fs-sm); }
+  .pg { background: none; border: none; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+  .pg:hover { color: var(--accent); text-decoration: underline; }
   .scroll { overflow: auto; margin-top: 0.3rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
   table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
   td { padding: 0.2rem 0.45rem; border-bottom: 1px solid var(--border); white-space: nowrap; }

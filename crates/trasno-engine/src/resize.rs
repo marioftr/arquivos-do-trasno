@@ -18,7 +18,8 @@ pub enum Fit {
     /// Un tanto por cento do tamaño orixinal.
     Percent { percent: f32 },
     /// Ancho e alto exactos: ou se estica a imaxe, ou se escala ata encher e se recorta o que sobra polo centro.
-    Exact { width: u32, height: u32, crop: bool },
+    /// Con `no_upscale`, unha imaxe que xa cabe nese tamaño nos dous lados queda como está.
+    Exact { width: u32, height: u32, crop: bool, #[serde(default)] no_upscale: bool },
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -85,11 +86,15 @@ pub fn target_size(from: (u32, u32), fit: &Fit) -> Result<(u32, u32)> {
             let k = percent as f64 / 100.0;
             (((sw as f64 * k).round() as u32).max(1), ((sh as f64 * k).round() as u32).max(1))
         }
-        Fit::Exact { width, height, .. } => {
+        Fit::Exact { width, height, no_upscale, .. } => {
             if width == 0 || height == 0 {
                 return bad("O ancho e o alto teñen que ser polo menos 1.");
             }
-            (width, height)
+            if no_upscale && sw <= width && sh <= height {
+                (sw, sh)
+            } else {
+                (width, height)
+            }
         }
     };
     if to.0 > MAX_SIDE || to.1 > MAX_SIDE || to.0 as u64 * to.1 as u64 > MAX_PIXELS {
@@ -122,7 +127,7 @@ pub fn resize_image(input: &Path, output: &Path, overwrite: bool, fit: &Fit, qua
     crate::integrity::ensure_distinct(&[input], output)?;
     let from = oriented_dimensions(input)?;
     let to = target_size(from, fit)?;
-    let crop = matches!(fit, Fit::Exact { crop: true, .. });
+    let crop = matches!(fit, Fit::Exact { crop: true, .. }) && to != from;
     let dst_ext = crate::formats::extension_of(output).unwrap_or_default();
     if crate::animated::is_animated(input) {
         if !crate::animated::can_keep_animation(input, &dst_ext) {
@@ -170,7 +175,9 @@ mod tests {
         assert_eq!(target_size((1001, 501), &Fit::Percent { percent: 50.0 }).unwrap(), (501, 251));
         assert_eq!(target_size((10, 10), &Fit::Percent { percent: 1.0 }).unwrap(), (1, 1));
         assert_eq!(target_size((10, 10), &Fit::Percent { percent: 300.0 }).unwrap(), (30, 30));
-        assert_eq!(target_size((100, 50), &Fit::Exact { width: 64, height: 64, crop: true }).unwrap(), (64, 64));
+        assert_eq!(target_size((100, 50), &Fit::Exact { width: 64, height: 64, crop: true, no_upscale: false }).unwrap(), (64, 64));
+        assert_eq!(target_size((40, 30), &Fit::Exact { width: 64, height: 64, crop: true, no_upscale: true }).unwrap(), (40, 30), "xa cabe: queda como está");
+        assert_eq!(target_size((100, 30), &Fit::Exact { width: 64, height: 64, crop: true, no_upscale: true }).unwrap(), (64, 64), "se non cabe nun lado, tamaño exacto");
     }
 
     #[test]
@@ -180,9 +187,9 @@ mod tests {
         assert!(target_size((10, 10), &Fit::Percent { percent: 0.0 }).is_err());
         assert!(target_size((10, 10), &Fit::Percent { percent: f32::NAN }).is_err());
         assert!(target_size((10, 10), &Fit::Percent { percent: 5000.0 }).is_err());
-        assert!(target_size((10, 10), &Fit::Exact { width: 0, height: 5, crop: false }).is_err());
-        assert!(target_size((10, 10), &Fit::Exact { width: 40_000, height: 5, crop: false }).is_err());
-        assert!(target_size((10, 10), &Fit::Exact { width: 20_000, height: 20_000, crop: false }).is_err());
+        assert!(target_size((10, 10), &Fit::Exact { width: 0, height: 5, crop: false, no_upscale: false }).is_err());
+        assert!(target_size((10, 10), &Fit::Exact { width: 40_000, height: 5, crop: false, no_upscale: false }).is_err());
+        assert!(target_size((10, 10), &Fit::Exact { width: 20_000, height: 20_000, crop: false, no_upscale: false }).is_err());
         assert!(target_size((0, 10), &Fit::Percent { percent: 50.0 }).is_err());
     }
 }

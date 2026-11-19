@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
   import { errText, isCancelled } from "../../errors";
-  import type { FileEntry } from "../../files";
+  import { jumpToPdfPage, type FileEntry } from "../../files";
   import { fallo, fileNameOf, listo, TRASNO } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
@@ -109,13 +109,16 @@
       <button class="btn" on:click={detect} disabled={$busy}>{$t("Detectar títulos")}</button>
     </div>
     {#if entries.length}
+      <div class="ohead"><span>{$t("Nivel")}</span><span>{$t("Título")}</span><span>{$t("Páxina")}</span><span></span></div>
       <ul class="outline">
         {#each entries as e, i}
           <li class:sel={selected === i}>
-            <button class="btn ghost icon" on:click={() => indent(i, -1)} disabled={e.level === 0} title={$t("Subir un nivel")} aria-label={`${$t("Subir un nivel")}: ${e.title}`}><Icon name="back" size={13} /></button>
-            <button class="btn ghost icon" on:click={() => indent(i, 1)} disabled={i === 0 || e.level > entries[i - 1].level} title={$t("Baixar un nivel")} aria-label={`${$t("Baixar un nivel")}: ${e.title}`}><Icon name="arrow-right" size={13} /></button>
+            <span class="lv">
+              <button class="btn ghost icon" on:click={() => indent(i, -1)} disabled={e.level === 0} title={$t("Subir un nivel")} aria-label={`${$t("Subir un nivel")}: ${e.title}`}><Icon name="back" size={13} /></button>
+              <button class="btn ghost icon" on:click={() => indent(i, 1)} disabled={i === 0 || e.level > entries[i - 1].level} title={$t("Baixar un nivel")} aria-label={`${$t("Baixar un nivel")}: ${e.title}`}><Icon name="chevron-right" size={13} /></button>
+            </span>
             <input class="otitle" style={`margin-left:${e.level * 0.8}rem`} bind:value={$form.entries[i].title} on:focus={() => (selected = i)} placeholder={$t("Título")} aria-label={`${$t("Título")} ${i + 1}`} />
-            <input class="opage" type="number" min="1" max={total || undefined} bind:value={$form.entries[i].page} on:focus={() => (selected = i)} aria-label={`${$t("Páxina")} ${i + 1}`} />
+            <input class="opage" type="number" min="1" max={total || undefined} bind:value={$form.entries[i].page} on:focus={() => ((selected = i), jumpToPdfPage(e.page))} on:change={() => jumpToPdfPage(e.page)} aria-label={`${$t("Páxina")} ${i + 1}`} />
             <button class="btn ghost icon" on:click={() => del(i)} title={$t("Quitar esta entrada")} aria-label={`${$t("Quitar esta entrada")}: ${e.title}`}><Icon name="trash" size={13} /></button>
           </li>
         {/each}
@@ -137,10 +140,12 @@
 
 <style>
   .outline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; max-height: 22rem; overflow: auto; }
-  .outline li { display: flex; align-items: center; gap: 2px; }
+  .outline li, .ohead { display: grid; grid-template-columns: 52px 1fr 3.6rem 26px; align-items: center; gap: 3px; }
+  .ohead { font-size: var(--fs-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; padding-right: 0; }
+  .ohead span:nth-child(3) { text-align: center; }
+  .lv { display: flex; }
   .outline li.sel .otitle { border-color: var(--accent); }
   .otitle, .opage { height: var(--control-h); background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.5em; font-family: inherit; font-size: var(--fs-md); min-width: 0; }
-  .otitle { flex: 1; }
-  .opage { width: 3.6rem; text-align: center; }
+  .opage { text-align: center; }
   .otitle:focus, .opage:focus { outline: none; border-color: var(--accent); }
 </style>

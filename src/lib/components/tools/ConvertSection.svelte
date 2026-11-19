@@ -27,6 +27,8 @@
 
   export let selection: FileEntry[];
   export let category: Category;
+  /** Formato de saída fixado desde fóra (o selector da pestana de PDF); se non, ten o seu propio selector. */
+  export let forcedTarget = "";
 
   const MAX_CONCURRENT = 3;
   $: imageLevels = IMAGE_LEVELS.map((l) => ({ id: l.id, label: $t(l.label), detail: `${l.q} %`, hint: $t(l.hint), values: { quality: l.q } }));
@@ -65,10 +67,11 @@
     clipFps: 15,
     clipWidth: 640 as number | null,
     clipQuality: 75,
-    keepMeta: false,
-    keepGps: false,
+    keepMeta: true,
+    keepGps: true,
   }, undefined, "convert|" + selection.map((f) => f.path).join("|"));
   onMount(() => useForm(form));
+  $: if (forcedTarget && $form.targetExt !== forcedTarget) form.update((f) => ({ ...f, targetExt: forcedTarget }));
 
   // Sen perdas: só onde o formato de destino o permite.
   $: canLossless = (category === "imaxe" && ["jxl", "jp2", "avif"].includes($form.targetExt)) || (category === "video" && ["mp4", "mkv", "mov"].includes($form.targetExt));
@@ -221,13 +224,15 @@
 <div class="stack">
 
   <div class="group">
-    <SelectField
-      label={$t("Formato de saída")}
-      bind:value={$form.targetExt}
-      options={targets.map((e) => ({ value: e, label: e.toUpperCase() }))}
-      def={form.defaults.targetExt}
-      disabled={$busy}
-    />
+    {#if !forcedTarget}
+      <SelectField
+        label={$t("Formato de saída")}
+        bind:value={$form.targetExt}
+        options={targets.map((e) => ({ value: e, label: e.toUpperCase() }))}
+        def={form.defaults.targetExt}
+        disabled={$busy}
+      />
+    {/if}
 
     {#if losing.length}
       <LockNote
@@ -255,7 +260,6 @@
     {:else if category === "imaxe"}
       <Levels label={$t("Nivel de calidade")} levels={imageLevels} values={{ quality: $form.quality }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto: mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL).")} />
-      <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} supported={engine.META_EXTS.includes($form.targetExt)} disabled={$busy} />
       {#if multi}
         <NumberField label={$t("Lado máximo")} unit="px" min={1} placeholder={$t("orixinal")} bind:value={$form.maxSide} def={null} />
       {:else}
@@ -297,6 +301,9 @@
     <button class="btn primary block" on:click={convertSingle} disabled={$busy || !$form.targetExt}>
       {$t("Converter a {ext}", { ext: $form.targetExt.toUpperCase() })}
     </button>
+  {/if}
+  {#if category === "imaxe" && $form.targetExt !== "pdf" && !exact}
+    <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} supported={engine.META_EXTS.includes($form.targetExt)} disabled={$busy} />
   {/if}
 
   {#if results.length}

@@ -1048,6 +1048,12 @@ pub async fn stitch_images(inputs: Vec<String>, output: String, overwrite: bool,
     blocking(move || trasno_engine::stitch::stitch_images(&inputs, &PathBuf::from(output), overwrite, &options).map_err(to_err)).await
 }
 
+/// Crea un cartafol de iconas (Windows, macOS, web e PNG) a partir dunha imaxe.
+#[tauri::command]
+pub async fn make_icon_pack(input: String, dir: String, stem: String, options: trasno_engine::icons::IconOptions) -> Result<trasno_engine::icons::IconReport, String> {
+    blocking(move || trasno_engine::icons::make_icon_pack(&PathBuf::from(input), &PathBuf::from(dir), &stem, &options).map_err(to_err)).await
+}
+
 /// Corta unha imaxe en partes iguais dentro dunha zona e garda cada parte nun ficheiro novo.
 #[tauri::command]
 pub async fn slice_image(input: String, dir: String, stem: String, ext: String, options: trasno_engine::slice::SliceOptions) -> Result<trasno_engine::slice::SliceReport, String> {
@@ -1243,6 +1249,22 @@ pub async fn pdf_redact(request: tauri::ipc::Request<'_>) -> Result<trasno_engin
         }
         let (i, o) = paths(meta.input, meta.output);
         trasno_engine::pdf_more::redact_pages(&i, &o, meta.overwrite, &pages).map_err(to_err)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn pdf_list_attachments(input: String) -> Result<Vec<trasno_engine::pdf_more::Attachment>, String> {
+    blocking(move || trasno_engine::pdf_more::list_attachments(&PathBuf::from(input)).map_err(to_err)).await
+}
+
+/// Engade ficheiros como anexos dun PDF e/ou quita os que teñen eses nomes.
+#[tauri::command]
+pub async fn pdf_edit_attachments(input: String, output: String, overwrite: bool, add: Vec<String>, remove: Vec<String>) -> Result<trasno_engine::pdf_more::AttachReport, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        let add: Vec<PathBuf> = add.into_iter().map(PathBuf::from).collect();
+        trasno_engine::pdf_more::edit_attachments(&i, &o, overwrite, &add, &remove).map_err(to_err)
     })
     .await
 }

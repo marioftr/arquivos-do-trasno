@@ -426,7 +426,7 @@ export const compressExt = (ext: string) => (COMPRESS_KEEP.includes(ext.toLowerC
 export type ResizeFit =
   | { mode: "within"; width: number | null; height: number | null; no_upscale: boolean }
   | { mode: "percent"; percent: number }
-  | { mode: "exact"; width: number; height: number; crop: boolean };
+  | { mode: "exact"; width: number; height: number; crop: boolean; no_upscale: boolean };
 
 export interface ResizeReport {
   output_path: string;
@@ -626,6 +626,13 @@ export function pdfRedact(input: string, output: string, pages: { page: number; 
   const meta = { input, output, overwrite, pages: pages.map((p) => [p.page, p.jpeg.length]) };
   return call("pdf_redact", body, { headers: { "x-meta": encodeURIComponent(JSON.stringify(meta)) } });
 }
+export interface IconOptions { windows: boolean; mac: boolean; web: boolean; png: boolean; fit: boolean }
+export interface IconReport { folder: string; files: string[]; bytes_written: number; source_side: number }
+export const makeIconPack = (input: string, dir: string, stem: string, options: IconOptions): Promise<IconReport> => call("make_icon_pack", { input, dir, stem, options });
+export interface Attachment { name: string; size: number }
+export const pdfListAttachments = (input: string): Promise<Attachment[]> => call("pdf_list_attachments", { input });
+export interface AttachReport { output_path: string; added: number; removed: number }
+export const pdfEditAttachments = (input: string, output: string, add: string[], remove: string[], overwrite = false): Promise<AttachReport> => call("pdf_edit_attachments", { input, output, overwrite, add, remove });
 export interface FormField {
   name: string;
   kind: "text" | "check" | "radio" | "choice";

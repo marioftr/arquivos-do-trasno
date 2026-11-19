@@ -72,7 +72,7 @@
     }
     switch (cat) {
       case "imaxe":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("resize", "Redimensionar"), tab("slice", "Cortar en partes"), tab("annotate", "Anotar"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("resize", "Redimensionar"), tab("slice", "Cortar en partes"), tab("annotate", "Anotar"), tab("icons", "Iconas"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
         return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...(ext === "gif" ? [] : [tab("restore", "Restaurar")]), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
@@ -83,11 +83,11 @@
               tab("convert", "Converter"),
               tab("pages", "Páxinas"),
               tab("shape", "Xirar e recortar"),
-              tab("marks", "Marcas"),
               tab("form", "Formulario"),
+              tab("marks", "Marcas"),
               tab("optimize", "Comprimir e reparar"),
-              tab("ocr", "Recoñecer texto (OCR)"),
               tab("security", "Seguridade"),
+              tab("ocr", "Recoñecer texto (OCR)"),
               tab("info", "Información"),
             ]
           : SUBTITLE_EXTS.includes(first?.ext ?? "")
@@ -139,7 +139,7 @@
   function modesFor(tab: string, pdf: boolean, many: boolean, cat: Category | null, tt: (k: string) => string): { value: string; label: string }[] {
     const m = (value: string, label: string) => ({ value, label: tt(label) });
     // Un vídeo (ou varios) pódese converter a MP4 co perfil que máis lle conveña (comprimindo) ou a outro formato.
-    if (tab === "convert" && cat === "video" && !pdf) return [m("mp4", "A MP4 con perfís"), m("format", "A outro formato")];
+    if (tab === "convert" && cat === "video" && !pdf) return [m("mp4", "A MP4"), m("format", "A outro formato")];
     if (many) return [];
     if (!pdf) {
       if (tab === "subtitles" && cat === "video") return [m("embed", "Incrustar"), m("burn", "Queimar"), m("extract", "Extraer")];
@@ -148,7 +148,7 @@
       return [];
     }
     switch (tab) {
-      case "convert": return [m("images", "A imaxes"), m("format", "A outro formato"), m("markdown", "A Markdown"), m("tables", "Táboas")];
+      case "convert": return [m("format", "Formatos"), m("tables", "Táboas")];
       case "pages": return [m("organize", "Ordenar"), m("extract", "Extraer"), m("split", "Dividir"), m("outline", "Índice")];
       case "shape": return [m("rotate", "Xirar"), m("crop", "Recortar")];
       case "optimize": return [m("compress", "Comprimir"), m("repair", "Reparar")];
@@ -223,10 +223,8 @@
           </div>
         {:else if current === "mkv" && first}
           <MkvTracksSection {selection} />
-        {:else if current === "convert" && mode === "images" && first}
-          <Lazy loader={() => import("./tools/PdfImagesSection.svelte")} file={first} />
-        {:else if current === "convert" && mode === "markdown" && first && isPdf}
-          <Lazy loader={() => import("./tools/PdfMarkdownSection.svelte")} file={first} />
+        {:else if current === "convert" && mode === "format" && first && isPdf}
+          <Lazy loader={() => import("./tools/PdfConvertSection.svelte")} file={first} />
         {:else if current === "convert" && mode === "tables" && first && isPdf}
           <Lazy loader={() => import("./tools/PdfTablesSection.svelte")} file={first} />
         {:else if current === "form" && first && isPdf}
@@ -235,6 +233,8 @@
           <CompressSection {selection} category="video" />
         {:else if current === "convert"}
           <ConvertSection {selection} {category} />
+        {:else if current === "icons" && category === "imaxe" && first}
+          <Lazy loader={() => import("./tools/IconsSection.svelte")} file={first} />
         {:else if current === "resize" && category === "imaxe"}
           <ResizeSection {selection} />
         {:else if current === "stitch" && category === "imaxe"}

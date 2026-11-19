@@ -21,9 +21,12 @@
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
   export let file: FileEntry;
+  /** Formato fixado desde fóra (o selector de saída da pestana); se non, ten o seu propio selector. */
+  export let format: string | undefined = undefined;
 
   const form = createForm({ format: "png", dpi: 150, quality: 90, pageSpec: "" }, "pdf-imaxes");
   onMount(() => useForm(form));
+  $: if (format && $form.format !== format) form.update((f) => ({ ...f, format }));
 
   const job = createJob();
   const busy = job.busy;
@@ -93,12 +96,14 @@
 
   <div class="group">
     <h4 class="group-title">{$t("Páxinas a imaxes")}</h4>
-    <SelectField
-      label={$t("Formato das imaxes")}
-      bind:value={$form.format}
-      options={[{ value: "png", label: "PNG" }, { value: "jpg", label: "JPG" }]}
-      def="png"
-    />
+    {#if !format}
+      <SelectField
+        label={$t("Formato de saída")}
+        bind:value={$form.format}
+        options={[{ value: "png", label: "PNG" }, { value: "jpg", label: "JPG" }]}
+        def="png"
+      />
+    {/if}
     <Slider label={$t("Resolución")} unit={$t("ppp")} min={72} max={300} step={6} bind:value={$form.dpi} def={150} hint={$t("Máis ppp: máis nitidez e máis peso.")} />
     {#if $form.format === "jpg"}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={90} />

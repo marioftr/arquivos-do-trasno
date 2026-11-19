@@ -252,9 +252,11 @@
     <rect x="5" y="11" width="14" height="10" rx="2" />
     <path d="M8 11V8a4 4 0 0 1 8 0v3" />
   {:else if name === "merge"}
-    <path d="M6 3v6a6 6 0 0 0 6 6" />
-    <path d="M18 3v6a6 6 0 0 1-6 6" />
-    <line x1="12" y1="15" x2="12" y2="21" />
+    <rect x="3" y="3" width="8" height="7" rx="1.6" />
+    <rect x="13" y="3" width="8" height="7" rx="1.6" />
+    <path d="M7 10.5 12 14" />
+    <path d="M17 10.5 12 14" />
+    <rect x="4" y="14.5" width="16" height="6.5" rx="1.6" />
   {:else if name === "pages"}
     <rect x="5" y="3" width="11" height="15" rx="1.5" />
     <path d="M9 21h8a2 2 0 0 0 2-2V7" />
@@ -286,6 +288,15 @@
   {:else if name === "eye"}
     <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
     <circle cx="12" cy="12" r="3" />
+  {:else if name === "stamp"}
+    <path d="M9 8.5a3 3 0 1 1 6 0c0 1.6-1 2.2-1 4.5h-4c0-2.3-1-2.9-1-4.5z" />
+    <rect x="5" y="13" width="14" height="4" rx="1" />
+    <line x1="4" y1="20.5" x2="20" y2="20.5" />
+  {:else if name === "app-icons"}
+    <rect x="3" y="3" width="8.5" height="8.5" rx="2.2" />
+    <rect x="13" y="3" width="8" height="8" rx="4" />
+    <rect x="3" y="14" width="7" height="7" rx="1.6" />
+    <rect x="12.5" y="13.5" width="8.5" height="8.5" rx="2.2" stroke-dasharray="2.2 2" />
   {:else if name === "form"}
     <rect x="4" y="3.5" width="16" height="17" rx="2" />
     <polyline points="7.5 8.5 9 10 11.5 7" />

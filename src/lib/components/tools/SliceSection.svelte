@@ -166,11 +166,12 @@
         <NumberField label={$t("Filas")} min={1} max={20} bind:value={$form.rows} def={form.defaults.rows} />
       </div>
       <Segmented
-        label={$t("Forma de cada parte")}
+        label={$t("Proporción")}
         info={$t("Proporción de cada parte (ancho:alto). Libre usa a que dea a zona.")}
         options={SHAPES.map((s) => ({ value: s.id, label: s.id === 0 ? $t(s.label) : s.label, glyph: s.ar ? ({ k: "ratio", w: s.w, h: s.h } as const) : ({ k: "free" } as const) }))}
         bind:value={$form.shape}
       />
+      <button class="btn" on:click={fitAll}><Icon name="expand" size={14} /> {$t("Axustar á imaxe")}</button>
       <Segmented
         label={$t("Numerar")}
         options={[
@@ -179,7 +180,6 @@
         ]}
         bind:value={$form.order}
       />
-      <button class="btn" on:click={fitAll}><Icon name="expand" size={14} /> {$t("Axustar á imaxe")}</button>
     </div>
 
     <div class="group">

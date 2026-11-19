@@ -81,10 +81,16 @@ export default {
     await app.ev(`document.querySelectorAll('li[role=option] input[type=checkbox]').forEach(x=>{ if(x.checked) x.click(); })`);
     const tabs = await app.tabs();
     c.ok(tabs.includes("Formulario") && tabs.includes("Seguridade"), "o PDF ten as pestanas Formulario e Seguridade", tabs.join(","));
+    c.ok(tabs.indexOf("Formulario") < tabs.indexOf("Marcas"), "Formulario vai por riba de Marcas", tabs.join(","));
+    c.ok(tabs.indexOf("Recoñecer texto (OCR)") === tabs.length - 2 && tabs[tabs.length - 1] === "Información", "Recoñecer texto vai xusto antes de Información", tabs.join(","));
 
     // ---- Markdown
     await app.click("Converter");
-    c.ok((await mode("A Markdown")) === "ok", "Converter ten o modo «A Markdown»");
+    await app.waitFor(`!!document.querySelector('.stack select[aria-label="Formato de saída"]')`, "o selector de formato de saída", 20000);
+    const fmts = await app.ev(`[...document.querySelectorAll('.stack select[aria-label="Formato de saída"] option')].map(o=>o.textContent.trim()).slice(0,4).join()`);
+    c.ok(fmts === "PNG,JPG,TXT,Markdown", "un só selector de formato: imaxes, texto e Markdown", fmts);
+    c.ok(!(await app.panel()).includes("A Markdown"), "xa non hai modos separados para Markdown nin «A outro formato»");
+    await app.ev(`(()=>{const s=document.querySelector('.stack select[aria-label="Formato de saída"]'); s.value='md'; s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
     await go("Gardar como Markdown");
     c.ok(await exists("informe.md"), "gardouse informe.md ao carón");
     const md = fs.readFileSync(path.join(app.media, "informe.md"), "utf8");
@@ -138,6 +144,11 @@ export default {
     c.ok(/quitados: \d+/.test((await row("Datos do documento")) ?? ""), "a táboa di cantos datos quitou", await row("Datos do documento"));
     c.ok(read("informe.pdf").includes("Marta Autora"), "o orixinal segue co autor");
 
+    // ---- Anexos
+    c.ok((await mode("Anexos")) === "ok", "Seguridade ten o modo «Anexos»");
+    await app.waitFor(`/non ten anexos/.test(document.body.innerText)`, "sen anexos de partida", 15000);
+    c.ok(true, "o PDF de partida non ten anexos");
+
     // ---- Tapar
     c.ok((await mode("Tapar")) === "ok", "Seguridade ten o modo «Tapar»");
     await app.waitFor(`/zonas a tapar/i.test(document.body.innerText)`, "o panel de tapar");
@@ -151,6 +162,31 @@ export default {
     await app.drag([pg[0] + pg[2] * 0.05, pg[1] + pg[3] * 0.06], [pg[0] + pg[2] * 0.7, pg[1] + pg[3] * 0.11]);
     await app.waitFor(`document.querySelectorAll('.stack .results li').length === 2`, "unha zona debuxada co rato", 10000);
     c.ok(/Zonas: 1/.test((await row("Páxina 2")) ?? ""), "arrastrar sobre a páxina 2 engade unha zona", await row("Páxina 2"));
+    // A zona da páxina 2 móvese arrastrándoa e a súa × quítaa (antes non respondían).
+    const box = () => app.ev(`(()=>{const b=document.querySelectorAll('.pages .pg:nth-child(2) .ov')[0]; if(!b) return null; const r=b.getBoundingClientRect(); return [r.left,r.top,r.width,r.height];})()`);
+    const b0 = await box();
+    await app.drag([b0[0] + b0[2] / 2, b0[1] + b0[3] / 2], [b0[0] + b0[2] / 2 + 60, b0[1] + b0[3] / 2 + 80]);
+    await app.sleep(400);
+    const b1 = await box();
+    c.ok(b1 && b1[0] - b0[0] > 40 && b1[1] - b0[1] > 60, "arrastrar a zona lévaa a outro sitio", JSON.stringify([b0, b1]));
+    await app.drag([b1[0] + b1[2] - 2, b1[1] + b1[3] - 2], [b1[0] + b1[2] + 40, b1[1] + b1[3] + 40]);
+    await app.sleep(400);
+    const b2 = await box();
+    c.ok(b2 && b2[2] > b1[2] + 25 && b2[3] > b1[3] + 25, "tirar dunha esquina cambia o tamaño", JSON.stringify([b1, b2]));
+    // Premer o nome da páxina na lista leva o visor ata ela.
+    await app.ev(`document.querySelector('.pages').scrollTop = 0`);
+    await app.click("Páxina 2");
+    await app.sleep(700);
+    c.ok(await app.ev(`(()=>{const r=document.querySelector('.pages .pg:nth-child(2)').getBoundingClientRect(); const c=document.querySelector('.pages').getBoundingClientRect(); return Math.abs(r.top-c.top) < 60;})()`), "premer «Páxina 2» na lista leva o visor ata ela");
+    // Quitar unha zona co seu ×, e volver debuxala.
+    c.ok(await app.ev(`(()=>{const x=document.querySelector('.pages .pg:nth-child(2) .ov button'); if(!x) return false; x.click(); return true;})()`), "a × da zona responde");
+    await app.waitFor(`![...document.querySelectorAll('.stack .results li .rname')].some(n=>n.textContent.trim()==='Páxina 2')`, "a zona quitouse", 8000);
+    await app.ev(`document.querySelector('.pages .pg:nth-child(2)')?.scrollIntoView()`);
+    await app.sleep(600);
+    const pg2 = await app.ev(`(()=>{const r=document.querySelector('.pages .pg:nth-child(2)').getBoundingClientRect(); return [r.left,r.top,r.width,r.height];})()`);
+    await app.drag([pg2[0] + pg2[2] * 0.05, pg2[1] + pg2[3] * 0.06], [pg2[0] + pg2[2] * 0.7, pg2[1] + pg2[3] * 0.11]);
+    await app.waitFor(`document.querySelectorAll('.stack .results li').length === 2`, "outra zona debuxada", 10000);
+    c.ok(!/Calidade das páxinas tapadas|Resolución/.test(await app.panel()), "tapar xa non ten axustes de calidade");
     if (process.env.TRASNO_SHOTS) await app.shot("tapar.png");
     await go("Tapar as zonas (2)");
     c.ok(await exists("informe-tapado.pdf"), "gardouse informe-tapado.pdf", 20000);

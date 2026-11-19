@@ -63,18 +63,29 @@ export default {
     c.ok(!(await levelNames()), "co modo de porcentaxe non hai tamaños con nome");
     await app.click("Píxeles");
     // Sen manter a proporción é un tamaño exacto, e aí pregúntase que facer.
-    c.ok(await app.ev(`!!document.querySelector('.stack .locked-tools.on [role=radiogroup][aria-label="Se a proporción cambia"]')`), "coa proporción mantida «Se a proporción cambia» queda apagado, non agochado");
+    c.ok(await app.ev(`!!document.querySelector('.stack .locked-tools.on [role=radiogroup]')`), "coa proporción mantida «Recortar / Estirar» queda en gris, non agochado");
     await app.toggle("Manter proporción");
     await num("Ancho", 300);
     await num("Alto", 300);
     await app.waitFor(`/→ 300 × 300/.test(document.querySelector('.stack .results li')?.innerText||'')`, "300 × 300 exacto");
     c.ok((await levelNames()) === "Pequeno,Mediano,Grande,Personalizado", "sen manter a proporción nada desaparece: os tamaños con nome seguen aí");
-    c.ok(await app.ev(`[...document.querySelectorAll('.stack .toggle')].find(x=>x.querySelector('.lab')?.textContent.trim()==='Non ampliar as imaxes pequenas')?.querySelector('input').disabled`), "e «Non ampliar» queda apagado, non agochado");
+    c.ok((await app.ev(`[...document.querySelectorAll('.stack .toggle')].find(x=>x.querySelector('.lab')?.textContent.trim()==='Non ampliar')?.querySelector('input').disabled`)) === false, "e «Non ampliar» segue activo sen proporción mantida (tamén vale co tamaño exacto)");
     c.ok(/Recortar polo centro/.test(await app.panel()) && /Estirar/.test(await app.panel()), "o tamaño exacto pregunta: recortar polo centro ou estirar");
-    // Un valor imposible non deixa continuar.
+    // Os campos non admiten negativos nin 0: un valor así vólvese ao mínimo ao saír do campo.
     await num("Ancho", 0);
-    await app.sleep(700);
-    c.ok(await app.ev(`[...document.querySelectorAll('.stack .btn.primary')].find(b=>/^Redimensionar/.test(b.textContent))?.disabled`), "con un tamaño imposible o botón queda desactivado");
+    await app.sleep(500);
+    c.ok((await field("Ancho")) === "1", "un 0 no ancho vólvese 1", await field("Ancho"));
+    await num("Ancho", -5);
+    await app.sleep(300);
+    c.ok((await field("Ancho")) === "1", "tampouco hai negativos", await field("Ancho"));
+    // As frechas do campo suben e baixan.
+    await app.ev(`document.querySelectorAll('.stack label.num')[0].querySelector('.steps button').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0}))`);
+    await app.ev(`window.dispatchEvent(new PointerEvent('pointerup'))`);
+    await app.sleep(300);
+    c.ok((await field("Ancho")) === "2", "a frecha de arriba suma un", await field("Ancho"));
+    await app.ev(`(()=>{const b=document.querySelectorAll('.stack label.num')[0].querySelectorAll('.steps button')[1]; for(let i=0;i<3;i++){b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0})); window.dispatchEvent(new PointerEvent('pointerup'));}})()`);
+    await app.sleep(300);
+    c.ok((await field("Ancho")) === "1", "a de abaixo resta, sen baixar do mínimo", await field("Ancho"));
     // Ao volver activar a proporción, as medidas axústanse ao cadro e hai tamaños con nome outra vez.
     await num("Ancho", 640);
     await app.toggle("Manter proporción");
@@ -100,7 +111,7 @@ export default {
     await pick([]);
     await app.click("Redimensionar");
     await app.waitFor(`/300 × 600/.test(document.querySelector('.stack .results li')?.innerText||'')`, "a imaxe vertical");
-    await app.toggle("Non ampliar as imaxes pequenas");
+    await app.toggle("Non ampliar");
     await level("Grande");
     await app.waitFor(`/→ 960 × 1920/.test(document.querySelector('.stack .results li')?.innerText||'')`, "960 × 1920");
     c.ok((await field("Ancho")) === "960" && (await field("Alto")) === "1920", "nunha imaxe vertical o lado maior é o alto e o ancho calcúlase", `${await field("Ancho")} × ${await field("Alto")}`);

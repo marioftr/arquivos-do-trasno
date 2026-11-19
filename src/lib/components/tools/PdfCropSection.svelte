@@ -30,7 +30,8 @@
     form.update((v) => ({ ...v, right: v.left, top: v.left, bottom: v.left }));
   }
   $: pages = safePages(f.pageSpec, file.pages);
-  $: pdfOverlay.set({ crop: { l: f.left * PT_PER_MM, r: f.right * PT_PER_MM, t: f.top * PT_PER_MM, b: f.bottom * PT_PER_MM }, select: pages ?? undefined });
+  // Sen márxenes a quitar non se pinta sombra ningunha.
+  $: pdfOverlay.set({ crop: f.left + f.right + f.top + f.bottom > 0 ? { l: f.left * PT_PER_MM, r: f.right * PT_PER_MM, t: f.top * PT_PER_MM, b: f.bottom * PT_PER_MM } : undefined, select: pages ?? undefined });
   const own = claim("pdfOverlay");
   onDestroy(() => own.release(() => pdfOverlay.set(null)));
 
@@ -60,7 +61,7 @@
     <h4 class="group-title">{$t("Márxenes que se quitan")}</h4>
     <GroupNote text={$t("As zonas escuras do visor son o que se vai cortar.")} />
     <Toggle label={$t("Os catro márxenes iguais")} bind:checked={$form.same} />
-    <Slider label={f.same ? $t("Todos os lados") : $t("Esquerda")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.left} def={0} />
+    <Slider label={f.same ? $t("Marxe") : $t("Esquerda")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.left} def={0} />
     {#if !f.same}
       <Slider label={$t("Dereita")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.right} def={0} />
       <Slider label={$t("Arriba")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.top} def={0} />

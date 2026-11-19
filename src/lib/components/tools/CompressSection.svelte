@@ -69,8 +69,8 @@
     videoKbps: 2000,
     sizeValue: 10,
     unit: "MB",
-    keepMeta: false,
-    keepGps: false,
+    keepMeta: true,
+    keepGps: true,
   }, `comprimir2-${category}`, "compress|" + selection.map((f) => f.path).join("|"));
   $: videoDar.set(isImage ? "" : v.dar ?? "");
   const own = claim("videoDar");
@@ -360,9 +360,6 @@
 
     {#if isImage}
       <NumberField label={$t("Lado máximo")} unit="px" min={1} placeholder={$t("orixinal")} bind:value={$form.maxSide} def={null} />
-      {#if usable.some((f) => engine.META_EXTS.includes(f.ext.toLowerCase()))}
-        <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} disabled={$busy} />
-      {/if}
     {:else}
       <SelectField
         label={$t("Altura máxima")}
@@ -419,6 +416,9 @@
     <button class="btn primary block" on:click={runSingle} disabled={$busy || allBlocked}>
       {isImage ? $t("Comprimir imaxe") : $t("Converter a MP4")}
     </button>
+  {/if}
+  {#if isImage && usable.some((f) => engine.META_EXTS.includes(f.ext.toLowerCase()))}
+    <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} disabled={$busy} />
   {/if}
 
   </div>

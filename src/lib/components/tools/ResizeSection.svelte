@@ -33,7 +33,7 @@
 
   // `how`: 0 porcentaxe, 1 píxeles. `lock`: manter a proporción. `crop`: 0 recortar polo centro, 1 estirar.
   const form = createForm(
-    { how: 1, percent: 50, width: 1920 as number | null, height: 1920 as number | null, lock: true, noUpscale: true, crop: 0, quality: 90, keepMeta: false, keepGps: false },
+    { how: 1, percent: 50, width: 1920 as number | null, height: 1920 as number | null, lock: true, noUpscale: true, crop: 0, quality: 90, keepMeta: true, keepGps: true },
     "redimensionar",
     "redimensionar|" + selection.map((f) => f.path).join("|"),
   );
@@ -77,7 +77,7 @@
     ? { mode: "percent", percent: v.percent }
     : v.lock
       ? { mode: "within", width: v.width || null, height: v.height || null, no_upscale: v.noUpscale }
-      : { mode: "exact", width: v.width || 0, height: v.height || 0, crop: v.crop === 0 }) as engine.ResizeFit;
+      : { mode: "exact", width: v.width || 0, height: v.height || 0, crop: v.crop === 0, no_upscale: v.noUpscale }) as engine.ResizeFit;
 
   // Cunha soa imaxe e a proporción mantida, o ancho e o alto van ligados: cambiar un cambia o outro no campo.
   let dims: [number, number] | null = null;
@@ -219,17 +219,15 @@
       {#if v.how === 0}
         <Slider label={$t("Porcentaxe")} unit="%" min={1} max={400} bind:value={$form.percent} def={form.defaults.percent} />
       {:else}
-        <Toggle label={$t("Manter proporción")} bind:checked={$form.lock} hint={multi ? $t("Cada imaxe cabe no cadro de ancho e alto sen deformarse. Sen isto, todas toman o tamaño exacto escrito.") : $t("Ao cambiar o ancho ou o alto, o outro axústase pola proporción da imaxe. Sen isto, cada un vale o que se escriba.")} />
         <Levels label={$t("Tamaño")} info={$t("Pequeno, Mediano e Grande fixan o lado maior en 640, 1280 e 1920 px, tamén nas imaxes verticais; a outra medida calcúlase.")} levels={sideLevels} values={{ width: v.width ?? 0, height: v.height ?? 0 }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
         <div class="pair">
           <NumberField label={$t("Ancho")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} value={v.width} onInput={(r) => setSide("width", r)} />
           <NumberField label={$t("Alto")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} value={v.height} onInput={(r) => setSide("height", r)} />
         </div>
-        <Toggle label={$t("Non ampliar as imaxes pequenas")} bind:checked={$form.noUpscale} disabled={!v.lock} hint={$t("As imaxes que xa caben no tamaño elixido quedan como están. Só con proporción mantida.")} />
+        <Toggle label={$t("Manter proporción")} bind:checked={$form.lock} hint={multi ? $t("Cada imaxe cabe no cadro de ancho e alto sen deformarse. Sen isto, todas toman o tamaño exacto escrito.") : $t("Ao cambiar o ancho ou o alto, o outro axústase pola proporción da imaxe. Sen isto, cada un vale o que se escriba.")} />
+        <Toggle label={$t("Non ampliar")} bind:checked={$form.noUpscale} hint={$t("As imaxes que xa caben no tamaño elixido quedan como están.")} />
         <div class="locked-tools" class:on={v.lock} inert={v.lock}>
           <Segmented
-            label={$t("Se a proporción cambia")}
-            info={$t("Recortar polo centro enche o tamaño e corta o que sobra; Estirar deforma a imaxe. Só sen proporción mantida.")}
             options={[
               { value: 0, label: $t("Recortar polo centro") },
               { value: 1, label: $t("Estirar") },
@@ -240,9 +238,6 @@
       {/if}
       {#if hasLossy}
         <Slider label={$t("Calidade (JPG, WebP…)")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("As imaxes con perdas vólvense gardar a esta calidade. O PNG non perde nada.")} />
-      {/if}
-      {#if hasMeta}
-        <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} disabled={$busy} />
       {/if}
     </div>
 
@@ -263,6 +258,9 @@
       {multi ? $t("Redimensionar {n} imaxes", { n: usable.length }) : $t("Redimensionar imaxe")}
     </button>
   </div>
+  {#if hasMeta}
+    <PhotoMeta bind:keep={$form.keepMeta} bind:gps={$form.keepGps} disabled={$busy} />
+  {/if}
   <JobStatus {job} />
 </div>
 

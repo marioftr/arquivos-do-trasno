@@ -8,7 +8,7 @@
   import Icon from "../Icon.svelte";
   import { actionFor } from "../../keymap";
   import { get } from "svelte/store";
-  import { pdfOverlay, type FileEntry, type PdfOverlay } from "../../files";
+  import { pdfOverlay, pdfJump, type FileEntry, type PdfOverlay, type RedactBox } from "../../files";
   import { fontCss, type FontSpec } from "../../fonts";
   import { t } from "../../i18n";
   import ZoomRuler from "../ui/ZoomRuler.svelte";
@@ -195,6 +195,29 @@
     current = k;
   }
 
+  /** Zoom co panel táctil (pinza) ou con Ctrl + roda: o punto baixo o punteiro queda no seu sitio. */
+  function pinchZoom(node: HTMLElement) {
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const next = Math.max(ZMIN, Math.min(ZMAX, scale * Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.01))));
+      if (Math.abs(next - scale) < 0.05) return;
+      const r = node.getBoundingClientRect();
+      const fx = (node.scrollLeft + e.clientX - r.left) / Math.max(1, node.scrollWidth);
+      const fy = (node.scrollTop + e.clientY - r.top) / Math.max(1, node.scrollHeight);
+      fitMode = "none";
+      scale = Math.round(next * 10) / 10;
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          node.scrollLeft = fx * node.scrollWidth - (e.clientX - r.left);
+          node.scrollTop = fy * node.scrollHeight - (e.clientY - r.top);
+        }),
+      );
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return { destroy: () => node.removeEventListener("wheel", onWheel) };
+  }
+
   function key(e: KeyboardEvent) {
     const t = e.target as HTMLElement;
     const id = actionFor(e, "pdf");
@@ -214,6 +237,11 @@
     else if (id === "p.fitPage") setFit("page");
     else return;
     e.preventDefault();
+  }
+
+  $: if ($pdfJump && doc) {
+    goto($pdfJump.page);
+    pdfJump.set(null);
   }
 
   $: filePath = file.path;
@@ -655,6 +683,53 @@
     }
   }
 
+  /** Move unha zona a tapar (arrastrándoa) ou cambia o seu tamaño (tirando dunha esquina). */
+  function editRedact(ev: PointerEvent, el: HTMLElement, b: RedactBox, mode: "move" | "nw" | "ne" | "sw" | "se", rd: NonNullable<PdfOverlay["redact"]>, p: PageInfo) {
+    if (ev.button !== 0) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const r = p.wrap.getBoundingClientRect();
+    const start = { x: (b.x / 100) * r.width, y: (b.y / 100) * r.height, w: (b.w / 100) * r.width, h: (b.h / 100) * r.height };
+    const x0 = ev.clientX;
+    const y0 = ev.clientY;
+    const MIN = 8;
+    let cur = { ...start };
+    const mv = (e: PointerEvent) => {
+      const dx = e.clientX - x0;
+      const dy = e.clientY - y0;
+      let { x, y, w, h } = start;
+      if (mode === "move") {
+        x = Math.max(0, Math.min(r.width - w, x + dx));
+        y = Math.max(0, Math.min(r.height - h, y + dy));
+      } else {
+        if (mode[1] === "w") {
+          const nx = Math.max(0, Math.min(x + w - MIN, x + dx));
+          w += x - nx;
+          x = nx;
+        } else w = Math.max(MIN, Math.min(r.width - x, w + dx));
+        if (mode[0] === "n") {
+          const ny = Math.max(0, Math.min(y + h - MIN, y + dy));
+          h += y - ny;
+          y = ny;
+        } else h = Math.max(MIN, Math.min(r.height - y, h + dy));
+      }
+      cur = { x, y, w, h };
+      el.style.left = `${(x / r.width) * 100}%`;
+      el.style.top = `${(y / r.height) * 100}%`;
+      el.style.width = `${(w / r.width) * 100}%`;
+      el.style.height = `${(h / r.height) * 100}%`;
+    };
+    const end = () => {
+      window.removeEventListener("pointermove", mv);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      if (cur.x !== start.x || cur.y !== start.y || cur.w !== start.w || cur.h !== start.h) rd.onChange(b.id, { x: (cur.x / r.width) * 100, y: (cur.y / r.height) * 100, w: (cur.w / r.width) * 100, h: (cur.h / r.height) * 100 });
+    };
+    window.addEventListener("pointermove", mv);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+  }
+
   /** Arrastrar sobre unha páxina debuxa unha zona a tapar (os cambios van en % da páxina). */
   function drawRedact(ev: PointerEvent, rd: NonNullable<PdfOverlay["redact"]>, p: PageInfo) {
     if (ev.button !== 0 || (ev.target as HTMLElement).closest(".ov")) return;
@@ -752,10 +827,10 @@
           e.style.cssText = `position:absolute;background:rgba(10,10,14,.62);pointer-events:none;${css}`;
           add(e);
         };
-        mk(`left:0;top:0;bottom:0;width:${l * p.s}px`);
-        mk(`right:0;top:0;bottom:0;width:${r * p.s}px`);
-        mk(`left:${l * p.s}px;right:${r * p.s}px;top:0;height:${t * p.s}px`);
-        mk(`left:${l * p.s}px;right:${r * p.s}px;bottom:0;height:${b * p.s}px`);
+        if (l > 0) mk(`left:0;top:0;bottom:0;width:${l * p.s}px`);
+        if (r > 0) mk(`right:0;top:0;bottom:0;width:${r * p.s}px`);
+        if (t > 0) mk(`left:${l * p.s}px;right:${r * p.s}px;top:0;height:${t * p.s}px`);
+        if (b > 0) mk(`left:${l * p.s}px;right:${r * p.s}px;bottom:0;height:${b * p.s}px`);
       }
       if (ov.text && inPages(ov.text.pages)) {
         const o = ov.text;
@@ -766,17 +841,26 @@
         for (const b of ov.redact.boxes) {
           if (b.page !== p.n) continue;
           const e = document.createElement("div");
-          e.style.cssText = `position:absolute;left:${b.x}%;top:${b.y}%;width:${b.w}%;height:${b.h}%;background:rgba(0,0,0,.85);outline:1px solid #e5484d;`;
+          // z-index por riba da capa de texto e das ligazóns, para poder collelas.
+          e.style.cssText = `position:absolute;z-index:5;left:${b.x}%;top:${b.y}%;width:${b.w}%;height:${b.h}%;background:rgba(0,0,0,.85);outline:1px solid #e5484d;cursor:move;touch-action:none;`;
+          e.onpointerdown = (ev) => editRedact(ev, e, b, "move", ov.redact!, p);
           const x = document.createElement("button");
           x.textContent = "×";
           x.title = $t("Quitar esta zona");
           x.setAttribute("aria-label", $t("Quitar esta zona"));
-          x.style.cssText = "position:absolute;right:-1px;top:-1px;transform:translateY(-100%);width:18px;height:18px;padding:0;line-height:16px;border:none;border-radius:4px 4px 0 0;background:#e5484d;color:#fff;font-size:14px;cursor:pointer;";
+          x.style.cssText = "position:absolute;right:-1px;top:-1px;transform:translateY(-100%);width:20px;height:20px;padding:0;line-height:18px;border:none;border-radius:4px 4px 0 0;background:#e5484d;color:#fff;font-size:15px;cursor:pointer;";
+          x.onpointerdown = (ev) => ev.stopPropagation();
           x.onclick = (ev) => {
             ev.stopPropagation();
             ov.redact!.onRemove(b.id);
           };
           e.appendChild(x);
+          for (const c of ["nw", "ne", "sw", "se"] as const) {
+            const h = document.createElement("div");
+            h.style.cssText = `position:absolute;${c[0] === "n" ? "top" : "bottom"}:-5px;${c[1] === "w" ? "left" : "right"}:-5px;width:10px;height:10px;background:#fff;border:1px solid #e5484d;border-radius:2px;cursor:${c === "nw" || c === "se" ? "nwse-resize" : "nesw-resize"};`;
+            h.onpointerdown = (ev) => editRedact(ev, e, b, c, ov.redact!, p);
+            e.appendChild(h);
+          }
           add(e);
         }
       }
@@ -822,7 +906,7 @@
       <button class="btn" on:click={() => open(file.path)}>{$t("Tentar de novo")}</button>
     </div>
   {:else}
-    <div class="pages scrollbar-thin" class:fitting={fitMode !== "none"} bind:this={container} on:scroll={onScroll}></div>
+    <div class="pages scrollbar-thin" class:fitting={fitMode !== "none"} bind:this={container} use:pinchZoom on:scroll={onScroll}></div>
   {/if}
   <div class="bar" class:compact bind:clientWidth={barW}>
     <button class="btn" class:on={fitMode === "width"} on:click={() => setFit("width")} title={$t("Axustar ao ancho (0)")}>{$t("Ancho")}</button>

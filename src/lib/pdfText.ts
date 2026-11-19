@@ -219,7 +219,7 @@ export function headingLevels(pages: PageText[]): { body: number; level: (l: Lin
     level: (l) => {
       if (l.size < body * 1.12 || l.text.length > 120 || BULLET.test(l.text)) return 0;
       const k = ranked.indexOf(Math.round(l.size * 2) / 2);
-      return k < 0 ? 0 : Math.min(4, k + 1);
+      return k < 0 ? 0 : Math.min(6, k + 1);
     },
   };
 }

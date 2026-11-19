@@ -3,7 +3,7 @@
   import { claim } from "../../claim";
   import * as engine from "../../engine";
   import { errText, isCancelled } from "../../errors";
-  import { pdfOverlay, type FileEntry, type RedactBox } from "../../files";
+  import { pdfOverlay, jumpToPdfPage, type FileEntry, type RedactBox } from "../../files";
   import { fallo, fileNameOf, listo, TRASNO } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
@@ -11,9 +11,7 @@
   import { openPdf, readPages, findInPages, type FindKind } from "../../pdfText";
   import { askOutput } from "./shared";
   import Icon from "../Icon.svelte";
-  import Levels from "../ui/Levels.svelte";
   import SelectField from "../ui/SelectField.svelte";
-  import Slider from "../ui/Slider.svelte";
   import TextField from "../ui/TextField.svelte";
   import GroupNote from "../ui/GroupNote.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
@@ -22,11 +20,8 @@
    *  desaparece do ficheiro. As páxinas tapadas pasan a ser unha imaxe. */
   export let file: FileEntry;
 
-  const LEVELS = [
-    { id: "rapida", label: "Rápida", detail: "150 ppp", values: { dpi: 150 } },
-    { id: "normal", label: "Normal", detail: "200 ppp", values: { dpi: 200 } },
-    { id: "alta", label: "Alta", detail: "300 ppp", values: { dpi: 300 } },
-  ];
+  /** Resolución á que se debuxan as páxinas tapadas: fixa, a boa de ler en pantalla e imprimir. As zonas tapan por completo en calquera resolución. */
+  const DPI = 250;
   const KINDS: { value: FindKind; label: string }[] = [
     { value: "text", label: "Un texto" },
     { value: "email", label: "Correos electrónicos" },
@@ -35,7 +30,7 @@
     { value: "dni", label: "DNI ou NIE" },
   ];
 
-  const form = createForm({ dpi: 200, kind: "email" as FindKind, query: "" }, "pdf-tapar", "pdftapar|" + file.path);
+  const form = createForm({ kind: "email" as FindKind, query: "" }, "pdf-tapar", "pdftapar|" + file.path);
   onMount(() => useForm(form));
   $: v = $form;
 
@@ -48,9 +43,10 @@
     boxes = [...boxes, { id: nextId++, page, x, y, w, h }];
   };
   const remove = (id: number) => (boxes = boxes.filter((b) => b.id !== id));
+  const change = (id: number, r: { x: number; y: number; w: number; h: number }) => (boxes = boxes.map((b) => (b.id === id ? { ...b, ...r } : b)));
 
   const own = claim("pdfOverlay");
-  $: pdfOverlay.set({ redact: { boxes, onAdd: add, onRemove: remove } });
+  $: pdfOverlay.set({ redact: { boxes, onAdd: add, onRemove: remove, onChange: change } });
   onDestroy(() => {
     job.clear();
     own.release(() => pdfOverlay.set(null));
@@ -96,7 +92,7 @@
             job.progress.set(done.length / pages.length);
             const page = await doc.getPage(n);
             const base = page.getViewport({ scale: 1 });
-            const scale = Math.min(v.dpi / 72, 6000 / Math.max(base.width, base.height));
+            const scale = Math.min(DPI / 72, 6000 / Math.max(base.width, base.height));
             const vp = page.getViewport({ scale });
             const canvas = document.createElement("canvas");
             canvas.width = Math.max(1, Math.round(vp.width));
@@ -135,7 +131,7 @@
       <ul class="results">
         {#each byPage as [page, n]}
           <li class="zrow">
-            <span class="rname">{$t("Páxina {n}", { n: page })}</span>
+            <button class="rname link" on:click={() => jumpToPdfPage(page)} title={$t("Ir á páxina")}>{$t("Páxina {n}", { n: page })}</button>
             <span class="rstate">
               {$t("Zonas: {n}", { n })}
               <button class="btn ghost icon" title={$t("Quitar as zonas da páxina")} aria-label={`${$t("Quitar as zonas da páxina")} ${page}`} on:click={() => (boxes = boxes.filter((b) => b.page !== page))}><Icon name="trash" size={14} /></button>
@@ -155,17 +151,6 @@
     <button class="btn block" on:click={search} disabled={$busy || (v.kind === "text" && !v.query.trim())}><Icon name="search" size={14} /> {$t("Marcar coincidencias")}</button>
   </div>
 
-  <div class="group">
-    <Levels
-      label={$t("Calidade das páxinas tapadas")}
-      info={$t("Resolución á que se debuxan as páxinas tapadas. Máis ppp: máis nitidez e máis peso.")}
-      levels={LEVELS.map((l) => ({ ...l, label: $t(l.label), detail: $t(l.detail) }))}
-      values={{ dpi: v.dpi }}
-      on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))}
-    />
-    <Slider label={$t("Resolución")} unit={$t("ppp")} min={100} max={400} step={10} bind:value={$form.dpi} def={200} />
-  </div>
-
   <button class="btn primary block" on:click={run} disabled={$busy || !boxes.length}>
     {boxes.length ? $t("Tapar as zonas ({n})", { n: boxes.length }) : $t("Tapar as zonas")}
   </button>
@@ -175,4 +160,6 @@
 <style>
   .zrow { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
   .zrow .rstate { display: inline-flex; align-items: center; gap: 0.3rem; }
+  .link { background: none; border: none; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .link:hover { color: var(--accent); text-decoration: underline; }
 </style>

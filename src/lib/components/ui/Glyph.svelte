@@ -29,15 +29,28 @@
 
   $: box = spec.k === "ratio" ? fit(spec.w / spec.h, 26, 22) : spec.k === "grid" ? fit((spec.cols * (spec.w ?? 1)) / (spec.rows * (spec.h ?? 1)), 32, 24) : { x: 0, y: 0, w: 0, h: 0 };
   $: cells = spec.k === "grid" ? { cw: box.w / spec.cols, ch: box.h / spec.rows } : { cw: 0, ch: 0 };
-  // Igualar medidas: dúas pezas de distinto ancho (ou alto) pasan á mesma; o contorno a trazos é o tamaño que tiña a que cambia.
-  $: match = spec.k === "match" ? matchRects(spec.to, spec.dir) : null;
-  function matchRects(to: "small" | "large", dir: "v" | "h") {
-    const A = dir === "v" ? 28 : 22; // a peza grande (medida de cruzamento)
-    const B = dir === "v" ? 18 : 12; // a pequena
-    const m = to === "small" ? B : A;
-    const at = (i: number, len: number) => (dir === "v" ? { x: (W - len) / 2, y: i ? 17 : 4, w: len, h: 9 } : { x: i ? 22 : 4, y: (H - len) / 2, w: 14, h: len });
-    const ghost = at(to === "small" ? 0 : 1, to === "small" ? A : B);
-    return { a: at(0, m), b: at(1, m), ghost };
+  // Igualar medidas: dúas pezas de distinto ancho (ou alto) quedan como están; unha liña de guía marca a medida á que se igualan
+  // (a da máis pequena ou a da máis grande). O que sobra da grande vai atenuado; o que falta á pequena, a trazos.
+  $: match = spec.k === "match" ? matchShapes(spec.to, spec.dir) : null;
+  function matchShapes(to: "small" | "large", dir: "v" | "h") {
+    const big = dir === "v" ? 28 : 22;
+    const small = dir === "v" ? 18 : 14;
+    const at = dir === "v" ? 6 : 4; // onde empezan as pezas no eixe da medida
+    const guide = at + (to === "small" ? small : big);
+    if (dir === "v") {
+      return {
+        solid: [{ x: at, y: 4, w: to === "small" ? small : big, h: 9 }, { x: at, y: 17, w: small, h: 9 }],
+        faded: to === "small" ? [{ x: guide, y: 4, w: big - small, h: 9 }] : [],
+        dashed: to === "large" ? [{ x: at + small, y: 17, w: big - small, h: 9 }] : [],
+        line: { x1: guide, y1: 2, x2: guide, y2: 28 },
+      };
+    }
+    return {
+      solid: [{ x: 5, y: at, w: 14, h: to === "small" ? small : big }, { x: 21, y: at, w: 14, h: small }],
+      faded: to === "small" ? [{ x: 5, y: guide, w: 14, h: big - small }] : [],
+      dashed: to === "large" ? [{ x: 21, y: at + small, w: 14, h: big - small }] : [],
+      line: { x1: 3, y1: guide, x2: 37, y2: guide },
+    };
   }
   // Cadrícula de numeración: 3 columnas × 2 filas.
   const nums = (by: "rows" | "cols") => Array.from({ length: 6 }, (_, i) => {
@@ -85,9 +98,10 @@
       <polygon points="20,8.5 15.8,15.5 24.2,15.5" fill="currentColor" stroke-width="1" />
     </g>
   {:else if spec.k === "match" && match}
-    <rect x={match.ghost.x} y={match.ghost.y} width={match.ghost.w} height={match.ghost.h} rx="1.5" stroke-dasharray="2.4 2" stroke-width="1.1" opacity="0.6" />
-    <rect x={match.a.x} y={match.a.y} width={match.a.w} height={match.a.h} rx="1.5" fill="currentColor" fill-opacity="0.14" />
-    <rect x={match.b.x} y={match.b.y} width={match.b.w} height={match.b.h} rx="1.5" fill="currentColor" fill-opacity="0.14" />
+    {#each match.solid as r}<rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1.5" fill="currentColor" fill-opacity="0.14" />{/each}
+    {#each match.faded as r}<rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1.5" fill="currentColor" fill-opacity="0.06" stroke-opacity="0.35" />{/each}
+    {#each match.dashed as r}<rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1.5" stroke-dasharray="2.4 2" stroke-width="1.1" />{/each}
+    <line x1={match.line.x1} y1={match.line.y1} x2={match.line.x2} y2={match.line.y2} stroke="var(--accent)" stroke-width="1.6" />
   {:else if spec.k === "swatch"}
     <rect x="11" y="5" width="18" height="20" rx="3" fill={spec.color} stroke="var(--border-strong)" stroke-width="1.2" />
   {/if}

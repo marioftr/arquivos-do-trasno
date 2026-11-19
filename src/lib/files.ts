@@ -298,6 +298,8 @@ export interface PdfOverlay {
     boxes: RedactBox[];
     onAdd: (page: number, x: number, y: number, w: number, h: number) => void;
     onRemove: (id: number) => void;
+    /** Unha zona moveuse ou cambiou de tamaño. */
+    onChange: (id: number, r: { x: number; y: number; w: number; h: number }) => void;
   };
   /** Textos colocados sobre as páxinas: seleccionables, arrastrables e redimensionables directamente no visor. */
   items?: {
@@ -338,6 +340,9 @@ export interface PdfTextBox {
   angle: number;
 }
 export const pdfOverlay = writable<PdfOverlay | null>(null);
+/** Pide ao visor de PDF que vaia a unha páxina (as listas das ferramentas poden premer nelas). */
+export const pdfJump = writable<{ page: number; n: number } | null>(null);
+export const jumpToPdfPage = (page: number) => pdfJump.set({ page, n: Date.now() });
 /** Textos engadidos a cada PDF, lembrados ao cambiar de ficheiro (mentres a app siga aberta). */
 export const pdfTextStash = new Map<string, PdfTextBox[]>();
 let pdfTextId = 0;

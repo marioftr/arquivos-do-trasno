@@ -93,13 +93,13 @@ fn tamaño_exacto_estica_ou_recorta_polo_centro() {
     let src = make(d.path(), "ancha.png", 400, 200);
     // Esticar: 100×100 con toda a imaxe apertada: a metade esquerda vermella e a dereita azul.
     let st = d.path().join("estica.png");
-    let r = run(&src, &st, &Fit::Exact { width: 100, height: 100, crop: false });
+    let r = run(&src, &st, &Fit::Exact { width: 100, height: 100, crop: false, no_upscale: false });
     assert_eq!(r.to, (100, 100));
     let img = image::open(&st).unwrap().to_rgb8();
     assert!(img.get_pixel(5, 50)[0] > 200 && img.get_pixel(95, 50)[2] > 200, "esticar leva a imaxe enteira");
     // Recortar: 100×100 do centro (200×200 de 400×200): aínda hai vermello á esquerda e azul á dereita, pero só a metade de cada un.
     let cr = d.path().join("recorta.png");
-    let r = run(&src, &cr, &Fit::Exact { width: 100, height: 100, crop: true });
+    let r = run(&src, &cr, &Fit::Exact { width: 100, height: 100, crop: true, no_upscale: false });
     assert_eq!(r.to, (100, 100));
     assert_eq!(dims(&cr), (100, 100));
     let img = image::open(&cr).unwrap().to_rgb8();
@@ -108,7 +108,7 @@ fn tamaño_exacto_estica_ou_recorta_polo_centro() {
     let alta = d.path().join("alta.png");
     RgbImage::from_fn(100, 300, |_, y| if (100..200).contains(&y) { Rgb([10, 200, 10]) } else { Rgb([200, 10, 10]) }).save(&alta).unwrap();
     let out = d.path().join("alta-cadrada.png");
-    run(&alta, &out, &Fit::Exact { width: 100, height: 100, crop: true });
+    run(&alta, &out, &Fit::Exact { width: 100, height: 100, crop: true, no_upscale: false });
     let img = image::open(&out).unwrap().to_rgb8();
     assert!(img.pixels().all(|p| p[1] > 150 && p[0] < 60), "o recorte colle o centro, que é todo verde");
 }
@@ -159,7 +159,7 @@ fn unha_animacion_mantense_animada() {
     assert_eq!(dims(&out), (60, 40));
     assert!(trasno_engine::animated::is_animated(&out), "segue sendo animada");
     // Recortar unha animación non se pode: avísase, non se deixa un ficheiro a medias.
-    let e = resize_image(&src, &d.path().join("c.gif"), false, &Fit::Exact { width: 50, height: 50, crop: true }, None, None, Metadata::default()).unwrap_err();
+    let e = resize_image(&src, &d.path().join("c.gif"), false, &Fit::Exact { width: 50, height: 50, crop: true, no_upscale: false }, None, None, Metadata::default()).unwrap_err();
     assert!(e.to_string().contains("animada"), "{e}");
     assert!(!d.path().join("c.gif").exists());
 }
@@ -179,7 +179,7 @@ fn nunca_pisa_un_ficheiro_nin_o_orixinal() {
     assert_eq!(std::fs::read(&out).unwrap(), b"non tocar");
     // Un tamaño absurdo: erro claro e nada escrito.
     let big = d.path().join("enorme.png");
-    assert!(resize_image(&src, &big, false, &Fit::Exact { width: 29_000, height: 29_000, crop: false }, None, None, Metadata::default()).is_err());
+    assert!(resize_image(&src, &big, false, &Fit::Exact { width: 29_000, height: 29_000, crop: false, no_upscale: false }, None, None, Metadata::default()).is_err());
     assert!(!big.exists());
     // Unha imaxe estragada: erro e nada escrito.
     let broken = d.path().join("rota.png");

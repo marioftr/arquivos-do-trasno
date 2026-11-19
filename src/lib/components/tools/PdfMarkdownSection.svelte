@@ -43,7 +43,7 @@
           const md = toMarkdown(pages, { tables: v.tables, pageMarks: v.pageMarks });
           await engine.saveBytes(out, new TextEncoder().encode(md));
           preview = md.split("\n").slice(0, 40).join("\n");
-          stats = { pages: pages.length, tables: v.tables ? pages.reduce((n, p) => n + findTables(p).tables.length, 0) : 0, headings: (md.match(/^#{1,4} /gm) ?? []).length, chars: md.length };
+          stats = { pages: pages.length, tables: v.tables ? pages.reduce((n, p) => n + findTables(p).tables.length, 0) : 0, headings: (md.match(/^#{1,6} /gm) ?? []).length, chars: md.length };
           return `${listo()} ${fileNameOf(out)}`;
         } finally {
           await doc.destroy();

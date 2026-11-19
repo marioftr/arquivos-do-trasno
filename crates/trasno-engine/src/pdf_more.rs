@@ -912,3 +912,157 @@ pub fn fill_form(input: &Path, output: &Path, overwrite: bool, values: &[FieldVa
     let path = save_atomically(&mut doc, output, overwrite)?;
     Ok(FillReport { output_path: path, filled, flattened: flatten })
 }
+
+// ---------------------------------------------------------------------- anexos
+
+/// Un ficheiro metido dentro do PDF.
+#[derive(Debug, Clone, Serialize)]
+pub struct Attachment {
+    pub name: String,
+    pub size: u64,
+}
+
+/// Parella (clave da árbore de nomes, obxecto do ficheiro) de todos os anexos, mesmo se a árbore ten niveis.
+fn embedded_entries(doc: &Document) -> Vec<(Vec<u8>, Object)> {
+    fn walk(doc: &Document, node: &Dictionary, out: &mut Vec<(Vec<u8>, Object)>, depth: u32) {
+        if depth > 16 {
+            return;
+        }
+        if let Some(a) = node.get(b"Names").ok().map(|o| deref(doc, o)).and_then(|o| o.as_array().ok()) {
+            for pair in a.chunks(2) {
+                if let [k, v] = pair {
+                    if let Object::String(b, _) = deref(doc, k) {
+                        out.push((b.clone(), v.clone()));
+                    }
+                }
+            }
+        }
+        if let Some(kids) = node.get(b"Kids").ok().map(|o| deref(doc, o)).and_then(|o| o.as_array().ok()) {
+            for k in kids {
+                if let Some(d) = dict_at(doc, k) {
+                    walk(doc, &d, out, depth + 1);
+                }
+            }
+        }
+    }
+    let mut out = Vec::new();
+    let root = doc.catalog().ok().and_then(|c| c.get(b"Names").ok()).and_then(|n| dict_at(doc, n)).and_then(|n| n.get(b"EmbeddedFiles").ok().and_then(|e| dict_at(doc, e)));
+    if let Some(r) = root {
+        walk(doc, &r, &mut out, 0);
+    }
+    out
+}
+
+pub fn list_attachments(input: &Path) -> Result<Vec<Attachment>> {
+    let doc = load(input)?;
+    if doc.is_encrypted() {
+        return Err(pdf_err("O PDF está protexido con contrasinal: quítalle a protección antes."));
+    }
+    Ok(embedded_entries(&doc)
+        .into_iter()
+        .map(|(k, v)| {
+            let size = dict_at(&doc, &v)
+                .and_then(|d| d.get(b"EF").ok().and_then(|e| dict_at(&doc, e)))
+                .and_then(|ef| ef.get(b"F").ok().cloned())
+                .and_then(|f| match deref(&doc, &f) {
+                    Object::Stream(s) => Some(s.dict.get(b"Params").ok().and_then(|p| dict_at(&doc, p)).and_then(|p| p.get(b"Size").ok().map(|n| num(n) as u64)).unwrap_or(s.content.len() as u64)),
+                    _ => None,
+                })
+                .unwrap_or(0);
+            Attachment { name: pdf_text(&k), size }
+        })
+        .collect())
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AttachReport {
+    pub output_path: PathBuf,
+    pub added: u32,
+    pub removed: u32,
+}
+
+/// Un anexo non pode pasar disto: o PDF cargaríao enteiro en memoria.
+pub const MAX_ATTACHMENT: u64 = 200 * 1024 * 1024;
+
+fn text_obj_bytes(s: &str) -> Vec<u8> {
+    match text_obj(s) {
+        Object::String(b, _) => b,
+        _ => Vec::new(),
+    }
+}
+
+/// Engade ficheiros como anexos e/ou quita os que teñen eses nomes. O resto do PDF queda igual.
+pub fn edit_attachments(input: &Path, output: &Path, overwrite: bool, add: &[PathBuf], remove: &[String]) -> Result<AttachReport> {
+    if add.is_empty() && remove.is_empty() {
+        return Err(pdf_err("Non hai ningún anexo que engadir nin quitar."));
+    }
+    let mut doc = open_plain(input, output)?;
+    let mut entries: Vec<(Vec<u8>, Object)> = embedded_entries(&doc);
+    let before = entries.len();
+    entries.retain(|(k, _)| !remove.iter().any(|r| *r == pdf_text(k)));
+    let removed = (before - entries.len()) as u32;
+    let mut added = 0u32;
+    for path in add {
+        if !path.is_file() {
+            return Err(EngineError::InputNotFound(path.clone()));
+        }
+        if std::fs::metadata(path)?.len() > MAX_ATTACHMENT {
+            return Err(pdf_err("Un anexo non pode pasar de 200 MB."));
+        }
+        let data = std::fs::read(path)?;
+        let base = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "anexo".into());
+        // Sen repetir nome dentro do PDF: « (2)» ao final, antes da extensión.
+        let (stem, ext) = match base.rfind('.') {
+            Some(i) if i > 0 => (base[..i].to_string(), base[i..].to_string()),
+            _ => (base.clone(), String::new()),
+        };
+        let mut name = base.clone();
+        let mut k = 2;
+        while entries.iter().any(|(key, _)| pdf_text(key) == name) {
+            name = format!("{stem} ({k}){ext}");
+            k += 1;
+        }
+        let mut file = Stream::new(dictionary! { "Type" => "EmbeddedFile", "Params" => dictionary! { "Size" => data.len() as i64 } }, data);
+        let _ = file.compress();
+        let file_id = doc.add_object(file);
+        let spec = doc.add_object(dictionary! {
+            "Type" => "Filespec",
+            "F" => text_obj(&name),
+            "UF" => text_obj(&name),
+            "EF" => dictionary! { "F" => Object::Reference(file_id) },
+        });
+        entries.push((text_obj_bytes(&name), Object::Reference(spec)));
+        added += 1;
+    }
+    entries.sort_by(|a, b| a.0.cmp(&b.0));
+
+    // Árbore de nomes plana nova co que queda.
+    let mut flat: Vec<Object> = Vec::new();
+    for (k, v) in &entries {
+        flat.push(Object::String(k.clone(), StringFormat::Literal));
+        flat.push(v.clone());
+    }
+    let ef = if flat.is_empty() { None } else { Some(Object::Dictionary(dictionary! { "Names" => Object::Array(flat) })) };
+    let names_ref = doc.catalog().ok().and_then(|c| c.get(b"Names").ok()).and_then(|n| n.as_reference().ok());
+    let target: Option<&mut Dictionary> = match names_ref {
+        Some(id) => doc.get_dictionary_mut(id).ok(),
+        None => {
+            let c = doc.catalog_mut().map_err(lerr)?;
+            if !c.has(b"Names") {
+                c.set("Names", Object::Dictionary(Dictionary::new()));
+            }
+            c.get_mut(b"Names").ok().and_then(|n| n.as_dict_mut().ok())
+        }
+    };
+    if let Some(t) = target {
+        match ef {
+            Some(e) => t.set("EmbeddedFiles", e),
+            None => {
+                t.remove(b"EmbeddedFiles");
+            }
+        }
+    }
+    doc.prune_objects();
+    let path = save_atomically(&mut doc, output, overwrite)?;
+    Ok(AttachReport { output_path: path, added, removed })
+}

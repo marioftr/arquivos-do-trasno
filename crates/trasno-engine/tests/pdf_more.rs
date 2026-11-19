@@ -208,3 +208,37 @@ fn formulario_le_enche_e_aplana() {
     // Sen valores que se poidan encher, erro.
     assert!(fill_form(&src, &dir.path().join("e.pdf"), false, &[FieldValue { name: "nada".into(), value: "x".into() }], false).is_err());
 }
+
+#[test]
+fn anexos_engadir_listar_e_quitar() {
+    let dir = tempfile::tempdir().unwrap();
+    let (doc, _, _) = base(1);
+    let src = save(doc, dir.path(), "a.pdf");
+    assert!(list_attachments(&src).unwrap().is_empty());
+    let f1 = dir.path().join("notas.txt");
+    std::fs::write(&f1, "ola anexo".repeat(100)).unwrap();
+    let f2 = dir.path().join("datos.csv");
+    std::fs::write(&f2, "a;b\n1;2\n").unwrap();
+    let out = dir.path().join("con.pdf");
+    let r = edit_attachments(&src, &out, false, &[f1.clone(), f2.clone()], &[]).unwrap();
+    assert_eq!((r.added, r.removed), (2, 0));
+    let l = list_attachments(&out).unwrap();
+    assert_eq!(l.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(), vec!["datos.csv", "notas.txt"], "ordenados por nome");
+    assert_eq!(l[1].size, 900);
+    // Repetir un nome non pisa: leva « (2)» ao final.
+    let out2 = dir.path().join("con2.pdf");
+    edit_attachments(&out, &out2, false, &[f1.clone()], &[]).unwrap();
+    let l2 = list_attachments(&out2).unwrap();
+    assert!(l2.iter().any(|a| a.name == "notas (2).txt") && l2.len() == 3);
+    // Quitar un.
+    let out3 = dir.path().join("sen.pdf");
+    let r = edit_attachments(&out2, &out3, false, &[], &["datos.csv".to_string()]).unwrap();
+    assert_eq!(r.removed, 1);
+    assert_eq!(list_attachments(&out3).unwrap().len(), 2);
+    // O PDF segue sendo válido; «Limpar» tamén os quita.
+    let clean = dir.path().join("limpo.pdf");
+    sanitize_pdf(&out3, &clean, false, &Sanitize { metadata: false, scripts: false, attachments: true, links: false, comments: false }).unwrap();
+    assert!(list_attachments(&clean).unwrap().is_empty());
+    assert!(Document::load(&out3).unwrap().extract_text(&[1]).unwrap().contains("Segredo 0"));
+    assert!(edit_attachments(&src, &dir.path().join("x.pdf"), false, &[], &[]).is_err());
+}

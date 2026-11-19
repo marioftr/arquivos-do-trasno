@@ -20,6 +20,7 @@ pub mod compress;
 pub mod edit_plan;
 pub mod error;
 pub mod ffmpeg;
+pub mod icons;
 pub mod fileinfo;
 pub mod fonts;
 pub mod formats;
