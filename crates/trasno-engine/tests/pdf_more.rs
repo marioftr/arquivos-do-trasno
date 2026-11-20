@@ -242,3 +242,133 @@ fn anexos_engadir_listar_e_quitar() {
     assert!(Document::load(&out3).unwrap().extract_text(&[1]).unwrap().contains("Segredo 0"));
     assert!(edit_attachments(&src, &dir.path().join("x.pdf"), false, &[], &[]).is_err());
 }
+
+// ------------------------------------------------------------ tapar sen converter a páxina en imaxe
+
+/// Páxina de 595 × 842 con tipografía Courier (600 por letra: os anchos son exactos) e o contido dado.
+fn courier_page(content: &str, rotate: i64) -> (Document, ObjectId) {
+    let mut doc = Document::with_version("1.5");
+    let pages_id = doc.new_object_id();
+    let font = doc.add_object(dictionary! { "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Courier" });
+    let c = doc.add_object(Stream::new(dictionary! {}, content.as_bytes().to_vec()));
+    let mut page = dictionary! {
+        "Type" => "Page", "Parent" => pages_id,
+        "MediaBox" => vec![0.into(), 0.into(), 595.into(), 842.into()],
+        "Contents" => c, "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+    };
+    if rotate != 0 {
+        page.set("Rotate", rotate);
+    }
+    let p = doc.add_object(page);
+    doc.objects.insert(pages_id, Object::Dictionary(dictionary! { "Type" => "Pages", "Kids" => vec![Object::Reference(p)], "Count" => 1 }));
+    let cat = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+    doc.trailer.set("Root", cat);
+    (doc, p)
+}
+
+fn zone(page: u32, x: f32, y: f32, w: f32, h: f32) -> trasno_engine::pdf_redact::Zone {
+    trasno_engine::pdf_redact::Zone { page, x, y, w, h }
+}
+
+#[test]
+fn tapar_quita_so_as_letras_da_zona_e_mantén_o_resto_no_seu_sitio() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut doc, page) = courier_page("BT /F1 12 Tf 50 700 Td (AAAA BBBB CCCC) Tj ET", 0);
+    // Unha ligazón debaixo da zona e outra fóra.
+    let a = doc.add_object(dictionary! { "Type" => "Annot", "Subtype" => "Link", "Rect" => vec![90.into(), 698.into(), 100.into(), 710.into()] });
+    let b = doc.add_object(dictionary! { "Type" => "Annot", "Subtype" => "Link", "Rect" => vec![400.into(), 100.into(), 450.into(), 120.into()] });
+    doc.get_dictionary_mut(page).unwrap().set("Annots", Object::Array(vec![a.into(), b.into()]));
+    let src = save(doc, dir.path(), "a.pdf");
+    // «BBBB» ocupa de x = 86 a 114,8 pt e a liña de y = 697 a 711.
+    let zones = [zone(1, 85.5 / 595.0 * 100.0, (842.0 - 712.0) / 842.0 * 100.0, 28.5 / 595.0 * 100.0, 16.0 / 842.0 * 100.0)];
+    assert!(redact_plan(&src, &zones).unwrap().is_empty(), "esta páxina pódese tapar sen facela imaxe");
+    let out = dir.path().join("tapado.pdf");
+    let r = redact_zones(&src, &out, false, &zones, &[]).unwrap();
+    assert_eq!((r.cleaned, r.rasterized), (1, 0));
+    let d = Document::load(&out).unwrap();
+    let text = d.extract_text(&[1]).unwrap();
+    assert!(text.contains("AAAA") && text.contains("CCCC"), "{text:?}");
+    assert!(!text.contains("BBBB"), "o texto tapado seguía aí: {text:?}");
+    let raw = std::fs::read(&out).unwrap();
+    assert!(!raw.windows(4).any(|w| w == b"BBBB") && !raw.windows(8).any(|w| w == b"42424242"), "BBBB segue no ficheiro");
+    // O que queda mantense no seu sitio: o oco das letras quitadas suma o que ocupaban (5 letras de 600).
+    let pid = *d.get_pages().get(&1).unwrap();
+    let ops = d.get_and_decode_page_content(pid).unwrap().operations;
+    let tj = ops.iter().find(|o| o.operator == "TJ").expect("un TJ novo");
+    let gaps: f32 = tj.operands[0].as_array().unwrap().iter().filter_map(|o| o.as_float().ok()).sum();
+    assert!((gaps + 5.0 * 600.0).abs() < 1.0, "ocos: {gaps}");
+    // A ligazón de debaixo vai fóra e a outra queda; hai un rectángulo negro.
+    assert_eq!(d.get_dictionary(pid).unwrap().get(b"Annots").unwrap().as_array().unwrap().len(), 1);
+    assert!(ops.iter().any(|o| o.operator == "re") && ops.iter().any(|o| o.operator == "f"));
+}
+
+#[test]
+fn tapar_funciona_tamen_nunha_paxina_xirada() {
+    let dir = tempfile::tempdir().unwrap();
+    let (doc, _) = courier_page("BT /F1 12 Tf 50 700 Td (AAAA BBBB CCCC) Tj ET", 90);
+    let src = save(doc, dir.path(), "a.pdf");
+    // Xirada 90°: o que está en (x, y) vese en (y, x) contando dende arriba á esquerda, nunha páxina que se ve de 842 × 595.
+    let zones = [zone(1, 696.0 / 842.0 * 100.0, 85.5 / 595.0 * 100.0, 16.0 / 842.0 * 100.0, 28.5 / 595.0 * 100.0)];
+    let out = dir.path().join("tapado.pdf");
+    let r = redact_zones(&src, &out, false, &zones, &[]).unwrap();
+    assert_eq!(r.cleaned, 1);
+    let d = Document::load(&out).unwrap();
+    let text = d.extract_text(&[1]).unwrap();
+    assert!(text.contains("AAAA") && text.contains("CCCC") && !text.contains("BBBB"), "{text:?}");
+}
+
+#[test]
+fn tapar_pinta_de_negro_so_os_pixeles_da_zona_dunha_imaxe() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut px = Vec::new();
+    for _ in 0..64 {
+        px.extend([255u8, 0, 0]);
+    }
+    let (mut doc, page) = courier_page("q 80 0 0 80 100 500 cm /Im1 Do Q", 0);
+    let im = doc.add_object(Stream::new(
+        dictionary! { "Type" => "XObject", "Subtype" => "Image", "Width" => 8, "Height" => 8, "ColorSpace" => "DeviceRGB", "BitsPerComponent" => 8 },
+        px,
+    ));
+    doc.get_dictionary_mut(page).unwrap().set("Resources", dictionary! { "XObject" => dictionary! { "Im1" => Object::Reference(im) } });
+    let src = save(doc, dir.path(), "a.pdf");
+    // A imaxe vai de x = 100 a 180 e de y = 500 a 580: a zona toma os catro primeiros píxeles de ancho.
+    let zones = [zone(1, 100.0 / 595.0 * 100.0, (842.0 - 580.0) / 842.0 * 100.0, 40.0 / 595.0 * 100.0, 80.0 / 842.0 * 100.0)];
+    let out = dir.path().join("tapado.pdf");
+    let r = redact_zones(&src, &out, false, &zones, &[]).unwrap();
+    assert_eq!(r.cleaned, 1);
+    let d = Document::load(&out).unwrap();
+    let pid = *d.get_pages().get(&1).unwrap();
+    let ops = d.get_and_decode_page_content(pid).unwrap().operations;
+    let name = ops.iter().find(|o| o.operator == "Do").and_then(|o| o.operands[0].as_name().ok()).map(|n| n.to_vec()).unwrap();
+    assert!(name.starts_with(b"TrasnoR"), "a páxina usa a copia tapada");
+    let res = d.get_dictionary(pid).unwrap().get(b"Resources").unwrap().as_dict().unwrap();
+    let id = res.get(b"XObject").unwrap().as_dict().unwrap().get(&name).unwrap().as_reference().unwrap();
+    let st = d.get_object(id).unwrap().as_stream().unwrap();
+    let data = if st.filters().map(|f| f.is_empty()).unwrap_or(true) { st.content.clone() } else { st.decompressed_content().unwrap() };
+    let at = |i: usize, j: usize| data[(j * 8 + i) * 3..(j * 8 + i) * 3 + 3].to_vec();
+    assert_eq!(at(0, 0), vec![0, 0, 0]);
+    assert_eq!(at(3, 7), vec![0, 0, 0]);
+    assert_eq!(at(4, 0), vec![255, 0, 0]);
+    assert_eq!(at(7, 7), vec![255, 0, 0]);
+}
+
+#[test]
+fn tapar_avisa_cando_unha_paxina_non_se_pode_tapar_con_certeza() {
+    let dir = tempfile::tempdir().unwrap();
+    // Helvetica sen anchos: non se sabe onde cae cada letra.
+    let (doc, _, _) = base(1);
+    let src = save(doc, dir.path(), "a.pdf");
+    let zones = [zone(1, 5.0, 5.0, 30.0, 20.0)];
+    let need = redact_plan(&src, &zones).unwrap();
+    assert_eq!(need.len(), 1);
+    assert_eq!(need[0].0, 1);
+    assert!(redact_zones(&src, &dir.path().join("x.pdf"), false, &zones, &[]).is_err());
+    // Coa páxina xa debuxada, tápase como imaxe.
+    let jpeg = {
+        let mut buf = Vec::new();
+        image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, 90).encode_image(&image::RgbImage::from_pixel(60, 85, image::Rgb([250, 250, 250]))).unwrap();
+        buf
+    };
+    let r = redact_zones(&src, &dir.path().join("y.pdf"), false, &zones, &[RedactPage { page: 1, jpeg }]).unwrap();
+    assert_eq!((r.cleaned, r.rasterized), (0, 1));
+}

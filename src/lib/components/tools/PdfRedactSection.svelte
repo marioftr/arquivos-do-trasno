@@ -17,10 +17,10 @@
   import JobStatus from "../ui/JobStatus.svelte";
 
   /** Tapar de verdade: as zonas que se debuxan no visor (ou que atopa unha busca) quedan en negro e o que había debaixo
-   *  desaparece do ficheiro. As páxinas tapadas pasan a ser unha imaxe. */
+   *  desaparece do ficheiro. O resto da páxina non se toca; só pasan a imaxe as que non se poden tratar con certeza. */
   export let file: FileEntry;
 
-  /** Resolución á que se debuxan as páxinas tapadas: fixa, a boa de ler en pantalla e imprimir. As zonas tapan por completo en calquera resolución. */
+  /** Resolución das (poucas) páxinas que hai que facer imaxe para tapar con seguridade: fixa, a boa de ler en pantalla e imprimir. */
   const DPI = 250;
   const KINDS: { value: FindKind; label: string }[] = [
     { value: "text", label: "Un texto" },
@@ -84,7 +84,10 @@
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
         const doc = await openPdf(file.path);
         try {
-          const pages = byPage.map(([n]) => n);
+          const zones = boxes.map((b) => ({ page: b.page, x: b.x, y: b.y, w: b.w, h: b.h }));
+          // O motor tapa cada páxina tocando só o que hai debaixo das zonas; só as que non pode tratar con certeza pasan a ser imaxe.
+          const plan = await engine.pdfRedactPlan(file.path, zones);
+          const pages = plan.map(([n]) => n);
           const done: { page: number; jpeg: Uint8Array }[] = [];
           for (const n of pages) {
             if (await engine.jobCancelled()) throw new Error("Cancelei o traballo.");
@@ -111,8 +114,11 @@
             done.push({ page: n, jpeg: new Uint8Array(await blob.arrayBuffer()) });
           }
           job.text.set(tr("Estou gardando o PDF…"));
-          const r = await engine.pdfRedact(file.path, out, done, true);
-          return `${listo()} ${fileNameOf(r.output_path)}\n${tr("Páxinas convertidas en imaxe: {n}. O que había debaixo das zonas xa non está no ficheiro.", { n: r.pages })}`;
+          const r = await engine.pdfRedact(file.path, out, zones, done, true);
+          const note = r.rasterized
+            ? tr("{n} páxinas tiveron que pasar a imaxe para tapar con seguridade; as demais quedaron como estaban.", { n: r.rasterized })
+            : tr("O resto do contido quedou como estaba.");
+          return `${listo()} ${fileNameOf(r.output_path)}\n${tr("O que había debaixo das zonas xa non está no ficheiro.")} ${note}`;
         } finally {
           await doc.destroy();
         }
@@ -126,7 +132,7 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Zonas a tapar")}</h4>
-    <GroupNote text={$t("Arrastra sobre as páxinas para debuxar cada zona. As páxinas tapadas pasan a ser imaxe: o texto de debaixo desaparece.")} />
+    <GroupNote text={$t("Arrastra sobre as páxinas para debuxar cada zona. O texto e as imaxes de debaixo desaparecen do ficheiro; o resto da páxina non se toca.")} />
     {#if byPage.length}
       <ul class="results">
         {#each byPage as [page, n]}

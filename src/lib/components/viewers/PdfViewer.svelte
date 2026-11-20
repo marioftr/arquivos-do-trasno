@@ -197,25 +197,43 @@
 
   /** Zoom co panel táctil (pinza) ou con Ctrl + roda: o punto baixo o punteiro queda no seu sitio. */
   function pinchZoom(node: HTMLElement) {
+    // Os xestos do touchpad chegan como moitos eventos pequenos con Ctrl; a roda do rato, como saltos grandes. Súmanse e aplícanse
+    // unha vez por fotograma, e o desprazamento axústase no mesmo fotograma en que cambia o tamaño (se non, a páxina salta).
+    let pending = 0;
+    let frame = 0;
+    let cx = 0;
+    let cy = 0;
+    const flush = async () => {
+      frame = 0;
+      const next = Math.max(ZMIN, Math.min(ZMAX, scale * Math.exp(pending)));
+      if (Math.abs(next - scale) < Math.max(0.15, scale * 0.002)) return; // o resto vai acumulándose
+      pending = 0;
+      const r = node.getBoundingClientRect();
+      const fx = (node.scrollLeft + cx - r.left) / Math.max(1, node.scrollWidth);
+      const fy = (node.scrollTop + cy - r.top) / Math.max(1, node.scrollHeight);
+      fitMode = "none";
+      scale = Math.round(next * 10) / 10;
+      await tick();
+      node.scrollLeft = fx * node.scrollWidth - (cx - r.left);
+      node.scrollTop = fy * node.scrollHeight - (cy - r.top);
+    };
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
-      const next = Math.max(ZMIN, Math.min(ZMAX, scale * Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.01))));
-      if (Math.abs(next - scale) < 0.05) return;
-      const r = node.getBoundingClientRect();
-      const fx = (node.scrollLeft + e.clientX - r.left) / Math.max(1, node.scrollWidth);
-      const fy = (node.scrollTop + e.clientY - r.top) / Math.max(1, node.scrollHeight);
-      fitMode = "none";
-      scale = Math.round(next * 10) / 10;
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          node.scrollLeft = fx * node.scrollWidth - (e.clientX - r.left);
-          node.scrollTop = fy * node.scrollHeight - (e.clientY - r.top);
-        }),
-      );
+      // Un clic de roda (±100) vale un paso do 10 %; o touchpad, o seu desprazamento fino.
+      const notch = e.deltaMode !== 0 || Math.abs(e.deltaY) >= 50;
+      pending += notch ? -Math.sign(e.deltaY) * Math.log(1.1) : Math.max(-0.15, Math.min(0.15, -e.deltaY * 0.008));
+      cx = e.clientX;
+      cy = e.clientY;
+      if (!frame) frame = requestAnimationFrame(() => void flush());
     };
     node.addEventListener("wheel", onWheel, { passive: false });
-    return { destroy: () => node.removeEventListener("wheel", onWheel) };
+    return {
+      destroy: () => {
+        node.removeEventListener("wheel", onWheel);
+        if (frame) cancelAnimationFrame(frame);
+      },
+    };
   }
 
   function key(e: KeyboardEvent) {

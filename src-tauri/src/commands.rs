@@ -1221,11 +1221,20 @@ struct RedactMeta {
     input: String,
     output: String,
     overwrite: bool,
-    /// Páxina e cantos bytes ocupa o seu JPEG dentro do corpo, en orde.
+    /// Zonas a tapar (en % da páxina vista).
+    zones: Vec<trasno_engine::pdf_redact::Zone>,
+    /// Páxinas que hai que facer imaxe: o número e cantos bytes ocupa o seu JPEG dentro do corpo, en orde.
     pages: Vec<(u32, usize)>,
 }
 
-/// Tapa zonas de verdade: cada páxina chega xa debuxada (JPEG, co negro por riba) no corpo, e pasa a ser unha soa imaxe.
+/// Que páxinas con zonas non se poden tapar con certeza sen facelas imaxe (co motivo de cada unha).
+#[tauri::command]
+pub async fn pdf_redact_plan(input: String, zones: Vec<trasno_engine::pdf_redact::Zone>) -> Result<Vec<(u32, String)>, String> {
+    blocking(move || trasno_engine::pdf_more::redact_plan(&PathBuf::from(input), &zones).map_err(to_err)).await
+}
+
+/// Tapa as zonas. As páxinas que non se poden tratar con certeza chegan xa debuxadas (JPEG, co negro por riba) no corpo e pasan
+/// a ser unha soa imaxe; as demais conservan o seu contido e só perden o que hai baixo cada zona.
 #[tauri::command]
 pub async fn pdf_redact(request: tauri::ipc::Request<'_>) -> Result<trasno_engine::pdf_more::RedactReport, String> {
     let tauri::ipc::InvokeBody::Raw(data) = request.body() else {
@@ -1248,7 +1257,7 @@ pub async fn pdf_redact(request: tauri::ipc::Request<'_>) -> Result<trasno_engin
             at = end;
         }
         let (i, o) = paths(meta.input, meta.output);
-        trasno_engine::pdf_more::redact_pages(&i, &o, meta.overwrite, &pages).map_err(to_err)
+        trasno_engine::pdf_more::redact_zones(&i, &o, meta.overwrite, &meta.zones, &pages).map_err(to_err)
     })
     .await
 }

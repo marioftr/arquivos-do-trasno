@@ -614,16 +614,20 @@ export interface SanitizeReport { output_path: string; metadata: number; scripts
 export const pdfSanitize = (input: string, output: string, options: SanitizeOptions, overwrite = false): Promise<SanitizeReport> => call("pdf_sanitize", { input, output, overwrite, options });
 export interface OutlineEntry { title: string; page: number; level: number }
 export const pdfSetOutline = (input: string, output: string, entries: OutlineEntry[], overwrite = false): Promise<string> => call("pdf_set_outline", { input, output, overwrite, entries });
-export interface RedactReport { output_path: string; pages: number; fields_removed: number }
-/** Cada páxina chega xa debuxada (JPEG, co negro por riba): na saída pasa a ser unha soa imaxe. */
-export function pdfRedact(input: string, output: string, pages: { page: number; jpeg: Uint8Array }[], overwrite = false): Promise<RedactReport> {
+export interface RedactReport { output_path: string; pages: number; fields_removed: number; cleaned: number; rasterized: number }
+/** Zona a tapar: en % da páxina tal como se ve, contando dende arriba á esquerda. */
+export interface RedactZone { page: number; x: number; y: number; w: number; h: number }
+/** Páxinas con zonas que non se poden tapar con certeza sen facelas imaxe, co motivo. */
+export const pdfRedactPlan = (input: string, zones: RedactZone[]): Promise<[number, string][]> => call("pdf_redact_plan", { input, zones });
+/** Tapa as zonas. Só as páxinas de `pages` (xa debuxadas, co negro por riba) pasan a ser unha imaxe; nas demais só se quita o que hai baixo as zonas. */
+export function pdfRedact(input: string, output: string, zones: RedactZone[], pages: { page: number; jpeg: Uint8Array }[], overwrite = false): Promise<RedactReport> {
   const body = new Uint8Array(pages.reduce((n, p) => n + p.jpeg.length, 0));
   let at = 0;
   for (const p of pages) {
     body.set(p.jpeg, at);
     at += p.jpeg.length;
   }
-  const meta = { input, output, overwrite, pages: pages.map((p) => [p.page, p.jpeg.length]) };
+  const meta = { input, output, overwrite, zones, pages: pages.map((p) => [p.page, p.jpeg.length]) };
   return call("pdf_redact", body, { headers: { "x-meta": encodeURIComponent(JSON.stringify(meta)) } });
 }
 export interface IconOptions { windows: boolean; mac: boolean; web: boolean; png: boolean; fit: boolean }

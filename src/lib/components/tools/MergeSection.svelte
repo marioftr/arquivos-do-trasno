@@ -9,7 +9,6 @@
   import { t, tr } from "../../i18n";
   import { createJob } from "../../job";
   import { samePath, askPath } from "./shared";
-  import Icon from "../Icon.svelte";
   import OrderList from "../ui/OrderList.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
@@ -53,7 +52,6 @@
     <OrderList bind:items />
   </div>
   <button class="btn primary block" on:click={merge} disabled={$busy}>
-    <Icon name="layers" size={14} />
     {isPdf ? $t("Unir nun só PDF") : category === "imaxe" ? $t("Facer un PDF cunha imaxe por páxina") : $t("Xuntar nun só ficheiro")}
   </button>
   <JobStatus {job} />

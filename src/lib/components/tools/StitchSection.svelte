@@ -10,7 +10,6 @@
   import { samePath, askPath } from "./shared";
   import ColorField from "../ui/ColorField.svelte";
   import GroupNote from "../ui/GroupNote.svelte";
-  import Icon from "../Icon.svelte";
   import NumberField from "../ui/NumberField.svelte";
   import OrderList from "../ui/OrderList.svelte";
   import Segmented from "../ui/Segmented.svelte";
@@ -19,7 +18,7 @@
   import Toggle from "../ui/Toggle.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
-  /** Xuntar capturas nunha soa imaxe (unha debaixo doutra ou ao carón), quitando o que se repite nas de desprazamento. */
+  /** Xuntar nunha soa imaxe (unha debaixo doutra ou ao carón), quitando o que se repite nas de desprazamento. */
   export let selection: FileEntry[];
 
   const form = createForm(
@@ -99,7 +98,6 @@
       ]}
       bind:value={$form.direction}
     />
-    <Toggle label={$t("Capturas de desprazamento")} bind:checked={$form.removeOverlap} hint={$t("Para capturas seguidas dunha páxina feitas ao baixar polo contido: únense sen repetir o tramo común, cabeceiras e pés fixos incluídos.")} />
     <Segmented
       label={horizontal ? $t("Igualar o alto") : $t("Igualar o ancho")}
       info={$t("Se as capturas miden distinto, todas pasan ao tamaño da máis pequena ou da máis grande, sen deformalas.")}
@@ -124,12 +122,10 @@
     {#if lossy}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} />
     {/if}
+    <Toggle label={$t("Quitar o tramo repetido")} bind:checked={$form.removeOverlap} hint={$t("Para capturas feitas ao baixar polo contido dunha páxina: únense sen repetir o tramo común, cabeceiras e pés fixos incluídos.")} />
   </div>
 
-  <button class="btn primary block" on:click={run} disabled={$busy}>
-    <Icon name="layers" size={14} />
-    {$t("Xuntar {n} capturas", { n: items.length })}
-  </button>
+  <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Xuntar {n} imaxes", { n: items.length })}</button>
 
   {#if joins.length}
     <ul class="results">

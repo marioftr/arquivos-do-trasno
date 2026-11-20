@@ -274,11 +274,11 @@ const LABEL: Record<string, string> = {
   cropOn: "o recorte", cw: "o recorte", cx: "o recorte", cy: "o recorte", wmText: "o texto da marca", wmSize: "o tamaño da marca", wmColor: "a cor da marca",
   wmOpacity: "a opacidade da marca", wmAngle: "o xiro da marca", wmFamily: "a letra da marca", wmBold: "a negriña da marca", wmItalic: "a cursiva da marca",
   lossless: "o modo sen perdas", mode: "o modo", compat: "a compatibilidade", sizeValue: "o tamaño obxectivo", select: "a pista escollida", kind: "o modo",
-  // Restaurar vídeo, Redimensionar e Xuntar capturas
+  // Restaurar vídeo, Redimensionar e Xuntar
   stabilize: "a estabilización", denoise: "o ruído", sharpen: "a nitidez", deflicker: "o parpadeo", saturation: "a saturación",
   how: "o modo de axuste", width: "o ancho", height: "o alto", percent: "a porcentaxe", noUpscale: "non ampliar as imaxes pequenas", crop: "o que facer coa proporción", side: "o lado maior", lock: "manter a proporción",
   cols: "as columnas", rows: "as filas", shape: "a forma das partes", order: "a numeración",
-  direction: "a dirección", align: "a igualación do tamaño", removeOverlap: "o modo de capturas de desprazamento", gap: "o espazo entre capturas", background: "o fondo", format: "o formato",
+  direction: "a dirección", align: "a igualación do tamaño", removeOverlap: "quitar o tramo repetido", gap: "o espazo entre capturas", background: "o fondo", format: "o formato",
 };
 // Valores de texto que se amosan tal cal; para os demais amósase só o que cambiou (nunca un código interno).
 const RAW_VALUE = new Set(["targetExt", "pageSpec", "wmText", "wmFamily", "dar", "maxHeight", "wmColor", "format", "background"]);

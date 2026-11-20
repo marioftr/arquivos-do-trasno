@@ -27,6 +27,7 @@
     pages: "pages",
     shape: "crop",
     marks: "stamp",
+    attach: "paperclip",
     icons: "app-icons",
     form: "form",
     optimize: "wrench",

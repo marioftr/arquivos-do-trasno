@@ -473,6 +473,16 @@ dd {
   width: 100%;
 }
 
+/* Botón ancho co texto á esquerda, para accións que se len como unha liña de axustes. */
+.btn.left {
+  justify-content: flex-start;
+}
+
+.btn.left.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .results {
   list-style: none;
   margin: 0;

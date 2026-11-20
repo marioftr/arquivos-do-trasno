@@ -65,14 +65,14 @@
     if (!cat) return [];
     if (many) {
       if (pdf) return [tab("merge", "Unir")];
-      if (cat === "imaxe") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("resize", "Redimensionar"), tab("merge", "Unir"), tab("stitch", "Xuntar capturas")];
+      if (cat === "imaxe") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("resize", "Redimensionar"), tab("merge", "Unir"), tab("stitch", "Xuntar")];
       if (cat === "video") return [tab("convert", "Converter"), tab("merge", "Unir"), ...multiMkv()];
       if (cat === "audio") return [tab("convert", "Converter"), tab("merge", "Unir"), ...multiMkv()];
       return [tab("convert", "Converter")];
     }
     switch (cat) {
       case "imaxe":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("resize", "Redimensionar"), tab("slice", "Cortar en partes"), tab("annotate", "Anotar"), tab("icons", "Iconas"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("resize", "Redimensionar"), tab("slice", "Dividir"), tab("annotate", "Anotar"), tab("icons", "Iconas"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
         return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...(ext === "gif" ? [] : [tab("restore", "Restaurar")]), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
@@ -85,6 +85,7 @@
               tab("shape", "Xirar e recortar"),
               tab("form", "Formulario"),
               tab("marks", "Marcas"),
+              tab("attach", "Anexos"),
               tab("optimize", "Comprimir e reparar"),
               tab("security", "Seguridade"),
               tab("ocr", "Recoñecer texto (OCR)"),
@@ -279,6 +280,8 @@
           <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} part="rotate" />
         {:else if current === "marks" && first}
           <PdfMarksSection file={first} />
+        {:else if current === "attach" && first && isPdf}
+          <Lazy loader={() => import("./tools/PdfAttachSection.svelte")} file={first} />
         {:else if current === "ocr" && first && category === "imaxe"}
           <ImageOcrSection file={first} />
         {:else if current === "ocr" && first}

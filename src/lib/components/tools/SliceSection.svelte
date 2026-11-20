@@ -206,7 +206,7 @@
     {#if problem}<p class="warn selectable">{problem}</p>{/if}
 
     <button class="btn primary block" on:click={run} disabled={$busy || animated || !zone || !!problem}>
-      {$t("Cortar en {n} partes", { n: parts })}
+      {$t("Dividir en {n} partes", { n: parts })}
     </button>
   </div>
   <JobStatus {job} />

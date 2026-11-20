@@ -26,13 +26,13 @@ fn open_plain(input: &Path, output: &Path) -> Result<Document> {
 }
 
 /// Segue unha referencia ata o obxecto (ou devolve o propio).
-fn deref<'a>(doc: &'a Document, o: &'a Object) -> &'a Object {
+pub(crate) fn deref<'a>(doc: &'a Document, o: &'a Object) -> &'a Object {
     match o {
         Object::Reference(id) => doc.get_object(*id).unwrap_or(o),
         _ => o,
     }
 }
-fn dict_at(doc: &Document, o: &Object) -> Option<Dictionary> {
+pub(crate) fn dict_at(doc: &Document, o: &Object) -> Option<Dictionary> {
     match deref(doc, o) {
         Object::Dictionary(d) => Some(d.clone()),
         Object::Stream(s) => Some(s.dict.clone()),
@@ -45,14 +45,14 @@ fn name_of(o: Option<&Object>) -> Vec<u8> {
         _ => Vec::new(),
     }
 }
-fn num(o: &Object) -> f32 {
+pub(crate) fn num(o: &Object) -> f32 {
     match o {
         Object::Integer(i) => *i as f32,
         Object::Real(r) => *r,
         _ => 0.0,
     }
 }
-fn rect_of(doc: &Document, d: &Dictionary) -> Option<[f32; 4]> {
+pub(crate) fn rect_of(doc: &Document, d: &Dictionary) -> Option<[f32; 4]> {
     let a = d.get(b"Rect").ok().map(|o| deref(doc, o))?.as_array().ok()?;
     if a.len() != 4 {
         return None;
@@ -91,14 +91,14 @@ fn page_ids(doc: &Document) -> Vec<(u32, ObjectId)> {
 }
 
 /// Lista de anotacións dunha páxina (a lista pode ser directa ou indirecta).
-fn annots_of(doc: &Document, page: ObjectId) -> Vec<Object> {
+pub(crate) fn annots_of(doc: &Document, page: ObjectId) -> Vec<Object> {
     let Ok(d) = doc.get_dictionary(page) else { return Vec::new() };
     match d.get(b"Annots").ok().map(|o| deref(doc, o)) {
         Some(Object::Array(a)) => a.clone(),
         _ => Vec::new(),
     }
 }
-fn set_annots(doc: &mut Document, page: ObjectId, list: Vec<Object>) {
+pub(crate) fn set_annots(doc: &mut Document, page: ObjectId, list: Vec<Object>) {
     if let Ok(d) = doc.get_dictionary_mut(page) {
         if list.is_empty() {
             d.remove(b"Annots");
@@ -376,8 +376,13 @@ pub struct RedactPage {
 #[derive(Debug, Clone, Serialize)]
 pub struct RedactReport {
     pub output_path: PathBuf,
+    /// Páxinas tapadas.
     pub pages: u32,
     pub fields_removed: u32,
+    /// Das tapadas, as que conservan o seu contido (só se quitou o de debaixo das zonas)…
+    pub cleaned: u32,
+    /// …e as que pasaron a ser unha imaxe.
+    pub rasterized: u32,
 }
 
 fn page_view_box(doc: &Document, page: ObjectId) -> (f32, f32) {
@@ -393,57 +398,50 @@ fn page_view_box(doc: &Document, page: ObjectId) -> (f32, f32) {
     (595.0, 842.0)
 }
 
-/// Cada páxina tapada pasa a ser unha soa imaxe a tamaño de páxina: sen texto, sen anotacións e sen o contido orixinal.
-/// As outras páxinas quedan tal cal.
-pub fn redact_pages(input: &Path, output: &Path, overwrite: bool, pages: &[RedactPage]) -> Result<RedactReport> {
-    if pages.is_empty() {
-        return Err(pdf_err("Non hai ningunha zona que tapar."));
+/// Cambia unha páxina por unha soa imaxe a tamaño de páxina (sen texto, sen anotacións e sen o contido orixinal).
+/// Devolve as anotacións que quitou.
+fn rasterize_page(doc: &mut Document, id: ObjectId, jpeg: &[u8]) -> Result<Vec<ObjectId>> {
+    let (w_px, h_px) = {
+        let r = image::ImageReader::new(std::io::Cursor::new(jpeg)).with_guessed_format().map_err(|e| pdf_err(&e.to_string()))?;
+        r.into_dimensions().map_err(|e| pdf_err(&e.to_string()))?
+    };
+    let (mut w, mut h) = page_view_box(doc, id);
+    let rotate = doc.get_dictionary(id).ok().and_then(|d| d.get(b"Rotate").ok()).map(|o| num(deref(doc, o)) as i64).unwrap_or(0).rem_euclid(360);
+    if rotate % 180 != 0 {
+        std::mem::swap(&mut w, &mut h);
     }
-    let mut doc = open_plain(input, output)?;
-    flatten_inherited_page_attributes(&mut doc);
-    let ids = doc.get_pages();
-    let total = ids.len() as u32;
-    let mut removed_widgets: HashSet<ObjectId> = HashSet::new();
-    for rp in pages {
-        let id = *ids.get(&rp.page).ok_or(EngineError::PageMissing { page: rp.page, total })?;
-        let (w_px, h_px) = {
-            let r = image::ImageReader::new(std::io::Cursor::new(&rp.jpeg)).with_guessed_format().map_err(|e| pdf_err(&e.to_string()))?;
-            r.into_dimensions().map_err(|e| pdf_err(&e.to_string()))?
-        };
-        let (mut w, mut h) = page_view_box(&doc, id);
-        let rotate = doc.get_dictionary(id).ok().and_then(|d| d.get(b"Rotate").ok()).map(|o| num(deref(&doc, o)) as i64).unwrap_or(0).rem_euclid(360);
-        if rotate % 180 != 0 {
-            std::mem::swap(&mut w, &mut h);
-        }
-        for a in annots_of(&doc, id) {
-            if let Object::Reference(r) = a {
-                removed_widgets.insert(r);
-            }
-        }
-        let mut img = Stream::new(
-            dictionary! { "Type" => "XObject", "Subtype" => "Image", "Width" => w_px as i64, "Height" => h_px as i64, "ColorSpace" => "DeviceRGB", "BitsPerComponent" => 8, "Filter" => "DCTDecode" },
-            rp.jpeg.clone(),
-        );
-        img.allows_compression = false;
-        let img_id = doc.add_object(img);
-        let content = doc.add_object(Stream::new(dictionary! {}, format!("q {w} 0 0 {h} 0 0 cm /ImTrasnoTapar Do Q").into_bytes()));
-        let boxarr = Object::Array(vec![0.into(), 0.into(), w.into(), h.into()]);
-        let d = doc.get_dictionary_mut(id).map_err(lerr)?;
-        d.set("Contents", Object::Reference(content));
-        d.set("Resources", Object::Dictionary(dictionary! { "XObject" => dictionary! { "ImTrasnoTapar" => Object::Reference(img_id) } }));
-        d.set("MediaBox", boxarr.clone());
-        d.set("CropBox", boxarr);
-        for k in [&b"Rotate"[..], b"Annots", b"Thumb", b"Metadata", b"PieceInfo", b"AA", b"B", b"StructParents", b"Group"] {
-            d.remove(k);
+    let mut gone = Vec::new();
+    for a in annots_of(doc, id) {
+        if let Object::Reference(r) = a {
+            gone.push(r);
         }
     }
+    let mut img = Stream::new(
+        dictionary! { "Type" => "XObject", "Subtype" => "Image", "Width" => w_px as i64, "Height" => h_px as i64, "ColorSpace" => "DeviceRGB", "BitsPerComponent" => 8, "Filter" => "DCTDecode" },
+        jpeg.to_vec(),
+    );
+    img.allows_compression = false;
+    let img_id = doc.add_object(img);
+    let content = doc.add_object(Stream::new(dictionary! {}, format!("q {w} 0 0 {h} 0 0 cm /ImTrasnoTapar Do Q").into_bytes()));
+    let boxarr = Object::Array(vec![0.into(), 0.into(), w.into(), h.into()]);
+    let d = doc.get_dictionary_mut(id).map_err(lerr)?;
+    d.set("Contents", Object::Reference(content));
+    d.set("Resources", Object::Dictionary(dictionary! { "XObject" => dictionary! { "ImTrasnoTapar" => Object::Reference(img_id) } }));
+    d.set("MediaBox", boxarr.clone());
+    d.set("CropBox", boxarr);
+    for k in [&b"Rotate"[..], b"Annots", b"Thumb", b"Metadata", b"PieceInfo", b"AA", b"B", b"StructParents", b"Group"] {
+        d.remove(k);
+    }
+    Ok(gone)
+}
 
-    // Campos de formulario cuxos widgets estaban nesas páxinas: fóra tamén (levan valores que non se ven).
+/// Quita os campos de formulario cuxos widgets desapareceron, e a estrutura etiquetada (pode levar o texto), e garda.
+fn finish_redaction(doc: &mut Document, removed_widgets: &HashSet<ObjectId>, output: &Path, overwrite: bool) -> Result<(PathBuf, u32)> {
     let mut fields_removed = 0;
     let form = doc.catalog().ok().and_then(|c| c.get(b"AcroForm").ok()).cloned();
     if let Some(form) = form {
-        let fd = dict_at(&doc, &form);
-        let fields: Vec<Object> = fd.as_ref().and_then(|d| d.get(b"Fields").ok()).map(|o| deref(&doc, o)).and_then(|o| o.as_array().ok()).cloned().unwrap_or_default();
+        let fd = dict_at(doc, &form);
+        let fields: Vec<Object> = fd.as_ref().and_then(|d| d.get(b"Fields").ok()).map(|o| deref(doc, o)).and_then(|o| o.as_array().ok()).cloned().unwrap_or_default();
         fn widgets(doc: &Document, id: ObjectId, out: &mut Vec<ObjectId>, depth: u32) {
             if depth > 16 {
                 return;
@@ -467,7 +465,7 @@ pub fn redact_pages(input: &Path, output: &Path, overwrite: bool, pages: &[Redac
                 continue;
             };
             let mut ws = Vec::new();
-            widgets(&doc, fid, &mut ws, 0);
+            widgets(doc, fid, &mut ws, 0);
             if !ws.is_empty() && ws.iter().all(|w| removed_widgets.contains(w)) {
                 fields_removed += 1;
             } else {
@@ -485,14 +483,92 @@ pub fn redact_pages(input: &Path, output: &Path, overwrite: bool, pages: &[Redac
             }
         }
     }
-    // A estrutura etiquetada pode levar o texto (ActualText, Alt): fóra.
     if let Ok(c) = doc.catalog_mut() {
         c.remove(b"StructTreeRoot");
         c.remove(b"MarkInfo");
     }
     doc.prune_objects();
-    let path = save_atomically(&mut doc, output, overwrite)?;
-    Ok(RedactReport { output_path: path, pages: pages.len() as u32, fields_removed })
+    let path = save_atomically(doc, output, overwrite)?;
+    Ok((path, fields_removed))
+}
+
+/// Cada páxina tapada pasa a ser unha soa imaxe a tamaño de páxina: sen texto, sen anotacións e sen o contido orixinal.
+/// As outras páxinas quedan tal cal. (Sempre vale, pero cambia o aspecto do ficheiro: `redact_zones` só o fai cando non queda outro remedio.)
+pub fn redact_pages(input: &Path, output: &Path, overwrite: bool, pages: &[RedactPage]) -> Result<RedactReport> {
+    if pages.is_empty() {
+        return Err(pdf_err("Non hai ningunha zona que tapar."));
+    }
+    let mut doc = open_plain(input, output)?;
+    flatten_inherited_page_attributes(&mut doc);
+    let ids = doc.get_pages();
+    let total = ids.len() as u32;
+    let mut gone: HashSet<ObjectId> = HashSet::new();
+    for rp in pages {
+        let id = *ids.get(&rp.page).ok_or(EngineError::PageMissing { page: rp.page, total })?;
+        gone.extend(rasterize_page(&mut doc, id, &rp.jpeg)?);
+    }
+    let (path, fields_removed) = finish_redaction(&mut doc, &gone, output, overwrite)?;
+    Ok(RedactReport { output_path: path, pages: pages.len() as u32, fields_removed, cleaned: 0, rasterized: pages.len() as u32 })
+}
+
+/// Páxinas con zonas que non se poden tapar sen convertelas en imaxe (e por que). As demais tápanse tocando só o que está debaixo.
+pub fn redact_plan(input: &Path, zones: &[crate::pdf_redact::Zone]) -> Result<Vec<(u32, String)>> {
+    let mut doc = load(input)?;
+    if doc.is_encrypted() {
+        return Err(pdf_err("O PDF está protexido con contrasinal: quítalle a protección antes."));
+    }
+    flatten_inherited_page_attributes(&mut doc);
+    let ids = doc.get_pages();
+    let mut need = Vec::new();
+    for page in zone_pages(zones) {
+        let id = *ids.get(&page).ok_or(EngineError::PageMissing { page, total: ids.len() as u32 })?;
+        let here: Vec<&crate::pdf_redact::Zone> = zones.iter().filter(|z| z.page == page).collect();
+        let rects = crate::pdf_redact::zone_rects(&doc, id, &here);
+        if let Err(why) = crate::pdf_redact::clean_page(&mut doc, id, &rects) {
+            need.push((page, why));
+        }
+    }
+    Ok(need)
+}
+
+fn zone_pages(zones: &[crate::pdf_redact::Zone]) -> Vec<u32> {
+    let mut p: Vec<u32> = zones.iter().map(|z| z.page).collect();
+    p.sort_unstable();
+    p.dedup();
+    p
+}
+
+/// Tapa as zonas. As páxinas que veñen en `rasters` (xa debuxadas co negro por riba) pasan a ser unha imaxe; as demais
+/// consérvanse como estaban e só se quita o texto e a parte das imaxes que cae baixo cada zona.
+pub fn redact_zones(input: &Path, output: &Path, overwrite: bool, zones: &[crate::pdf_redact::Zone], rasters: &[RedactPage]) -> Result<RedactReport> {
+    if zones.is_empty() {
+        return Err(pdf_err("Non hai ningunha zona que tapar."));
+    }
+    let mut doc = open_plain(input, output)?;
+    flatten_inherited_page_attributes(&mut doc);
+    let ids = doc.get_pages();
+    let total = ids.len() as u32;
+    let mut gone: HashSet<ObjectId> = HashSet::new();
+    let (mut cleaned, mut rasterized) = (0u32, 0u32);
+    for page in zone_pages(zones) {
+        let id = *ids.get(&page).ok_or(EngineError::PageMissing { page, total })?;
+        if let Some(r) = rasters.iter().find(|r| r.page == page) {
+            gone.extend(rasterize_page(&mut doc, id, &r.jpeg)?);
+            rasterized += 1;
+            continue;
+        }
+        let here: Vec<&crate::pdf_redact::Zone> = zones.iter().filter(|z| z.page == page).collect();
+        let rects = crate::pdf_redact::zone_rects(&doc, id, &here);
+        match crate::pdf_redact::clean_page(&mut doc, id, &rects) {
+            Ok(removed) => {
+                gone.extend(removed);
+                cleaned += 1;
+            }
+            Err(why) => return Err(pdf_err(&format!("A páxina {page} non se pode tapar sen convertela en imaxe ({why}).")))
+        }
+    }
+    let (path, fields_removed) = finish_redaction(&mut doc, &gone, output, overwrite)?;
+    Ok(RedactReport { output_path: path, pages: cleaned + rasterized, fields_removed, cleaned, rasterized })
 }
 
 // ------------------------------------------------------------------ formularios

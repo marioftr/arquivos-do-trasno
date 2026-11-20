@@ -66,8 +66,8 @@
         label={$t("Forma")}
         info={$t("As iconas son cadradas. Cortar polo centro enche o cadrado; Encaixar deixa a imaxe enteira con marxes transparentes.")}
         options={[
-          { value: 0, label: $t("Cortar polo centro") },
-          { value: 1, label: $t("Encaixar") },
+          { value: 0, label: $t("Cortar polo centro"), glyph: { k: "fit", mode: "crop" } },
+          { value: 1, label: $t("Encaixar"), glyph: { k: "fit", mode: "contain" } },
         ]}
         bind:value={$form.fit}
       />

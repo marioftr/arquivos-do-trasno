@@ -17,9 +17,9 @@
 
   /** Niveis de compresión (por iso en feminino: «compresión pouca, recomendada, extrema»); os desprazadores deixan poñer os dous valores á man. */
   const LEVELS = [
-    { id: "low", label: "Pouca", detail: "Calidade 85 %", hint: "Mantén case todo; só limpa e comprime o que se pode sen perdas", values: { quality: 85, scale: 100 } },
-    { id: "mid", label: "Recomendada", detail: "Calidade 70 %", hint: "Bo equilibrio entre peso e calidade", values: { quality: 70, scale: 75 } },
-    { id: "high", label: "Extrema", detail: "Calidade 45 %", hint: "O máis pequeno posible; as imaxes perden nitidez", values: { quality: 45, scale: 50 } },
+    { id: "low", label: "Pouca", detail: "Calidade 85 %", hint: "Imaxes JPG a calidade 85 e sen reducilas: case non se nota", values: { quality: 85, scale: 100 } },
+    { id: "mid", label: "Recomendada", detail: "Calidade 70 %", hint: "Imaxes JPG a calidade 70 e ao 75 % do seu tamaño", values: { quality: 70, scale: 75 } },
+    { id: "high", label: "Extrema", detail: "Calidade 45 %", hint: "Imaxes JPG a calidade 45 e á metade do seu tamaño: pesa moito menos, pero perden nitidez", values: { quality: 45, scale: 50 } },
   ];
 
   const form = createForm({ quality: 70, scale: 75 }, "pdf-comprimir", "pdfcompress|" + file.path);
@@ -56,9 +56,9 @@
       values={{ quality: $form.quality, scale: $form.scale }}
       on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))}
     />
-    <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={70} hint={$t("Máis alto: máis detalle e máis peso.")} />
-    <Slider label={$t("Tamaño das imaxes")} unit="%" min={20} max={100} step={5} bind:value={$form.scale} def={75} hint={$t("100 % = sen reducir")} />
-    <GroupNote text={$t("Tamén comprime o resto do contido e quita o que non se usa.")} />
+    <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={70} hint={$t("Calidade das imaxes JPG do PDF. Máis baixa: pesa menos e as imaxes ficam máis borrosas.")} />
+    <Slider label={$t("Tamaño das imaxes")} unit="%" min={20} max={100} step={5} bind:value={$form.scale} def={75} hint={$t("Reduce o ancho e o alto das imaxes JPG a esta porcentaxe (50 % = a metade de cada lado, un cuarto dos píxeles). 100 % non as reduce.")} />
+    <GroupNote text={$t("Só se reducen as imaxes JPG: texto e debuxos quedan igual. Un PDF sen imaxes case non muda.")} />
   </div>
   <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Comprimir PDF")}</button>
   <JobStatus {job} />

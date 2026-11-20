@@ -19,3 +19,9 @@ Regras que cumpre todo texto visible. `npm run check:copy` comproba as que se po
 | Se un ficheiro de saída xa existe, o « (2)» vai sempre ao final do nome, antes da extensión; nunca no medio. | `foto-1 (2).png`, `uno-redimensionado (2).png`. |
 | A etiqueta dun interruptor é curta; o detalle vai na «i». O que non se pode usar queda en gris, sen texto que o explique. | «Manter metadatos» (non «Manter os metadatos da foto»), «Non ampliar», «Manter GPS». |
 | Os campos de número levan frechas á dereita e non admiten valores fóra dos seus límites (nin negativos se non valen). | Ancho, alto, columnas, filas. |
+| O botón verde principal non leva icona: só o texto. Vale para todos os menús. | «Xuntar 3 imaxes», «Unir nun só PDF». |
+| O que depende dun interruptor de arriba aparece só cando vale; o que está bloqueado por outro motivo queda en gris. | «Recortar polo centro / Estirar» só sen «Manter proporción». |
+| Unha opción de «cortar» ou «encaixar» leva un debuxo que a explique (o que se corta, o que se deforma, as marxes). | Recortar, Estirar, Encaixar. |
+| Un debuxo de «igualar medidas» amosa o resultado: as pezas escalan sen cortarse nin deformarse (contorno a trazos = tamaño de antes, frecha = sentido). | Á máis estreita, Á máis ancha. |
+| Unha comparación que só vale mentres se mantén premido é un botón ancho co texto á esquerda (`.btn.left`), enriba do botón verde; non un interruptor. | «Manter para ver o orixinal». |
+| Cada «i» explica que fai o axuste e a que afecta (que se comprime, canto), non repite a etiqueta. | Comprimir PDF: só se reducen as imaxes JPG. |

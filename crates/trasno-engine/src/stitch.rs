@@ -1,4 +1,4 @@
-//! Xuntar capturas nunha soa imaxe, de arriba abaixo ou de esquerda a dereita. Con «quitar o repetido», busca onde cada captura
+//! Xuntar nunha soa imaxe, de arriba abaixo ou de esquerda a dereita. Con «quitar o repetido», busca onde cada captura
 //! continúa a anterior (as de desprazamento repiten unha franxa, e ás veces cabeceira e pé fixos) e quita o que sobra.
 
 use crate::error::{EngineError, Result};

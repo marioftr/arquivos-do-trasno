@@ -69,6 +69,7 @@ pub fn run() {
             commands::pdf_sanitize,
             commands::pdf_set_outline,
             commands::pdf_redact,
+            commands::pdf_redact_plan,
             commands::pdf_form_fields,
             commands::make_icon_pack,
             commands::pdf_list_attachments,

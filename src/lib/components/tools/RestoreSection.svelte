@@ -85,6 +85,16 @@
     }
   }
 
+  /** «Manter para ver o orixinal»: vale só mentres o botón segue premido; o punteiro queda collido para notar cando se solta. */
+  function hold(e: PointerEvent) {
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // sen captura (punteiro sen identificador): vale igualmente ata soltar ou saír do botón
+    }
+    original = true;
+  }
+
   async function exportAll() {
     try {
       const out = await askOutput(file, tr("-restaurado"), file.ext);
@@ -102,8 +112,6 @@
 </script>
 
 <div class="stack">
-  <Toggle label={$t("Ver o orixinal")} bind:checked={original} />
-
   <div class="group">
     <h4 class="group-title">{$t("Imaxe")}</h4>
     <Segmented label={$t("Estabilizar")} info={$t("Compensa o tremor da cámara e achega un pouco a imaxe para non deixar bordos. Só se ve ao exportar.")} options={levels()} bind:value={$form.stabilize} />
@@ -120,6 +128,19 @@
     <Slider label={$t("Saturación")} unit="×" min={0} max={3} step={0.05} bind:value={$form.saturation} def={1} hint={$t("0 = branco e negro")} />
   </div>
 
+  <!-- Só vale mentres se mantén premido: ao soltar (ou saír do botón) volve o resultado. -->
+  <button
+    class="btn block left"
+    class:on={original}
+    on:pointerdown={hold}
+    on:pointerup={() => (original = false)}
+    on:pointercancel={() => (original = false)}
+    on:lostpointercapture={() => (original = false)}
+    on:keydown={(e) => (e.key === " " || e.key === "Enter") && ((original = true), e.preventDefault())}
+    on:keyup={() => (original = false)}
+    on:blur={() => (original = false)}
+    title={$t("Mantén premido para ver o vídeo sen axustes")}
+  >{$t("Manter para ver o orixinal")}</button>
   <button class="btn primary block" on:click={exportAll} disabled={$busy || !changed}>{$t("Restaurar")}</button>
   <JobStatus {job} />
 </div>

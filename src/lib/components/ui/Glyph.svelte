@@ -8,7 +8,8 @@
     | { k: "stack"; dir: "v" | "h" } // dúas pezas unha debaixo ou ao carón da outra
     | { k: "turn"; deg: number } // páxina xirada (a frecha marca a parte de arriba)
     | { k: "swatch"; color: string } // mostra de cor
-    | { k: "match"; to: "small" | "large"; dir: "v" | "h" }; // igualar o ancho (v) ou o alto (h) á peza máis pequena ou á máis grande
+    | { k: "match"; to: "small" | "large"; dir: "v" | "h" } // igualar o ancho (v) ou o alto (h) á peza máis pequena ou á máis grande
+    | { k: "fit"; mode: "crop" | "stretch" | "contain" }; // meter unha imaxe nun cadro: cortando polo centro, deformándoa ou deixándoa enteira con marxes
 </script>
 
 <script lang="ts">
@@ -29,28 +30,61 @@
 
   $: box = spec.k === "ratio" ? fit(spec.w / spec.h, 26, 22) : spec.k === "grid" ? fit((spec.cols * (spec.w ?? 1)) / (spec.rows * (spec.h ?? 1)), 32, 24) : { x: 0, y: 0, w: 0, h: 0 };
   $: cells = spec.k === "grid" ? { cw: box.w / spec.cols, ch: box.h / spec.rows } : { cw: 0, ch: 0 };
-  // Igualar medidas: dúas pezas de distinto ancho (ou alto) quedan como están; unha liña de guía marca a medida á que se igualan
-  // (a da máis pequena ou a da máis grande). O que sobra da grande vai atenuado; o que falta á pequena, a trazos.
+  // Igualar medidas: o debuxo móstrase o resultado. Unha das pezas cambia de tamaño sen cortarse nin deformarse (mesma proporción):
+  // o contorno a trazos é o que medía antes e a frecha di cara a onde se escala.
   $: match = spec.k === "match" ? matchShapes(spec.to, spec.dir) : null;
   function matchShapes(to: "small" | "large", dir: "v" | "h") {
-    const big = dir === "v" ? 28 : 22;
-    const small = dir === "v" ? 18 : 14;
-    const at = dir === "v" ? 6 : 4; // onde empezan as pezas no eixe da medida
-    const guide = at + (to === "small" ? small : big);
+    const R = 2.8; // proporción das pezas
+    const big = 26;
+    const small = 16;
+    const target = to === "small" ? small : big;
+    const solid: Rc[] = [];
+    const ghost: Rc[] = [];
+    let arrow: [number, number, number, number];
     if (dir === "v") {
-      return {
-        solid: [{ x: at, y: 4, w: to === "small" ? small : big, h: 9 }, { x: at, y: 17, w: small, h: 9 }],
-        faded: to === "small" ? [{ x: guide, y: 4, w: big - small, h: 9 }] : [],
-        dashed: to === "large" ? [{ x: at + small, y: 17, w: big - small, h: 9 }] : [],
-        line: { x1: guide, y1: 2, x2: guide, y2: 28 },
-      };
+      // pezas unha debaixo da outra, igualadas en ancho; a grande é a de arriba se se reduce e a de abaixo se se amplía
+      const x = 7;
+      const hBig = big / R;
+      const hSmall = small / R;
+      const hT = target / R;
+      const y1 = 3;
+      const y2 = y1 + (to === "small" ? hBig : hT) + 3.5;
+      if (to === "small") {
+        solid.push({ x, y: y1, w: target, h: hT }, { x, y: y2, w: small, h: hSmall });
+        ghost.push({ x, y: y1, w: big, h: hBig });
+        arrow = [x + big - 1, y1 + hBig - 0.5, x + small - 0.5, y1 + hT - 0.5];
+      } else {
+        solid.push({ x, y: y1, w: big, h: hBig }, { x, y: y2, w: target, h: hT });
+        ghost.push({ x, y: y2, w: small, h: hSmall });
+        arrow = [x + small - 0.5, y2 + hSmall - 0.5, x + big - 1, y2 + hT - 0.5];
+      }
+    } else {
+      // pezas ao carón, igualadas en alto
+      const y = 3;
+      const wBig = big / R;
+      const wSmall = small / R;
+      const wT = target / R;
+      const x1 = 10;
+      const x2 = x1 + (to === "small" ? wBig : wT) + 3.5;
+      if (to === "small") {
+        solid.push({ x: x1, y, w: wT, h: target }, { x: x2, y, w: wSmall, h: small });
+        ghost.push({ x: x1, y, w: wBig, h: big });
+        arrow = [x1 + wBig - 0.5, y + big - 1, x1 + wT - 0.5, y + small - 0.5];
+      } else {
+        solid.push({ x: x1, y, w: wBig, h: big }, { x: x2, y, w: wT, h: target });
+        ghost.push({ x: x2, y, w: wSmall, h: small });
+        arrow = [x2 + wSmall - 0.5, y + small - 0.5, x2 + wT - 1, y + big - 1];
+      }
     }
-    return {
-      solid: [{ x: 5, y: at, w: 14, h: to === "small" ? small : big }, { x: 21, y: at, w: 14, h: small }],
-      faded: to === "small" ? [{ x: 5, y: guide, w: 14, h: big - small }] : [],
-      dashed: to === "large" ? [{ x: 21, y: at + small, w: 14, h: big - small }] : [],
-      line: { x1: 3, y1: guide, x2: 37, y2: guide },
-    };
+    return { solid, ghost, arrow };
+  }
+  type Rc = { x: number; y: number; w: number; h: number };
+  /** Frecha de (x1,y1) a (x2,y2) co seu remate. */
+  function arrowPath([x1, y1, x2, y2]: [number, number, number, number]) {
+    const a = Math.atan2(y2 - y1, x2 - x1);
+    const L = 3.4;
+    const p = (d: number) => `${(x2 - L * Math.cos(a + d)).toFixed(2)} ${(y2 - L * Math.sin(a + d)).toFixed(2)}`;
+    return `M${x1} ${y1} L${x2} ${y2} M${p(0.5)} L${x2} ${y2} L${p(-0.5)}`;
   }
   // Cadrícula de numeración: 3 columnas × 2 filas.
   const nums = (by: "rows" | "cols") => Array.from({ length: 6 }, (_, i) => {
@@ -98,10 +132,25 @@
       <polygon points="20,8.5 15.8,15.5 24.2,15.5" fill="currentColor" stroke-width="1" />
     </g>
   {:else if spec.k === "match" && match}
-    {#each match.solid as r}<rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1.5" fill="currentColor" fill-opacity="0.14" />{/each}
-    {#each match.faded as r}<rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1.5" fill="currentColor" fill-opacity="0.06" stroke-opacity="0.35" />{/each}
-    {#each match.dashed as r}<rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1.5" stroke-dasharray="2.4 2" stroke-width="1.1" />{/each}
-    <line x1={match.line.x1} y1={match.line.y1} x2={match.line.x2} y2={match.line.y2} stroke="var(--accent)" stroke-width="1.6" />
+    {#each match.ghost as r}<rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1.2" fill="currentColor" fill-opacity="0.05" stroke-dasharray="2.2 1.8" stroke-width="1.1" stroke-opacity="0.75" />{/each}
+    {#each match.solid as r}<rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1.2" fill="currentColor" fill-opacity="0.2" />{/each}
+    <path d={arrowPath(match.arrow)} stroke="var(--accent)" stroke-width="1.9" />
+  {:else if spec.k === "fit"}
+    {#if spec.mode === "crop"}
+      <!-- a imaxe sobra polos lados: o que cae fóra do cadro córtase -->
+      <rect x="3" y="6" width="34" height="18" rx="1.2" stroke-dasharray="2.2 1.8" stroke-width="1.1" stroke-opacity="0.7" />
+      <rect x="11" y="6" width="18" height="18" rx="1.2" fill="currentColor" fill-opacity="0.14" />
+      <path d="M6.5 15 H9 M33.5 15 H31" stroke-width="1.3" stroke-opacity="0.7" />
+    {:else if spec.mode === "stretch"}
+      <!-- a imaxe énchese o cadro deformándose: o círculo vólvese elipse -->
+      <rect x="11" y="4" width="18" height="22" rx="1.2" fill="currentColor" fill-opacity="0.14" />
+      <ellipse cx="20" cy="15" rx="5" ry="8.5" stroke-width="1.3" />
+      <path d="M2.5 15 H8 M5.6 12.6 L8 15 L5.6 17.4 M37.5 15 H32 M34.4 12.6 L32 15 L34.4 17.4" stroke="var(--accent)" stroke-width="1.4" />
+    {:else}
+      <!-- a imaxe cabe enteira e sobran marxes arriba e abaixo -->
+      <rect x="9" y="4" width="22" height="22" rx="1.2" stroke-dasharray="2.2 1.8" stroke-width="1.1" stroke-opacity="0.7" />
+      <rect x="9" y="9.5" width="22" height="11" rx="1.2" fill="currentColor" fill-opacity="0.14" />
+    {/if}
   {:else if spec.k === "swatch"}
     <rect x="11" y="5" width="18" height="20" rx="3" fill={spec.color} stroke="var(--border-strong)" stroke-width="1.2" />
   {/if}

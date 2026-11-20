@@ -1,4 +1,4 @@
-//! Xuntar capturas con ficheiros reais: capturas de desprazamento con cabeceira e pé fixos, sen solapamento, de lado, con anchos distintos,
+//! Xuntar con ficheiros reais: capturas de desprazamento con cabeceira e pé fixos, sen solapamento, de lado, con anchos distintos,
 //! e que nunca se toquen os orixinais.
 
 use image::{Rgb, RgbImage};

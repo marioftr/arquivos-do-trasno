@@ -1,4 +1,4 @@
-//! Cortar en partes iguais con ficheiros reais: tamaños, píxeles exactos, numeración, nomes sen pisar e límites.
+//! Dividir unha imaxe en partes iguais con ficheiros reais: tamaños, píxeles exactos, numeración, nomes sen pisar e límites.
 
 use image::{Rgb, RgbImage};
 use std::path::{Path, PathBuf};

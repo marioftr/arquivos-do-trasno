@@ -225,16 +225,16 @@
           <NumberField label={$t("Alto")} unit="px" min={1} placeholder={v.lock ? $t("libre") : ""} value={v.height} onInput={(r) => setSide("height", r)} />
         </div>
         <Toggle label={$t("Manter proporción")} bind:checked={$form.lock} hint={multi ? $t("Cada imaxe cabe no cadro de ancho e alto sen deformarse. Sen isto, todas toman o tamaño exacto escrito.") : $t("Ao cambiar o ancho ou o alto, o outro axústase pola proporción da imaxe. Sen isto, cada un vale o que se escriba.")} />
-        <Toggle label={$t("Non ampliar")} bind:checked={$form.noUpscale} hint={$t("As imaxes que xa caben no tamaño elixido quedan como están.")} />
-        <div class="locked-tools" class:on={v.lock} inert={v.lock}>
+        {#if !v.lock}
           <Segmented
             options={[
-              { value: 0, label: $t("Recortar polo centro") },
-              { value: 1, label: $t("Estirar") },
+              { value: 0, label: $t("Recortar polo centro"), glyph: { k: "fit", mode: "crop" } },
+              { value: 1, label: $t("Estirar"), glyph: { k: "fit", mode: "stretch" } },
             ]}
             bind:value={$form.crop}
           />
-        </div>
+        {/if}
+        <Toggle label={$t("Non ampliar")} bind:checked={$form.noUpscale} hint={$t("As imaxes que xa caben no tamaño elixido quedan como están.")} />
       {/if}
       {#if hasLossy}
         <Slider label={$t("Calidade (JPG, WebP…)")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("As imaxes con perdas vólvense gardar a esta calidade. O PNG non perde nada.")} />

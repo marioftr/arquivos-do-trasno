@@ -20,7 +20,7 @@ function build(objs) {
 const stream = (s, extra = "") => `<< /Length ${s.length} ${extra} >>\nstream\n${s}\nendstream`;
 const t = (size, x, y, txt) => `BT /F1 ${size} Tf ${x} ${y} Td (${txt}) Tj ET\n`;
 
-function report() {
+function report(font = "Helvetica") {
   const p1 =
     t(24, 50, 780, "Informe anual") +
     t(18, 50, 740, "Resumo") +
@@ -34,7 +34,7 @@ function report() {
   const p2 = t(18, 50, 780, "Anexo") + t(11, 50, 750, "Datos finais do informe nunha segunda pagina.") + t(11, 50, 735, "Segredo da pagina dous.");
   return build([
     "<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>", // 1
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", // 2
+    `<< /Type /Font /Subtype /Type1 /BaseFont /${font} >>`, // 2
     "<< /Author (Marta Autora) /Title (Informe) >>", // 3
     "<< /Type /Page /Parent 1 0 R /MediaBox [0 0 595 842] /Contents 5 0 R /Resources << /Font << /F1 2 0 R >> >> >>", // 4
     stream(p1), // 5
@@ -144,10 +144,26 @@ export default {
     c.ok(/quitados: \d+/.test((await row("Datos do documento")) ?? ""), "a táboa di cantos datos quitou", await row("Datos do documento"));
     c.ok(read("informe.pdf").includes("Marta Autora"), "o orixinal segue co autor");
 
-    // ---- Anexos
-    c.ok((await mode("Anexos")) === "ok", "Seguridade ten o modo «Anexos»");
+    // ---- Recortar: ao baixar as marxes a 0 non queda sombra
+    await app.click("Xirar e recortar");
+    await mode("Recortar");
+    await app.waitFor(`document.querySelector('.stack input[role=switch][aria-label="Os catro márxenes iguais"]')`, "o recorte", 15000);
+    await app.toggle("Os catro márxenes iguais");
+    await app.slider("Marxe", 25);
+    await app.sleep(400);
+    const shade = () => app.ev(`[...document.querySelectorAll('.pages .pg div')].filter(d=>d.style.background.startsWith('rgba(10, 10, 14')).length`);
+    c.ok((await shade()) >= 4, "con marxe hai sombra nos catro lados", String(await shade()));
+    await app.slider("Marxe", 0);
+    await app.sleep(500);
+    c.ok((await shade()) === 0, "ao volver a 0 non queda sombra en ningún lado", String(await shade()));
+
+    // ---- Anexos: pestana propia (non vai dentro de Seguridade)
+    c.ok((await mode("Anexos")) !== "ok", "Seguridade xa non ten o modo «Anexos»");
+    c.ok((await app.tabs()).includes("Anexos"), "Anexos é unha pestana do PDF", (await app.tabs()).join(","));
+    await app.click("Anexos");
     await app.waitFor(`/non ten anexos/.test(document.body.innerText)`, "sen anexos de partida", 15000);
     c.ok(true, "o PDF de partida non ten anexos");
+    await app.click("Seguridade");
 
     // ---- Tapar
     c.ok((await mode("Tapar")) === "ok", "Seguridade ten o modo «Tapar»");
@@ -192,11 +208,38 @@ export default {
     c.ok(await exists("informe-tapado.pdf"), "gardouse informe-tapado.pdf", 20000);
     const red = read("informe-tapado.pdf");
     c.ok(!red.includes("ana@example.com") && !red.includes("Informe anual") && !red.includes("Segredo da pagina dous"), "o texto das páxinas tapadas xa non está no ficheiro");
+    c.ok(/pasar a imaxe para tapar con seguridade/.test(await app.ev(`document.body.innerText`)), "con tipografías sen anchos a páxina pasa a imaxe e o di");
     c.ok(sha(pdf) === before, "o orixinal segue igual");
     // As páxinas tapadas son imaxe: aberto de novo, o buscador non atopa o correo.
     await app.open(path.join(app.media, "informe-tapado.pdf"));
     await app.sleep(1500);
     c.ok(/pax|páx/i.test(await app.ev(`document.body.innerText`)), "o PDF tapado abre");
+
+    // ---- Tapar sen converter a páxina en imaxe (tipografía de anchos exactos): só desaparece o que hai baixo a zona
+    const cour = path.join(app.media, "carta.pdf");
+    fs.writeFileSync(cour, report("Courier"), "latin1");
+    await app.open(cour);
+    await app.ev(`document.querySelectorAll('li[role=option] input[type=checkbox]').forEach(x=>{ if(x.checked) x.click(); })`);
+    await app.click("Seguridade");
+    await mode("Tapar");
+    await app.waitFor(`/zonas a tapar/i.test(document.body.innerText)`, "o panel de tapar outra vez");
+    await go("Marcar coincidencias");
+    await app.waitFor(`document.querySelectorAll('.stack .results li').length === 1`, "a zona do correo", 30000);
+    await go("Tapar as zonas (1)");
+    c.ok(await exists("carta-tapado.pdf"), "gardouse carta-tapado.pdf");
+    const clean = read("carta-tapado.pdf");
+    c.ok(!clean.includes("ana@example.com"), "o correo xa non está no ficheiro");
+    c.ok(/O resto do contido quedou como estaba/.test(await app.ev(`document.body.innerText`)), "di que o resto quedou como estaba");
+    await app.open(path.join(app.media, "carta-tapado.pdf"));
+    await app.ev(`document.querySelectorAll('li[role=option] input[type=checkbox]').forEach(x=>{ if(x.checked) x.click(); })`);
+    await app.click("Converter");
+    await mode("Formatos");
+    await app.waitFor(`!!document.querySelector('.stack select[aria-label="Formato de saída"]')`, "o selector de formato de saída", 20000);
+    await app.ev(`(()=>{const s=document.querySelector('.stack select[aria-label="Formato de saída"]'); s.value='md'; s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    await go("Gardar como Markdown");
+    c.ok(await exists("carta-tapado.md"), "o PDF tapado aínda ten texto que se pode converter");
+    const cm = fs.readFileSync(path.join(app.media, "carta-tapado.md"), "utf8");
+    c.ok(/Informe anual/.test(cm) && /Segredo da pagina dous/.test(cm) && !/ana@example\.com/.test(cm), "o resto do texto segue seleccionable e o correo non está", cm.slice(0, 200));
 
     // ---- Formulario
     const form = path.join(app.media, "solicitude.pdf");

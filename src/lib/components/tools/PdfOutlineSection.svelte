@@ -109,8 +109,9 @@
       <button class="btn" on:click={detect} disabled={$busy}>{$t("Detectar títulos")}</button>
     </div>
     {#if entries.length}
-      <div class="ohead"><span>{$t("Nivel")}</span><span>{$t("Título")}</span><span>{$t("Páxina")}</span><span></span></div>
       <ul class="outline">
+        <!-- A cabeceira vai dentro da lista (pegada arriba): así as columnas coinciden aínda que haxa barra de desprazamento. -->
+        <li class="ohead"><span>{$t("Nivel")}</span><span class="tt">{$t("Título")}</span><span>{$t("Páxina")}</span><span></span></li>
         {#each entries as e, i}
           <li class:sel={selected === i}>
             <span class="lv">
@@ -140,9 +141,10 @@
 
 <style>
   .outline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; max-height: 22rem; overflow: auto; }
-  .outline li, .ohead { display: grid; grid-template-columns: 52px 1fr 3.6rem 26px; align-items: center; gap: 3px; }
-  .ohead { font-size: var(--fs-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; padding-right: 0; }
-  .ohead span:nth-child(3) { text-align: center; }
+  .outline li { display: grid; grid-template-columns: 52px 1fr 4.4rem 26px; align-items: center; gap: 3px; }
+  .ohead { position: sticky; top: 0; z-index: 1; background: var(--bg); font-size: var(--fs-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  .ohead span { text-align: center; white-space: nowrap; overflow: hidden; }
+  .ohead .tt { text-align: left; padding-left: 0.5em; }
   .lv { display: flex; }
   .outline li.sel .otitle { border-color: var(--accent); }
   .otitle, .opage { height: var(--control-h); background: var(--bg-input); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0 0.5em; font-family: inherit; font-size: var(--fs-md); min-width: 0; }

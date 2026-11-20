@@ -24,10 +24,13 @@
   const job = createJob();
   const busy = job.busy;
 
-  $: f = $form;
-  // «Todos igual»: un só valor para os catro márxenes.
-  $: if (f.same && (f.right !== f.left || f.top !== f.left || f.bottom !== f.left)) {
-    form.update((v) => ({ ...v, right: v.left, top: v.left, bottom: v.left }));
+  // «Os catro iguais»: un só valor para os catro márxenes. Calcúlase aquí (non se copia nos outros tres), así nunca queda un resto.
+  $: f = $form.same ? { ...$form, right: $form.left, top: $form.left, bottom: $form.left } : $form;
+  // Ao soltar «iguais», os catro seguen valendo o mesmo ata que se cambie un.
+  let wasSame = false;
+  $: if ($form.same !== wasSame) {
+    wasSame = $form.same;
+    if (!$form.same) queueMicrotask(() => form.update((v) => ({ ...v, right: v.left, top: v.left, bottom: v.left })));
   }
   $: pages = safePages(f.pageSpec, file.pages);
   // Sen márxenes a quitar non se pinta sombra ningunha.

@@ -28,6 +28,9 @@ export default {
 
     const level = (group, text) => app.ev(`[...document.querySelector('.stack [role=radiogroup][aria-label=${JSON.stringify(group)}]').querySelectorAll('button')].find(b=>b.textContent.trim().split('\\n')[0]===${JSON.stringify(text)}).click()`);
 
+    // O botón de comparar só vale mentres se mantén premido.
+    const holdOriginal = (down) => app.ev(`(()=>{const b=[...document.querySelectorAll('.stack .btn')].find(x=>x.textContent.trim()==='Manter para ver o orixinal'); b.dispatchEvent(new PointerEvent(${JSON.stringify(down ? "pointerdown" : "pointerup")},{bubbles:true,pointerId:7})); return true;})()`);
+
     // ---- cor en directo no visor (filtro que imita o do motor) e sen fotograma preparado: non hai salto ao desmarcar «Ver o orixinal»
     await app.slider("Brillo", 0.3);
     await app.sleep(300);
@@ -41,10 +44,10 @@ export default {
     await app.ev(`document.body.dispatchEvent(new PointerEvent('pointerover',{bubbles:true}))`);
     await app.sleep(1200);
     c.ok(!(await app.ev(`!!document.querySelector('img.still')`)), "só con cor non hai fotograma preparado que substitúa o vídeo");
-    await app.toggle("Ver o orixinal");
+    await holdOriginal(true);
     await app.sleep(300);
-    c.ok(!(await app.ev(`document.querySelector('video')?.style.filter || ''`)), "«Ver o orixinal» quita a cor");
-    await app.toggle("Ver o orixinal");
+    c.ok(!(await app.ev(`document.querySelector('video')?.style.filter || ''`)), "«Manter para ver o orixinal» quita a cor");
+    await holdOriginal(false);
     await app.sleep(1200);
     c.ok(/trasno-look/.test(await app.ev(`document.querySelector('video')?.style.filter || ''`)) && !(await app.ev(`!!document.querySelector('img.still')`)), "ao volver, a cor está no vídeo ao momento e nada máis cambia");
     await app.slider("Brillo", 0);
@@ -77,11 +80,11 @@ export default {
     c.ok(await app.ev(`(()=>{const i=document.querySelector('img.still'); return i.naturalWidth>100 && i.complete})()`), "o fotograma é unha imaxe de verdade");
     const same = async () => app.ev(`(()=>{const i=document.querySelector('img.still'),v=document.querySelector('video'); return !!i && !!v})()`);
     c.ok(!/Comparar|Ver fotograma/.test(await app.ev(`document.querySelector('.stack').innerText`)), "non hai botón de «comparar»");
-    // «Ver o orixinal» é un interruptor: quita o fotograma procesado e volve con el.
-    await app.toggle("Ver o orixinal");
+    // «Manter para ver o orixinal» vale só mentres está premido: quita o fotograma procesado e volve ao soltar.
+    await holdOriginal(true);
     await app.sleep(500);
-    c.ok(!(await app.ev(`!!document.querySelector('img.still')`)), "«Ver o orixinal» amosa o vídeo sen axustes");
-    await app.toggle("Ver o orixinal");
+    c.ok(!(await app.ev(`!!document.querySelector('img.still')`)), "premido, amosa o vídeo sen axustes");
+    await holdOriginal(false);
     await app.waitFor(`document.querySelector('img.still')`, "o fotograma procesado de volta", 20000);
     c.ok(await same(), "volve o fotograma procesado");
     await level("Quitar ruído", "Non");

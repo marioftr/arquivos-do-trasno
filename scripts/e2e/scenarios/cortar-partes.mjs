@@ -1,4 +1,4 @@
-// Cortar en partes na app real: plantillas, zona sobre a imaxe no visor con cada parte numerada, ficheiros novos, formatos e orixinal intacto.
+// Dividir en partes na app real: plantillas, zona sobre a imaxe no visor con cada parte numerada, ficheiros novos, formatos e orixinal intacto.
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -15,7 +15,7 @@ const centre = (f) => {
 };
 
 export default {
-  about: "Cortar en partes: plantillas, zona e números no visor, partes exactas, nomes novos, formatos e orixinal intacto",
+  about: "Dividir: plantillas, zona e números no visor, partes exactas, nomes novos, formatos e orixinal intacto",
   async run(app, c) {
     // 1200 × 400: tres cadrados de 400 (vermello, verde, azul).
     const made = await app.ev(`(()=>{const k=document.createElement('canvas'); k.width=1200; k.height=400; const g=k.getContext('2d'); ['#e61414','#14b414','#1414e6'].forEach((col,i)=>{g.fillStyle=col; g.fillRect(i*400,0,400,400);}); return k.toDataURL('image/png').split(',')[1];})()`);
@@ -34,9 +34,9 @@ export default {
     await app.open(src);
     await app.ev(`document.querySelectorAll('li[role=option] input[type=checkbox]').forEach(x=>{ if(x.checked) x.click(); })`);
     const tabs = await app.tabs();
-    c.ok(tabs.includes("Cortar en partes"), "as imaxes teñen a pestana Cortar en partes", tabs.join(","));
-    c.ok(tabs.indexOf("Editar") < tabs.indexOf("Redimensionar") && tabs.indexOf("Redimensionar") < tabs.indexOf("Cortar en partes"), "Redimensionar vai por debaixo de Editar", tabs.join(","));
-    await app.click("Cortar en partes");
+    c.ok(tabs.includes("Dividir"), "as imaxes teñen a pestana Dividir", tabs.join(","));
+    c.ok(tabs.indexOf("Editar") < tabs.indexOf("Redimensionar") && tabs.indexOf("Redimensionar") < tabs.indexOf("Dividir"), "Redimensionar vai por debaixo de Editar", tabs.join(","));
+    await app.click("Dividir");
     await app.waitFor(`document.querySelectorAll('.crop .part b').length === 3`, "a zona dividida no visor con tres números");
 
     // Plantilla de partida: carrusel cadrado, 3 × 1.
@@ -62,7 +62,7 @@ export default {
     await app.waitFor(`document.querySelectorAll('.crop .handle').length === 8`, "coa forma libre hai oito asas");
     await num("Columnas", 25);
     await app.sleep(400);
-    c.ok(/Cortar en 40 partes/.test(await app.panel()), "o máximo son 20 columnas: o botón di 40 partes", await app.panel());
+    c.ok(/Dividir en 40 partes/.test(await app.panel()), "o máximo son 20 columnas: o botón di 40 partes", await app.panel());
 
     // Cortar: tres cadrados.
     await preset("Carrusel");
@@ -87,8 +87,8 @@ export default {
     c.ok((await zoneW()) === w1, "sen mudar o tamaño");
     await app.click("Axustar á imaxe");
     await app.waitFor(`document.querySelector('.crop .size')?.textContent.includes('3 × 1 · 400 × 400')`, "a zona volta a cubrir a imaxe");
-    c.ok(/Cortar en 3 partes/.test(await app.panel()), "o botón di en cantas partes corta");
-    await app.click("Cortar en 3 partes");
+    c.ok(/Dividir en 3 partes/.test(await app.panel()), "o botón di en cantas partes corta");
+    await app.click("Dividir en 3 partes");
     const out = (n, ext = "png", tail = "") => path.join(app.media, `foto-${n}${tail}.${ext}`);
     for (let i = 0; i < 60 && !fs.existsSync(out(3)); i++) await app.sleep(300);
     c.ok([1, 2, 3].every((n) => fs.existsSync(out(n))), "gardáronse foto-1.png, foto-2.png e foto-3.png ao carón");
@@ -100,7 +100,7 @@ export default {
     c.ok(/Deixei 3 partes de 400×400 px/.test(await app.ev(`document.body.innerText`)), "o trasno resume o corte");
 
     // Outra vez: non pisa nada, todo o xogo pasa a «(2)».
-    await app.click("Cortar en 3 partes");
+    await app.click("Dividir en 3 partes");
     for (let i = 0; i < 60 && !fs.existsSync(out(3, "png", " (2)")); i++) await app.sleep(300);
     c.ok([1, 2, 3].every((n) => fs.existsSync(out(n, "png", " (2)"))) && fs.existsSync(out(1)), "a segunda vez non pisa as partes: o xogo novo leva «(2)» ao final, antes da extensión (foto-1 (2).png)");
 
@@ -110,7 +110,7 @@ export default {
     await app.waitFor(`!!document.querySelector('.stack input[type=range][aria-label=Calidade]')`, "a calidade do JPG");
     await app.click("Por columnas");
     await app.waitFor(`document.querySelectorAll('.crop .part b').length === 3`, "tres partes");
-    await app.click("Cortar en 3 partes");
+    await app.click("Dividir en 3 partes");
     for (let i = 0; i < 60 && !fs.existsSync(out(3, "jpg")); i++) await app.sleep(300);
     c.ok([1, 2, 3].every((n) => fs.existsSync(out(n, "jpg"))), "en JPG saen os ficheiros .jpg", fs.readdirSync(app.media).join(","));
   },

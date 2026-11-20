@@ -63,8 +63,18 @@ export default {
     c.ok(!(await levelNames()), "co modo de porcentaxe non hai tamaños con nome");
     await app.click("Píxeles");
     // Sen manter a proporción é un tamaño exacto, e aí pregúntase que facer.
-    c.ok(await app.ev(`!!document.querySelector('.stack .locked-tools.on [role=radiogroup]')`), "coa proporción mantida «Recortar / Estirar» queda en gris, non agochado");
+    c.ok(!(await app.panel()).includes("Recortar polo centro"), "coa proporción mantida non hai «Recortar / Estirar»");
     await app.toggle("Manter proporción");
+    c.ok(/Recortar polo centro/.test(await app.panel()) && /Estirar/.test(await app.panel()), "ao soltala aparecen «Recortar polo centro» e «Estirar»");
+    if (process.env.TRASNO_SHOTS) await app.shot("redimensionar-exacto.png");
+    // GPS: ao apagar os metadatos apágase antes de bloquearse e, ao acendelos, volve ao que tiña.
+    const gps = () => app.ev(`(()=>{const i=[...document.querySelectorAll('.stack .toggle')].find(x=>x.querySelector('.lab')?.textContent.trim()==='Manter GPS')?.querySelector('input'); return i ? [i.checked, i.disabled] : null;})()`);
+    c.ok(JSON.stringify(await gps()) === "[true,false]", "o GPS parte activado", JSON.stringify(await gps()));
+    await app.toggle("Manter metadatos");
+    c.ok(JSON.stringify(await gps()) === "[false,true]", "sen metadatos o GPS apágase e queda bloqueado", JSON.stringify(await gps()));
+    await app.toggle("Manter metadatos");
+    c.ok(JSON.stringify(await gps()) === "[true,false]", "ao volver acender os metadatos, o GPS recupera o que tiña", JSON.stringify(await gps()));
+    c.ok(await app.ev(`(()=>{const t=[...document.querySelectorAll('.stack .toggle .lab')].map(x=>x.textContent.trim()); const g=[...document.querySelectorAll('.stack [role=radiogroup]')].find(x=>/Estirar/.test(x.textContent)); return !!g && g.querySelector('svg')!==null && t.indexOf('Manter proporción')<t.indexOf('Non ampliar');})()`), "van baixo «Manter proporción» e levan debuxo");
     await num("Ancho", 300);
     await num("Alto", 300);
     await app.waitFor(`/→ 300 × 300/.test(document.querySelector('.stack .results li')?.innerText||'')`, "300 × 300 exacto");
@@ -126,7 +136,7 @@ export default {
     await app.open(b);
     await app.open(t);
     await pick(["uno.png", "dous.png", "tres.png"]);
-    c.ok((await app.tabs()).join(",").includes("Redimensionar") && (await app.tabs()).includes("Xuntar capturas"), "con varias imaxes hai Redimensionar e Xuntar capturas", (await app.tabs()).join(","));
+    c.ok((await app.tabs()).join(",").includes("Redimensionar") && (await app.tabs()).includes("Xuntar"), "con varias imaxes hai Redimensionar e Xuntar", (await app.tabs()).join(","));
     await app.click("Redimensionar");
     await app.waitFor(`document.querySelectorAll('.stack .results li').length === 3`, "tres filas");
     await level("Pequeno");

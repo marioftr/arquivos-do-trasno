@@ -10,6 +10,19 @@
   /** Se o formato de saída os pode levar (JPG, PNG e WebP). */
   export let supported = true;
   export let disabled = false;
+
+  // Ao apagar os metadatos o GPS apágase antes de bloquearse; ao volver acendelos recupera o que tiña.
+  let prevKeep = keep;
+  let remembered = keep ? gps : true;
+  $: if (keep !== prevKeep) {
+    prevKeep = keep;
+    if (!keep) {
+      remembered = gps;
+      gps = false;
+    } else {
+      gps = remembered;
+    }
+  }
 </script>
 
 {#if supported}

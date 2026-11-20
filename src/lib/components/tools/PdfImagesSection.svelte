@@ -95,7 +95,6 @@
 <div class="stack">
 
   <div class="group">
-    <h4 class="group-title">{$t("Páxinas a imaxes")}</h4>
     {#if !format}
       <SelectField
         label={$t("Formato de saída")}
@@ -104,9 +103,9 @@
         def="png"
       />
     {/if}
-    <Slider label={$t("Resolución")} unit={$t("ppp")} min={72} max={300} step={6} bind:value={$form.dpi} def={150} hint={$t("Máis ppp: máis nitidez e máis peso.")} />
+    <Slider label={$t("Resolución")} unit={$t("ppp")} min={72} max={300} step={6} bind:value={$form.dpi} def={150} hint={$t("Píxeles por polgada de cada páxina: 72 é pantalla, 150 vale para compartir e 300 para imprimir. Máis ppp, máis peso.")} />
     {#if $form.format === "jpg"}
-      <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={90} />
+      <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={90} hint={$t("Con JPG, canto máis alta, menos borrón e máis peso: ao 90 % case non se nota. O PNG non perde calidade.")} />
     {/if}
     <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
   </div>

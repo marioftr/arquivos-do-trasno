@@ -13,12 +13,11 @@
   import JobStatus from "../ui/JobStatus.svelte";
   import PdfSanitizeSection from "./PdfSanitizeSection.svelte";
   import PdfRedactSection from "./PdfRedactSection.svelte";
-  import PdfAttachSection from "./PdfAttachSection.svelte";
 
   export let file: FileEntry;
 
   let encrypted: boolean | null = null;
-  let mode: "protect" | "unprotect" | "sanitize" | "attach" | "redact" = "protect";
+  let mode: "protect" | "unprotect" | "sanitize" | "redact" = "protect";
   let password = "";
   let owner = "";
   let allowPrint = true;
@@ -59,7 +58,6 @@
       { value: "protect", label: $t("Protexer") },
       { value: "unprotect", label: $t("Desbloquear") },
       { value: "sanitize", label: $t("Limpar") },
-      { value: "attach", label: $t("Anexos") },
       { value: "redact", label: $t("Tapar") },
     ]}
     bind:value={mode}
@@ -67,8 +65,6 @@
 
   {#if mode === "sanitize"}
     <PdfSanitizeSection {file} />
-  {:else if mode === "attach"}
-    <PdfAttachSection {file} />
   {:else if mode === "redact"}
     <PdfRedactSection {file} />
   {:else}

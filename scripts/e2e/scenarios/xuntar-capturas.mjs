@@ -47,19 +47,19 @@ export default {
     // Aberto un só: non hai nada que xuntar. Aberto os tres e marcados: aparece a pestana.
     await app.open(files[0]);
     await pick([]);
-    c.ok(!(await app.tabs()).includes("Xuntar capturas"), "cunha soa imaxe non hai pestana de xuntar");
+    c.ok(!(await app.tabs()).includes("Xuntar"), "cunha soa imaxe non hai pestana de xuntar");
     await app.open(files[1]);
     await app.open(files[2]);
     await pick(["captura-1.png", "captura-2.png", "captura-3.png"]);
-    c.ok((await app.tabs()).includes("Xuntar capturas"), "con varias imaxes marcadas hai a pestana Xuntar capturas", (await app.tabs()).join(","));
-    await app.click("Xuntar capturas");
+    c.ok((await app.tabs()).includes("Xuntar"), "con varias imaxes marcadas hai a pestana Xuntar capturas", (await app.tabs()).join(","));
+    await app.click("Xuntar");
     await app.waitFor(`document.querySelectorAll('.stack ol.order li').length === 3`, "a lista ordenable");
     c.ok(await app.ev(`[...document.querySelectorAll('.stack ol.order li .nm')].map(x=>x.textContent.trim()).join()`) === "captura-1.png,captura-2.png,captura-3.png", "a orde de partida é a da lista");
 
     // ---- xuntar de arriba abaixo quitando o repetido
-    c.ok(/Xuntar 3 capturas/.test(await app.panel()), "o botón di cantas se xuntan");
+    c.ok(/Xuntar 3 imaxes/.test(await app.panel()), "o botón di cantas se xuntan");
     if (process.env.TRASNO_SHOTS) await app.shot("xuntar.png");
-    await app.click("Xuntar 3 capturas");
+    await app.click("Xuntar 3 imaxes");
     const out = path.join(app.media, "capturas-xuntadas.png");
     for (let i = 0; i < 60 && !fs.existsSync(out); i++) await app.sleep(300);
     c.ok(fs.existsSync(out), "gardouse capturas-xuntadas.png ao carón");
@@ -73,10 +73,10 @@ export default {
     c.ok(/Listo! Xunteinas nunha imaxe de 400×1600 px/.test(await app.ev(`document.body.innerText`)), "o trasno di o tamaño que saíu");
 
     // ---- sen quitar o repetido, con espazo: todo tal cal
-    await app.toggle("Capturas de desprazamento");
+    await app.toggle("Quitar o tramo repetido");
     await app.ev(`(()=>{const i=document.querySelector('.stack input[type=number][aria-label="Espazo entre capturas"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,'20'); i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); i.dispatchEvent(new Event('blur'));})()`);
     await app.sleep(300);
-    await app.click("Xuntar 3 capturas");
+    await app.click("Xuntar 3 imaxes");
     const out2 = path.join(app.media, "capturas-xuntadas (2).png");
     for (let i = 0; i < 60 && !fs.existsSync(out2); i++) await app.sleep(300);
     c.ok(fs.existsSync(out2) && fs.existsSync(out), "a segunda vez non pisa a primeira: leva «(2)»");
@@ -87,13 +87,13 @@ export default {
     await app.sleep(300);
     c.ok(await app.ev(`[...document.querySelectorAll('.stack ol.order li .nm')].map(x=>x.textContent.trim()).join()`) === "captura-2.png,captura-1.png,captura-3.png", "baixar unha cambia a orde");
     c.ok(await app.ev(`[...document.querySelectorAll('li[role=option] .nome')].map(x=>x.textContent.trim()).filter(n=>/^captura-/.test(n)).join()`) === "captura-1.png,captura-2.png,captura-3.png", "sen mexer na lista de ficheiros");
-    c.ok(/Xuntar 3 capturas/.test(await app.panel()), "o botón segue dicindo 3 capturas");
+    c.ok(/Xuntar 3 imaxes/.test(await app.panel()), "o botón segue dicindo 3 capturas");
 
     // Formato de saída: elixido (TIFF) e «Igual que o orixinal» con imaxes que non son PNG (BMP).
     const fmt = (v) => app.ev(`(()=>{const s=document.querySelector('.stack select[aria-label=Formato]'); s.value=${JSON.stringify(v)}; s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
     c.ok((await app.ev(`[...document.querySelectorAll('.stack select[aria-label=Formato] option')].map(o=>o.textContent.trim()).join()`)) === "Igual que o orixinal (.png),PNG,JPG,WebP,TIFF,BMP", "con PNG de orixe, o formato di «Igual que o orixinal (.png)» e ofrece cinco formatos");
     await fmt("tiff");
-    await app.click("Xuntar 3 capturas");
+    await app.click("Xuntar 3 imaxes");
     const tif = path.join(app.media, "capturas-xuntadas.tiff");
     for (let i = 0; i < 60 && !fs.existsSync(tif); i++) await app.sleep(300);
     c.ok(fs.existsSync(tif), "en TIFF sae capturas-xuntadas.tiff");
@@ -104,9 +104,9 @@ export default {
     });
     for (const b of bmps) await app.open(b);
     await pick(["bmp-1.bmp", "bmp-2.bmp", "bmp-3.bmp"]);
-    await app.click("Xuntar capturas");
+    await app.click("Xuntar");
     await app.waitFor(`document.querySelectorAll('.stack ol.order li').length === 3`, "a lista ordenable dos BMP");
-    await app.click("Xuntar 3 capturas");
+    await app.click("Xuntar 3 imaxes");
     const bmpOut = path.join(app.media, "capturas-xuntadas.bmp");
     for (let i = 0; i < 60 && !fs.existsSync(bmpOut); i++) await app.sleep(300);
     c.ok(fs.existsSync(bmpOut), "con BMP de orixe, «Igual que o orixinal» deixa un BMP");
@@ -114,7 +114,7 @@ export default {
 
     // Con formatos mesturados non hai «Igual que o orixinal» e o formato de partida é PNG.
     await pick(["captura-1.png", "bmp-1.bmp"]);
-    await app.click("Xuntar capturas");
+    await app.click("Xuntar");
     await app.waitFor(`document.querySelectorAll('.stack ol.order li').length === 2`, "a lista ordenable mesturada");
     c.ok((await app.ev(`[...document.querySelectorAll('.stack select[aria-label=Formato] option')].map(o=>o.textContent.trim()).join()`)) === "PNG,JPG,WebP,TIFF,BMP", "con formatos distintos non hai «Igual que o orixinal»", await app.ev(`[...document.querySelectorAll('.stack select[aria-label=Formato] option')].map(o=>o.textContent.trim()).join()`));
     c.ok((await app.ev(`(()=>{const s=document.querySelector('.stack select[aria-label=Formato]'); return s.options[s.selectedIndex].textContent.trim()})()`)) === "PNG", "e o formato marcado é PNG");
