@@ -100,7 +100,7 @@
   .lab { display: inline-flex; align-items: center; font-size: var(--fs-sm); color: var(--text-muted); }
   .reset { display: inline-flex; background: none; border: none; color: var(--text-faint); padding: 2px; border-radius: 4px; }
   .reset:hover { color: var(--accent); background: var(--bg-hover); }
-  .num { display: flex; align-items: stretch; height: var(--control-h); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--groove); overflow: hidden; }
+  .num { display: flex; align-items: stretch; height: var(--control-h); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; }
   .num:hover { border-color: var(--text-faint); }
   .num:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
   .num.disabled { opacity: 0.5; }
@@ -111,7 +111,7 @@
   .steps { display: flex; flex-direction: column; width: 22px; flex: none; border-left: 1px solid var(--border); }
   .steps button { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0; background: transparent; border: none; border-radius: 0; color: var(--text-faint); cursor: pointer; min-height: 0; }
   .steps button + button { border-top: 1px solid var(--border); }
-  .steps button:hover:not(:disabled) { background: linear-gradient(180deg, var(--key-top), var(--key-bottom)); color: var(--accent); }
+  .steps button:hover:not(:disabled) { background: var(--bg-hover); color: var(--accent); }
   .steps button:active:not(:disabled) { background: color-mix(in srgb, var(--accent) 22%, transparent); }
   .steps button:disabled { cursor: not-allowed; }
 </style>

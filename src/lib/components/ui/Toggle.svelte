@@ -21,10 +21,10 @@
   .lab { display: inline-flex; align-items: center; font-size: var(--fs-md); }
   input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
   .toggle.disabled input { cursor: not-allowed; }
-  .track { position: relative; width: 38px; height: 22px; border-radius: 11px; background: var(--groove-bg); box-shadow: var(--groove); transition: background 0.14s ease, box-shadow 0.14s ease; flex-shrink: 0; }
-  .knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: linear-gradient(180deg, #ffffff, #cdd2da); border: 1px solid rgba(0, 0, 0, 0.4); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 0 rgba(0, 0, 0, 0.4); transition: transform 0.14s cubic-bezier(0.3, 1.4, 0.5, 1); }
-  .toggle:hover:not(.disabled) .knob { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 0 rgba(0, 0, 0, 0.4), 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
-  input:checked + .track { background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 78%, black)); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 12px -2px color-mix(in srgb, var(--accent) 55%, transparent); }
-  input:checked + .track .knob { transform: translateX(16px); }
+  .track { position: relative; width: 34px; height: 18px; border-radius: 3px; background: transparent; border: 1px solid var(--border-strong); transition: background 0.1s ease, border-color 0.1s ease; flex-shrink: 0; box-sizing: border-box; }
+  .knob { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 1px; background: var(--text-muted); transition: transform 0.1s ease, background 0.1s ease; }
+  .toggle:hover:not(.disabled) .track { border-color: var(--text-faint); }
+  input:checked + .track { background: var(--accent); border-color: var(--accent); }
+  input:checked + .track .knob { transform: translateX(16px); background: var(--on-accent); }
   input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>

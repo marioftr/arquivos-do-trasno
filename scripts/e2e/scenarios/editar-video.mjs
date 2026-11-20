@@ -17,7 +17,7 @@ export default {
     const btn = `document.querySelector('.stack .btn.primary')`;
     c.ok(await app.ev(`${btn}?.disabled`), "Exportar está desactivado sen cambios");
     c.ok(!(await app.ev(`!!document.querySelector('.stack .rows')`)), "sen cambios non hai táboa de resultado");
-    const [r, g, b] = await app.ev(`getComputedStyle(${btn}).backgroundImage.match(/rgb\([^)]+\)/g).pop().match(/[0-9]+/g).map(Number)`);
+    const [r, g, b] = await app.ev(`getComputedStyle(${btn}).backgroundColor.match(/[0-9]+/g).map(Number)`);
     c.ok(g > r && g > b, "o botón de exportar é verde", `rgb(${r},${g},${b})`);
 
     // Sen mensaxes de recheo nin botón de vista previa: a vista previa é o propio visor.
