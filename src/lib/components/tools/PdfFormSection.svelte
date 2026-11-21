@@ -91,11 +91,11 @@
     {/each}
 
     <div class="group">
-      <Toggle label={$t("Aplanar o formulario")} bind:checked={$form.flatten} hint={$t("O que se escribiu pasa a ser parte da páxina e os campos deixan de ser editables.")} />
+      <Toggle label={$t("Aplanar formulario")} bind:checked={$form.flatten} hint={$t("O que se escribiu pasa a ser parte da páxina e os campos deixan de ser editables.")} />
     </div>
 
     <button class="btn primary block" on:click={save} disabled={$busy || (!changed && !$form.flatten)}>
-      {$form.flatten ? $t("Gardar unha copia aplanada") : $t("Gardar unha copia chea")}
+      {$form.flatten ? $t("Gardar copia aplanada") : $t("Gardar copia chea")}
     </button>
   {/if}
   <JobStatus {job} />

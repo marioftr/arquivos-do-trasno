@@ -223,13 +223,13 @@
   {#if isVideo}
     <div class="group">
       <h4 class="group-title">{$t("Pista de son")}</h4>
-      <Toggle label={$t("Quitar o son")} bind:checked={$form.mute} />
+      <Toggle label={$t("Quitar son")} bind:checked={$form.mute} />
     </div>
   {/if}
 
   <div class="group" class:off={$form.mute}>
     <h4 class="group-title">{$t("Volume")}</h4>
-    <Toggle label={$t("Igualar o volume")} bind:checked={$form.normalize} disabled={$form.mute} hint={$t("Fai que todo o ficheiro soe ao mesmo volume, o elixido (EBU R128). Substitúe o multiplicador de volume.")} />
+    <Toggle label={$t("Igualar volume")} bind:checked={$form.normalize} disabled={$form.mute} hint={$t("Fai que todo o ficheiro soe ao mesmo volume, o elixido (EBU R128). Substitúe o multiplicador de volume.")} />
     {#if $form.normalize}
       <Levels
         label={$t("Perfil")}
@@ -249,7 +249,7 @@
   <div class="group" class:off={$form.mute}>
     <h4 class="group-title">{$t("Son")}</h4>
     <Toggle label={$t("Quitar ruído de fondo")} bind:checked={$form.denoise} disabled={$form.mute} hint={$t("Atenúa o ruído de fondo que soa sempre igual, como un zumbido ou un ventilador.")} />
-    <Toggle label={$t("Dar a volta ao son")} bind:checked={$form.reverse} disabled={$form.mute} hint={$t("Reproduce o son de final a principio. Admite ata 20 minutos.")} />
+    <Toggle label={$t("Dar volta ao son")} bind:checked={$form.reverse} disabled={$form.mute} hint={$t("Reproduce o son de final a principio. Admite ata 20 minutos.")} />
     {#if auxState === "busy"}
       <p class="aux"><span class="spin"></span>{$t("Preparando o son para o visor…")}</p>
     {:else if auxState === "error"}

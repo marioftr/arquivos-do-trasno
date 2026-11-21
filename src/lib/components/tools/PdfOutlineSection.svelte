@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
   import { errText, isCancelled } from "../../errors";
@@ -10,7 +11,6 @@
   import { openPdf, readPages, readOutline, detectHeadings } from "../../pdfText";
   import { askOutput } from "./shared";
   import Icon from "../Icon.svelte";
-  import GroupNote from "../ui/GroupNote.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   /** Índice (marcadores) dun PDF: o que xa ten, editable; ou os títulos que se detectan polo tamaño da letra. */
@@ -103,8 +103,7 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Índice")}</h4>
-    <GroupNote text={$t("Son os marcadores do panel lateral do lector: cada entrada leva a unha páxina. As frechas cambian o nivel.")} />
+    <PanelInfo text={$t("Son os marcadores do panel lateral do lector: cada entrada leva a unha páxina. As frechas cambian o nivel.")} />
     <div class="estimate">
       <button class="btn" on:click={detect} disabled={$busy}>{$t("Detectar títulos")}</button>
     </div>
@@ -134,7 +133,7 @@
   </div>
 
   <button class="btn primary block" on:click={save} disabled={$busy || bad || (!entries.length && !hadOutline)}>
-    {entries.length ? $t("Gardar unha copia co índice") : $t("Gardar unha copia sen índice")}
+    {entries.length ? $t("Gardar copia co índice") : $t("Gardar copia sen índice")}
   </button>
   <JobStatus {job} />
 </div>

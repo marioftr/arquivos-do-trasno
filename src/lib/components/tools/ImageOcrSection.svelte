@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import { errText } from "../../errors";
@@ -122,8 +123,7 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Texto da imaxe")}</h4>
-    <GroupNote text={$t("Le o texto da imaxe para seleccionalo e copialo sobre o visor.")} />
+    <PanelInfo text={$t("Le o texto da imaxe para seleccionalo e copialo sobre o visor.")} />
 
     <SelectField
       label={$t("Idioma do texto")}
@@ -135,14 +135,14 @@
     {#if !installed}
       <GroupNote text={$t("Para ler {lang} hai que descargar o seu paquete de idioma (uns {size}, de Tesseract en GitHub).", { lang: langName, size: OCR_SIZE })} />
       <button class="btn block" on:click={download} disabled={busy || !!$ocrDownload}>
-        {$ocrDownload ? $t("Descargando… {p} %", { p: Math.round($ocrDownload.progress * 100) }) : $t("Descargar o paquete de idioma")}
+        {$ocrDownload ? $t("Descargando… {p} %", { p: Math.round($ocrDownload.progress * 100) }) : $t("Descargar paquete de idioma")}
       </button>
       {#if downloadErr}<p class="warn">{downloadErr}</p>{/if}
     {/if}
   </div>
 
   <button class="btn primary block" on:click={read} disabled={busy || !installed || !!$ocrDownload}>
-    {busy ? `${$t("Lendo o texto…")} ${Math.round($ocrProgress * 100)} %` : res ? $t("Ler de novo") : $t("Ler o texto da imaxe")}
+    {busy ? `${$t("Lendo o texto…")} ${Math.round($ocrProgress * 100)} %` : res ? $t("Ler de novo") : $t("Ler texto da imaxe")}
   </button>
 
   {#if err}

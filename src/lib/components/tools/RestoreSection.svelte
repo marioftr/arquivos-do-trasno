@@ -141,7 +141,6 @@
     on:keyup={() => (original = false)}
     on:blur={() => (original = false)}
   >{$t("Ver orixinal")}</button>
-  <span class="muted">{$t("Mantén premido")}</span>
   </div>
   <button class="btn primary block" on:click={exportAll} disabled={$busy || !changed}>{$t("Restaurar")}</button>
   <JobStatus {job} />

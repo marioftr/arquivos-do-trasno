@@ -427,7 +427,7 @@
       <div class="hist" role="dialog" aria-label={$t("Últimas accións")}>
         <div class="hhead">
           <h4>{$t("Últimas accións")}</h4>
-          <button class="hclock" on:click={() => { histOpen = false; openHub("procs.history"); }} title={$t("Ver o historial completo")} aria-label={$t("Ver o historial completo")}><Icon name="clock" size={15} /></button>
+          <button class="hclock" on:click={() => { histOpen = false; openHub("procs.history"); }} title={$t("Ver historial completo")} aria-label={$t("Ver historial completo")}><Icon name="clock" size={15} /></button>
         </div>
         <ActionList limit={histLimit} />
       </div>
@@ -445,7 +445,7 @@
           <span class="jtext"><Icon name={endFlash.kind === "done" ? "check" : endFlash.kind === "error" ? "exclamation" : "close"} size={14} /> {endFlash.kind === "done" ? $t("Feito") : endFlash.kind === "error" ? $t("Con erro") : $t("Cancelado")}<span class="jt2">{endFlash.title}</span></span>
         </div>
       {:else}
-        <button class="idle" on:click={() => openHub("procs.running")} title={$t("Ver os procesos activos")}>
+        <button class="idle" on:click={() => openHub("procs.running")} title={$t("Ver procesos activos")}>
           <Icon name="layers" size={16} /><span>{$t("Sen procesos activos")}</span>
         </button>
       {/if}

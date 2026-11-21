@@ -55,7 +55,6 @@
   {#if animated}<LockNote label={readOnlyLabel()} text={tr("Este {fmt} é animado: unha icona só leva un fotograma, así que non se pode facer o paquete.", { fmt: file.ext.toUpperCase() })} />{/if}
   <div class="locked-tools" class:on={animated} inert={animated}>
     <div class="group">
-      <h4 class="group-title">{$t("Que se crea")}</h4>
       <Toggle label={$t("Windows")} bind:checked={$form.windows} hint={$t("icon.ico con 7 tamaños, de 16 a 256 px.")} />
       <Toggle label={$t("macOS")} bind:checked={$form.mac} hint={$t("icon.icns con 7 tamaños, de 16 a 1024 px.")} />
       <Toggle label={$t("Web")} bind:checked={$form.web} hint={$t("favicon.ico e PNG, apple-touch-icon, iconas de Android e site.webmanifest.")} />
@@ -73,7 +72,7 @@
       />
     </div>
 
-    <button class="btn primary block" on:click={run} disabled={$busy || animated || !any}>{$t("Crear o paquete de iconas")}</button>
+    <button class="btn primary block" on:click={run} disabled={$busy || animated || !any}>{$t("Crear paquete de iconas")}</button>
   </div>
 
   {#if small && !animated}<p class="muted">{$t("A imaxe mide menos de 1024 px: as iconas grandes sairán ampliadas.")}</p>{/if}

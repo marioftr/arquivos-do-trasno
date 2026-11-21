@@ -1,10 +1,10 @@
-// Dar a volta ao son: o visor prepara o son procesado e soa de verdade (non só ao exportar).
+// Dar volta ao son: o visor prepara o son procesado e soa de verdade (non só ao exportar).
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { ffmpegBin } from "../harness.mjs";
 
 export default {
-  about: "Son → «Dar a volta ao son»: a vista previa do visor soa ao revés en sincronía",
+  about: "Son → «Dar volta ao son»: a vista previa do visor soa ao revés en sincronía",
   async run(app, c) {
     // 8 s de vídeo cun tono só nos 2 primeiros segundos.
     const src = path.join(app.media, "tono.mp4");
@@ -25,13 +25,13 @@ export default {
     };
     c.ok((await listen(0.3)) > 0.02, "sen axustes, o tono dos 2 primeiros segundos soa");
 
-    await app.toggle("Dar a volta ao son");
+    await app.toggle("Dar volta ao son");
     await app.waitFor(`!!window.__trasnoAux && window.__trasnoAux.readyState >= 3`, "o son procesado listo", 60000);
     c.ok(!(await app.ev(`/Preparando o son para o visor/.test(document.querySelector('.stack').innerText)`)), "o aviso de preparación desaparece ao rematar");
     c.ok((await listen(0.3)) < 0.005, "ao revés, o principio queda en silencio");
     c.ok((await listen(6.8)) > 0.02, "ao revés, o tono soa ao final do tramo");
 
-    await app.toggle("Dar a volta ao son");
+    await app.toggle("Dar volta ao son");
     await app.sleep(500);
     c.ok((await listen(0.3)) > 0.02, "ao quitar o axuste volve o son orixinal");
   },

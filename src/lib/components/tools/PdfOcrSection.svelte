@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount } from "svelte";
   import * as pdfjs from "pdfjs-dist";
   import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -133,7 +134,7 @@
           if (!layers.length) {
             throw new Error(
               skipped === wanted.length
-                ? tr("Todas as páxinas xa teñen texto: non hai nada que facer. Se queres lelas igual, desactiva «Saltar as páxinas que xa teñen texto».")
+                ? tr("Todas as páxinas xa teñen texto: non hai nada que facer. Se queres lelas igual, desactiva «Saltar páxinas con texto».")
                 : tr("Non atopei texto en ningunha páxina. Proba con outro idioma ou con máis resolución."),
             );
           }
@@ -156,8 +157,7 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Texto dun PDF dixitalizado")}</h4>
-    <GroupNote text={$t("Le as páxinas que son só imaxe e engade o texto por debaixo, invisible, para poder buscar e copiar. Tarda uns segundos por páxina.")} />
+    <PanelInfo text={$t("Le as páxinas que son só imaxe e engade o texto por debaixo, invisible, para poder buscar e copiar. Tarda uns segundos por páxina.")} />
 
     <SelectField
       label={$t("Idioma do texto")}
@@ -169,7 +169,7 @@
     {#if !installed}
       <GroupNote text={$t("Para ler {lang} hai que descargar o seu paquete de idioma (uns {size}, de Tesseract en GitHub).", { lang: langName, size: OCR_SIZE })} />
       <button class="btn block" on:click={download} disabled={$busy || !!$ocrDownload}>
-        {$ocrDownload ? $t("Descargando… {p} %", { p: Math.round($ocrDownload.progress * 100) }) : $t("Descargar o paquete de idioma")}
+        {$ocrDownload ? $t("Descargando… {p} %", { p: Math.round($ocrDownload.progress * 100) }) : $t("Descargar paquete de idioma")}
       </button>
       {#if downloadErr}<p class="warn">{downloadErr}</p>{/if}
     {/if}
@@ -182,7 +182,7 @@
     />
       <Slider label={$t("Resolución")} unit={$t("ppp")} min={100} max={400} step={10} bind:value={$form.dpi} def={200} hint={$t("Máis ppp: letras pequenas mellor lidas, pero máis tempo por páxina.")} />
 
-    <Toggle label={$t("Saltar as páxinas que xa teñen texto")} bind:checked={$form.skipText} disabled={$busy} hint={$t("As páxinas con texto quedan como están. Desactívao se ese texto está mal.")} />
+    <Toggle label={$t("Saltar páxinas con texto")} bind:checked={$form.skipText} disabled={$busy} hint={$t("As páxinas con texto quedan como están. Desactívao se ese texto está mal.")} />
     <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
   </div>
 

@@ -11,7 +11,7 @@ export default {
     c.ok(!(await app.ev(`!!document.querySelector('.ocr')`)), "sen abrir a pestana non hai texto sobre a imaxe");
 
     await app.click("Recoñecer texto (OCR)");
-    await app.click("Ler o texto da imaxe");
+    await app.click("Ler texto da imaxe");
     await app.waitFor(`!!document.querySelector('.ocr')`, "o texto lido sobre a imaxe", 60000);
     const panel = await app.panel();
     const n = Number(/(\d+) palabras\./.exec(panel)?.[1] ?? 0);

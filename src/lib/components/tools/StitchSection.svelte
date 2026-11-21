@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount } from "svelte";
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
@@ -9,7 +10,6 @@
   import { createJob } from "../../job";
   import { samePath, askPath } from "./shared";
   import ColorField from "../ui/ColorField.svelte";
-  import GroupNote from "../ui/GroupNote.svelte";
   import NumberField from "../ui/NumberField.svelte";
   import OrderList from "../ui/OrderList.svelte";
   import Segmented from "../ui/Segmented.svelte";
@@ -84,8 +84,7 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Orde")}</h4>
-    <GroupNote text={$t("Segue a orde da lista: cámbiase arrastrando, coas frechas ou escribindo a posición.")} />
+    <PanelInfo text={$t("Segue a orde da lista: cámbiase arrastrando, coas frechas ou escribindo a posición.")} />
     <OrderList bind:items />
   </div>
 
@@ -99,7 +98,7 @@
       bind:value={$form.direction}
     />
     <Segmented
-      label={horizontal ? $t("Igualar o alto") : $t("Igualar o ancho")}
+      label={horizontal ? $t("Igualar alto") : $t("Igualar ancho")}
       info={$t("Se as capturas miden distinto, todas pasan ao tamaño da máis pequena ou da máis grande, sen deformalas.")}
       options={[
         { value: "narrowest", label: horizontal ? $t("Á máis baixa") : $t("Á máis estreita"), glyph: { k: "match", to: "small", dir: horizontal ? "h" : "v" } },

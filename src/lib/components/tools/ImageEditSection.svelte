@@ -125,7 +125,7 @@
     const c = get(imageCrop);
     if (!ar) return;
     if (!c) {
-      // Sen recorte (p. ex. despois de «Quitar o recorte»): sae o máis grande posible con esa proporción, centrado.
+      // Sen recorte (p. ex. despois de «Quitar recorte»): sae o máis grande posible con esa proporción, centrado.
       let w = W;
       let h = W / ar;
       if (h > H) {
@@ -240,7 +240,7 @@
     />
     <div class="pair">
       <button class="btn" on:click={fullCrop}>{$t("Toda a imaxe")}</button>
-      <button class="btn" on:click={clearCrop} disabled={!$form.cropOn}>{$t("Quitar o recorte")}</button>
+      <button class="btn" on:click={clearCrop} disabled={!$form.cropOn}>{$t("Quitar recorte")}</button>
     </div>
     {#if $form.cropOn}
       <div class="pair">

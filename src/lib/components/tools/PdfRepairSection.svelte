@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GroupNote from "../ui/GroupNote.svelte";
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
   import type { FileEntry } from "../../files";
@@ -27,8 +27,8 @@
 
 <div class="stack">
   <div class="group">
-    <GroupNote text={$t("Reconstrúe a estrutura do PDF e quita o que sobra. Axuda cos PDF que se abren mal.")} />
+    <PanelInfo text={$t("Reconstrúe a estrutura do PDF e quita o que sobra. Axuda cos PDF que se abren mal.")} />
   </div>
-  <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Reparar o PDF")}</button>
+  <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Reparar PDF")}</button>
   <JobStatus {job} />
 </div>

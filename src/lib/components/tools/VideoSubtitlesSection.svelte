@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount, onDestroy } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
   import { errText } from "../../errors";
@@ -10,7 +11,6 @@
   import { askOutput } from "./shared";
   import Segmented from "../ui/Segmented.svelte";
   import TextField from "../ui/TextField.svelte";
-  import GroupNote from "../ui/GroupNote.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   /** Subtítulos e vídeo: incrustalos como pista, queimalos na imaxe ou sacar unha pista a ficheiro. */
@@ -92,13 +92,12 @@
 <div class="stack">
   {#if mode === "extract"}
     <div class="group">
-      <h4 class="group-title">{$t("Sacar unha pista")}</h4>
       {#if tracks === null}
         <p class="muted small">{$t("Lendo as pistas…")}</p>
       {:else if !tracks.length}
         <p class="muted small">{$t("Este vídeo non ten pistas de subtítulos.")}</p>
       {:else}
-        <GroupNote text={$t("As pistas de imaxe (PGS, DVD) non se poden pasar a texto.")} />
+        <PanelInfo text={$t("Sácase unha pista de subtítulos a ficheiro. As pistas de imaxe (PGS, DVD) non se poden pasar a texto.")} />
         <ul class="tracks" role="radiogroup" aria-label={$t("Pista")}>
           {#each tracks as x}
             <li>
@@ -123,8 +122,7 @@
     <button class="btn primary block" on:click={run} disabled={$busy || !ready}>{$t("Sacar a ficheiro")}</button>
   {:else}
     <div class="group">
-      <h4 class="group-title">{mode === "embed" ? $t("Incrustar subtítulos") : $t("Queimar subtítulos")}</h4>
-      <GroupNote
+      <PanelInfo
         text={mode === "embed"
           ? $t("Engade uns subtítulos como pista que se acende e apaga no reprodutor.")
           : $t("Pasan a formar parte da imaxe: saen en calquera reprodutor, pero non se poden apagar. Recodifica o vídeo.")}

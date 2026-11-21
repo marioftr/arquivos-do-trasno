@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
   import { errText, isCancelled } from "../../errors";
@@ -9,7 +10,6 @@
   import { createJob } from "../../job";
   import { openPdf, readPages, toMarkdown, findTables } from "../../pdfText";
   import { askOutput, parsePageSpec } from "./shared";
-  import GroupNote from "../ui/GroupNote.svelte";
   import TextField from "../ui/TextField.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
@@ -57,10 +57,9 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Markdown")}</h4>
-    <GroupNote text={$t("Detecta títulos pola letra, listas e táboas. Pensado para texto nunha columna; as imaxes non se levan.")} />
+    <PanelInfo text={$t("Detecta títulos pola letra, listas e táboas. Pensado para texto nunha columna; as imaxes non se levan.")} />
     <Toggle label={$t("Detectar táboas")} bind:checked={$form.tables} hint={$t("Convérteas en táboas de Markdown en vez de deixar cada liña solta.")} />
-    <Toggle label={$t("Marcar as páxinas")} bind:checked={$form.pageMarks} hint={$t("Engade un comentario invisible onde empeza cada páxina.")} />
+    <Toggle label={$t("Marcar páxinas")} bind:checked={$form.pageMarks} hint={$t("Engade un comentario invisible onde empeza cada páxina.")} />
     <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} />
   </div>
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GroupNote from "../ui/GroupNote.svelte";
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { claim } from "../../claim";
   import { onMount, onDestroy } from "svelte";
   import * as engine from "../../engine";
@@ -61,9 +61,8 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Márxenes que se quitan")}</h4>
-    <GroupNote text={$t("As zonas escuras do visor son o que se vai cortar.")} />
-    <Toggle label={$t("Os catro márxenes iguais")} bind:checked={$form.same} />
+    <PanelInfo text={$t("As zonas escuras do visor son o que se vai cortar.")} />
+    <Toggle label={$t("Márxenes iguais")} bind:checked={$form.same} />
     <Slider label={f.same ? $t("Marxe") : $t("Esquerda")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.left} def={0} />
     {#if !f.same}
       <Slider label={$t("Dereita")} unit="mm" min={0} max={100} step={0.5} bind:value={$form.right} def={0} />
@@ -72,6 +71,6 @@
     {/if}
     <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} />
   </div>
-  <button class="btn primary block" on:click={apply} disabled={$busy || (f.left + f.right + f.top + f.bottom === 0)}>{$t("Gardar unha copia recortada")}</button>
+  <button class="btn primary block" on:click={apply} disabled={$busy || (f.left + f.right + f.top + f.bottom === 0)}>{$t("Gardar copia recortada")}</button>
   <JobStatus {job} />
 </div>

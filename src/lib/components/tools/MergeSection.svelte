@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GroupNote from "../ui/GroupNote.svelte";
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { save } from "@tauri-apps/plugin-dialog";
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
@@ -47,12 +47,11 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{title}</h4>
-    <GroupNote text={$t("Segue a orde da lista: cámbiase arrastrando, coas frechas ou escribindo a posición.")} />
+    <PanelInfo text={$t("Segue a orde da lista: cámbiase arrastrando, coas frechas ou escribindo a posición.")} />
     <OrderList bind:items />
   </div>
   <button class="btn primary block" on:click={merge} disabled={$busy}>
-    {isPdf ? $t("Unir nun só PDF") : category === "imaxe" ? $t("Facer un PDF cunha imaxe por páxina") : $t("Xuntar nun só ficheiro")}
+    {isPdf ? $t("Unir nun só PDF") : category === "imaxe" ? $t("Facer PDF cunha imaxe por páxina") : $t("Xuntar nun só ficheiro")}
   </button>
   <JobStatus {job} />
 </div>

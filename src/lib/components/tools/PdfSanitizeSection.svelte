@@ -49,7 +49,6 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Que se quita")}</h4>
     <Toggle label={$t("Datos do documento")} bind:checked={$form.metadata} hint={$t("Autor, título, programa que o creou, datas e a información XMP.")} />
     <Toggle label={$t("Scripts e accións automáticas")} bind:checked={$form.scripts} hint={$t("JavaScript e accións que se executan ao abrir o PDF ou ao premer un botón.")} />
     <Toggle label={$t("Ficheiros anexos")} bind:checked={$form.attachments} hint={$t("Ficheiros metidos dentro do PDF que non se ven nas páxinas.")} />
@@ -57,7 +56,7 @@
     <Toggle label={$t("Comentarios e notas")} bind:checked={$form.comments} hint={$t("Notas, resaltados e demais anotacións de revisión.")} />
   </div>
 
-  <button class="btn primary block" on:click={run} disabled={$busy || !any}>{$t("Limpar o PDF")}</button>
+  <button class="btn primary block" on:click={run} disabled={$busy || !any}>{$t("Limpar PDF")}</button>
 
   {#if report}
     <ul class="results">

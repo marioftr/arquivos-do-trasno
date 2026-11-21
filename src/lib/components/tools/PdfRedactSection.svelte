@@ -158,7 +158,7 @@
   </div>
 
   <button class="btn primary block" on:click={run} disabled={$busy || !boxes.length}>
-    {boxes.length ? $t("Tapar as zonas ({n})", { n: boxes.length }) : $t("Tapar as zonas")}
+    {boxes.length ? $t("Tapar zonas ({n})", { n: boxes.length }) : $t("Tapar zonas")}
   </button>
   <JobStatus {job} />
 </div>

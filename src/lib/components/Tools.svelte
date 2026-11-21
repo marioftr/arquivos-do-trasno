@@ -5,6 +5,8 @@
   import { formatBytes, CATEGORY_LABELS, PLAIN_TEXT, OFFICE_EXTS, SUBTITLE_EXTS } from "../formats";
   import ToolStrip from "./ui/ToolStrip.svelte";
   import FormBar from "./ui/FormBar.svelte";
+  import InfoTip from "./ui/InfoTip.svelte";
+  import { panelInfo } from "./ui/panelInfo";
   import { activeForm } from "../forms";
   import { canUndo, canRedo, shapes, undo, redo, clearAll, resetAnnoStyle } from "../annot";
   import { derived } from "svelte/store";
@@ -197,7 +199,7 @@
     <div class="main">
     <header>
       <div class="ttl">
-        <h2>{tabs.find((x) => x.id === current)?.label ?? ""}</h2>
+        <div class="tt"><h2>{tabs.find((x) => x.id === current)?.label ?? ""}</h2>{#if $panelInfo}<InfoTip text={$panelInfo} />{/if}</div>
         {#if multi}<p class="muted sub">{$t("{n} ficheiros", { n: selection.length })}&nbsp;·&nbsp;{$t(CATEGORY_LABELS[category])}</p>{/if}
       </div>
       {#if current === "annotate" && category === "imaxe"}
@@ -312,6 +314,7 @@
   @media (max-width: 1050px) { .shell { flex-direction: column; } }
   header { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.8rem 0.45rem 1.1rem; min-height: 3rem; }
   .ttl { flex: 1; min-width: 0; }
+  .tt { display: flex; align-items: center; gap: 0.25rem; min-width: 0; }
   header h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sub { margin: 0.1rem 0 0; font-size: var(--fs-xs); }
   .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; padding: 0.9rem 1.1rem 1.5rem; }

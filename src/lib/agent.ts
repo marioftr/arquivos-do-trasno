@@ -213,7 +213,7 @@ export const CTX: Record<string, string[]> = {
   extract: ["Extraer o son dun vídeo non modifica o vídeo orixinal."],
   mkv: ["Cambiar as pistas dun MKV non recodifica nada: só se reempaqueta."],
   merge: ["Na unión, a orde da lista é a orde final do resultado."],
-  pages: ["Marcar as páxinas nas miniaturas é máis rápido que escribir os números."],
+  pages: ["Marcar páxinas nas miniaturas é máis rápido que escribir os números."],
   security: ["Se se perde o contrasinal dun PDF cifrado, non hai maneira de recuperalo."],
 };
 

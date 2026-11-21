@@ -31,8 +31,8 @@
     { id: "news", label: $t("Novidades e rexistro de cambios"), icon: "info", run: () => openHub("news.changelog") },
     { id: "settings", label: $t("Axustes"), icon: "gear", run: () => openSettings("general") },
     { id: "shortcuts", label: $t("Atallos de teclado"), icon: "keyboard", run: () => openSettings("shortcuts") },
-    { id: "theme", label: $t("Cambiar o tema (claro/escuro)"), icon: "gear", run: () => (close(), theme.set(get(resolvedTheme) === "dark" ? "light" : "dark")) },
-    ...($files.length ? [{ id: "clear", label: $t("Baleirar a lista de ficheiros"), icon: "close", run: () => (close(), files.set([])) } as Cmd] : []),
+    { id: "theme", label: $t("Cambiar tema (claro/escuro)"), icon: "gear", run: () => (close(), theme.set(get(resolvedTheme) === "dark" ? "light" : "dark")) },
+    ...($files.length ? [{ id: "clear", label: $t("Baleirar lista de ficheiros"), icon: "close", run: () => (close(), files.set([])) } as Cmd] : []),
   ] as Cmd[];
 
   const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();

@@ -1,4 +1,4 @@
-//! Cortar os silencios dun audio ou vídeo (entrevistas, podcasts, clases gravadas…).
+//! Cortar silencios dun audio ou vídeo (entrevistas, podcasts, clases gravadas…).
 //!
 //! Dous pasos, como a normalización: primeiro mídese (FFmpeg `silencedetect` busca os tramos por baixo dun volume durante un mínimo
 //! de tempo) e despois úsase ese mesmo resultado para quedar só cos tramos con son. A análise pódese ensinar ao usuario antes de

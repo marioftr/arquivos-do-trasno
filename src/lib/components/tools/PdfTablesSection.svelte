@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount, onDestroy } from "svelte";
   import { join } from "@tauri-apps/api/path";
   import * as engine from "../../engine";
@@ -10,7 +11,6 @@
   import { createJob } from "../../job";
   import { openPdf, readPages, findTables, csvOf, type Table } from "../../pdfText";
   import { askOutput, askDir, parsePageSpec } from "./shared";
-  import GroupNote from "../ui/GroupNote.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import TextField from "../ui/TextField.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
@@ -85,8 +85,7 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Táboas")}</h4>
-    <GroupNote text={$t("Atopa táboas polas columnas do texto. Funciona mellor con táboas sen celas fusionadas.")} />
+    <PanelInfo text={$t("Atopa táboas polas columnas do texto. Funciona mellor con táboas sen celas fusionadas.")} />
     <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} />
     <div class="estimate">
       <button class="btn" on:click={find} disabled={$busy}>{$t("Buscar táboas")}</button>
@@ -128,7 +127,7 @@
       bind:value={$form.sep}
     />
     <button class="btn primary block" on:click={save} disabled={$busy || !chosen.length}>
-      {chosen.length > 1 ? $t("Gardar {n} táboas en CSV", { n: chosen.length }) : $t("Gardar a táboa en CSV")}
+      {chosen.length > 1 ? $t("Gardar {n} táboas en CSV", { n: chosen.length }) : $t("Gardar táboa en CSV")}
     </button>
   {:else if searched}
     <p class="muted">{$t("Non hai táboas que gardar.")}</p>

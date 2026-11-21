@@ -106,7 +106,7 @@ export default {
     await go("Buscar táboas");
     await app.waitFor(`document.querySelectorAll('.tbls li').length === 1`, "unha táboa atopada", 20000);
     c.ok(/4 × 3/.test(await app.ev(`document.querySelector('.tbls .head').innerText.replace(/\\s+/g,' ')`)), "4 filas × 3 columnas");
-    await go("Gardar a táboa en CSV");
+    await go("Gardar táboa en CSV");
     c.ok(await exists("informe-taboa.csv"), "gardouse informe-taboa.csv");
     const csv = fs.readFileSync(path.join(app.media, "informe-taboa.csv"), "utf8");
     c.ok(csv.charCodeAt(0) === 0xfeff && csv.includes("Nome;Idade;Cidade\r\nAna;31;Vigo\r\n"), "CSV con BOM e punto e coma", JSON.stringify(csv));
@@ -119,12 +119,13 @@ export default {
     await app.waitFor(`/Este PDF non ten índice/.test(document.body.innerText)`, "sen índice de partida");
     await go("Detectar títulos");
     await app.waitFor(`document.querySelectorAll('.outline li').length >= 3`, "títulos detectados", 20000);
+    if (process.env.TRASNO_SHOTS) await app.shot("indice.png");
     const titles = await app.ev(`[...document.querySelectorAll('.outline .otitle')].map(i=>i.value+'@'+i.closest('li').querySelector('.opage').value+'/'+parseFloat(i.style.marginLeft||0)).join(' | ')`);
     c.ok(/Informe anual@1\/0/.test(titles) && /Resumo@1\//.test(titles) && /Anexo@2\//.test(titles), "Informe anual, Resumo e Anexo coas súas páxinas", titles);
     // «Resumo» pasa a fillo de «Informe anual» (a letra menor): nivel 1.
     c.ok(/Resumo@1\/0\.8/.test(titles) || /Resumo@1\/1\.6/.test(titles), "o nivel sae do tamaño da letra", titles);
     if (process.env.TRASNO_SHOTS) await app.shot("indice.png");
-    await go("Gardar unha copia co índice");
+    await go("Gardar copia co índice");
     c.ok(await exists("informe-con-indice.pdf"), "gardouse informe-con-indice.pdf");
     const withIdx = read("informe-con-indice.pdf");
     c.ok(/\/Outlines/.test(withIdx) && withIdx.includes("Resumo"), "o PDF novo leva o índice");
@@ -141,7 +142,7 @@ export default {
     await app.ev(`document.querySelectorAll('li[role=option] input[type=checkbox]').forEach(x=>{ if(x.checked) x.click(); })`);
     await app.click("Seguridade");
     c.ok((await mode("Limpar")) === "ok", "Seguridade ten o modo «Limpar»");
-    await go("Limpar o PDF");
+    await go("Limpar PDF");
     c.ok(await exists("informe-limpo.pdf"), "gardouse informe-limpo.pdf");
     c.ok(!read("informe-limpo.pdf").includes("Marta Autora"), "o autor xa non está no ficheiro");
     c.ok(/quitados: \d+/.test((await row("Datos do documento")) ?? ""), "a táboa di cantos datos quitou", await row("Datos do documento"));
@@ -150,8 +151,8 @@ export default {
     // ---- Recortar: ao baixar as marxes a 0 non queda sombra
     await app.click("Xirar e recortar");
     await mode("Recortar");
-    await app.waitFor(`document.querySelector('.stack input[role=switch][aria-label="Os catro márxenes iguais"]')`, "o recorte", 15000);
-    await app.toggle("Os catro márxenes iguais");
+    await app.waitFor(`document.querySelector('.stack input[role=switch][aria-label="Márxenes iguais"]')`, "o recorte", 15000);
+    await app.toggle("Márxenes iguais");
     await app.slider("Marxe", 25);
     await app.sleep(400);
     const shade = () => app.ev(`[...document.querySelectorAll('.pages .pg div')].filter(d=>d.style.background.startsWith('rgba(10, 10, 14')).length`);
@@ -207,7 +208,7 @@ export default {
     await app.waitFor(`document.querySelectorAll('.stack .results li').length === 2`, "outra zona debuxada", 10000);
     c.ok(!/Calidade das páxinas tapadas|Resolución/.test(await app.panel()), "tapar xa non ten axustes de calidade");
     if (process.env.TRASNO_SHOTS) await app.shot("tapar.png");
-    await go("Tapar as zonas (2)");
+    await go("Tapar zonas (2)");
     c.ok(await exists("informe-tapado.pdf"), "gardouse informe-tapado.pdf", 20000);
     const red = read("informe-tapado.pdf");
     c.ok(!red.includes("ana@example.com") && !red.includes("Informe anual") && !red.includes("Segredo da pagina dous"), "o texto das páxinas tapadas xa non está no ficheiro");
@@ -228,7 +229,7 @@ export default {
     await app.waitFor(`/zonas a tapar/i.test(document.body.innerText)`, "o panel de tapar outra vez");
     await go("Marcar coincidencias");
     await app.waitFor(`document.querySelectorAll('.stack .results li').length === 1`, "a zona do correo", 30000);
-    await go("Tapar as zonas (1)");
+    await go("Tapar zonas (1)");
     c.ok(await exists("carta-tapado.pdf"), "gardouse carta-tapado.pdf");
     const clean = read("carta-tapado.pdf");
     c.ok(!clean.includes("ana@example.com"), "o correo xa non está no ficheiro");
@@ -255,12 +256,12 @@ export default {
     c.ok(await app.ev(`!!document.querySelector('.stack input[role=switch][aria-label=acepto]')`), "a casilla sae como interruptor");
     await app.ev(`(()=>{const i=document.querySelector('.stack input[aria-label=nome]'); i.value='Marta Lopez'; i.dispatchEvent(new Event('input',{bubbles:true}));})()`);
     await app.toggle("acepto");
-    await go("Gardar unha copia chea");
+    await go("Gardar copia chea");
     c.ok(await exists("solicitude-cheo.pdf"), "gardouse solicitude-cheo.pdf");
     const filled = read("solicitude-cheo.pdf");
     c.ok(filled.includes("Marta Lopez") && /\/AcroForm/.test(filled), "o valor entrou e o formulario segue editable");
-    await app.toggle("Aplanar o formulario");
-    await go("Gardar unha copia aplanada");
+    await app.toggle("Aplanar formulario");
+    await go("Gardar copia aplanada");
     c.ok(await exists("solicitude-aplanado.pdf"), "gardouse solicitude-aplanado.pdf");
     c.ok(!/\/AcroForm/.test(read("solicitude-aplanado.pdf")), "aplanado: xa non hai formulario");
     c.ok(!read("solicitude.pdf").includes("Marta Lopez"), "o orixinal segue baleiro");

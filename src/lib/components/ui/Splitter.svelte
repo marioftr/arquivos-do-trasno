@@ -66,8 +66,8 @@
     class="fold"
     on:pointerdown|stopPropagation
     on:click|stopPropagation={() => dispatch("toggle")}
-    aria-label={collapsed ? $t("Mostrar o panel") : $t("Agochar o panel")}
-    title={collapsed ? $t("Mostrar o panel") : $t("Agochar o panel")}
+    aria-label={collapsed ? $t("Mostrar panel") : $t("Agochar panel")}
+    title={collapsed ? $t("Mostrar panel") : $t("Agochar panel")}
   >
     <span class:flip={pointsLeft}><Icon name="arrow-right" size={12} /></span>
   </button>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GroupNote from "../ui/GroupNote.svelte";
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { claim } from "../../claim";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
@@ -103,25 +103,23 @@
 
   {#if part === "extract"}
   <div class="group">
-    <h4 class="group-title">{$t("Extraer páxinas")}</h4>
-    <GroupNote text={$t("As páxinas escóllense nas miniaturas ou escribindo os números.")} />
+    <PanelInfo text={$t("As páxinas escóllense nas miniaturas ou escribindo os números.")} />
     <div class="pair">
       <button class="btn" on:click={selectAll} disabled={!total}>{$t("Todas")}</button>
       <button class="btn" on:click={selectNone}>{$t("Ningunha")}</button>
     </div>
     <PageGrid {file} selected={sel ?? []} on:toggle={(e) => togglePage(e.detail)} on:total={(e) => (gridTotal = e.detail)} />
     <TextField label={$t("Páxinas")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
-    <button class="btn block" on:click={extract} disabled={$busy || !$form.pageSpec}>{$t("Extraer a un novo PDF")}</button>
+    <button class="btn block" on:click={extract} disabled={$busy || !$form.pageSpec}>{$t("Extraer a PDF novo")}</button>
   </div>
   {:else}
   <div class="group">
-    <h4 class="group-title">{$t("Rotar")}</h4>
     <Toggle label={$t("Todas as páxinas")} bind:checked={$form.rotateAll} />
     {#if !$form.rotateAll}
       <NumberField label={$t("Páxina")} min={1} max={file.pages} bind:value={$form.rotatePage} def={1} unit={file.pages ? `/ ${file.pages}` : ""} />
     {/if}
     <Segmented label={$t("Ángulo")} options={[{ value: 0, label: "0°", glyph: { k: "turn", deg: 0 } }, { value: 90, label: "90°", glyph: { k: "turn", deg: 90 } }, { value: 180, label: "180°", glyph: { k: "turn", deg: 180 } }, { value: 270, label: "270°", glyph: { k: "turn", deg: 270 } }]} bind:value={$form.degrees} />
-    <button class="btn block" on:click={rotate} disabled={$busy || !$form.degrees}>{$t("Rotar a un novo PDF")}</button>
+    <button class="btn block" on:click={rotate} disabled={$busy || !$form.degrees}>{$t("Rotar a PDF novo")}</button>
   </div>
   {/if}
 

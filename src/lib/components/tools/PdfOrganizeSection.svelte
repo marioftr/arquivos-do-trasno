@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GroupNote from "../ui/GroupNote.svelte";
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount, onDestroy } from "svelte";
   import { tick } from "svelte";
   import { getPdf, cachedThumbs, thumbVersion, wantThumb, dropThumb, prefetchThumbs } from "../../pdfCache";
@@ -149,10 +149,9 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Ordenar páxinas")}</h4>
-    <GroupNote text={$t("Arrastra as páxinas ou escribe a súa posición; tamén se poden xirar ou quitar.")} />
+    <PanelInfo text={$t("Arrastra as páxinas ou escribe a súa posición; tamén se poden xirar ou quitar.")} />
     <div class="row">
-      <button class="btn" on:click={reverse} disabled={loading}>{$t("Invertir a orde")}</button>
+      <button class="btn" on:click={reverse} disabled={loading}>{$t("Invertir orde")}</button>
       <button class="btn ghost" on:click={reset} disabled={!changed}><Icon name="reset" size={14} /> {$t("Restablecer")}</button>
     </div>
     {#if loadError}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GroupNote from "../ui/GroupNote.svelte";
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { errText } from "../../errors";
   import { onMount, onDestroy } from "svelte";
   import { open, save } from "@tauri-apps/plugin-dialog";
@@ -256,7 +256,7 @@
 
     <div class="locked" class:on={exact} inert={exact}>
     {#if category === "imaxe" && $form.targetExt === "pdf"}
-      <GroupNote text={$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")} />
+      <PanelInfo text={$t("Cada imaxe vai a unha páxina do PDF, co seu tamaño orixinal.")} />
     {:else if category === "imaxe"}
       <Levels label={$t("Nivel de calidade")} levels={imageLevels} values={{ quality: $form.quality }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto: mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL).")} />
@@ -272,7 +272,7 @@
     {:else if category === "video" && AUDIO_TARGETS.includes($form.targetExt)}
       <Slider label={$t("Bitrate de audio")} unit="kbps" min={32} max={320} step={8} bind:value={$form.audioBitrate} def={form.defaults.audioBitrate} hint={$t("Máis alto: máis calidade e máis peso.")} />
     {:else if toClip}
-      <GroupNote text={$t("Imaxe animada sen son, sen superar a cadencia nin o ancho do vídeo.")} />
+      <PanelInfo text={$t("Imaxe animada sen son, sen superar a cadencia nin o ancho do vídeo.")} />
       <Slider label={$t("Fotogramas por segundo")} unit="fps" min={5} max={30} step={1} bind:value={$form.clipFps} def={form.defaults.clipFps} hint={$t("Máis alto: movemento máis fluído e máis peso.")} />
       <NumberField label={$t("Ancho máximo")} unit="px" min={16} placeholder={$t("orixinal")} bind:value={$form.clipWidth} def={form.defaults.clipWidth} />
       {#if $form.targetExt === "webp"}

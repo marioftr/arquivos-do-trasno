@@ -17,6 +17,26 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.2.0",
+    date: "2026-11-21",
+    title: {
+      gl: "PDF máis completo, tapar de verdade, iconas, dividir imaxes e controis novos",
+      es: "PDF más completo, tapar de verdad, iconos, dividir imágenes y controles nuevos",
+      en: "A more complete PDF toolkit, real redaction, icon packs, image splitting and new controls",
+    },
+    changes: [
+      { kind: "new", gl: "PDF «Completar»: encher e aplanar formularios, editar o índice (marcadores) e engadir ou quitar anexos.", es: "PDF «Completar»: rellenar y aplanar formularios, editar el índice (marcadores) y añadir o quitar anexos.", en: "PDF «Complete»: fill and flatten forms, edit the outline (bookmarks) and add or remove attachments." },
+      { kind: "new", gl: "Tapar zonas dun PDF de verdade: o texto e as imaxes de debaixo desaparecen do ficheiro e o resto da páxina queda como estaba. Tamén buscar e marcar correos, teléfonos, IBAN e DNI.", es: "Tapar zonas de un PDF de verdad: el texto y las imágenes de debajo desaparecen del archivo y el resto de la página queda como estaba. También buscar y marcar correos, teléfonos, IBAN y DNI.", en: "Real PDF redaction: the text and images underneath are removed from the file and the rest of the page is untouched. Also find and mark emails, phone numbers, IBANs and ID numbers." },
+      { kind: "new", gl: "PDF: limpar (metadatos, scripts, anexos, ligazóns e comentarios), táboas a CSV, PDF a Markdown e un só Converter con PNG, JPG, TXT, Markdown e Office.", es: "PDF: limpiar (metadatos, scripts, anexos, enlaces y comentarios), tablas a CSV, PDF a Markdown y un solo Convertir con PNG, JPG, TXT, Markdown y Office.", en: "PDF: clean (metadata, scripts, attachments, links and comments), tables to CSV, PDF to Markdown and a single Convert with PNG, JPG, TXT, Markdown and Office." },
+      { kind: "new", gl: "Imaxes: Iconas (paquete con ICO, ICNS, web e PNG), Dividir en partes con plantillas, Xuntar capturas e Redimensionar con tamaños con nome e campos ligados pola proporción.", es: "Imágenes: Iconos (paquete con ICO, ICNS, web y PNG), Dividir en partes con plantillas, Juntar capturas y Redimensionar con tamaños con nombre y campos ligados por la proporción.", en: "Images: Icons (pack with ICO, ICNS, web and PNG), Split into parts with templates, Stitch screenshots and Resize with named sizes and fields linked by aspect ratio." },
+      { kind: "new", gl: "Vídeo: Extraer fotograma (co instante ou o do visor) ou audio, e Restaurar con ver o orixinal premendo un botón.", es: "Vídeo: Extraer fotograma (con el instante o el del visor) o audio, y Restaurar con ver el original manteniendo pulsado un botón.", en: "Video: Extract a frame (at a given time or the viewer's) or audio, and Restore with a hold-to-compare button." },
+      { kind: "better", gl: "Controis planos redeseñados (desprazadores e interruptores), campos de número con frechas e límites, e botóns con debuxo a partes iguais.", es: "Controles planos rediseñados (deslizadores e interruptores), campos de número con flechas y límites, y botones con dibujo a partes iguales.", en: "Redesigned flat controls (sliders and switches), number fields with arrows and limits, and illustrated buttons of equal width." },
+      { kind: "better", gl: "As «i» explican o funcionamento de cada ferramenta e as descricións soltas pasan á «i» do título; os nomes das funcións van sen artigo (Quitar son).", es: "Las «i» explican el funcionamiento de cada herramienta y las descripciones sueltas pasan a la «i» del título; los nombres de las funciones van sin artículo (Quitar sonido).", en: "The «i» buttons explain how each tool works and loose descriptions move to the title's «i»; function names drop articles (Remove sound)." },
+      { kind: "better", gl: "Visor de PDF: zoom co touchpad sen parpadeo e con Ctrl+roda a pasos do 10 %; as páxinas da lista levan o visor ata elas.", es: "Visor de PDF: zoom con el touchpad sin parpadeo y con Ctrl+rueda a pasos del 10 %; las páginas de la lista llevan el visor hasta ellas.", en: "PDF viewer: flicker-free touchpad zoom and Ctrl+wheel in 10 % steps; pages in the list scroll the viewer to them." },
+      { kind: "fixed", gl: "O recorte de PDF con os catro márxenes iguais xa non deixa sombra ao baixalos a 0.", es: "El recorte de PDF con los cuatro márgenes iguales ya no deja sombra al bajarlos a 0.", en: "PDF cropping with equal margins no longer leaves a shadow when set back to 0." },
+    ],
+  },
+  {
     version: "0.1.5",
     date: "2026-11-07",
     title: { gl: "Rediseño, trasno axente, Office e texto das imaxes máis preciso", es: "Rediseño, trasno agente, Office y texto de las imágenes más preciso", en: "Redesign, trasno agent, Office and more accurate image text" },

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount, onDestroy } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
   import * as engine from "../../engine";
@@ -9,7 +10,6 @@
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
   import Icon from "../Icon.svelte";
-  import GroupNote from "../ui/GroupNote.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   /** Anexos dun PDF: os que xa leva (pódense quitar) e os que se queren engadir. Viaxan dentro do ficheiro e saen co lector. */
@@ -69,8 +69,7 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Anexos")}</h4>
-    <GroupNote text={$t("Ficheiros que viaxan dentro do PDF e se poden sacar co lector. Cada un pode pesar ata 200 MB.")} />
+    <PanelInfo text={$t("Ficheiros que viaxan dentro do PDF e se poden sacar co lector. Cada un pode pesar ata 200 MB.")} />
     {#if current.length || added.length}
       <ul class="results">
         {#each current as a}
@@ -98,7 +97,7 @@
     <button class="btn block" on:click={pick} disabled={$busy}><Icon name="plus" size={14} /> {$t("Engadir ficheiros")}</button>
   </div>
 
-  <button class="btn primary block" on:click={save} disabled={$busy || !changes}>{$t("Gardar unha copia cos anexos")}</button>
+  <button class="btn primary block" on:click={save} disabled={$busy || !changes}>{$t("Gardar copia cos anexos")}</button>
   <JobStatus {job} />
 </div>
 

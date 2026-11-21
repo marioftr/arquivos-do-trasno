@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount } from "svelte";
   import { errText } from "../../errors";
   import * as engine from "../../engine";
@@ -10,7 +11,6 @@
   import { askOutput } from "./shared";
   import Slider from "../ui/Slider.svelte";
   import Levels from "../ui/Levels.svelte";
-  import GroupNote from "../ui/GroupNote.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let file: FileEntry;
@@ -72,8 +72,7 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Cortar os silencios")}</h4>
-    <GroupNote text={$t("Quita os tramos sen son e xunta o que queda.")} />
+    <PanelInfo text={$t("Quita os tramos sen son e xunta o que queda.")} />
 
     <Levels
       label={$t("Que pausas se cortan")}
@@ -103,7 +102,7 @@
     {/if}
   </div>
 
-  <button class="btn primary block" on:click={cut} disabled={$busy || analyzing || (!!current && !current.cuts.length)}>{$t("Cortar os silencios")}</button>
+  <button class="btn primary block" on:click={cut} disabled={$busy || analyzing || (!!current && !current.cuts.length)}>{$t("Cortar silencios")}</button>
   <JobStatus {job} />
 </div>
 

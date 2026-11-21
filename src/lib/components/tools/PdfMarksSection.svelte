@@ -345,7 +345,7 @@
     {/if}
   </div>
 
-  <button class="btn primary block" on:click={apply} disabled={$busy || (f.kind === "text" && !f.txItems.length)}>{$t("Gardar unha copia co cambio")}</button>
+  <button class="btn primary block" on:click={apply} disabled={$busy || (f.kind === "text" && !f.txItems.length)}>{$t("Gardar copia co cambio")}</button>
   <JobStatus {job} />
 </div>
 

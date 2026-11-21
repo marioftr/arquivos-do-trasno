@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount } from "svelte";
   import { errText } from "../../errors";
   import * as engine from "../../engine";
@@ -12,7 +13,6 @@
   import Levels from "../ui/Levels.svelte";
   import NumberField from "../ui/NumberField.svelte";
   import TextField from "../ui/TextField.svelte";
-  import GroupNote from "../ui/GroupNote.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let file: FileEntry;
@@ -85,8 +85,7 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{$t("Resincronizar os subtítulos")}</h4>
-    <GroupNote text={$t("Axusta uns subtítulos que saen adiantados, atrasados ou que se van desfasando.")} />
+    <PanelInfo text={$t("Axusta uns subtítulos que saen adiantados, atrasados ou que se van desfasando.")} />
     {#if info}
       <p class="muted info">
         {$t("{n} falas · a primeira empeza en {a} e a última en {b}.", { n: info.cues, a: clock(info.first_start), b: clock(info.last_start) })}

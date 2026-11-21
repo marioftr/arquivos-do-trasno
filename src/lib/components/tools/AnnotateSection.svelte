@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GroupNote from "../ui/GroupNote.svelte";
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { claim } from "../../claim";
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
@@ -178,7 +178,7 @@
         <Slider label={$t("Groso")} unit="px" min={1} max={60} bind:value={$annoStyle.width} def={5} />
       {/if}
       {#if showFill}
-        <Toggle label={$t("Encher a figura")} bind:checked={$annoStyle.fill} />
+        <Toggle label={$t("Encher figura")} bind:checked={$annoStyle.fill} />
         {#if $annoStyle.fill}
           <ColorField label={$t("Cor do recheo")} bind:value={$annoStyle.fillColor} />
         {/if}
@@ -188,7 +188,7 @@
         <Slider label={$t("Tamaño do texto")} unit="px" min={8} max={300} bind:value={$annoStyle.size} def={40} />
       {/if}
     {:else if tool === "select"}
-      <GroupNote text={$t("Preme unha figura para movela, escalala coa esquina ou xirala co círculo.")} />
+      <PanelInfo text={$t("Preme unha figura para movela, escalala coa esquina ou xirala co círculo.")} />
     {/if}
   </div>
 

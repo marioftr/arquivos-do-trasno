@@ -109,6 +109,6 @@
     {/if}
     {#if preview !== null}<p class="group-note">{$t("Resultado: {n} PDF", { n: preview })} · {$t("O PDF ten {n} páxinas.", { n: total })}</p>{/if}
   </div>
-  <button class="btn primary block" on:click={run} disabled={$busy || preview === null}>{$t("Dividir o PDF")}</button>
+  <button class="btn primary block" on:click={run} disabled={$busy || preview === null}>{$t("Dividir PDF")}</button>
   <JobStatus {job} />
 </div>

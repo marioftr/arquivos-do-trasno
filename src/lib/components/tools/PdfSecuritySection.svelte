@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GroupNote from "../ui/GroupNote.svelte";
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount } from "svelte";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
@@ -80,19 +80,19 @@
       </label>
       <Toggle label={$t("Permitir imprimir")} bind:checked={allowPrint} />
       <Toggle label={$t("Permitir copiar texto")} bind:checked={allowCopy} />
-      <GroupNote text={$t("Se se perde o contrasinal non hai maneira de recuperalo.")} />
+      <PanelInfo text={$t("Se se perde o contrasinal non hai maneira de recuperalo.")} />
     {:else}
       {#if encrypted === false}<p class="group-note">{$t("Este PDF non ten contrasinal.")}</p>{/if}
       <label class="pw">
         <span class="lab">{$t("Contrasinal actual")}</span>
         <input type="password" bind:value={password} autocomplete="off" />
       </label>
-      <GroupNote text={$t("Hai que saber o contrasinal: só se quita o bloqueo, non se rompe.")} />
+      <PanelInfo text={$t("Hai que saber o contrasinal: só se quita o bloqueo, non se rompe.")} />
     {/if}
   </div>
 
   <button class="btn primary block" on:click={run} disabled={$busy || (!password && !(mode === "unprotect" && encrypted === false))}>
-    {mode === "protect" ? $t("Protexer o PDF") : $t("Desbloquear o PDF")}
+    {mode === "protect" ? $t("Protexer PDF") : $t("Desbloquear PDF")}
   </button>
   <JobStatus {job} />
   {/if}

@@ -119,7 +119,7 @@
               <button class="ib" on:click={() => openOut(r.outputs ?? [])} title={$t("Abrir co programa completo")} aria-label={$t("Abrir co programa completo")}><Icon name="load" size={15} /></button>
               <button class="ib" on:click={() => showOut(r.outputs?.[0] ?? "")} title={$t("Amosar no cartafol")} aria-label={$t("Amosar no cartafol")}><Icon name="folder" size={15} /></button>
             {/if}
-            {#if r.copy}<button class="ib" on:click={() => copyText(r.copy ?? "", r.key)} aria-label={$t("Copiar")} title={$t("Copiar a mensaxe")}><Icon name={copied === r.key ? "check" : "copy"} size={14} /></button>{/if}
+            {#if r.copy}<button class="ib" on:click={() => copyText(r.copy ?? "", r.key)} aria-label={$t("Copiar")} title={$t("Copiar mensaxe")}><Icon name={copied === r.key ? "check" : "copy"} size={14} /></button>{/if}
           </span>
         {/if}
       </li>

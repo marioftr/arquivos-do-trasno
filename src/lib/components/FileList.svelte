@@ -192,7 +192,7 @@
   {@const f = $files[menu.i]}
   <div class="ctxmenu" style={`left:${menu.x}px;top:${menu.y}px`} role="menu">
     <button role="menuitem" on:click={() => { revealInFolder(f.path); closeMenu(); }}><Icon name="folder" size={14} /> {$t("Amosar no cartafol")}</button>
-    <button role="menuitem" on:click={() => { copyPath(f.path); closeMenu(); }}><Icon name="copy" size={14} /> {$t("Copiar a ruta")}</button>
+    <button role="menuitem" on:click={() => { copyPath(f.path); closeMenu(); }}><Icon name="copy" size={14} /> {$t("Copiar ruta")}</button>
     <button role="menuitem" on:click={() => { toggleChecked(f.path); closeMenu(); }}><Icon name="check" size={14} /> {$checked.has(f.path) ? $t("Desmarcar") : $t("Marcar")}</button>
     <hr />
     <button role="menuitem" on:click={() => { removeFile(f.path); closeMenu(); }}><Icon name="close" size={14} /> {$t("Quitar da lista")}</button>

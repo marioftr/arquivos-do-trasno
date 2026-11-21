@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import GroupNote from "../ui/GroupNote.svelte";
   import { onMount } from "svelte";
   import * as engine from "../../engine";
@@ -144,8 +145,7 @@
 
 <div class="stack">
   <div class="group">
-    <h4 class="group-title">{multi ? $t("Pistas dos ficheiros") : $t("Pistas do ficheiro")}</h4>
-    <GroupNote text={multi ? $t("Escolle as pistas de cada ficheiro e ordénaas: sairá un só MKV. Non se recodifica nada.") : $t("Quita ou reordena as pistas e cambia o nome ou o idioma. Non se recodifica nada.")} />
+    <PanelInfo text={multi ? $t("Escolle as pistas de cada ficheiro e ordénaas: sairá un só MKV. Non se recodifica nada.") : $t("Quita ou reordena as pistas e cambia o nome ou o idioma. Non se recodifica nada.")} />
     <div class="help">
       <button class="btn ghost" on:click={() => engine.openLink("iso639-2")}><Icon name="info" size={14} /> {$t("Códigos de idioma")}</button>
       <button class="btn ghost" on:click={() => engine.openLink("mkvmerge-doc")}><Icon name="info" size={14} /> {$t("Guía de MKVToolNix")}</button>
@@ -190,7 +190,7 @@
       </div>
     {/if}
   </div>
-  <button class="btn primary block" on:click={save} disabled={$busy || loading || !!loadError || !changed || kept.length === 0}>{$t("Gardar unha copia")}</button>
+  <button class="btn primary block" on:click={save} disabled={$busy || loading || !!loadError || !changed || kept.length === 0}>{$t("Gardar copia")}</button>
   <JobStatus {job} />
 </div>
 

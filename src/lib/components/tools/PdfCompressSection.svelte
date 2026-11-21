@@ -1,5 +1,5 @@
 <script lang="ts">
-  import GroupNote from "../ui/GroupNote.svelte";
+  import PanelInfo from "../ui/PanelInfo.svelte";
   import { onMount } from "svelte";
   import * as engine from "../../engine";
   import { errText } from "../../errors";
@@ -58,7 +58,7 @@
     />
     <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={70} hint={$t("Calidade das imaxes JPG do PDF. Máis baixa: pesa menos e as imaxes quedan máis borrosas.")} />
     <Slider label={$t("Tamaño das imaxes")} unit="%" min={20} max={100} step={5} bind:value={$form.scale} def={75} hint={$t("Reduce o ancho e o alto das imaxes JPG a esta porcentaxe (50 % = a metade de cada lado, un cuarto dos píxeles). 100 % non as reduce.")} />
-    <GroupNote text={$t("Só se reducen as imaxes JPG: texto e debuxos quedan igual. Un PDF sen imaxes case non muda.")} />
+    <PanelInfo text={$t("Só se reducen as imaxes JPG: texto e debuxos quedan igual. Un PDF sen imaxes case non muda.")} />
   </div>
   <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Comprimir PDF")}</button>
   <JobStatus {job} />

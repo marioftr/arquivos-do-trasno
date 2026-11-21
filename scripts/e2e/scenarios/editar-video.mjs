@@ -49,15 +49,15 @@ export default {
     await app.slider("Multiplicador de volume", 3);
     const louder = await app.level();
     c.ok(louder > loud * 1.8, "volume ×3 soa máis alto que ×1 (pasa de 1 no visor)", `${louder} vs ${loud}`);
-    await app.toggle("Quitar o son");
-    c.ok((await app.level(500)) < 0.002, "«Quitar o son» silencia a vista previa");
-    await app.toggle("Quitar o son");
+    await app.toggle("Quitar son");
+    c.ok((await app.level(500)) < 0.002, "«Quitar son» silencia a vista previa");
+    await app.toggle("Quitar son");
     await app.slider("Graves", 0);
     await app.slider("Multiplicador de volume", 1);
     await app.ev(`document.querySelector('video').pause()`);
 
     // Son ao revés: o motor prepara o son e o visor reprodúceo sincronizado co vídeo (no lugar do orixinal).
-    await app.toggle("Dar a volta ao son");
+    await app.toggle("Dar volta ao son");
     await app.waitFor(`!!window.__trasnoAux && window.__trasnoAux.readyState > 0`, "o son preparado", 30000);
     await app.ev(`document.querySelector('video').play()`, true);
     await app.sleep(1500);
@@ -66,7 +66,7 @@ export default {
     c.ok(!(await app.ev(`window.__trasnoAux.paused`)), "o son preparado está a soar");
     c.ok((await app.level()) > 0.01, "e chega ao grafo do visor");
     await app.ev(`document.querySelector('video').pause()`);
-    await app.toggle("Dar a volta ao son");
+    await app.toggle("Dar volta ao son");
     await app.waitFor(`!window.__trasnoAux`, "que se solte o son preparado");
     c.ok(true, "ao apagalo o visor volve ao son orixinal");
 

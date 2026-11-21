@@ -4586,7 +4586,7 @@ dependencies = [
 
 [[package]]
 name = "trasno"
-version = "0.1.5"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -4601,7 +4601,7 @@ dependencies = [
 
 [[package]]
 name = "trasno-engine"
-version = "0.1.5"
+version = "0.2.0"
 dependencies = [
  "color_quant",
  "encoding_rs",

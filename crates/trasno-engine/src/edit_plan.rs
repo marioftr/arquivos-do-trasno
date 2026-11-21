@@ -325,7 +325,7 @@ mod tests {
         let p = EditPlan { speed: 2.0, volume: 0.5, fade_out: 1.0, bass: 3.0, ..Default::default() };
         let c = p.audio_chain(Some(5.0)).unwrap();
         assert_eq!(c, vec!["bass=g=3", "atempo=2", "volume=0.5", "afade=t=out:st=4:d=1"]);
-        // Igualar o volume substitúe o multiplicador.
+        // Igualar volume substitúe o multiplicador.
         let n = EditPlan { volume: 2.0, normalize: Some(Loudness::default()), ..Default::default() };
         assert!(n.audio_chain(None).unwrap().is_empty());
     }

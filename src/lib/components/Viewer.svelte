@@ -60,7 +60,7 @@
     <span class="kind" aria-hidden="true"><Icon name={ICONS[file.category] ?? "document"} size={16} /></span>
     <span class="meta" title={file.path}><b class="ftype">{file.ext.toUpperCase()}</b><span class="muted">{meta ? ` · ${meta}` : ""}</span></span>
     <span class="grow"></span>
-    <button class="ib" on:click={() => reimportFile(file.path)} title={$t("Actualizar: volver importar o ficheiro e deixalo todo como ao principio")} aria-label={$t("Actualizar o ficheiro")}><Icon name="reset" size={15} /></button>
+    <button class="ib" on:click={() => reimportFile(file.path)} title={$t("Actualizar: volver importar o ficheiro e deixalo todo como ao principio")} aria-label={$t("Actualizar ficheiro")}><Icon name="reset" size={15} /></button>
     <button class="ib" on:click={() => revealInFolder(file.path).catch(() => {})} title={$t("Amosar no cartafol")} aria-label={$t("Amosar no cartafol")}><Icon name="folder" size={15} /></button>
     <button class="ib" on:click={() => removeFile(file.path)} title={$t("Quitar da lista")} aria-label={$t("Quitar da lista")}><Icon name="close" size={15} /></button>
   </div>
