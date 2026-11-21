@@ -29,7 +29,7 @@ export default {
     const level = (group, text) => app.ev(`[...document.querySelector('.stack [role=radiogroup][aria-label=${JSON.stringify(group)}]').querySelectorAll('button')].find(b=>b.textContent.trim().split('\\n')[0]===${JSON.stringify(text)}).click()`);
 
     // O botón de comparar só vale mentres se mantén premido.
-    const holdOriginal = (down) => app.ev(`(()=>{const b=[...document.querySelectorAll('.stack .btn')].find(x=>x.textContent.trim()==='Manter para ver o orixinal'); b.dispatchEvent(new PointerEvent(${JSON.stringify(down ? "pointerdown" : "pointerup")},{bubbles:true,pointerId:7})); return true;})()`);
+    const holdOriginal = (down) => app.ev(`(()=>{const b=[...document.querySelectorAll('.stack .btn')].find(x=>x.textContent.trim()==='Ver orixinal'); b.dispatchEvent(new PointerEvent(${JSON.stringify(down ? "pointerdown" : "pointerup")},{bubbles:true,pointerId:7})); return true;})()`);
 
     // ---- cor en directo no visor (filtro que imita o do motor) e sen fotograma preparado: non hai salto ao desmarcar «Ver o orixinal»
     await app.slider("Brillo", 0.3);

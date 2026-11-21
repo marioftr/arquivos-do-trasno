@@ -278,7 +278,7 @@ const LABEL: Record<string, string> = {
   stabilize: "a estabilización", denoise: "o ruído", sharpen: "a nitidez", deflicker: "o parpadeo", saturation: "a saturación",
   how: "o modo de axuste", width: "o ancho", height: "o alto", percent: "a porcentaxe", noUpscale: "non ampliar as imaxes pequenas", crop: "o que facer coa proporción", side: "o lado maior", lock: "manter a proporción",
   cols: "as columnas", rows: "as filas", shape: "a forma das partes", order: "a numeración",
-  direction: "a dirección", align: "a igualación do tamaño", removeOverlap: "quitar o tramo repetido", gap: "o espazo entre capturas", background: "o fondo", format: "o formato",
+  direction: "a dirección", align: "a igualación do tamaño", removeOverlap: "quitar tramos repetidos", gap: "o espazo entre capturas", background: "o fondo", format: "o formato",
 };
 // Valores de texto que se amosan tal cal; para os demais amósase só o que cambiou (nunca un código interno).
 const RAW_VALUE = new Set(["targetExt", "pageSpec", "wmText", "wmFamily", "dar", "maxHeight", "wmColor", "format", "background"]);

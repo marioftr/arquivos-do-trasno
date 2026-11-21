@@ -114,11 +114,11 @@
 <div class="stack">
   <div class="group">
     <h4 class="group-title">{$t("Imaxe")}</h4>
-    <Segmented label={$t("Estabilizar")} info={$t("Compensa o tremor da cámara e achega un pouco a imaxe para non deixar bordos. Só se ve ao exportar.")} options={levels()} bind:value={$form.stabilize} />
+    <Segmented label={$t("Estabilizar")} info={$t("Quita o tremor das gravacións a man. Amplía un pouco a imaxe para ocultar os bordos; só se ve ao exportar.")} options={levels()} bind:value={$form.stabilize} />
     <Segmented label={$t("Quitar ruído")} info={$t("Limpa o gran dos vídeos con pouca luz. Canto máis forte, máis suaviza os detalles finos.")} options={levels()} bind:value={$form.denoise} />
     <Segmented label={$t("Nitidez")} info={$t("Realza os bordos dos vídeos borrosos. Moita nitidez tamén realza o ruído.")} options={levels()} bind:value={$form.sharpen} />
     <Toggle label={$t("Desentrelazar")} bind:checked={$form.deinterlace} hint={$t("Quita as liñas en pente dos vídeos de televisión antiga ou gravados en entrelazado.")} />
-    <Toggle label={$t("Quitar parpadeo")} bind:checked={$form.deflicker} hint={$t("Iguala os saltos de luz entre fotogramas, como os das luces fluorescentes.")} />
+    <Toggle label={$t("Quitar parpadeo")} bind:checked={$form.deflicker} hint={$t("Quita os parpadeos de luz entre fotogramas, como os das luces fluorescentes.")} />
   </div>
 
   <div class="group">
@@ -129,8 +129,9 @@
   </div>
 
   <!-- Só vale mentres se mantén premido: ao soltar (ou saír do botón) volve o resultado. -->
+  <div class="estimate">
   <button
-    class="btn block left"
+    class="btn"
     class:on={original}
     on:pointerdown={hold}
     on:pointerup={() => (original = false)}
@@ -139,8 +140,9 @@
     on:keydown={(e) => (e.key === " " || e.key === "Enter") && ((original = true), e.preventDefault())}
     on:keyup={() => (original = false)}
     on:blur={() => (original = false)}
-    title={$t("Mantén premido para ver o vídeo sen axustes")}
-  >{$t("Manter para ver o orixinal")}</button>
+  >{$t("Ver orixinal")}</button>
+  <span class="muted">{$t("Mantén premido")}</span>
+  </div>
   <button class="btn primary block" on:click={exportAll} disabled={$busy || !changed}>{$t("Restaurar")}</button>
   <JobStatus {job} />
 </div>

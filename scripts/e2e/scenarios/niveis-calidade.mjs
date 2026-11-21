@@ -51,7 +51,7 @@ export default {
 
     // ---- o resultado di o trasno nunha rexión viva (lectores de pantalla)
     await app.click("Extraer");
-    await app.click("Gardar este fotograma");
+    await app.click("Gardar fotograma");
     await app.waitFor(`/./.test(document.querySelector('.sr-only[role=status]')?.textContent||'') || /./.test(document.querySelector('.sr-only[role=alert]')?.textContent||'')`, "o remate na rexión viva", 40000);
     const said = await app.ev(`(document.querySelector('.sr-only[role=status]')?.textContent||document.querySelector('.sr-only[role=alert]')?.textContent||'').trim()`);
     c.ok(said.length > 5 && !/O trasno /.test(said), "o trasno di o resultado en primeira persoa", said);

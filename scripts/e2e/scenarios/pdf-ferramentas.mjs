@@ -80,8 +80,9 @@ export default {
     await app.open(pdf);
     await app.ev(`document.querySelectorAll('li[role=option] input[type=checkbox]').forEach(x=>{ if(x.checked) x.click(); })`);
     const tabs = await app.tabs();
-    c.ok(tabs.includes("Formulario") && tabs.includes("Seguridade"), "o PDF ten as pestanas Formulario e Seguridade", tabs.join(","));
-    c.ok(tabs.indexOf("Formulario") < tabs.indexOf("Marcas"), "Formulario vai por riba de Marcas", tabs.join(","));
+    c.ok(tabs.includes("Completar") && tabs.includes("Seguridade"), "o PDF ten as pestanas Completar e Seguridade", tabs.join(","));
+    c.ok(!tabs.includes("Formulario") && !tabs.includes("Anexos"), "Formulario e Anexos xa non son pestanas soltas", tabs.join(","));
+    c.ok(tabs.indexOf("Completar") < tabs.indexOf("Marcas"), "Completar vai por riba de Marcas", tabs.join(","));
     c.ok(tabs.indexOf("Recoñecer texto (OCR)") === tabs.length - 2 && tabs[tabs.length - 1] === "Información", "Recoñecer texto vai xusto antes de Información", tabs.join(","));
 
     // ---- Markdown
@@ -112,7 +113,9 @@ export default {
 
     // ---- Índice
     await app.click("Páxinas");
-    c.ok((await mode("Índice")) === "ok", "Páxinas ten o modo «Índice»");
+    c.ok((await mode("Índice")) !== "ok", "Páxinas xa non ten o modo «Índice»");
+    await app.click("Completar");
+    c.ok((await mode("Índice")) === "ok", "Completar ten o modo «Índice»");
     await app.waitFor(`/Este PDF non ten índice/.test(document.body.innerText)`, "sen índice de partida");
     await go("Detectar títulos");
     await app.waitFor(`document.querySelectorAll('.outline li').length >= 3`, "títulos detectados", 20000);
@@ -128,7 +131,7 @@ export default {
     // Ao abrir o PDF novo, o índice sae xa cargado.
     await app.open(path.join(app.media, "informe-con-indice.pdf"));
     await app.ev(`document.querySelectorAll('li[role=option] input[type=checkbox]').forEach(x=>{ if(x.checked) x.click(); })`);
-    await app.click("Páxinas");
+    await app.click("Completar");
     await mode("Índice");
     await app.waitFor(`document.querySelectorAll('.outline li').length >= 3`, "o índice que xa levaba", 20000);
     c.ok(true, "ao abrir o PDF co índice, as entradas aparecen para editalas");
@@ -159,8 +162,8 @@ export default {
 
     // ---- Anexos: pestana propia (non vai dentro de Seguridade)
     c.ok((await mode("Anexos")) !== "ok", "Seguridade xa non ten o modo «Anexos»");
-    c.ok((await app.tabs()).includes("Anexos"), "Anexos é unha pestana do PDF", (await app.tabs()).join(","));
-    await app.click("Anexos");
+    await app.click("Completar");
+    c.ok((await mode("Anexos")) === "ok", "Completar ten o modo «Anexos»");
     await app.waitFor(`/non ten anexos/.test(document.body.innerText)`, "sen anexos de partida", 15000);
     c.ok(true, "o PDF de partida non ten anexos");
     await app.click("Seguridade");
@@ -246,7 +249,8 @@ export default {
     fs.writeFileSync(form, formPdf(), "latin1");
     await app.open(form);
     await app.ev(`document.querySelectorAll('li[role=option] input[type=checkbox]').forEach(x=>{ if(x.checked) x.click(); })`);
-    await app.click("Formulario");
+    await app.click("Completar");
+    await mode("Formulario");
     await app.waitFor(`document.querySelector('.stack input[aria-label=nome]')`, "o campo nome", 15000);
     c.ok(await app.ev(`!!document.querySelector('.stack input[role=switch][aria-label=acepto]')`), "a casilla sae como interruptor");
     await app.ev(`(()=>{const i=document.querySelector('.stack input[aria-label=nome]'); i.value='Marta Lopez'; i.dispatchEvent(new Event('input',{bubbles:true}));})()`);

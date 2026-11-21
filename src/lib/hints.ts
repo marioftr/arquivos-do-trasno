@@ -12,7 +12,7 @@ export const HINTS: Record<string, string> = {
   "Ancho": "En píxeles. Con «Manter proporción», o alto axústase só.",
   "Alto": "En píxeles. Con «Manter proporción», o ancho axústase só.",
   "Manter proporción": "Ao cambiar o ancho ou o alto, o outro axústase para non deformar a imaxe.",
-  "Instante": "Segundo do vídeo do que se extrae o fotograma. Con «Fotograma do visor», o punto onde o deixaches.",
+  "Instante": "Segundo do vídeo do que se garda o fotograma. «Fotograma do visor» pon o que se está vendo.",
   "Formato": "MP3 e AAC pesan pouco; FLAC e WAV conservan todo o son pero pesan moito máis.",
   "Duración": "Tempo que tarda o son en subir ou baixar ata o volume normal.",
   "Graves": "Reforza (+) ou reduce (−) os graves, como bombo e baixo.",

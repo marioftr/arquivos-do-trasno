@@ -387,7 +387,7 @@
           <button class="btn ghost" on:click={estimateVideo} disabled={estimating || $busy}>{estimating ? $t("Estimando…") : $t("Estimar de novo")}</button>
         {/if}
       {:else if !isImage && v.mode === "quality"}
-        <button class="btn" on:click={estimateVideo} disabled={estimating || $busy}>{estimating ? $t("Estimando…") : $t("Estimar o tamaño")}</button>
+        <button class="btn" on:click={estimateVideo} disabled={estimating || $busy}>{estimating ? $t("Estimando…") : $t("Estimar tamaño")}</button>
       {:else}
         <span class="muted">{$t("Estimando…")}</span>
       {/if}

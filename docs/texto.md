@@ -12,7 +12,7 @@ Regras que cumpre todo texto visible. `npm run check:copy` comproba as que se po
 | Unha «i» vai ao grano: máximo 140 caracteres, funcional, sen repetir a etiqueta. Se a etiqueta xa o di, non leva «i». | «En puntos; 12 pt é o texto normal dun documento.» |
 | Todo selector con perfís ten «Personalizado», sen texto de máis. | Nivel de calidade: Alta, Equilibrada, Forte, Personalizado. |
 | Os botóns dos niveis levan o valor: CRF no vídeo, % nas imaxes. | «Equilibrada · CRF 28», «Web · 75 %». |
-| Os botóns de cálculo son curtos, á esquerda, na fila `.estimate`. | «Estimar o tamaño», «Analizar silencios». |
+| Os botóns de cálculo son curtos, á esquerda, na fila `.estimate`. | «Estimar tamaño», «Analizar silencios». |
 | Os datos van ordenados (táboa), non en prosa. | «Así quedará o ficheiro». |
 | O fin dun traballo lese en voz alta aos lectores de pantalla coa mesma mensaxe do trasno (rexión viva en `App.svelte`). Os comentarios de compañía non. | `trasnoSay(…, { quiet: true })`. |
 | Un selector pode levar un debuxo (`glyph`) enriba do nome só se o debuxo di algo que o texto non di: forma, orde, sentido, cor. Nunca decorativo. | Proporcións do recorte (rectángulo coa forma), numerar por filas ou columnas, ángulo das páxinas, mostra de cor. |
@@ -23,5 +23,6 @@ Regras que cumpre todo texto visible. `npm run check:copy` comproba as que se po
 | O que depende dun interruptor de arriba aparece só cando vale; o que está bloqueado por outro motivo queda en gris. | «Recortar polo centro / Estirar» só sen «Manter proporción». |
 | Unha opción de «cortar» ou «encaixar» leva un debuxo que a explique (o que se corta, o que se deforma, as marxes). | Recortar, Estirar, Encaixar. |
 | Un debuxo de «igualar medidas» amosa o resultado: as pezas escalan sen cortarse nin deformarse (contorno a trazos = tamaño de antes, frecha = sentido). | Á máis estreita, Á máis ancha. |
-| Unha comparación que só vale mentres se mantén premido é un botón ancho co texto á esquerda (`.btn.left`), enriba do botón verde; non un interruptor. | «Manter para ver o orixinal». |
+| Unha comparación que só vale mentres se mantén premido é un botón curto na fila `.estimate`, enriba do botón verde, co aviso «Mantén premido»; non un interruptor. | «Ver orixinal». |
+| Os botóns con debuxo (e os selectores con debuxo) reparten o ancho a partes iguais. | Recortar polo centro / Estirar: 50 % cada un. |
 | Cada «i» explica que fai o axuste e a que afecta (que se comprime, canto), non repite a etiqueta. | Comprimir PDF: só se reducen as imaxes JPG. |

@@ -297,8 +297,6 @@
     <rect x="13" y="3" width="8" height="8" rx="4" />
     <rect x="3" y="14" width="7" height="7" rx="1.6" />
     <rect x="12.5" y="13.5" width="8.5" height="8.5" rx="2.2" stroke-dasharray="2.2 2" />
-  {:else if name === "paperclip"}
-    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
   {:else if name === "form"}
     <rect x="4" y="3.5" width="16" height="17" rx="2" />
     <polyline points="7.5 8.5 9 10 11.5 7" />

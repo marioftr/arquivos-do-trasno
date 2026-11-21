@@ -73,7 +73,7 @@ export default {
     c.ok(/Listo! Xunteinas nunha imaxe de 400×1600 px/.test(await app.ev(`document.body.innerText`)), "o trasno di o tamaño que saíu");
 
     // ---- sen quitar o repetido, con espazo: todo tal cal
-    await app.toggle("Quitar o tramo repetido");
+    await app.toggle("Quitar tramos repetidos");
     await app.ev(`(()=>{const i=document.querySelector('.stack input[type=number][aria-label="Espazo entre capturas"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,'20'); i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); i.dispatchEvent(new Event('blur'));})()`);
     await app.sleep(300);
     await app.click("Xuntar 3 imaxes");

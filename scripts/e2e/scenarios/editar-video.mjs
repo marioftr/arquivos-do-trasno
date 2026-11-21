@@ -8,6 +8,13 @@ export default {
   async run(app, c) {
     const src = app.video("clip.mp4", 12);
     await app.open(src);
+    await app.click("Extraer");
+    c.ok(await app.ev(`[...document.querySelectorAll('[role=radio]')].map(b=>b.textContent.trim()).join()`) === "Fotograma,Audio", "Extraer ten os modos Fotograma e Audio");
+    if (process.env.TRASNO_SHOTS) await app.shot("extraer.png");
+    c.ok(await app.ev(`!![...document.querySelectorAll('.stack button.btn.primary')].find(b=>b.textContent.trim()==='Gardar fotograma')`), "Fotograma: botón verde para gardalo");
+    c.ok(await app.ev(`!![...document.querySelectorAll('.stack button')].find(b=>b.textContent.trim()==='Fotograma do visor')`), "e un botón para tomar o fotograma do visor");
+    await app.ev(`[...document.querySelectorAll('[role=radio]')].find(b=>b.textContent.trim()==='Audio').click()`);
+    c.ok(await app.ev(`!![...document.querySelectorAll('.stack button.btn.primary')].find(b=>b.textContent.trim()==='Extraer audio')`), "Audio: o botón de extraer é verde");
     await app.click("Editar");
     const tabs = await app.tabs();
     c.ok(tabs.includes("Editar") && tabs.includes("Son"), "Editar e Son son menús separados", tabs.join(","));

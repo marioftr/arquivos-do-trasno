@@ -11,12 +11,13 @@
   import NumberField from "../ui/NumberField.svelte";
   import SelectField from "../ui/SelectField.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
-  import Segmented from "../ui/Segmented.svelte";
   import FramePreview from "../ui/FramePreview.svelte";
 
   export let file: FileEntry;
+  /** «frame»: gardar un fotograma como imaxe; «audio»: sacar o son a un ficheiro. */
+  export let mode: "frame" | "audio" = "frame";
 
-  const form = createForm({ frameMode: "viewer", frameAt: 0, audioExt: "mp3", audioKbps: 192 }, undefined, "extract|" + file.path);
+  const form = createForm({ frameAt: 0, audioExt: "mp3", audioKbps: 192 }, undefined, "extract|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();
@@ -37,31 +38,24 @@
 </script>
 
 <div class="stack">
-
-  <div class="group">
-    <h4 class="group-title">{$t("Fotograma")}</h4>
-    <Segmented
-      options={[
-        { value: "viewer", label: $t("Onde está o visor") },
-        { value: "exact", label: $t("Instante exacto") },
-      ]}
-      bind:value={$form.frameMode}
-    />
-    {#if $form.frameMode === "exact"}
+  {#if mode === "frame"}
+    <div class="group">
       <NumberField label={$t("Instante")} unit="s" min={0} step={0.1} bind:value={$form.frameAt} def={0} />
-    {/if}
-    <FramePreview path={file.path} time={$form.frameMode === "viewer" ? $mediaTime : $form.frameAt} />
-    <button class="btn primary block" on:click={() => frame($form.frameMode === "viewer" ? $mediaTime : $form.frameAt)} disabled={$busy}>{$t("Gardar este fotograma")}</button>
-  </div>
-
-  <div class="group">
-    <h4 class="group-title">{$t("Extraer audio")}</h4>
-    <div class="pair">
-      <SelectField label={$t("Formato")} bind:value={$form.audioExt} options={AUDIO_TARGETS.map((x) => ({ value: x, label: x.toUpperCase() }))} def="mp3" />
-      <NumberField label={$t("Bitrate de audio")} unit="kbps" min={32} max={320} bind:value={$form.audioKbps} def={192} />
+      <div class="estimate">
+        <button class="btn" on:click={() => ($form.frameAt = Math.round($mediaTime * 10) / 10)}>{$t("Fotograma do visor")}</button>
+      </div>
+      <FramePreview path={file.path} time={$form.frameAt ?? 0} />
     </div>
-    <button class="btn block" on:click={audio} disabled={$busy}>{$t("Extraer o audio")}</button>
-  </div>
+    <button class="btn primary block" on:click={() => frame($form.frameAt ?? 0)} disabled={$busy}>{$t("Gardar fotograma")}</button>
+  {:else}
+    <div class="group">
+      <div class="pair">
+        <SelectField label={$t("Formato")} bind:value={$form.audioExt} options={AUDIO_TARGETS.map((x) => ({ value: x, label: x.toUpperCase() }))} def="mp3" />
+        <NumberField label={$t("Bitrate de audio")} unit="kbps" min={32} max={320} bind:value={$form.audioKbps} def={192} />
+      </div>
+    </div>
+    <button class="btn primary block" on:click={audio} disabled={$busy}>{$t("Extraer audio")}</button>
+  {/if}
 
   <JobStatus {job} />
 </div>

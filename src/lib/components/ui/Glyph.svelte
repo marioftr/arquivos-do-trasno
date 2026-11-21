@@ -136,20 +136,22 @@
     {#each match.solid as r}<rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1.2" fill="currentColor" fill-opacity="0.2" />{/each}
     <path d={arrowPath(match.arrow)} stroke="var(--accent)" stroke-width="1.9" />
   {:else if spec.k === "fit"}
+    <!-- Os tres levan o mesmo cadro (18 × 18) e o mesmo contido, unha elipse ancha, para que se vexa só o que muda. -->
+    <defs><clipPath id="glyph-fit-frame"><rect x="11" y="6" width="18" height="18" rx="1.2" /></clipPath></defs>
     {#if spec.mode === "crop"}
-      <!-- a imaxe sobra polos lados: o que cae fóra do cadro córtase -->
-      <rect x="3" y="6" width="34" height="18" rx="1.2" stroke-dasharray="2.2 1.8" stroke-width="1.1" stroke-opacity="0.7" />
+      <!-- o contido sobra polos lados: o que cae fóra do cadro córtase -->
       <rect x="11" y="6" width="18" height="18" rx="1.2" fill="currentColor" fill-opacity="0.14" />
-      <path d="M6.5 15 H9 M33.5 15 H31" stroke-width="1.3" stroke-opacity="0.7" />
+      <ellipse cx="20" cy="15" rx="14.5" ry="9" stroke-dasharray="2.2 1.8" stroke-width="1.1" stroke-opacity="0.75" />
+      <ellipse cx="20" cy="15" rx="14.5" ry="9" clip-path="url(#glyph-fit-frame)" />
     {:else if spec.mode === "stretch"}
-      <!-- a imaxe énchese o cadro deformándose: o círculo vólvese elipse -->
-      <rect x="11" y="4" width="18" height="22" rx="1.2" fill="currentColor" fill-opacity="0.14" />
-      <ellipse cx="20" cy="15" rx="5" ry="8.5" stroke-width="1.3" />
-      <path d="M2.5 15 H8 M5.6 12.6 L8 15 L5.6 17.4 M37.5 15 H32 M34.4 12.6 L32 15 L34.4 17.4" stroke="var(--accent)" stroke-width="1.4" />
+      <!-- o contido énchese o cadro deformándose: a elipse vólvese círculo -->
+      <rect x="11" y="6" width="18" height="18" rx="1.2" fill="currentColor" fill-opacity="0.14" />
+      <ellipse cx="20" cy="15" rx="9" ry="9" />
+      <path d="M2.5 15 H8 M5.4 12.6 L8 15 L5.4 17.4 M37.5 15 H32 M34.6 12.6 L32 15 L34.6 17.4" stroke="var(--accent)" stroke-width="1.6" />
     {:else}
-      <!-- a imaxe cabe enteira e sobran marxes arriba e abaixo -->
-      <rect x="9" y="4" width="22" height="22" rx="1.2" stroke-dasharray="2.2 1.8" stroke-width="1.1" stroke-opacity="0.7" />
-      <rect x="9" y="9.5" width="22" height="11" rx="1.2" fill="currentColor" fill-opacity="0.14" />
+      <!-- o contido cabe enteiro e sobran marxes (transparentes) arriba e abaixo -->
+      <rect x="11" y="6" width="18" height="18" rx="1.2" stroke-dasharray="2.2 1.8" stroke-width="1.1" stroke-opacity="0.75" />
+      <ellipse cx="20" cy="15" rx="9" ry="5.2" />
     {/if}
   {:else if spec.k === "swatch"}
     <rect x="11" y="5" width="18" height="20" rx="3" fill={spec.color} stroke="var(--border-strong)" stroke-width="1.2" />

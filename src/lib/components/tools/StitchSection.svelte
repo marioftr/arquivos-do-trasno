@@ -108,7 +108,7 @@
       bind:value={$form.align}
     />
     <div class="pair">
-      <NumberField label={$t("Espazo entre capturas")} unit="px" min={0} bind:value={$form.gap} def={form.defaults.gap} hint={$t("Non se aplica onde as capturas se unen por solapamento.")} />
+      <NumberField label={$t("Espazo entre capturas")} unit="px" min={0} bind:value={$form.gap} def={form.defaults.gap} hint={$t("Non se aplica onde se quitan tramos repetidos.")} />
       <ColorField label={$t("Fondo")} bind:value={$form.background} />
     </div>
     <SelectField
@@ -122,7 +122,7 @@
     {#if lossy}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} />
     {/if}
-    <Toggle label={$t("Quitar o tramo repetido")} bind:checked={$form.removeOverlap} hint={$t("Para capturas feitas ao baixar polo contido dunha páxina: únense sen repetir o tramo común, cabeceiras e pés fixos incluídos.")} />
+    <Toggle label={$t("Quitar tramos repetidos")} bind:checked={$form.removeOverlap} hint={$t("Para capturas feitas ao baixar polo contido dunha páxina: únense sen repetir o tramo común, cabeceiras e pés fixos incluídos.")} />
   </div>
 
   <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Xuntar {n} imaxes", { n: items.length })}</button>

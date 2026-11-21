@@ -83,9 +83,8 @@
               tab("convert", "Converter"),
               tab("pages", "Páxinas"),
               tab("shape", "Xirar e recortar"),
-              tab("form", "Formulario"),
+              tab("complete", "Completar"),
               tab("marks", "Marcas"),
-              tab("attach", "Anexos"),
               tab("optimize", "Comprimir e reparar"),
               tab("security", "Seguridade"),
               tab("ocr", "Recoñecer texto (OCR)"),
@@ -146,11 +145,13 @@
       if (tab === "subtitles" && cat === "video") return [m("embed", "Incrustar"), m("burn", "Queimar"), m("extract", "Extraer")];
       // O son ten dúas tarefas: axustalo (volume, ruído, efectos) ou cortar os silencios.
       if (tab === "sound" && (cat === "video" || cat === "audio")) return [m("adjust", "Axustes"), m("silence", "Silencios")];
+      if (tab === "extract" && cat === "video") return [m("frame", "Fotograma"), m("audio", "Audio")];
       return [];
     }
     switch (tab) {
       case "convert": return [m("format", "Formatos"), m("tables", "Táboas")];
-      case "pages": return [m("organize", "Ordenar"), m("extract", "Extraer"), m("split", "Dividir"), m("outline", "Índice")];
+      case "pages": return [m("organize", "Ordenar"), m("extract", "Extraer"), m("split", "Dividir")];
+      case "complete": return [m("form", "Formulario"), m("outline", "Índice"), m("attach", "Anexos")];
       case "shape": return [m("rotate", "Xirar"), m("crop", "Recortar")];
       case "optimize": return [m("compress", "Comprimir"), m("repair", "Reparar")];
       default: return [];
@@ -228,8 +229,12 @@
           <Lazy loader={() => import("./tools/PdfConvertSection.svelte")} file={first} />
         {:else if current === "convert" && mode === "tables" && first && isPdf}
           <Lazy loader={() => import("./tools/PdfTablesSection.svelte")} file={first} />
-        {:else if current === "form" && first && isPdf}
+        {:else if current === "complete" && mode === "form" && first && isPdf}
           <Lazy loader={() => import("./tools/PdfFormSection.svelte")} file={first} />
+        {:else if current === "complete" && mode === "outline" && first && isPdf}
+          <Lazy loader={() => import("./tools/PdfOutlineSection.svelte")} file={first} />
+        {:else if current === "complete" && mode === "attach" && first && isPdf}
+          <Lazy loader={() => import("./tools/PdfAttachSection.svelte")} file={first} />
         {:else if current === "convert" && category === "video" && mode === "mp4"}
           <CompressSection {selection} category="video" />
         {:else if current === "convert"}
@@ -265,11 +270,9 @@
         {:else if current === "edit" && first}
           <EditMediaSection file={first} />
         {:else if current === "extract" && first}
-          <ExtractSection file={first} />
+          <ExtractSection file={first} mode={mode === "audio" ? "audio" : "frame"} />
         {:else if current === "pages" && mode === "extract" && first}
           <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} part="extract" />
-        {:else if current === "pages" && mode === "outline" && first}
-          <Lazy loader={() => import("./tools/PdfOutlineSection.svelte")} file={first} />
         {:else if current === "pages" && mode === "split" && first}
           <PdfSplitSection file={first} />
         {:else if current === "pages" && first}
@@ -280,8 +283,6 @@
           <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} part="rotate" />
         {:else if current === "marks" && first}
           <PdfMarksSection file={first} />
-        {:else if current === "attach" && first && isPdf}
-          <Lazy loader={() => import("./tools/PdfAttachSection.svelte")} file={first} />
         {:else if current === "ocr" && first && category === "imaxe"}
           <ImageOcrSection file={first} />
         {:else if current === "ocr" && first}
