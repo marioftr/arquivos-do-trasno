@@ -100,12 +100,18 @@
       return;
     }
     const url = text.split(/\s+/)[0] ?? "";
-    if (/^https?:\/\/[^\s/]+\.[^\s/]+/i.test(url) && !text.includes("\n")) {
+    if ((/^https?:\/\/[^\s/]+\.[^\s/]+/i.test(url) || /^magnet:\?/i.test(url)) && !text.includes("\n")) {
       pastedLink.set(url);
       dialog.set("download");
       return;
     }
     const paths = text.split(/\r?\n/).map((l) => l.trim().replace(/^"(.*)"$/, "$1")).filter((l) => /^([a-zA-Z]:[\\/]|\\\\|\/)/.test(l));
+    // Un único ficheiro .torrent abre Descargar por ligazón co torrent xa elixido.
+    if (paths.length === 1 && /\.torrent$/i.test(paths[0])) {
+      pastedLink.set(paths[0]);
+      dialog.set("download");
+      return;
+    }
     if (paths.length) return void (await addPaths(paths));
     // Unha imaxe copiada (captura, foto do navegador…): gárdase como PNG e entra na lista.
     const image = await engine.clipboardImage().catch(() => null);

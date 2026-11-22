@@ -5,6 +5,7 @@
   import Info from "./components/Info.svelte";
   import Workbench from "./components/Workbench.svelte";
   import ToolIcon from "./components/ToolIcon.svelte";
+  import Privacy from "./components/Privacy.svelte";
   import { route, href } from "./lib/route";
   import { theme, toggleTheme } from "./lib/theme";
   import { buildGroups, buildTools } from "./lib/tools";
@@ -13,21 +14,22 @@
   const build = (_l: Lang) => ({ tools: buildTools(), groups: buildGroups() });
   $: ({ tools, groups } = build($lang));
   $: tool = tools.find((x) => x.id === $route);
-  $: if ($route && !tool) location.hash = "";
+  $: privacy = $route === "privacidade";
+  $: if ($route && !tool && !privacy) location.hash = "";
 
   const ACCENT: Record<string, string> = { imaxe: "var(--accent-imaxe)", pdf: "var(--accent-pdf)", audio: "var(--accent-audio)" };
 
   let h1: HTMLElement | undefined;
   // Ao cambiar de pantalla o foco vai ao título (lectores de pantalla) e a páxina volve arriba.
   $: $route, void tick().then(() => (scrollTo(0, 0), h1?.focus({ preventScroll: true })));
-  $: document.title = tool ? `${tool.title} · Arquivos do Trasno` : "Arquivos do Trasno";
+  $: document.title = tool ? `${tool.title} · Arquivos do Trasno` : privacy ? `${$t("Privacidade e datos")} · Arquivos do Trasno` : "Arquivos do Trasno";
 </script>
 
 <a class="skip" href="#main" on:click|preventDefault={() => h1?.focus()}>{$t("Ir ao contido")}</a>
 
 <header class="top">
   <div class="top-in">
-    {#if tool}
+    {#if tool || privacy}
       <a class="back" href={href("")} aria-label={$t("Volver ao inicio")}><Icon name="back" size={24} /></a>
     {:else}
       <img class="logo" src="/trasno/base.png" alt="" width="32" height="32" />
@@ -52,12 +54,15 @@
       <h1 tabindex="-1" bind:this={h1}>{tool.title}<Info text={tool.info} /></h1>
       <Workbench {tool} />
     {/key}
+  {:else if privacy}
+    <h1 tabindex="-1" bind:this={h1}>{$t("Privacidade e datos")}</h1>
+    <Privacy />
   {:else}
     <section class="hero">
       <img src="/trasno/base.png" alt="" width="96" height="96" />
       <div>
         <h1 tabindex="-1" bind:this={h1}>Arquivos do Trasno</h1>
-        <p>{$t("Imaxe e PDF directamente no teu aparello. Os ficheiros non se envían a ningún servidor.")}</p>
+        <p>{$t("Ferramentas de imaxe, PDF, audio e vídeo para o móbil e o ordenador.")}</p>
       </div>
     </section>
     {#each groups as g (g.id)}
@@ -79,6 +84,8 @@
   {/if}
 </main>
 
+<footer class="foot"><a href={href("privacidade")}>{$t("Privacidade e datos")}</a></footer>
+
 <style>
   .skip { position: absolute; left: 0.5rem; top: -4rem; z-index: 100; padding: 0.6rem 1rem; background: var(--accent); color: var(--on-accent); border-radius: var(--radius-md); font-weight: 600; text-decoration: none; }
   .skip:focus { top: 0.5rem; }
@@ -95,6 +102,8 @@
   .back:focus-visible, .round:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   main { max-width: 60rem; margin: 0 auto; padding: 1.25rem max(1rem, env(safe-area-inset-right)) 1.5rem max(1rem, env(safe-area-inset-left)); }
   h1 { margin: 0 0 1.1rem; font-size: var(--fs-xl); line-height: 1.2; display: flex; align-items: center; gap: 0.6rem; outline: none; }
+  .foot { max-width: 60rem; margin: 0 auto; padding: 0.5rem max(1rem, env(safe-area-inset-right)) calc(1.5rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); }
+  .foot a { display: inline-flex; align-items: center; min-height: 44px; color: var(--text-muted); font-size: var(--fs-sm); }
   .hero { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
   .hero img { image-rendering: pixelated; flex: none; }
   .hero h1 { margin-bottom: 0.3rem; }

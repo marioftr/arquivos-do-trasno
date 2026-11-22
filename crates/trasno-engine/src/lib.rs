@@ -29,6 +29,7 @@ pub mod formats;
 pub mod image_convert;
 pub mod image_ffmpeg;
 pub mod image_meta;
+pub mod image_restore;
 pub mod integrity;
 pub mod mkv;
 pub mod model3d;
@@ -47,6 +48,7 @@ pub mod subtitle_video;
 pub mod subtitles;
 pub mod tools_install;
 pub mod transcribe;
+pub mod torrent;
 pub mod ytdlp;
 
 pub use error::{EngineError, Result};

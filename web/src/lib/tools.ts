@@ -33,8 +33,6 @@ export interface Tool {
   /** Cantos ficheiros fan falta polo menos (1 se non se di). */
   min?: number;
   options: Opt[];
-  /** Modelos de IA que usa co que hai elixido (ver models.ts). */
-  needs?: (v: Values) => string[];
   defaults: Values;
   /** Texto do botón verde segundo cantos ficheiros hai. */
   action: (n: number) => string;
@@ -54,8 +52,6 @@ const LANGS = (): Choice[] => [
   { value: "cat", label: "Catalán" },
 ];
 const DEFAULT_LANG = (): Lang => (({ gl: "glg", es: "spa", en: "eng" } as Record<string, Lang>)[get(lang)] ?? "glg");
-/** A tradución pasa polo inglés: un modelo para ir a el e outro para volver (ver @app/lib/mt). */
-const translationModels = (from: Lang, to: Lang): string[] => (from === to ? [] : [...(from !== "eng" ? ["mt-to-en"] : []), ...(to !== "eng" ? ["mt-from-en"] : [])]);
 const MIME_OF: Record<string, string> = { mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav", opus: "audio/ogg", gif: "image/gif" };
 
 const QUALITY = (): Choice[] => [
@@ -183,10 +179,10 @@ export const buildTools = (): Tool[] => [
     },
   },
   {
-    id: "mellorar",
+    id: "restaurar",
     group: "imaxe",
     icon: "enhance",
-    title: tr("Mellorar imaxes"),
+    title: tr("Restaurar imaxes"),
     desc: tr("Luz, cor, ruído e nitidez. Tamén páxinas fotografadas."),
     info: tr("Corrixe o que a foto xa ten, sen inventar detalle. Automático equilibra luz e cor; Documento deixa o fondo branco e o texto negro."),
     accept: IMG,
@@ -218,12 +214,12 @@ export const buildTools = (): Tool[] => [
       },
     ],
     defaults: { mode: "auto", amount: "normal" },
-    action: (n) => (n === 1 ? tr("Mellorar 1 imaxe") : tr("Mellorar {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Restaurar imaxe") : tr("Restaurar {n} imaxes", { n })),
     each: async (file, v, taken) => {
       const { enhance, MAX_AREA } = await import("./enhance");
       const mime = v.mode === "doc" || v.mode === "bw" ? (sameMime(file) === "image/png" ? "image/png" : "image/jpeg") : sameMime(file);
       const r = await transform(file, mime, 0.92, MAX_AREA, (d) => enhance(d, v.mode as never, v.amount as never));
-      return { name: outName(file, mime, taken, "-mellorado"), blob: r.blob, note: `${r.width} × ${r.height} · ${formatBytes(r.blob.size)}${r.capped ? ` · ${tr("Reducida ao máximo que admite o navegador.")}` : ""}` };
+      return { name: outName(file, mime, taken, "-restaurado"), blob: r.blob, note: `${r.width} × ${r.height} · ${formatBytes(r.blob.size)}${r.capped ? ` · ${tr("Reducida ao máximo que admite o navegador.")}` : ""}` };
     },
   },
   {
@@ -296,7 +292,7 @@ export const buildTools = (): Tool[] => [
     icon: "cutout",
     title: tr("Quitar o fondo"),
     desc: tr("Deixa só o suxeito, con fondo transparente."),
-    info: tr("Detecta o suxeito e quita o fondo. O modelo descárgase a primeira vez e traballa no aparello. Con pelo ou bordos finos, o mellor modelo vai mellor."),
+    info: tr("Detecta o suxeito e quita o fondo. Con pelo ou bordos finos, o mellor modelo vai mellor."),
     accept: IMG,
     multiple: true,
     options: [
@@ -320,7 +316,6 @@ export const buildTools = (): Tool[] => [
         ],
       },
     ],
-    needs: (v) => [`cut-${v.quality}`],
     defaults: { quality: "fast", backdrop: "clear" },
     action: (n) => (n === 1 ? tr("Quitar o fondo") : tr("Quitar o fondo a {n} imaxes", { n })),
     each: async (file, v, taken, ctx) => {
@@ -335,7 +330,7 @@ export const buildTools = (): Tool[] => [
     icon: "wave",
     title: tr("Converter audio"),
     desc: tr("A MP3, M4A, WAV ou Opus. Tamén saca o son dun vídeo."),
-    info: tr("Pasa audio a outro formato. Se o ficheiro é un vídeo, saca o son. O motor descárgase a primeira vez."),
+    info: tr("Pasa audio a outro formato. Se o ficheiro é un vídeo, saca o son."),
     accept: MEDIA,
     multiple: true,
     options: [
@@ -406,7 +401,7 @@ export const buildTools = (): Tool[] => [
     icon: "film",
     title: tr("Vídeo a GIF"),
     desc: tr("Un GIF animado dun tramo curto."),
-    info: tr("Fai un GIF desde o comezo do vídeo. Canto máis grande e longo, máis pesa. O motor descárgase a primeira vez."),
+    info: tr("Fai un GIF desde o comezo do vídeo. Canto máis grande e longo, máis pesa."),
     accept: "video/*,.mp4,.mov,.mkv,.webm",
     multiple: false,
     options: [
@@ -446,7 +441,7 @@ export const buildTools = (): Tool[] => [
     icon: "mic",
     title: tr("Transcribir"),
     desc: tr("Pasa a voz a subtítulos ou texto."),
-    info: tr("Pasa a voz de un audio ou vídeo a texto con subtítulos, e opcionalmente tradúceo. Os modelos descárganse a primeira vez e traballan no aparello."),
+    info: tr("Pasa a voz dun audio ou vídeo a texto con subtítulos, e opcionalmente tradúceo."),
     accept: MEDIA,
     multiple: false,
     options: [
@@ -473,7 +468,6 @@ export const buildTools = (): Tool[] => [
         ],
       },
     ],
-    needs: (v) => [`asr-${v.model}`, ...(v.to !== "none" ? translationModels(v.lang as Lang, v.to as Lang) : [])],
     defaults: { lang: DEFAULT_LANG(), model: "tiny", to: "none", format: "srt" },
     action: () => tr("Transcribir"),
     all: async ([file], v, ctx) => {
@@ -504,7 +498,6 @@ export const buildTools = (): Tool[] => [
       { id: "from", type: "seg", label: tr("Está en"), choices: LANGS },
       { id: "to", type: "seg", label: tr("Traducir a"), choices: LANGS },
     ],
-    needs: (v) => translationModels(v.from as Lang, v.to as Lang),
     defaults: { from: "eng", to: DEFAULT_LANG() },
     action: () => tr("Traducir"),
     all: async ([file], v, ctx) => {

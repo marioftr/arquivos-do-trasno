@@ -24,6 +24,7 @@
   import EditMediaSection from "./tools/EditMediaSection.svelte";
   import ExtractSection from "./tools/ExtractSection.svelte";
   import RestoreSection from "./tools/RestoreSection.svelte";
+  import RestoreImageSection from "./tools/RestoreImageSection.svelte";
   import ResizeSection from "./tools/ResizeSection.svelte";
   import StitchSection from "./tools/StitchSection.svelte";
   import SliceSection from "./tools/SliceSection.svelte";
@@ -67,14 +68,14 @@
     if (!cat) return [];
     if (many) {
       if (pdf) return [tab("merge", "Unir")];
-      if (cat === "imaxe") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("resize", "Redimensionar"), tab("merge", "Unir"), tab("stitch", "Xuntar")];
+      if (cat === "imaxe") return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("restore", "Restaurar"), tab("resize", "Redimensionar"), tab("merge", "Unir"), tab("stitch", "Xuntar")];
       if (cat === "video") return [tab("convert", "Converter"), tab("merge", "Unir"), ...multiMkv()];
       if (cat === "audio") return [tab("convert", "Converter"), tab("merge", "Unir"), ...multiMkv()];
       return [tab("convert", "Converter")];
     }
     switch (cat) {
       case "imaxe":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("cutout", "Quitar fondo"), tab("resize", "Redimensionar"), tab("slice", "Dividir"), tab("annotate", "Anotar"), tab("icons", "Iconas"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("restore", "Restaurar"), tab("cutout", "Quitar fondo"), tab("resize", "Redimensionar"), tab("slice", "Dividir"), tab("annotate", "Anotar"), tab("icons", "Iconas"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
         return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...(ext === "gif" ? [] : [tab("restore", "Restaurar"), tab("transcribe", "Transcribir")]), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
@@ -261,6 +262,8 @@
           <VideoSubtitlesSection file={first} mode={mode as "embed" | "burn" | "extract"} />
         {:else if current === "view" && first && category === "modelo3d"}
           <ModelViewSection file={first} />
+        {:else if current === "restore" && category === "imaxe"}
+          <RestoreImageSection {selection} />
         {:else if current === "restore" && first && category === "video"}
           <RestoreSection file={first} />
         {:else if current === "tags" && first && category === "audio"}

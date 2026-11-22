@@ -52,7 +52,7 @@ const ev = async (expr) => {
 const view = (w, h, mobile) => send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: mobile ? 2 : 1, mobile });
 const go = async (hash) => (await ev(`location.hash=${JSON.stringify(hash)}`), await sleep(500));
 
-const TOOLS = ["converter", "redimensionar", "comprimir", "mellorar", "xirar", "ocr", "quitar-fondo", "unir-pdf", "dividir-pdf", "xirar-pdf", "imaxes-a-pdf", "pdf-imaxes", "pdf-texto", "comprimir-pdf", "audio", "cortar", "gif", "transcribir", "traducir"];
+const TOOLS = ["converter", "redimensionar", "comprimir", "restaurar", "xirar", "ocr", "quitar-fondo", "unir-pdf", "dividir-pdf", "xirar-pdf", "imaxes-a-pdf", "pdf-imaxes", "pdf-texto", "comprimir-pdf", "audio", "cortar", "gif", "transcribir", "traducir"];
 const NET = !!process.env.TRASNO_WEB_NET; // as probas que descargan motores e modelos (uns cantos centos de MB) só se piden
 let fails = 0;
 const ok = (cond, what, detail = "") => {
@@ -134,15 +134,15 @@ try {
   await ev(`(async () => { await __t.feed([window.__pdf, window.__pdf]); await __t.go(); })()`);
   ok(/6 páxinas/.test((await ev(`__t.results()`)).join()), "unir dous PDF de 3 páxinas dá 6");
 
-  console.log("\n▶ mellorar imaxes e PDF a texto");
-  await go("#/mellorar");
+  console.log("\n▶ restaurar imaxes e PDF a texto");
+  await go("#/restaurar");
   await ev(`(async () => { await __t.feed([await __t.png(600, 400, '#808080', 'escura.png')]); await __t.go(); })()`);
   const me = await ev(`__t.results()`);
-  ok(me.length === 1 && me[0].startsWith("escura-mellorado.png"), "mellorar (automático) dá un ficheiro novo", me.join(" | "));
+  ok(me.length === 1 && me[0].startsWith("escura-restaurado.png"), "restaurar (automático) dá un ficheiro novo", me.join(" | "));
   for (const mode of ["light", "doc", "bw", "denoise", "sharp"]) {
-    await ev(`(async () => { document.querySelector('input[name=mellorar-mode][value=${mode}]').click(); await __t.sleep(100); await __t.go(); })()`);
+    await ev(`(async () => { document.querySelector('input[name=restaurar-mode][value=${mode}]').click(); await __t.sleep(100); await __t.go(); })()`);
     const r = await ev(`__t.results()`);
-    ok(r.length === 1 && /×/.test(r[0]), `mellorar: ${mode}`, r.join(" | "));
+    ok(r.length === 1 && /×/.test(r[0]), `restaurar: ${mode}`, r.join(" | "));
   }
   await go("#/pdf-texto");
   await ev(`(async () => { await __t.feed([window.__pdf]); await __t.go(); })()`);
@@ -152,13 +152,13 @@ try {
   await ev(`(async () => { for (const n of await caches.keys()) if (!n.startsWith('trasno-web')) await caches.delete(n); })()`);
   await go("#/quitar-fondo");
   await sleep(400);
-  ok(/Descárgase a primeira vez/.test(await ev(`document.querySelector('.model')?.innerText ?? ''`)), "sen modelo, avisa de que se descarga");
+  ok(!/Descargado/.test(await ev(`document.querySelector('.seg label.on')?.innerText ?? ''`)), "sen modelo, a opción amosa o tamaño e non «Descargado»");
+  ok(!/sen conexión|primeira vez/.test(await ev(`document.body.innerText`)), "a pantalla non repite frases baleiras sobre a conexión");
   await ev(`(async () => { const c = await caches.open('trasno-models'); await c.put('https://huggingface.co/BritishWerewolf/U-2-Netp/resolve/main/onnx/model.onnx', new Response('x')); })()`);
   await go("");
   await go("#/quitar-fondo");
   await sleep(500);
-  ok(/Xa descargado/.test(await ev(`document.querySelector('.model.done')?.innerText ?? ''`)), "co modelo gardado, di que xa está descargado");
-  ok(/Descargado/.test(await ev(`document.querySelector('.seg label.on')?.innerText ?? ''`)), "e a opción elixida o amosa");
+  ok(/Descargado/.test(await ev(`document.querySelector('.seg label.on')?.innerText ?? ''`)), "co modelo gardado, a opción elixida di «Descargado»");
   await ev(`(async () => { await caches.delete('trasno-models'); })()`);
 
   console.log("\n▶ recoñecer texto (OCR, sen rede)");

@@ -25,6 +25,8 @@ pub struct ImageConvertOptions {
     pub background: Option<[u8; 3]>,
     /// Metadatos do orixinal que se levan ao resultado (por defecto ningún). Só os levan JPG, PNG e WebP sen perdas.
     pub metadata: crate::image_meta::Metadata,
+    /// Restaurar a imaxe (luz, cor, ruído, nitidez) antes de redimensionar e gardar.
+    pub restore: Option<crate::image_restore::RestoreOptions>,
 }
 
 /// Le só as dimensións dunha imaxe (cabeceira, sen decodificar os píxeles),
@@ -94,6 +96,9 @@ pub fn convert_image(
     // orixe está corrompida, fallamos aquí e nunca chegamos a crear nada.
     // A orientación EXIF aplícase ao abrir: as medidas do recorte son as da imaxe tal como se ve.
     let (mut img, carried) = crate::image_meta::open_oriented(input, options.metadata)?;
+    if let Some(r) = options.restore.as_ref().filter(|r| !r.is_noop()) {
+        img = image::DynamicImage::ImageRgba8(crate::image_restore::apply(&img, r)?);
+    }
 
     if let Some((w, h)) = options.resize {
         if w == 0 || h == 0 {

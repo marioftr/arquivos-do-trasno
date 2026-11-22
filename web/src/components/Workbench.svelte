@@ -6,7 +6,7 @@
   import Info from "./Info.svelte";
   import { thumbnail } from "../lib/image";
   import { accepts, canShare, download, formatBytes, save, share, UserError, type Output } from "../lib/files";
-  import { downloadedModels, missingMb } from "../lib/models";
+  import { downloadedModels } from "../lib/models";
   import type { Tool, Values } from "../lib/tools";
 
   /** La pantalla de calquera ferramenta: elixir ficheiros, axustes, o botón verde e os resultados. */
@@ -55,12 +55,11 @@
   let input: HTMLInputElement;
   let resultsEl: HTMLElement;
 
-  // Modelos de IA xa gardados no navegador: así se ve que non se van volver descargar.
+  // Modelos de IA xa gardados no navegador: as opcións que os usan amósano.
   let have = new Set<string>();
-  const checkModels = () => void downloadedModels().then((s) => (have = s));
-  if (tool.needs) checkModels();
-  $: need = tool.needs ? tool.needs(values) : [];
-  $: missing = missingMb(need, have);
+  const usesModels = tool.options.some((o) => o.type === "seg" && o.choices().some((c) => c.model));
+  const checkModels = () => usesModels && void downloadedModels().then((s) => (have = s));
+  checkModels();
 
   const min = tool.min ?? 1;
   $: ready = items.length >= min;
@@ -145,7 +144,7 @@
     }
     results = out.map((o) => ({ ...o, url: o.blob.type.startsWith("image/") ? URL.createObjectURL(o.blob) : "" }));
     busy = false;
-    if (tool.needs) checkModels();
+    checkModels();
     if (results.length || failed.length || error) {
       await tick();
       resultsEl?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
@@ -243,12 +242,6 @@
           </div>
         {/if}
       {/each}
-      {#if need.length}
-        <p class="model" class:done={!missing} role="status">
-          <Icon name={missing ? "download" : "check"} size={18} />
-          <span>{missing ? $t("Descárgase a primeira vez (uns {mb} MB) e queda gardado.", { mb: missing }) : $t("Xa descargado: funciona sen conexión.")}</span>
-        </p>
-      {/if}
     </section>
   {/if}
 
@@ -319,10 +312,6 @@
   .drag { color: var(--text-muted); font-size: var(--fs-sm); font-weight: 400; }
   @media (hover: none) { .drag { display: none; } }
   .add { width: 100%; }
-  .model { display: flex; align-items: center; gap: 0.5rem; margin: 0; padding: 0.6rem 0.8rem; font-size: var(--fs-sm); color: var(--text-muted); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); }
-  .model :global(svg) { flex: none; }
-  .model.done { color: var(--text); }
-  .model.done :global(svg) { color: var(--accent); }
   .opts { display: flex; flex-direction: column; gap: 1.1rem; }
   .field { display: flex; flex-direction: column; gap: 0.4rem; }
   .field label { display: flex; align-items: center; gap: 0.4rem; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }

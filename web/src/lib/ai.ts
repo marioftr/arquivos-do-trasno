@@ -13,7 +13,7 @@ const WINDOW = 30; // segundos por tramo (o que Whisper ve de unha vez)
 
 /** Transcribe audio mono de 16 kHz (Float32) en subtítulos. */
 export async function transcribe(pcm: Float32Array, lang: Lang, size: "tiny" | "base", ctx: Ctx): Promise<Cue[]> {
-  const asr = await load("automatic-speech-recognition", `Xenova/whisper-${size}`, ctx, tr("Descargando o modelo de voz (só a primeira vez)…"));
+  const asr = await load("automatic-speech-recognition", `Xenova/whisper-${size}`, ctx, tr("Descargando o modelo de voz…"));
   const rate = 16000;
   const per = WINDOW * rate;
   const total = Math.max(1, Math.ceil(pcm.length / per));

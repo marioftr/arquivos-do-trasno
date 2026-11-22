@@ -1,4 +1,4 @@
-/** Mellorar fotos sen IA xerativa: axustes de luz, cor e ruído feitos píxel a píxel no navegador (nada se inventa: só se corrixe o que xa hai). */
+/** Restaurar fotos sen IA xerativa: axustes de luz, cor e ruído feitos píxel a píxel no navegador (nada se inventa: só se corrixe o que xa hai). */
 
 export type Mode = "auto" | "light" | "doc" | "bw" | "denoise" | "sharp";
 export type Amount = "soft" | "normal" | "strong";
@@ -52,8 +52,8 @@ function auto(d: ImageData) {
   }
   let lo = 0;
   let hi = 255;
-  for (let acc = 0; lo < 255 && (acc += hist[lo]) < n * 0.005; lo++);
-  for (let acc = 0; hi > 0 && (acc += hist[hi]) < n * 0.005; hi--);
+  for (let acc = 0; lo < 255 && (acc += hist[lo]) <= n * 0.005; lo++);
+  for (let acc = 0; hi > 0 && (acc += hist[hi]) <= n * 0.005; hi--);
   if (hi - lo < 40) hi = Math.min(255, lo + 40);
   const mean = (sr + sg + sb) / (3 * n);
   // Equilibrio de cor: acerca cada canle á media, sen pasarse (un cambio de ata un 12 %).
@@ -65,9 +65,9 @@ function auto(d: ImageData) {
     let b = clamp(((px[i + 2] * bal[2] - lo) / span) * 255);
     // Un pouco máis de cor.
     const l = luma(r, g, b);
-    r = clamp(l + (r - l) * 1.12);
-    g = clamp(l + (g - l) * 1.12);
-    b = clamp(l + (b - l) * 1.12);
+    r = clamp(l + (r - l) * 1.096);
+    g = clamp(l + (g - l) * 1.096);
+    b = clamp(l + (b - l) * 1.096);
     px[i] = r;
     px[i + 1] = g;
     px[i + 2] = b;
@@ -142,8 +142,8 @@ function gray(d: ImageData, flat: boolean) {
     const hist = new Uint32Array(256);
     for (const v of out) hist[Math.round(v)]++;
     const n = out.length;
-    for (let acc = 0; lo < 255 && (acc += hist[lo]) < n * 0.005; lo++);
-    for (let acc = 0; hi > 0 && (acc += hist[hi]) < n * 0.005; hi--);
+    for (let acc = 0; lo < 255 && (acc += hist[lo]) <= n * 0.005; lo++);
+    for (let acc = 0; hi > 0 && (acc += hist[hi]) <= n * 0.005; hi--);
     if (hi - lo < 40) hi = Math.min(255, lo + 40);
   }
   for (let i = 0, j = 0; i < px.length; i += 4, j++) {

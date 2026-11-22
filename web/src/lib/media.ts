@@ -36,7 +36,7 @@ async function engine(ctx: Ctx): Promise<FFmpegT> {
     const { FFmpeg } = await import("@ffmpeg/ffmpeg");
     const f = new FFmpeg();
     f.on("progress", ({ progress }) => current?.progress(Math.max(0, Math.min(1, progress))));
-    const label = tr("Descargando o motor de audio e vídeo (só a primeira vez)…");
+    const label = tr("Descargando o motor de audio e vídeo…");
     ctx.progress(0, label);
     const coreURL = await fetchBlobURL(`${CORE}/ffmpeg-core.js`, "text/javascript", () => {});
     const wasmURL = await fetchBlobURL(`${CORE}/ffmpeg-core.wasm`, "application/wasm", (p) => current?.progress(p, label));

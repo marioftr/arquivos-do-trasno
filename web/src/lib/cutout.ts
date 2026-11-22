@@ -1,5 +1,5 @@
 /** Quitar o fondo de unha imaxe no navegador: unha rede de segmentación (ONNX Runtime, WebAssembly) saca a máscara do suxeito.
- *  Os modelos son U²-Net pequeno e IS-Net (Apache-2.0), descárganse de Hugging Face a primeira vez e o navegador gárdaos. */
+ *  Os modelos son U²-Net pequeno e IS-Net (Apache-2.0), descárganse de Hugging Face e o navegador gárdaos. */
 import { tr } from "@app/lib/i18n";
 import { UserError, type Ctx } from "./files";
 import { render } from "./image";
@@ -57,7 +57,7 @@ function session(q: Quality, ctx: Ctx): Promise<Session> {
   if (have) return have;
   const p = (async () => {
     const lib = await ort();
-    const bytes = await modelBytes(MODELS[q].url, ctx, tr("Descargando o modelo (só a primeira vez)…"));
+    const bytes = await modelBytes(MODELS[q].url, ctx, tr("Descargando o modelo…"));
     return lib.InferenceSession.create(bytes, { executionProviders: ["wasm"] });
   })().catch((e) => {
     sessions.delete(q);

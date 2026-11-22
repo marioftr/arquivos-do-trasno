@@ -8,7 +8,7 @@ procésanse no propio navegador e non se envían a ningunha parte. Vai en Vercel
 
 | Grupo | Ferramentas |
 | --- | --- |
-| Imaxe | Converter (JPG, PNG, WebP), Redimensionar, Comprimir, **Mellorar** (luz e cor automáticas, máis luz, documento con fondo branco, branco e negro, menos ruído, máis nitidez; sen IA xerativa), Xirar e voltear, **Recoñecer texto** (OCR en galego, castelán, inglés e catalán) e **Quitar o fondo** (modelo rápido de 5 MB ou mellor de 46 MB). Quitan os metadatos (GPS). |
+| Imaxe | Converter (JPG, PNG, WebP), Redimensionar, Comprimir, **Restaurar** (luz e cor automáticas, máis luz, documento con fondo branco, branco e negro, menos ruído, máis nitidez; sen IA xerativa), Xirar e voltear, **Recoñecer texto** (OCR en galego, castelán, inglés e catalán) e **Quitar o fondo** (modelo rápido de 5 MB ou mellor de 46 MB). Quitan os metadatos (GPS). |
 | PDF | Unir, Dividir (extraer, por intervalos, cada páxina), Xirar, Imaxes a PDF, **PDF a imaxes**, **PDF a texto** e **Comprimir** (volve gardar as páxinas como imaxe: perde o texto seleccionable). |
 | Audio e vídeo | Converter audio (MP3, M4A, Opus, WAV; tamén saca o son dun vídeo), Cortar sen recodificar, Vídeo a GIF, **Transcribir** (Whisper tiny ou base, a SRT, VTT ou TXT, e opcionalmente traducido) e Traducir subtítulos (SRT ou VTT; galego, castelán, catalán e inglés). |
 

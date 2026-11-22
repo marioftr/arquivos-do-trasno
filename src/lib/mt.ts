@@ -109,7 +109,7 @@ const TAG: Partial<Record<Lang, string>> = { glg: ">>gl<<", spa: ">>es<<", cat: 
  *  en lotes con orixes de lonxitude distinta o modelo non remata a frase. */
 export async function translate(texts: string[], from: Lang, to: Lang, ctx: Ctx): Promise<string[]> {
   if (from === to || !texts.length) return texts;
-  const label = tr("Descargando o modelo de tradución (só a primeira vez)…");
+  const label = tr("Descargando o modelo de tradución…");
   const steps: { name: string; tag: string | null }[] = [];
   if (from !== "eng") steps.push({ name: "Xenova/opus-mt-ROMANCE-en", tag: null });
   if (to !== "eng") steps.push({ name: "Xenova/opus-mt-en-ROMANCE", tag: TAG[to] ?? null });

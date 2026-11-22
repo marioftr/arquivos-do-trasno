@@ -703,6 +703,22 @@ export const cutoutAnalyze = (path: string): Promise<[number, number]> => call("
 /** Vista previa do recorte: ruta dun PNG pequeno e transparente. */
 export const cutoutPreview = (path: string, seq: number, a: CutoutAdjust): Promise<string> => call("cutout_preview", { path, seq, options: cutoutOptions(a) });
 export const cutoutForget = (): Promise<void> => call("cutout_forget");
+/** Axustes de Restaurar imaxes (ver image_restore.rs): tipo, niveis, cor, sombras, saturación, ruído e nitidez. */
+export interface RestoreImageOptions {
+  kind: "photo" | "document" | "bw";
+  auto_levels: boolean;
+  color_balance: boolean;
+  shadows: number;
+  saturation: number;
+  denoise: number;
+  sharpen: number;
+}
+export interface RestoreImageReport { output_path: string; size: [number, number]; bytes_written: number }
+/** Restaura unha imaxe e gárdaa nun ficheiro novo. */
+export const restoreImage = (input: string, output: string, options: RestoreImageOptions, opts: { quality?: number; background?: [number, number, number]; metadata?: PhotoMetadata } = {}, overwrite = false): Promise<RestoreImageReport> =>
+  call("restore_image", { input, output, overwrite, options, quality: opts.quality ?? null, background: opts.background ?? null, metadata: opts.metadata ?? null });
+/** Vista previa da restauración: ruta dun PNG pequeno. */
+export const restoreImagePreview = (path: string, seq: number, options: RestoreImageOptions): Promise<string> => call("restore_image_preview", { path, seq, options });
 /** Texto que hai no portapapeis (baleiro se non hai texto). */
 export const clipboardText = (): Promise<string> => call("clipboard_text");
 /** Imaxe do portapapeis gardada como PNG (devolve a ruta, ou null se non hai imaxe). */
@@ -738,6 +754,13 @@ export interface BatchReport { done: DownloadReport[]; failed: { url: string; de
 /** Descarga unha ou varias ligazóns (os vídeos marcados dunha lista), unha tras outra. */
 export const ytdlpDownload = (urls: string[], dir: string, o: DownloadOptions): Promise<BatchReport> =>
   call("ytdlp_download", { urls, dir, options: { kind: o.kind, max_height: o.maxHeight, container: o.container, audio_format: o.audioFormat, audio_kbps: o.audioKbps } });
+export interface TorrentFile { index: number; path: string; size: number }
+export interface TorrentInfo { name: string; info_hash: string; total: number; files: TorrentFile[] }
+export interface TorrentReport { name: string; outputs: string[]; bytes_written: number }
+/** Nome e ficheiros dun torrent (ligazón magnet, ligazón a un .torrent ou ficheiro .torrent), sen descargar nada. Precisa internet. */
+export const torrentInfo = (source: string): Promise<TorrentInfo> => call("torrent_info", { source });
+/** Descarga un torrent a un cartafol (todos os ficheiros ou só os de `files`, polo número que dá `torrentInfo`). */
+export const torrentDownload = (source: string, dir: string, files: number[] | null): Promise<TorrentReport> => call("torrent_download", { source, dir, files });
 export const installTool = (tool: ToolId): Promise<ToolsStatus> => call("install_tool", { tool });
 export const cancelToolInstall = (): Promise<void> => call("cancel_tool_install");
 export const removeTool = (tool: ToolId): Promise<ToolsStatus> => call("remove_tool", { tool });

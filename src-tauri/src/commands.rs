@@ -1666,6 +1666,47 @@ pub async fn cutout_preview(path: String, seq: u32, options: trasno_engine::cuto
     .await
 }
 
+/// Restaura unha imaxe (luz, cor, ruído, nitidez) e gárdaa nun ficheiro novo.
+#[tauri::command]
+pub async fn restore_image(
+    input: String,
+    output: String,
+    overwrite: bool,
+    options: trasno_engine::image_restore::RestoreOptions,
+    quality: Option<u8>,
+    background: Option<[u8; 3]>,
+    metadata: Option<trasno_engine::image_meta::Metadata>,
+) -> Result<trasno_engine::image_restore::RestoreReport, String> {
+    blocking(move || {
+        trasno_engine::image_restore::restore_image(&PathBuf::from(input), &PathBuf::from(output), overwrite, &options, quality, background, metadata.unwrap_or_default()).map_err(to_err)
+    })
+    .await
+}
+
+/// Vista previa da restauración (PNG pequeno); `seq` fai o nome distinto para que o visor non a garde en caché.
+#[tauri::command]
+pub async fn restore_image_preview(path: String, seq: u32, options: trasno_engine::image_restore::RestoreOptions) -> Result<String, String> {
+    blocking_bg(move || {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        path.hash(&mut h);
+        let stem = format!("{:x}", h.finish());
+        let dir = preview_dir();
+        let out = dir.join(format!("{stem}-restauro-{seq}.png"));
+        trasno_engine::image_restore::preview(&PathBuf::from(&path), &out, &options).map_err(to_err)?;
+        if let Ok(rd) = std::fs::read_dir(&dir) {
+            for e in rd.flatten() {
+                let name = e.file_name().to_string_lossy().to_string();
+                if name.starts_with(&format!("{stem}-restauro-")) && e.path() != out {
+                    let _ = std::fs::remove_file(e.path());
+                }
+            }
+        }
+        Ok(out.to_string_lossy().to_string())
+    })
+    .await
+}
+
 /// Esquece a máscara en memoria (ao pechar a ferramenta).
 #[tauri::command]
 pub fn cutout_forget() {
@@ -1706,6 +1747,18 @@ pub async fn ytdlp_thumbnail(app: tauri::AppHandle, url: String) -> Result<Strin
 #[tauri::command]
 pub async fn ytdlp_download(urls: Vec<String>, dir: String, options: trasno_engine::ytdlp::DownloadOptions) -> Result<trasno_engine::ytdlp::BatchReport, String> {
     blocking(move || trasno_engine::ytdlp::download_many(&urls, &PathBuf::from(dir), &options).map_err(to_err)).await
+}
+
+/// Mira un torrent (nome e ficheiros) sen descargar nada.
+#[tauri::command]
+pub async fn torrent_info(source: String) -> Result<trasno_engine::torrent::TorrentInfo, String> {
+    blocking_bg(move || trasno_engine::torrent::inspect(&source).map_err(to_err)).await
+}
+
+/// Descarga un torrent (ou só algúns dos seus ficheiros) a un cartafol.
+#[tauri::command]
+pub async fn torrent_download(source: String, dir: String, files: Option<Vec<usize>>) -> Result<trasno_engine::torrent::TorrentReport, String> {
+    blocking(move || trasno_engine::torrent::download(&source, &PathBuf::from(dir), files).map_err(to_err)).await
 }
 
 #[tauri::command]

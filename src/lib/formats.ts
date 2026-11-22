@@ -19,9 +19,9 @@ export function sameFormat(ext: string): string | null {
 }
 
 /** Ferramentas que gardan no formato do orixinal e poden quedar bloqueadas para un ficheiro. */
-export type LockTool = "editar" | "anotar" | "comprimir" | "redimensionar" | "cortar";
-const VERB: Record<LockTool, string> = { editar: "editar", anotar: "anotar", comprimir: "comprimir", redimensionar: "redimensionar", cortar: "cortar" };
-const VERB_LO: Record<LockTool, string> = { editar: "Editalo", anotar: "Anotalo", comprimir: "Comprimilo", redimensionar: "Redimensionalo", cortar: "Cortalo" };
+export type LockTool = "editar" | "anotar" | "comprimir" | "redimensionar" | "cortar" | "restaurar";
+const VERB: Record<LockTool, string> = { editar: "editar", anotar: "anotar", comprimir: "comprimir", redimensionar: "redimensionar", cortar: "cortar", restaurar: "restaurar" };
+const VERB_LO: Record<LockTool, string> = { editar: "Editalo", anotar: "Anotalo", comprimir: "Comprimilo", redimensionar: "Redimensionalo", cortar: "Cortalo", restaurar: "Restauralo" };
 
 /** Texto curto que se ve cando unha ferramenta está bloqueada; a explicación vai no «i». */
 export const readOnlyLabel = () => tr("Só modo lectura");
@@ -43,7 +43,7 @@ export function animatedNotice(ext: string, tool: LockTool): string {
   const fmt = ext.toUpperCase();
   const verb = tr(VERB[tool]);
   if (tool === "redimensionar") return tr("Este {fmt} é animado: só se poden redimensionar GIF e WebP animados sen perder a animación.", { fmt });
-  const gifOnly = tool === "editar" || tool === "cortar" ? "" : " " + tr("Só se pode {verb} GIF sen perder a animación.", { verb });
+  const gifOnly = tool === "editar" || tool === "cortar" || tool === "restaurar" ? "" : " " + tr("Só se pode {verb} GIF sen perder a animación.", { verb });
   return tr("Este {fmt} é animado: {verbLo} só gardaría un fotograma.", { fmt, verb, verbLo: tr(VERB_LO[tool]).toLowerCase() }) + gifOnly;
 }
 

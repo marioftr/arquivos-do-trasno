@@ -11,6 +11,7 @@ Un resultado sempre é un ficheiro novo: o orixinal non se modifica. As extensi�
 | Converter | Cambiar de formato; calidade, sen perdas, ancho ou lado máximo, fondo para a transparencia, metadatos e GPS. |
 | Comprimir | Reducir o peso por nivel de calidade ou ata un tamaño máximo; estimación do tamaño. |
 | Editar | Recortar (proporcións), xirar e espellar, brillo, contraste, desenfoque, branco e negro e inverter cores. |
+| Restaurar | Sen IA xerativa: luz, cor, ruído e nitidez. Perfís (Automático, Máis luz, Documento, Branco e negro, Menos ruído, Máis nitidez, Personalizado) e axustes de niveis automáticos, equilibrio de cor, sombras, saturación, ruído e nitidez. O visor amosa o resultado en directo; «Ver orixinal» (premido) compara. Imaxes soas ou en lote. |
 | Quitar fondo ⬇ | Recoñece o obxecto principal e quita o resto. «Previsualizar» (botón pequeno sobre o verde) analiza a imaxe e o visor amosa o resultado en directo, co fondo elixido (transparente, branco, negro, gris ou personalizado) e axustes de recorte, suavidade e detalle das beiras. PNG, WebP ou JPG. |
 | Redimensionar | Por porcentaxe ou píxeles (tamaños con nome), manter proporción, recortar polo centro ou estirar; imaxes soas ou en lote. |
 | Dividir | Cortar en partes iguais (columnas × filas) dentro dunha zona; plantillas de carrusel e cuadrícula. |
@@ -19,7 +20,7 @@ Un resultado sempre é un ficheiro novo: o orixinal non se modifica. As extensi�
 | Recoñecer texto (OCR) | Ler o texto dunha imaxe (Tesseract; idiomas descargables) para seleccionalo e copialo. |
 | Información | Datos do ficheiro, metadatos e EXIF. |
 
-Varias imaxes xuntas: Converter, Comprimir, Redimensionar, Unir (nun PDF) e Xuntar (capturas de desprazamento con cabeceira e pé fixos, solapamento e «Quitar tramos repetidos»).
+Varias imaxes xuntas: Converter, Comprimir, Restaurar, Redimensionar, Unir (nun PDF) e Xuntar (capturas de desprazamento con cabeceira e pé fixos, solapamento e «Quitar tramos repetidos»).
 
 ## Vídeo
 
@@ -66,6 +67,7 @@ Varios PDF xuntos: Unir.
 ## Fóra das pestanas
 
 - **Descargar por ligazón** ⬇: vídeo ou audio dunha ligazón con yt-dlp. Comproba a ligazón co botón Buscar (ou soa, se vén do botón de pegar do trasno) e amosa miniatura, plataforma, título, duración, data (día, mes e ano) e visualizacións; unha lista vai debaixo dos detalles, deixa elixir formato (MP4 ou MKV) e calidade («Orixinal (1080p)» ou unha altura) en vídeo, e formato e calidade en audio. Os erros coñecidos (DRM, vídeo privado, sesión, país, retirado) saen en galego; un vídeo con DRM non se pode descargar, e di como sairá o ficheiro. Se a ligazón é unha lista, amósaa enteira e descarga os vídeos marcados (se un falla, seguen os demais). O sitio onde gardar pregúntase ao premer o botón verde, como no resto da app, e a descarga segue en segundo plano nos procesos. Está no menú do trasno e no buscador (Ctrl+K); o resultado entra na lista. Precisa tamén FFmpeg.
+- **Torrents**: o mesmo diálogo de Descargar por ligazón acepta ligazóns magnet, ligazóns a un `.torrent` ou un ficheiro `.torrent` (botón «Elixir un ficheiro .torrent», ou pegar do portapapeis). Usa un cliente BitTorrent integrado (librqbit, Apache-2.0): non precisa yt-dlp, FFmpeg nin programas externos. «Buscar» lé o nome e os ficheiros (cunha ligazón magnet busca xente que o teña: precisa internet) e deixa marcar cales baixar. Baixa a un cartafol temporal dentro do destino e, ao completarse, móveo co nome do torrent sen pisar nada; ao rematar déixase de compartir, e non se abre ningún porto de entrada. Cancelar borra o que levase. A descarga segue nos procesos.
 - Menú do trasno (círculo interior): Engadir ficheiros, Descargar por ligazón, Procesos e Axustes; círculo exterior: Pegar do portapapeis (unha ligazón abre Descargar por ligazón xa comprobándoa; rutas de ficheiros engádense á lista; unha imaxe copiada gárdase como PNG en Imaxes › Arquivos do Trasno e entra na lista), Comentario e Buscar. Mentres o trasno está na xanela, os seus avisos agardan e saen cando volve. O trasno voa da barra á xanela ao abrir Descargar por ligazón, volve ao pechala e vai á barra co billete ao empezar unha descarga.
 - Buscador de accións (Ctrl+K), atallos de teclado configurables, procesos e historial, Novidades, tema claro e escuro.
 - Menú do clic dereito no Explorador de Windows: converter, comprimir, redimensionar e xirar sen abrir a app.
@@ -82,4 +84,4 @@ Varios PDF xuntos: Unir.
 | yt-dlp | Descargar por ligazón. | 24 MB |
 | Paquetes de idioma de Tesseract | OCR. | 2–15 MB cada un |
 
-Aínda sen facer (ver a folla de ruta): ampliar imaxes con IA (distinto de Redimensionar, que só remostrea), torrents e detección de duplicados.
+Aínda sen facer (ver a folla de ruta): ampliar imaxes con IA (distinto de Redimensionar, que só remostrea), texto a voz e detección de duplicados.

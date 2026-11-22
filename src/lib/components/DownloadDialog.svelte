@@ -13,13 +13,14 @@
   import { trasnoLeave } from "../flight";
   import { missingOf, type Need } from "../models";
   import { askDir } from "./tools/shared";
+  import { open as pickFile } from "@tauri-apps/plugin-dialog";
   import Modal from "./ui/Modal.svelte";
   import TextField from "./ui/TextField.svelte";
   import Segmented from "./ui/Segmented.svelte";
   import SelectField from "./ui/SelectField.svelte";
   import ExtensionGate from "./ui/ExtensionGate.svelte";
 
-  /** Descargar vídeo ou audio por ligazón con yt-dlp. A descarga segue en segundo plano (procesos) e o resultado entra na lista de ficheiros. */
+  /** Descargar vídeo ou audio por ligazón con yt-dlp, ou un torrent (ligazón magnet ou ficheiro .torrent) co cliente integrado. A descarga segue en segundo plano (procesos) e o resultado entra na lista de ficheiros. */
   const KEY = "arquivos-do-trasno.descarga";
   const saved = (() => {
     try {
@@ -41,7 +42,10 @@
   const busy = job.busy;
 
   const needs: Need[] = [{ kind: "tool", id: "ytdlp" }, { kind: "tool", id: "ffmpeg" }];
-  $: missing = missingOf(needs, $tools).length > 0;
+  /** Un torrent non usa yt-dlp nin FFmpeg: só os vídeos precisan esas extensións. */
+  const isTorrent = (v: string) => /^magnet:\?/i.test(v) || /^https?:\/\/\S+\.torrent([?#]|$)/i.test(v) || /^([a-zA-Z]:[\\/]|\\\\|\/).*\.torrent$/i.test(v);
+  $: torrentMode = isTorrent(url.trim());
+  $: missing = !torrentMode && missingOf(needs, $tools).length > 0;
 
   onMount(async () => {
     // Só a ligazón que chega directa do botón de pegar se busca soa; a que se escribe ou pega no campo, co botón.
@@ -70,31 +74,50 @@
   let autoSearch = false;
   let thumb = "";
   let selected = new Set<string>();
+  let tinfo: engine.TorrentInfo | null = null;
 
   const looksLikeUrl = (v: string) => /^https?:\/\/[^\s/]+\.[^\s/]+/i.test(v);
   /** Ao cambiar a ligazón, o que se sabía da anterior xa non vale. */
   function forget() {
     round++;
     info = null;
+    tinfo = null;
     checkErr = "";
     checking = false;
     thumb = "";
   }
   $: url, forget();
-  $: if (autoSearch && !missing && looksLikeUrl(url.trim())) {
+  const valid = (v: string) => looksLikeUrl(v) || isTorrent(v);
+  $: if (autoSearch && !missing && valid(url.trim())) {
     autoSearch = false;
     search();
   }
-  $: canSearch = looksLikeUrl(url.trim()) && !missing && !checking && !$busy;
+  $: canSearch = valid(url.trim()) && !missing && !checking && !$busy;
   function search() {
     const v = url.trim();
-    if (looksLikeUrl(v) && !missing && !checking) void check(v);
+    if (valid(v) && !missing && !checking) void check(v);
+  }
+  /** Elixir un ficheiro .torrent do disco. */
+  async function chooseTorrent() {
+    const p = await pickFile({ filters: [{ name: "Torrent", extensions: ["torrent"] }] }).catch(() => null);
+    if (typeof p === "string") {
+      url = p;
+      await tick();
+      search();
+    }
   }
 
   async function check(v: string) {
     const mine = round;
     checking = true;
     try {
+      if (isTorrent(v)) {
+        const t = await engine.torrentInfo(v);
+        if (mine !== round) return;
+        tinfo = t;
+        selected = new Set(t.files.map((f) => String(f.index)));
+        return;
+      }
       const r = await engine.ytdlpInfo(v);
       if (mine !== round) return;
       info = r;
@@ -139,17 +162,19 @@
   $: audioSource = info && !info.playlist && info.audio_kbps ? tr("{codec} a uns {k} kbps", { codec: info.audio_codec ?? "", k: info.audio_kbps }).trim() : "";
 
   // ---- lista
-  $: entries = info?.playlist ? info.entries : [];
-  /** Con lista, a xanela ábrese en dúas columnas: ligazón e axustes á esquerda, vídeos á dereita. */
-  $: wide = entries.length > 0 && !missing;
-  $: count = info?.playlist ? selected.size : 1;
-  $: allOn = entries.length > 0 && selected.size === entries.length;
+  // Os vídeos dunha lista ou os ficheiros dun torrent: o mesmo cadro con casas para marcar.
+  type Item = { key: string; title: string; note: string };
+  $: items = (tinfo ? tinfo.files.map((f) => ({ key: String(f.index), title: f.path, note: formatBytes(f.size) })) : info?.playlist ? info.entries.map((e) => ({ key: e.url, title: e.title || e.url, note: clock(e.duration) })) : []) as Item[];
+  /** Con varios elementos, a xanela ábrese en dúas columnas: ligazón e axustes á esquerda, lista á dereita. */
+  $: wide = items.length > 1 && !missing;
+  $: count = items.length > 1 ? selected.size : 1;
+  $: allOn = items.length > 0 && selected.size === items.length;
   function flip(u: string) {
     if (selected.has(u)) selected.delete(u);
     else selected.add(u);
     selected = new Set(selected);
   }
-  const toggleAll = () => (selected = allOn ? new Set() : new Set(entries.map((e) => e.url)));
+  const toggleAll = () => (selected = allOn ? new Set() : new Set(items.map((e) => e.key)));
   const some = (node: HTMLInputElement, on: boolean) => {
     node.indeterminate = on;
     return { update: (v: boolean) => (node.indeterminate = v) };
@@ -181,7 +206,9 @@
       return u.slice(0, 40);
     }
   };
-  $: facts = info
+  $: facts = tinfo
+    ? [tinfo.files.length === 1 ? tr("1 ficheiro") : tr("{n} ficheiros", { n: tinfo.files.length }), formatBytes(tinfo.total)]
+    : info
     ? [
         info.playlist ? (info.total > info.entries.length ? tr("{n} vídeos (amósanse {m})", { n: info.total, m: info.entries.length }) : tr("{n} vídeos", { n: info.entries.length })) : clock(info.duration),
         info.uploader ?? "",
@@ -191,8 +218,36 @@
     : [];
 
   // ---- descargar: pregunta onde gardar (como o resto da app), pecha a xanela e segue en segundo plano
+  async function runTorrent() {
+    const source = url.trim();
+    if (!tinfo || !valid(source)) return;
+    const start = await downloadDir().catch(() => "");
+    const dir = await askDir(start ? await join(start, "x") : source, start || undefined);
+    if (!dir) return;
+    const chosen = items.length > 1 && selected.size < items.length ? [...selected].map(Number) : null;
+    const title = tinfo.name;
+    const paths: string[] = [];
+    trasnoLeave.set({ ticket: $t("Descargando…") });
+    dialog.set(null);
+    await job.run(
+      TRASNO.traballando,
+      fallo("editando"),
+      async () => {
+        const r = await engine.torrentDownload(source, dir, chosen);
+        for (const p of r.outputs) {
+          paths.push(p);
+          outputHook.fn?.(p);
+        }
+        return `${listo()} ${r.name}\n${formatBytes(r.bytes_written)}`;
+      },
+      title,
+    );
+    if (paths.length) await addPaths(paths);
+  }
+
   async function run() {
-    const urls = info?.playlist ? entries.filter((e) => selected.has(e.url)).map((e) => e.url) : [url.trim()];
+    if (torrentMode) return runTorrent();
+    const urls = info?.playlist ? info.entries.filter((e) => selected.has(e.url)).map((e) => e.url) : [url.trim()];
     if (!urls.length || !looksLikeUrl(url.trim()) || missing) return;
     const start = await downloadDir().catch(() => "");
     const dir = await askDir(start ? await join(start, "x") : url, start || undefined);
@@ -227,13 +282,25 @@
     <div class="top">
       <div class="urlrow">
         <div class="grow" bind:this={urlInput} role="presentation" on:keydown={(e) => e.key === "Enter" && search()}>
-          <TextField label={$t("Ligazón")} bind:value={url} placeholder="https://…" disabled={$busy} />
+          <TextField label={$t("Ligazón")} bind:value={url} placeholder="https://…  ·  magnet:?…" disabled={$busy} />
         </div>
         <button class="btn" on:click={search} disabled={!canSearch} data-testid="download-search">{$t("Buscar")}</button>
       </div>
 
+      {#if !url.trim()}
+        <button class="linkbtn" on:click={chooseTorrent} disabled={$busy}>{$t("Elixir un ficheiro .torrent")}</button>
+      {/if}
+
       {#if checking}
-        <p class="status muted" role="status">{$t("Comprobando a ligazón…")}</p>
+        <p class="status muted" role="status">{torrentMode ? $t("Buscando o torrent…") : $t("Comprobando a ligazón…")}</p>
+      {:else if tinfo}
+        <div class="card" data-testid="torrent-info">
+          <div class="body">
+            <div class="chips"><span class="site">{$t("Torrent")}</span></div>
+            <strong class="title">{tinfo.name}</strong>
+            {#if facts.length}<span class="facts muted">{facts.join(" · ")}</span>{/if}
+          </div>
+        </div>
       {:else if checkErr}
         <p class="status warn selectable" role="alert">{checkErr}</p>
       {:else if info}
@@ -255,10 +322,10 @@
       <!-- Os vídeos da lista van nunha columna á dereita (nun móbil, debaixo dos detalles). -->
       <div class="side">
         <div class="list" data-testid="playlist">
-          <label class="all"><input type="checkbox" checked={allOn} use:some={selected.size > 0 && !allOn} on:change={toggleAll} /> <span>{$t("{n} de {m} vídeos", { n: selected.size, m: entries.length })}</span></label>
+          <label class="all"><input type="checkbox" checked={allOn} use:some={selected.size > 0 && !allOn} on:change={toggleAll} /> <span>{tinfo ? tr("{n} de {m} ficheiros", { n: selected.size, m: items.length }) : tr("{n} de {m} vídeos", { n: selected.size, m: items.length })}</span></label>
           <ul class="scrollbar-thin">
-            {#each entries as e, i (e.url)}
-              <li><label><input type="checkbox" checked={selected.has(e.url)} on:change={() => flip(e.url)} /><span class="num">{i + 1}</span><span class="name" title={e.title}>{e.title || e.url}</span><span class="dur muted">{clock(e.duration)}</span></label></li>
+            {#each items as e, i (e.key)}
+              <li><label><input type="checkbox" checked={selected.has(e.key)} on:change={() => flip(e.key)} /><span class="num">{i + 1}</span><span class="name" title={e.title}>{e.title}</span><span class="dur muted">{e.note}</span></label></li>
             {/each}
           </ul>
         </div>
@@ -268,6 +335,11 @@
     <div class="opts">
       {#if missing}
         <ExtensionGate {needs} />
+      {:else if torrentMode}
+        <p class="format muted">{$t("Garda o que baixe nun cartafol co nome do torrent. Ao rematar, déixase de compartir. Descarga só o que teñas dereito a gardar.")}</p>
+        <button class="btn primary block" on:click={run} disabled={!tinfo || checking || $busy || (items.length > 1 && !count)} data-testid="download-go">
+          {items.length > 1 ? (count === 1 ? $t("Descargar 1 ficheiro") : tr("Descargar {n} ficheiros", { n: count })) : $t("Descargar")}
+        </button>
       {:else}
         <Segmented
           label={$t("Descargar")}
@@ -305,6 +377,7 @@
   .side { grid-area: side; position: relative; min-width: 0; min-height: 0; }
   .status { margin: 0; font-size: var(--fs-md); }
   .warn { color: var(--accent-pdf); }
+  .linkbtn { align-self: flex-start; padding: 0; background: none; border: 0; color: var(--accent); font-size: var(--fs-sm); text-decoration: underline; cursor: pointer; }
   .urlrow { display: flex; align-items: flex-end; gap: 0.5rem; }
   .grow { flex: 1; min-width: 0; }
   .card { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); min-width: 0; }

@@ -237,7 +237,7 @@ pub fn stitch_images(inputs: &[PathBuf], output: &Path, overwrite: bool, o: &Sti
     let mut y = 0usize;
     for (i, piece) in pieces.iter().enumerate() {
         let raw = imgs[piece.img].as_raw();
-        let dst = canvas.as_mut();
+        let dst: &mut [u8] = canvas.as_mut();
         for r in piece.from..piece.to {
             dst[y * row_bytes..(y + 1) * row_bytes].copy_from_slice(&raw[r * row_bytes..(r + 1) * row_bytes]);
             y += 1;
