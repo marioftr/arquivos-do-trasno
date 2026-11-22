@@ -35,7 +35,7 @@
   import SubtitleSection from "./tools/SubtitleSection.svelte";
   import PdfSplitSection from "./tools/PdfSplitSection.svelte";
   import PdfMarksSection from "./tools/PdfMarksSection.svelte";
-  import PdfCropSection from "./tools/PdfCropSection.svelte";
+  import PdfTransformSection from "./tools/PdfTransformSection.svelte";
   import PdfCompressSection from "./tools/PdfCompressSection.svelte";
   import PdfSecuritySection from "./tools/PdfSecuritySection.svelte";
   import PdfRepairSection from "./tools/PdfRepairSection.svelte";
@@ -60,8 +60,8 @@
   $: selKey = selection.map((f) => f.path).join("|");
 
   /** Cada tipo de ficheiro (ou lote) ten as súas pestañas: unha tarefa por pestana. */
-  function tabsFor(cat: Category | null, many: boolean, pdf: boolean, ext: string, tt: (k: string) => string): { id: string; label: string }[] {
-    const tab = (id: string, label: string) => ({ id, label: tt(label) });
+  function tabsFor(cat: Category | null, many: boolean, pdf: boolean, ext: string, tt: (k: string) => string): { id: string; label: string; icon?: string }[] {
+    const tab = (id: string, label: string, icon?: string) => ({ id, label: tt(label), icon });
     // Os contedores Matroska teñen a súa propia pestana de pistas (MKVToolNix).
     const mkvTab = () => (["mkv", "mka", "webm"].includes(ext) ? [tab("mkv", "Pistas")] : []);
     const multiMkv = () => [tab("mkv", "Pistas")];
@@ -75,7 +75,8 @@
     }
     switch (cat) {
       case "imaxe":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("restore", "Restaurar"), tab("cutout", "Quitar fondo"), tab("resize", "Redimensionar"), tab("slice", "Dividir"), tab("annotate", "Anotar"), tab("icons", "Iconas"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
+        // Nas imaxes Transformar é xirar, voltar e recortar: a icona é o cadro de recorte.
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Transformar", "crop"), tab("restore", "Restaurar"), tab("cutout", "Quitar fondo"), tab("resize", "Redimensionar"), tab("slice", "Dividir"), tab("annotate", "Anotar"), tab("icons", "Iconas"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
         return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...(ext === "gif" ? [] : [tab("restore", "Restaurar"), tab("transcribe", "Transcribir")]), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
@@ -85,7 +86,7 @@
           ? [
               tab("convert", "Converter"),
               tab("pages", "Páxinas"),
-              tab("shape", "Xirar e recortar"),
+              tab("shape", "Transformar", "crop"),
               tab("complete", "Completar"),
               tab("marks", "Marcas"),
               tab("optimize", "Comprimir e reparar"),
@@ -155,7 +156,6 @@
       case "convert": return [m("format", "Formatos"), m("tables", "Táboas")];
       case "pages": return [m("organize", "Ordenar"), m("extract", "Extraer"), m("split", "Dividir")];
       case "complete": return [m("form", "Formulario"), m("outline", "Índice"), m("attach", "Anexos")];
-      case "shape": return [m("rotate", "Xirar"), m("crop", "Recortar")];
       case "optimize": return [m("compress", "Comprimir"), m("repair", "Reparar")];
       default: return [];
     }
@@ -281,15 +281,13 @@
         {:else if current === "extract" && first}
           <ExtractSection file={first} mode={mode === "audio" ? "audio" : "frame"} />
         {:else if current === "pages" && mode === "extract" && first}
-          <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} part="extract" />
+          <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} />
         {:else if current === "pages" && mode === "split" && first}
           <PdfSplitSection file={first} />
         {:else if current === "pages" && first}
           <Lazy loader={() => import("./tools/PdfOrganizeSection.svelte")} file={first} />
-        {:else if current === "shape" && mode === "crop" && first}
-          <PdfCropSection file={first} />
         {:else if current === "shape" && first}
-          <Lazy loader={() => import("./tools/PdfPagesSection.svelte")} file={first} part="rotate" />
+          <PdfTransformSection file={first} />
         {:else if current === "marks" && first}
           <PdfMarksSection file={first} />
         {:else if current === "ocr" && first && category === "imaxe"}

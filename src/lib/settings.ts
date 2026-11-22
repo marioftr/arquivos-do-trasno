@@ -112,6 +112,8 @@ export const outputFolder = persistedText("arquivos-do-trasno.output-folder");
 export const dialog = writable<"hub" | "palette" | "download" | null>(null);
 /** Ligazón que traía o portapapeis: Descargar por ligazón colleaa ao abrirse. */
 export const pastedLink = writable("");
+/** Que pestana abre a xanela de descargas: ligazóns (yt-dlp) ou torrents. */
+export const downloadTab = writable<"link" | "torrent">("link");
 /** Páxina aberta no centro, como «grupo.subcategoría». */
 export const hubPage = writable("settings.general");
 export function openHub(page: string) {

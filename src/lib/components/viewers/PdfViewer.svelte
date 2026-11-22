@@ -809,6 +809,23 @@
         p.canvas.style.left = "50%";
         p.canvas.style.top = "50%";
         p.canvas.style.transform = `translate(-50%, -50%) rotate(${d}deg)`;
+        // O recorte tamén se ve (xira coa páxina): as sombras van nun cadro do tamaño orixinal que se xira igual.
+        if (ov.crop) {
+          const { l, b, r, t } = ov.crop;
+          const box = document.createElement("div");
+          box.className = "ov";
+          box.style.cssText = `position:absolute;left:50%;top:50%;width:${p.w}px;height:${p.h}px;transform:translate(-50%,-50%) rotate(${d}deg);pointer-events:none`;
+          const shade = (css: string) => {
+            const e = document.createElement("div");
+            e.style.cssText = `position:absolute;background:rgba(10,10,14,.62);${css}`;
+            box.appendChild(e);
+          };
+          if (l > 0) shade(`left:0;top:0;bottom:0;width:${l * p.s}px`);
+          if (r > 0) shade(`right:0;top:0;bottom:0;width:${r * p.s}px`);
+          if (t > 0) shade(`left:${l * p.s}px;right:${r * p.s}px;top:0;height:${t * p.s}px`);
+          if (b > 0) shade(`left:${l * p.s}px;right:${r * p.s}px;bottom:0;height:${b * p.s}px`);
+          p.wrap.appendChild(box);
+        }
         continue;
       }
 

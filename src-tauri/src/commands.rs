@@ -1399,6 +1399,33 @@ pub async fn pdf_crop(
 }
 
 #[tauri::command]
+pub async fn pdf_transform(
+    input: String, output: String, overwrite: bool,
+    degrees: i64, rotate_page: Option<u32>,
+    left: f32, bottom: f32, right: f32, top: f32, pages: Option<Vec<u32>>,
+) -> Result<String, String> {
+    blocking(move || {
+        let (i, o) = paths(input, output);
+        let crop = left > 0.0 || bottom > 0.0 || right > 0.0 || top > 0.0;
+        let turn = degrees.rem_euclid(360) != 0;
+        match (crop, turn) {
+            (false, false) => Err("Non hai nada que transformar.".to_string()),
+            (true, false) => done(trasno_engine::pdf_tools::crop_pages(&i, &o, overwrite, left, bottom, right, top, &pages)),
+            (false, true) => done(trasno_engine::pdf::rotate_pages(&i, rotate_page, degrees, &o, overwrite)),
+            // As dúas cousas: recorta nun ficheiro temporal ao carón do resultado e xira desde el.
+            (true, true) => {
+                let tmp = o.with_extension("trasno-tmp.pdf");
+                let r = trasno_engine::pdf_tools::crop_pages(&i, &tmp, true, left, bottom, right, top, &pages)
+                    .and_then(|t| trasno_engine::pdf::rotate_pages(&t, rotate_page, degrees, &o, overwrite));
+                let _ = std::fs::remove_file(&tmp);
+                done(r)
+            }
+        }
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn pdf_compress(input: String, output: String, overwrite: bool, quality: u8, scale_percent: u32) -> Result<String, String> {
     blocking(move || {
         let (i, o) = paths(input, output);

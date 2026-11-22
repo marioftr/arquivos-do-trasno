@@ -10,18 +10,13 @@
   import { createForm, useForm } from "../../forms";
   import { createJob } from "../../job";
   import { askOutput, safePages } from "./shared";
-  import NumberField from "../ui/NumberField.svelte";
   import TextField from "../ui/TextField.svelte";
-  import Toggle from "../ui/Toggle.svelte";
-  import Segmented from "../ui/Segmented.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
   import PageGrid from "./PageGrid.svelte";
 
   export let file: FileEntry;
-  /** Extraer páxinas e xirar van en pestanas distintas; esta sección serve para as dúas. */
-  export let part: "extract" | "rotate" = "rotate";
-
-  const form = createForm({ pageSpec: "", rotateAll: true, rotatePage: 1, degrees: 0 }, undefined, "pdfpages|" + file.path);
+  /** Extraer páxinas a un PDF novo, escollendo nas miniaturas ou polos números. */
+  const form = createForm({ pageSpec: "" }, undefined, "pdfpages|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();
@@ -31,10 +26,7 @@
   let gridTotal = 0;
   $: total = file.pages ?? (gridTotal || undefined);
   $: sel = safePages($form.pageSpec, total);
-  $: pdfOverlay.set({
-    select: sel ?? undefined,
-    rotate: $form.degrees ? { degrees: $form.degrees, page: $form.rotateAll ? null : $form.rotatePage } : undefined,
-  });
+  $: pdfOverlay.set({ select: sel ?? undefined });
   const own = claim("pdfOverlay");
   onDestroy(() => own.release(() => pdfOverlay.set(null)));
   const busy = job.busy;
@@ -84,24 +76,10 @@
       job.say(false, errText(e));
     }
   }
-
-  async function rotate() {
-    try {
-      const out = await askOutput(file, `-${tr("rotado")}`, "pdf");
-      if (!out) return;
-      const f = $form;
-      await job.run(TRASNO.traballando, fallo("editando"), async () =>
-        `${listo()} ${fileNameOf(await engine.pdfRotate(file.path, f.rotateAll ? null : f.rotatePage, f.degrees, out, true))}`,
-      );
-    } catch (e) {
-      job.say(false, `${fallo("editando")}\n${errText(e)}`);
-    }
-  }
 </script>
 
 <div class="stack">
 
-  {#if part === "extract"}
   <div class="group">
     <PanelInfo text={$t("As páxinas escóllense nas miniaturas ou escribindo os números.")} />
     <div class="pair">
@@ -112,16 +90,6 @@
     <TextField label={$t("Páxinas")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
     <button class="btn block" on:click={extract} disabled={$busy || !$form.pageSpec}>{$t("Extraer a PDF novo")}</button>
   </div>
-  {:else}
-  <div class="group">
-    <Toggle label={$t("Todas as páxinas")} bind:checked={$form.rotateAll} />
-    {#if !$form.rotateAll}
-      <NumberField label={$t("Páxina")} min={1} max={file.pages} bind:value={$form.rotatePage} def={1} unit={file.pages ? `/ ${file.pages}` : ""} />
-    {/if}
-    <Segmented label={$t("Ángulo")} options={[{ value: 0, label: "0°", glyph: { k: "turn", deg: 0 } }, { value: 90, label: "90°", glyph: { k: "turn", deg: 90 } }, { value: 180, label: "180°", glyph: { k: "turn", deg: 180 } }, { value: 270, label: "270°", glyph: { k: "turn", deg: 270 } }]} bind:value={$form.degrees} />
-    <button class="btn block" on:click={rotate} disabled={$busy || !$form.degrees}>{$t("Rotar a PDF novo")}</button>
-  </div>
-  {/if}
 
   <JobStatus {job} />
 </div>

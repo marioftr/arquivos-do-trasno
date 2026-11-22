@@ -36,7 +36,7 @@ function blur3(px: Uint8ClampedArray, w: number, h: number): Uint8ClampedArray {
   return out;
 }
 
-/** Estira a luz: o 0,5 % máis escuro pasa a negro e o 0,5 % máis claro a branco, e a cor equilíbrase un pouco (gris medio). */
+/** Estira a luz (o 0,5 % máis escuro tira a negro e o 0,5 % máis claro a branco, con límites) e equilibra un pouco a cor (gris medio). */
 function auto(d: ImageData) {
   const px = d.data;
   const n = px.length / 4;
@@ -55,6 +55,9 @@ function auto(d: ImageData) {
   for (let acc = 0; lo < 255 && (acc += hist[lo]) <= n * 0.005; lo++);
   for (let acc = 0; hi > 0 && (acc += hist[hi]) <= n * 0.005; hi--);
   if (hi - lo < 40) hi = Math.min(255, lo + 40);
+  // O negro non sobe de 50 nin o branco baixa de 200: unha escena escura ou clara de seu non se converte en luz de día.
+  lo = Math.min(lo, 50);
+  hi = Math.max(hi, 200);
   const mean = (sr + sg + sb) / (3 * n);
   // Equilibrio de cor: acerca cada canle á media, sen pasarse (un cambio de ata un 12 %).
   const bal = [sr, sg, sb].map((s) => Math.max(0.88, Math.min(1.12, 1 + (mean / (s / n) - 1) * 0.5)));

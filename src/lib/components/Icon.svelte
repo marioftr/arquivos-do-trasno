@@ -314,8 +314,30 @@
     <path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15" />
     <path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" />
   {:else if name === "transcribe"}
-    <path d="M4 10v4M7.5 7v10M11 9v6" />
-    <path d="M15 8h5M15 12h5M15 16h3.5" />
+    <rect x="4.5" y="3" width="6" height="10" rx="3" />
+    <path d="M3 11a4.5 4.5 0 0 0 9 0" />
+    <path d="M7.5 15.5V19M5 19h5" />
+    <path d="M14.5 7h6.5M14.5 12h6.5M14.5 17h4" />
+  {:else if name === "extract"}
+    <rect x="3" y="13" width="18" height="8" rx="1.8" />
+    <path d="M9 13v8M15 13v8" />
+    <path d="M12 9.5V3M9 5.8 12 3l3 2.8" />
+  {:else if name === "magnet"}
+    <path d="M5 3h4v9a3 3 0 0 0 6 0V3h4v9a7 7 0 0 1-14 0z" />
+    <path d="M5 7.5h4M15 7.5h4" />
+  {:else if name === "half"}
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
+  {:else if name === "grain"}
+    <circle cx="6" cy="6" r="1.2" fill="currentColor" />
+    <circle cx="12" cy="5" r="1.2" fill="currentColor" />
+    <circle cx="18" cy="7" r="1.2" fill="currentColor" />
+    <circle cx="5" cy="12" r="1.2" fill="currentColor" />
+    <circle cx="11" cy="11" r="1.2" fill="currentColor" />
+    <circle cx="17" cy="13" r="1.2" fill="currentColor" />
+    <circle cx="7" cy="18" r="1.2" fill="currentColor" />
+    <circle cx="13" cy="18" r="1.2" fill="currentColor" />
+    <circle cx="19" cy="19" r="1.2" fill="currentColor" />
   {:else if name === "cutout"}
     <circle cx="12" cy="12" r="9" stroke-dasharray="2.6 2.4" />
     <circle cx="12" cy="10" r="2.4" />

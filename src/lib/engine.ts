@@ -566,6 +566,11 @@ export async function pdfCrop(input: string, output: string, m: { left: number; 
   return call("pdf_crop", { input, output, overwrite, ...m, pages });
 }
 
+/** Xira e/ou recorta nun só paso (recorta primeiro, sobre a páxina orixinal, e despois xira). */
+export async function pdfTransform(input: string, output: string, t: { degrees: number; rotatePage: number | null; left: number; bottom: number; right: number; top: number }, pages: Pages, overwrite = false): Promise<string> {
+  return call("pdf_transform", { input, output, overwrite, degrees: t.degrees, rotatePage: t.rotatePage, left: t.left, bottom: t.bottom, right: t.right, top: t.top, pages });
+}
+
 export async function pdfCompress(input: string, output: string, quality: number, scalePercent: number, overwrite = false): Promise<string> {
   return call("pdf_compress", { input, output, overwrite, quality, scalePercent });
 }
@@ -712,6 +717,10 @@ export interface RestoreImageOptions {
   saturation: number;
   denoise: number;
   sharpen: number;
+  brightness: number;
+  contrast: number;
+  blur: number;
+  invert: boolean;
 }
 export interface RestoreImageReport { output_path: string; size: [number, number]; bytes_written: number }
 /** Restaura unha imaxe e gárdaa nun ficheiro novo. */

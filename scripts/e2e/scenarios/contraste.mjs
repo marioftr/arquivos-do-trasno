@@ -76,7 +76,7 @@ export default {
     // Imaxe: pestanas de ferramentas.
     await app.ev(`[...document.querySelectorAll('li[role=option]')].find(li=>li.innerText.includes('contraste.png'))?.querySelector('button.row')?.click()`);
     await app.sleep(600);
-    for (const tab of ["Converter", "Editar", "Quitar fondo"]) {
+    for (const tab of ["Converter", "Transformar", "Quitar fondo"]) {
       await app.click(tab);
       await app.sleep(700);
       await audit(`Imaxe · ${tab}`);

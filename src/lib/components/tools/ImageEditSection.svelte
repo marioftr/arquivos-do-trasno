@@ -13,9 +13,7 @@
   import { NO_ALPHA, rgbOf, hasTransparency, backdrop, cssOf, type Bg } from "../../transparency";
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
-  import Slider from "../ui/Slider.svelte";
   import NumberField from "../ui/NumberField.svelte";
-  import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import BackgroundPicker from "../ui/BackgroundPicker.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
@@ -27,11 +25,6 @@
     rotate: 0,
     flipH: false,
     flipV: false,
-    grayscale: false,
-    invert: false,
-    brightness: 0,
-    contrast: 0,
-    blur: 0,
     cropOn: false,
     cx: 0,
     cy: 0,
@@ -64,11 +57,11 @@
     rotate: $form.rotate,
     flipH: $form.flipH,
     flipV: $form.flipV,
-    grayscale: $form.grayscale,
-    invert: $form.invert,
-    brightness: $form.brightness,
-    contrast: $form.contrast,
-    blur: $form.blur,
+    grayscale: false,
+    invert: false,
+    brightness: 0,
+    contrast: 0,
+    blur: 0,
   });
   const own = claim("imageEdit");
   onDestroy(() =>
@@ -189,11 +182,6 @@
             rotate: f.rotate,
             flipH: f.flipH,
             flipV: f.flipV,
-            grayscale: f.grayscale,
-            invert: f.invert,
-            brightness: f.brightness,
-            contrast: f.contrast,
-            blur: f.blur,
             crop: f.cropOn ? [f.cx, f.cy, f.cw, f.ch] : undefined,
             quality: 90,
             background: NO_ALPHA.includes(outExt) ? rgbOf(f.bg, f.bgColor) : undefined,
@@ -252,15 +240,6 @@
         <NumberField label={$t("Alto")} unit="px" min={1} bind:value={$form.ch} def={file.height ?? 0} />
       </div>
     {/if}
-  </div>
-
-  <div class="group">
-    <h4 class="group-title">{$t("Cor e efectos")}</h4>
-    <Slider label={$t("Brillo")} min={-100} max={100} bind:value={$form.brightness} def={0} />
-    <Slider label={$t("Contraste")} min={-100} max={100} bind:value={$form.contrast} def={0} />
-    <Slider label={$t("Desenfoque")} unit="px" min={0} max={20} step={0.5} bind:value={$form.blur} def={0} />
-    <Toggle label={$t("Branco e negro")} bind:checked={$form.grayscale} />
-    <Toggle label={$t("Inverter cores")} bind:checked={$form.invert} />
   </div>
 
   <div class="group">

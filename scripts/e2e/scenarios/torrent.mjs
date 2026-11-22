@@ -1,4 +1,4 @@
-// Torrents na app real: abrir un .torrent en Descargar por ligazón (sen yt-dlp nin FFmpeg), ver o nome e os ficheiros, marcar cales e cancelar unha
+// Torrents na app real: abrir un .torrent na pestana Torrents (aparte das ligazóns) (sen yt-dlp nin FFmpeg), ver o nome e os ficheiros, marcar cales e cancelar unha
 // descarga que non avanza sen deixar restos. A descarga de verdade (con sementador local) probase no motor (tests/torrent.rs).
 import fs from "node:fs";
 import path from "node:path";
@@ -34,7 +34,8 @@ export default {
       { name: "b.txt", data: Buffer.from("ola torrent") },
     ]);
 
-    await app.radial("Descargar por ligazón");
+    await app.radial("Descargar torrent");
+    c.ok((await app.ev(`document.querySelector('[role=dialog] [data-testid=download-tabs] [aria-checked=true]')?.textContent.trim()`)) === "Torrents", "o botón do trasno abre a pestana Torrents");
     c.ok(await app.ev(`[...document.querySelectorAll('[role=dialog] button')].some(b=>b.innerText.includes('ficheiro .torrent'))`), "co campo baleiro ofrece elixir un ficheiro .torrent");
     await app.ev(`(()=>{const i=document.querySelector('[role=dialog] input[type=text]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i, ${JSON.stringify(file)}); i.dispatchEvent(new Event('input',{bubbles:true}));})()`);
     await app.sleep(600);

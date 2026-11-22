@@ -148,9 +148,10 @@ export default {
     c.ok(/quitados: \d+/.test((await row("Datos do documento")) ?? ""), "a táboa di cantos datos quitou", await row("Datos do documento"));
     c.ok(read("informe.pdf").includes("Marta Autora"), "o orixinal segue co autor");
 
-    // ---- Recortar: ao baixar as marxes a 0 non queda sombra
-    await app.click("Xirar e recortar");
-    await mode("Recortar");
+    // ---- Transformar (xirar e recortar no mesmo panel): ao baixar as marxes a 0 non queda sombra
+    await app.click("Transformar");
+    const pn = await app.panel();
+    c.ok(/xirar/i.test(pn) && /recortar/i.test(pn) && (await mode("Recortar")) !== "ok", "Transformar ten Xirar e Recortar no mesmo panel, sen selector de modo", pn.slice(0, 120));
     await app.waitFor(`document.querySelector('.stack input[role=switch][aria-label="Márxenes iguais"]')`, "o recorte", 15000);
     await app.toggle("Márxenes iguais");
     await app.slider("Marxe", 25);
@@ -160,6 +161,14 @@ export default {
     await app.slider("Marxe", 0);
     await app.sleep(500);
     c.ok((await shade()) === 0, "ao volver a 0 non queda sombra en ningún lado", String(await shade()));
+    // Xirar e recortar de vez: un só ficheiro novo, co xiro e o recorte.
+    await app.slider("Marxe", 10);
+    await app.ev(`[...document.querySelectorAll('.stack [role=radio]')].find(b=>b.textContent.trim()==='90°')?.click()`);
+    await app.sleep(400);
+    c.ok((await shade()) >= 1, "xirando, o recorte tamén se ve (xira coa páxina)", String(await shade()));
+    await go("Gardar copia transformada");
+    c.ok(await exists("informe-transformado.pdf"), "gardouse informe-transformado.pdf");
+    c.ok(!(await exists("informe-transformado.trasno-tmp.pdf")), "sen restos do ficheiro temporal");
 
     // ---- Anexos: pestana propia (non vai dentro de Seguridade)
     c.ok((await mode("Anexos")) !== "ok", "Seguridade xa non ten o modo «Anexos»");

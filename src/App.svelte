@@ -14,7 +14,7 @@
   import { get } from "svelte/store";
   import * as engine from "./lib/engine";
   import { t, lang, LANGS, type Lang } from "./lib/i18n";
-  import { theme, dialog, pastedLink, openSettings, openHub, welcomeIfNeeded, type Theme } from "./lib/settings";
+  import { theme, dialog, pastedLink, downloadTab, openSettings, openHub, welcomeIfNeeded, type Theme } from "./lib/settings";
   import { appVersion, updateAvailable, autoCheck, checkForUpdate, applyPendingMenuRefresh } from "./lib/updates";
   import { installExplorerMenu } from "./lib/explorerMenu";
   import QuickJob from "./lib/components/QuickJob.svelte";
@@ -77,7 +77,7 @@
     { id: "link", icon: "link", label: "Descargar por ligazón", tone: "var(--accent-video)", a: 61.5, r: BTN_R1 },
     { id: "procs", icon: "layers", label: "Procesos", tone: "var(--accent-conversor)", a: 31.5, r: BTN_R1 },
     { id: "settings", icon: "gear", label: "Axustes", tone: "var(--text-muted)", a: 1.5, r: BTN_R1 },
-    { id: "paste", icon: "paste", label: "Pegar do portapapeis", tone: "var(--accent-audio)", a: 76.5, r: BTN_R2 },
+    { id: "torrent", icon: "magnet", label: "Descargar torrent", tone: "var(--accent-audio)", a: 76.5, r: BTN_R2 },
     { id: "say", icon: "chat", label: "Comentario do trasno", tone: "var(--accent-pdf)", a: 46.5, r: BTN_R2 },
     { id: "palette", icon: "search", label: "Buscar", tone: "var(--accent)", a: 16.5, r: BTN_R2, actionId: "g.palette" },
   ];
@@ -86,11 +86,14 @@
     dockClose();
     (document.activeElement as HTMLElement | null)?.blur?.();
     if (id === "add") void escoller();
-    else if (id === "link") dialog.set("download");
-    else if (id === "paste") void pegar();
+    else if (id === "link" || id === "torrent") openDownloads(id);
     else runItem(id as ClickAction);
   }
-  /** Pegar do portapapeis: unha ligazón abre Descargar por ligazón xa comprobándoa; rutas de ficheiros ou cartafoles e imaxes copiadas engádense á lista. */
+  function openDownloads(tab: "link" | "torrent") {
+    downloadTab.set(tab);
+    dialog.set("download");
+  }
+  /** Pegar do portapapeis (Ctrl+V ou o buscador): unha ligazón ou un torrent abre a xanela de descargas xa comprobándoo; rutas de ficheiros ou cartafoles e imaxes copiadas engádense á lista. */
   async function pegar() {
     let text = "";
     try {
@@ -102,14 +105,14 @@
     const url = text.split(/\s+/)[0] ?? "";
     if ((/^https?:\/\/[^\s/]+\.[^\s/]+/i.test(url) || /^magnet:\?/i.test(url)) && !text.includes("\n")) {
       pastedLink.set(url);
-      dialog.set("download");
+      openDownloads(/^magnet:/i.test(url) ? "torrent" : "link");
       return;
     }
     const paths = text.split(/\r?\n/).map((l) => l.trim().replace(/^"(.*)"$/, "$1")).filter((l) => /^([a-zA-Z]:[\\/]|\\\\|\/)/.test(l));
     // Un único ficheiro .torrent abre Descargar por ligazón co torrent xa elixido.
     if (paths.length === 1 && /\.torrent$/i.test(paths[0])) {
       pastedLink.set(paths[0]);
-      dialog.set("download");
+      openDownloads("torrent");
       return;
     }
     if (paths.length) return void (await addPaths(paths));
@@ -354,6 +357,9 @@
       escoller();
     } else if (id === "g.remove" && $activePath) {
       removeFile($activePath);
+    } else if (id === "g.paste") {
+      e.preventDefault();
+      void pegar();
     }
   }
 
@@ -494,7 +500,7 @@
   </footer>
 
 
-  {#if $dialog === "hub"}<HubDialog />{:else if $dialog === "palette"}<CommandPalette onAdd={escoller} />{:else if $dialog === "download"}<DownloadDialog />{/if}
+  {#if $dialog === "hub"}<HubDialog />{:else if $dialog === "palette"}<CommandPalette onAdd={escoller} onPaste={pegar} />{:else if $dialog === "download"}<DownloadDialog />{/if}
   <ToolNeedDialog />
 
   {#if dragging}

@@ -38,11 +38,23 @@ pub struct RestoreOptions {
     /// Nitidez: 0 nada, 1 suave, 2 normal, 3 forte.
     #[serde(default)]
     pub sharpen: u8,
+    /// Brillo, de -100 a 100.
+    #[serde(default)]
+    pub brightness: i32,
+    /// Contraste, de -100 a 100.
+    #[serde(default)]
+    pub contrast: i32,
+    /// Desenfoque (sigma en píxeles), de 0 a 20.
+    #[serde(default)]
+    pub blur: f32,
+    /// Inverte as cores (o alfa non cambia).
+    #[serde(default)]
+    pub invert: bool,
 }
 
 impl Default for RestoreOptions {
     fn default() -> Self {
-        RestoreOptions { kind: Kind::Photo, auto_levels: false, color_balance: false, shadows: 0, saturation: 0, denoise: 0, sharpen: 0 }
+        RestoreOptions { kind: Kind::Photo, auto_levels: false, color_balance: false, shadows: 0, saturation: 0, denoise: 0, sharpen: 0, brightness: 0, contrast: 0, blur: 0.0, invert: false }
     }
 }
 
@@ -53,7 +65,8 @@ impl RestoreOptions {
     }
 
     pub fn validate(&self) -> Result<()> {
-        if self.shadows > 100 || self.denoise > 3 || self.sharpen > 3 || !(-100..=100).contains(&self.saturation) {
+        let tone = (-100..=100).contains(&self.saturation) && (-100..=100).contains(&self.brightness) && (-100..=100).contains(&self.contrast);
+        if self.shadows > 100 || self.denoise > 3 || self.sharpen > 3 || !tone || !self.blur.is_finite() || !(0.0..=20.0).contains(&self.blur) {
             return Err(EngineError::IntegrityCheck("Algún axuste está fóra do seu rango.".into()));
         }
         Ok(())
@@ -102,6 +115,11 @@ fn blur3(px: &[u8], w: usize, h: usize) -> Vec<u8> {
     out
 }
 
+/// Niveis automáticos: o negro non sobe de 50 nin o branco baixa de 200. Así unha foto apagada gaña contraste, pero unha escena
+/// que é escura (de noite) ou clara (neve, néboa) de seu non se converte en luz de día.
+const LEVELS_BLACK_MAX: usize = 50;
+const LEVELS_WHITE_MIN: usize = 200;
+
 /// Límites de luz (percentís 0,5 e 99,5) dunha lista de valores 0–255.
 fn percentiles(hist: &[u32; 256], n: u64) -> (usize, usize) {
     let cut = (n as f64 * 0.005) as u64;
@@ -141,7 +159,12 @@ fn levels_and_balance(px: &mut [u8], auto_levels: bool, balance: bool) {
         sg += p[1] as u64;
         sb += p[2] as u64;
     }
-    let (lo, hi) = if auto_levels { percentiles(&hist, n) } else { (0, 255) };
+    let (lo, hi) = if auto_levels {
+        let (l, h) = percentiles(&hist, n);
+        (l.min(LEVELS_BLACK_MAX), h.max(LEVELS_WHITE_MIN))
+    } else {
+        (0, 255)
+    };
     let mean = (sr + sg + sb) as f32 / (3.0 * n as f32);
     let gain = |s: u64| if balance { (1.0 + (mean / (s as f32 / n as f32).max(1.0) - 1.0) * 0.5).clamp(0.88, 1.12) } else { 1.0 };
     let bal = [gain(sr), gain(sg), gain(sb)];
@@ -342,8 +365,25 @@ pub fn apply(img: &DynamicImage, o: &RestoreOptions) -> Result<RgbaImage> {
             }
         }
     }
+    if o.brightness != 0 || o.contrast != 0 {
+        let mut img = DynamicImage::ImageRgba8(rgba);
+        if o.brightness != 0 {
+            img = img.brighten(o.brightness * 255 / 100);
+        }
+        if o.contrast != 0 {
+            img = img.adjust_contrast(o.contrast as f32);
+        }
+        rgba = img.to_rgba8();
+    }
     if o.sharpen > 0 {
+        let px: &mut [u8] = &mut rgba;
         sharpen(px, w, h, o.sharpen);
+    }
+    if o.blur > 0.0 {
+        rgba = DynamicImage::ImageRgba8(rgba).blur(o.blur).to_rgba8();
+    }
+    if o.invert {
+        image::imageops::invert(&mut rgba);
     }
     Ok(rgba)
 }
@@ -426,16 +466,41 @@ mod tests {
 
     #[test]
     fn os_niveis_estiran_unha_imaxe_apagada() {
-        let mut im = RgbaImage::from_pixel(10, 10, Rgba([100, 100, 100, 255]));
+        let mut im = RgbaImage::from_pixel(10, 10, Rgba([60, 60, 60, 255]));
         for x in 0..5 {
             for y in 0..10 {
-                im.put_pixel(x, y, Rgba([140, 140, 140, 255]));
+                im.put_pixel(x, y, Rgba([190, 190, 190, 255]));
             }
         }
         let o = RestoreOptions { auto_levels: true, ..Default::default() };
         let out = apply(&DynamicImage::ImageRgba8(im), &o).unwrap();
-        assert!(out.get_pixel(0, 0)[0] > 240, "o claro vai a branco");
-        assert!(out.get_pixel(9, 0)[0] < 20, "o escuro vai a negro");
+        assert!(out.get_pixel(0, 0)[0] > 225, "o claro vai case a branco");
+        assert!(out.get_pixel(9, 0)[0] < 30, "o escuro vai case a negro");
+    }
+
+    #[test]
+    fn os_niveis_non_converten_unha_escena_escura_en_luz_de_dia() {
+        // Unha foto de noite: do negro a un gris escuro. Non ten que acabar branca.
+        let im = RgbaImage::from_fn(20, 10, |x, _| {
+            let v = if x < 10 { 5 } else { 90 };
+            Rgba([v, v, v, 255])
+        });
+        let out = apply(&DynamicImage::ImageRgba8(im), &RestoreOptions { auto_levels: true, ..Default::default() }).unwrap();
+        assert!(out.get_pixel(15, 0)[0] < 140, "o claro da noite segue sendo escuro: {}", out.get_pixel(15, 0)[0]);
+    }
+
+    #[test]
+    fn brillo_contraste_desenfoque_e_inverter() {
+        let img = flat(8, 8, [100, 100, 100, 200]);
+        let b = apply(&img, &RestoreOptions { brightness: 50, ..Default::default() }).unwrap();
+        assert!(b.get_pixel(0, 0)[0] > 100 && b.get_pixel(0, 0)[3] == 200, "o brillo sube e o alfa queda");
+        let i = apply(&img, &RestoreOptions { invert: true, ..Default::default() }).unwrap();
+        assert_eq!((i.get_pixel(0, 0)[0], i.get_pixel(0, 0)[3]), (155, 200));
+        let edge = DynamicImage::ImageRgba8(RgbaImage::from_fn(20, 20, |x, _| if x < 10 { Rgba([0, 0, 0, 255]) } else { Rgba([255, 255, 255, 255]) }));
+        let soft = apply(&edge, &RestoreOptions { blur: 3.0, ..Default::default() }).unwrap();
+        assert!(soft.get_pixel(9, 5)[0] > 20 && soft.get_pixel(10, 5)[0] < 235, "a beira desenfócase");
+        assert!(apply(&img, &RestoreOptions { blur: 21.0, ..Default::default() }).is_err());
+        assert!(apply(&img, &RestoreOptions { contrast: 101, ..Default::default() }).is_err());
     }
 
     #[test]
@@ -502,13 +567,13 @@ mod tests {
     fn restaura_un_ficheiro_e_non_toca_o_orixinal() {
         let dir = tempfile::tempdir().unwrap();
         let input = dir.path().join("a.png");
-        RgbaImage::from_fn(30, 20, |x, _| if x < 15 { Rgba([90, 90, 90, 255]) } else { Rgba([130, 130, 130, 255]) }).save(&input).unwrap();
+        RgbaImage::from_fn(30, 20, |x, _| if x < 15 { Rgba([60, 60, 60, 255]) } else { Rgba([190, 190, 190, 255]) }).save(&input).unwrap();
         let before = std::fs::read(&input).unwrap();
         let out = dir.path().join("a-restaurado.png");
         let o = RestoreOptions { auto_levels: true, ..Default::default() };
         let r = restore_image(&input, &out, false, &o, None, None, crate::image_meta::Metadata::Strip).unwrap();
         assert_eq!(r.size, (30, 20));
-        assert!(image::open(&out).unwrap().to_rgba8().get_pixel(0, 0)[0] < 20);
+        assert!(image::open(&out).unwrap().to_rgba8().get_pixel(0, 0)[0] < 30);
         assert_eq!(std::fs::read(&input).unwrap(), before);
         assert!(restore_image(&input, &out, false, &o, None, None, crate::image_meta::Metadata::Strip).is_err(), "non pisa un ficheiro que xa existe");
         let p = preview(&input, &dir.path().join("p.png"), &o).unwrap();

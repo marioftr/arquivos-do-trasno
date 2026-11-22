@@ -35,7 +35,7 @@ export default {
     await app.ev(`document.querySelectorAll('li[role=option] input[type=checkbox]').forEach(x=>{ if(x.checked) x.click(); })`);
     const tabs = await app.tabs();
     c.ok(tabs.includes("Dividir"), "as imaxes teñen a pestana Dividir", tabs.join(","));
-    c.ok(tabs.indexOf("Editar") < tabs.indexOf("Redimensionar") && tabs.indexOf("Redimensionar") < tabs.indexOf("Dividir"), "Redimensionar vai por debaixo de Editar", tabs.join(","));
+    c.ok(tabs.indexOf("Transformar") < tabs.indexOf("Redimensionar") && tabs.indexOf("Redimensionar") < tabs.indexOf("Dividir"), "Redimensionar vai por debaixo de Transformar", tabs.join(","));
     await app.click("Dividir");
     await app.waitFor(`document.querySelectorAll('.crop .part b').length === 3`, "a zona dividida no visor con tres números");
 

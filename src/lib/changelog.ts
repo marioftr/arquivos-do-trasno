@@ -19,6 +19,23 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.2.2",
+    date: "2026-11-22",
+    title: {
+      gl: "Restaurar imaxes, torrents e ferramentas máis claras",
+      es: "Restaurar imágenes, torrents y herramientas más claras",
+      en: "Image restoration, torrents and clearer tools",
+    },
+    changes: [
+      { kind: "new", gl: "Restaurar imaxes: corrixe luz, cor, ruído e nitidez con perfís (automático, documento, branco e negro…), con vista previa en directo e «Ver orixinal».", es: "Restaurar imágenes: corrige luz, color, ruido y nitidez con perfiles (automático, documento, blanco y negro…), con vista previa en directo y «Ver original».", en: "Image restoration: fixes light, colour, noise and sharpness with profiles (automatic, document, black and white…), with a live preview and «View original»." },
+      { kind: "new", gl: "Descarga de torrents (ligazóns magnet e ficheiros .torrent) nunha pestana propia, co seu botón no menú do trasno.", es: "Descarga de torrents (enlaces magnet y archivos .torrent) en una pestaña propia, con su botón en el menú del trasno.", en: "Torrent downloads (magnet links and .torrent files) in their own tab, with their own button in the trasno menu." },
+      { kind: "better", gl: "Transformar xunta xirar e recortar no mesmo panel, nas imaxes e nos PDF.", es: "Transformar junta girar y recortar en el mismo panel, en las imágenes y en los PDF.", en: "Transform brings rotating and cropping together in one panel, for images and PDFs." },
+      { kind: "better", gl: "Brillo, contraste, desenfoque e inverter cores pasan a Restaurar.", es: "Brillo, contraste, desenfoque e invertir colores pasan a Restaurar.", en: "Brightness, contrast, blur and invert colours move to Restore." },
+      { kind: "better", gl: "Pegar do portapapeis agora vai con Ctrl+V e no buscador.", es: "Pegar del portapapeles ahora va con Ctrl+V y en el buscador.", en: "Paste from the clipboard now works with Ctrl+V and in the search box." },
+      { kind: "better", gl: "Novas iconas en Transformar, Extraer e Transcribir.", es: "Nuevos iconos en Transformar, Extraer y Transcribir.", en: "New icons for Transform, Extract and Transcribe." },
+    ],
+  },
+  {
     version: "0.2.1",
     date: "2026-11-22",
     title: {

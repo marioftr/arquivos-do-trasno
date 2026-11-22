@@ -4,7 +4,7 @@
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { t, tr, lang } from "../i18n";
   import { get } from "svelte/store";
-  import { dialog, tools, refreshTools, pastedLink } from "../settings";
+  import { dialog, tools, refreshTools, pastedLink, downloadTab } from "../settings";
   import { errText, outputHook } from "../errors";
   import * as engine from "../engine";
   import { addPaths } from "../files";
@@ -20,7 +20,8 @@
   import SelectField from "./ui/SelectField.svelte";
   import ExtensionGate from "./ui/ExtensionGate.svelte";
 
-  /** Descargar vídeo ou audio por ligazón con yt-dlp, ou un torrent (ligazón magnet ou ficheiro .torrent) co cliente integrado. A descarga segue en segundo plano (procesos) e o resultado entra na lista de ficheiros. */
+  /** Descargas: vídeo ou audio por ligazón con yt-dlp (pestana Ligazóns) ou un torrent, ligazón magnet ou ficheiro .torrent, co cliente integrado (pestana Torrents).
+   *  A descarga segue en segundo plano (procesos) e o resultado entra na lista de ficheiros. */
   const KEY = "arquivos-do-trasno.descarga";
   const saved = (() => {
     try {
@@ -42,16 +43,25 @@
   const busy = job.busy;
 
   const needs: Need[] = [{ kind: "tool", id: "ytdlp" }, { kind: "tool", id: "ffmpeg" }];
-  /** Un torrent non usa yt-dlp nin FFmpeg: só os vídeos precisan esas extensións. */
+  /** Un torrent non usa yt-dlp nin FFmpeg: só a pestana de ligazóns precisa esas extensións. */
   const isTorrent = (v: string) => /^magnet:\?/i.test(v) || /^https?:\/\/\S+\.torrent([?#]|$)/i.test(v) || /^([a-zA-Z]:[\\/]|\\\\|\/).*\.torrent$/i.test(v);
-  $: torrentMode = isTorrent(url.trim());
+  let tab: "link" | "torrent" = get(downloadTab);
+  $: torrentMode = tab === "torrent";
   $: missing = !torrentMode && missingOf(needs, $tools).length > 0;
+  function pickTab(v: string | number) {
+    if (v === tab) return;
+    tab = v === "torrent" ? "torrent" : "link";
+    url = "";
+  }
+  // Un magnet ou un .torrent pegado na pestana de ligazóns leva á dos torrents.
+  $: if (tab === "link" && isTorrent(url.trim())) tab = "torrent";
 
   onMount(async () => {
     // Só a ligazón que chega directa do botón de pegar se busca soa; a que se escribe ou pega no campo, co botón.
     const fromClipboard = get(pastedLink);
     if (fromClipboard) {
       pastedLink.set("");
+      tab = isTorrent(fromClipboard) ? "torrent" : "link";
       url = fromClipboard;
       autoSearch = true;
     }
@@ -87,7 +97,7 @@
     thumb = "";
   }
   $: url, forget();
-  const valid = (v: string) => looksLikeUrl(v) || isTorrent(v);
+  const valid = (v: string) => (torrentMode ? isTorrent(v) : looksLikeUrl(v));
   $: if (autoSearch && !missing && valid(url.trim())) {
     autoSearch = false;
     search();
@@ -277,17 +287,24 @@
   }
 </script>
 
-<Modal title={$t("Descargar por ligazón")} width={wide ? "960px" : "520px"} maxHeight="540px" mascot onClose={() => dialog.set(null)}>
+<Modal title={torrentMode ? $t("Descargar torrent") : $t("Descargar por ligazón")} width={wide ? "960px" : "520px"} maxHeight="540px" mascot onClose={() => dialog.set(null)}>
   <div class="form" class:wide>
     <div class="top">
+      <div data-testid="download-tabs">
+        <Segmented
+          options={[{ value: "link", label: $t("Ligazóns"), icon: "link" }, { value: "torrent", label: $t("Torrents"), icon: "magnet" }]}
+          value={tab}
+          on:pick={(e) => pickTab(e.detail)}
+        />
+      </div>
       <div class="urlrow">
         <div class="grow" bind:this={urlInput} role="presentation" on:keydown={(e) => e.key === "Enter" && search()}>
-          <TextField label={$t("Ligazón")} bind:value={url} placeholder="https://…  ·  magnet:?…" disabled={$busy} />
+          <TextField label={torrentMode ? $t("Ligazón magnet ou ficheiro .torrent") : $t("Ligazón")} bind:value={url} placeholder={torrentMode ? "magnet:?…" : "https://…"} disabled={$busy} />
         </div>
         <button class="btn" on:click={search} disabled={!canSearch} data-testid="download-search">{$t("Buscar")}</button>
       </div>
 
-      {#if !url.trim()}
+      {#if torrentMode && !url.trim()}
         <button class="linkbtn" on:click={chooseTorrent} disabled={$busy}>{$t("Elixir un ficheiro .torrent")}</button>
       {/if}
 
@@ -336,7 +353,6 @@
       {#if missing}
         <ExtensionGate {needs} />
       {:else if torrentMode}
-        <p class="format muted">{$t("Garda o que baixe nun cartafol co nome do torrent. Ao rematar, déixase de compartir. Descarga só o que teñas dereito a gardar.")}</p>
         <button class="btn primary block" on:click={run} disabled={!tinfo || checking || $busy || (items.length > 1 && !count)} data-testid="download-go">
           {items.length > 1 ? (count === 1 ? $t("Descargar 1 ficheiro") : tr("Descargar {n} ficheiros", { n: count })) : $t("Descargar")}
         </button>

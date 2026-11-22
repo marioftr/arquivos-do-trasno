@@ -2,12 +2,13 @@
   import { onMount, tick } from "svelte";
   import { t } from "../i18n";
   import { get } from "svelte/store";
-  import { dialog, openSettings, openHub, toolActions, jump, theme, resolvedTheme } from "../settings";
+  import { dialog, downloadTab, openSettings, openHub, toolActions, jump, theme, resolvedTheme } from "../settings";
   import { files } from "../files";
   import Icon from "./Icon.svelte";
 
   /** Buscador de accións (Ctrl+K): ferramentas do ficheiro actual e accións da aplicación. */
   export let onAdd: () => void;
+  export let onPaste: () => void;
 
   interface Cmd {
     id: string;
@@ -27,7 +28,9 @@
   $: cmds = [
     ...$toolActions.map((a): Cmd => ({ id: a.id, label: a.label, hint: $t("Ferramenta"), icon: "convert", run: () => (close(), jump.set({ tab: a.tab, mode: a.mode })) })),
     { id: "add", label: $t("Engadir ficheiros"), icon: "plus", run: () => (close(), onAdd()) },
-    { id: "download", label: $t("Descargar por ligazón"), icon: "link", run: () => dialog.set("download") },
+    { id: "download", label: $t("Descargar por ligazón"), icon: "link", run: () => (downloadTab.set("link"), dialog.set("download")) },
+    { id: "torrent", label: $t("Descargar torrent"), icon: "magnet", run: () => (downloadTab.set("torrent"), dialog.set("download")) },
+    { id: "paste", label: $t("Pegar do portapapeis"), icon: "paste", run: () => (close(), onPaste()) },
     { id: "procs", label: $t("Procesos"), icon: "layers", run: () => openHub("procs.running") },
     { id: "news", label: $t("Novidades e rexistro de cambios"), icon: "info", run: () => openHub("news.changelog") },
     { id: "settings", label: $t("Axustes"), icon: "gear", run: () => openSettings("general") },

@@ -3,7 +3,7 @@
   import Icon from "../Icon.svelte";
 
   /** Barra de ferramentas do panel: unha icona (e o seu nome) por tarefa; a activa abre os seus axustes ao lado. */
-  export let tabs: { id: string; label: string }[];
+  export let tabs: { id: string; label: string; icon?: string }[];
   export let value: string;
   const dispatch = createEventDispatcher<{ again: void }>();
 
@@ -18,7 +18,7 @@
     subtitles: "type",
     annotate: "pencil",
     info: "info",
-    extract: "download",
+    extract: "extract",
     mkv: "tracks",
     merge: "merge",
     resize: "scaling",
@@ -55,7 +55,7 @@
 <div class="strip scrollbar-thin" role="tablist" aria-orientation="vertical" on:keydown={key} bind:this={bar}>
   {#each tabs as tab}
     <button role="tab" title={tab.label} tabindex={value === tab.id ? 0 : -1} aria-selected={value === tab.id} class:on={value === tab.id} on:click={() => (value === tab.id ? dispatch("again") : (value = tab.id))}>
-      <Icon name={ICON[tab.id] ?? "sliders"} size={20} />
+      <Icon name={tab.icon ?? ICON[tab.id] ?? "sliders"} size={20} />
       <span class="sr">{tab.label}</span>
     </button>
   {/each}

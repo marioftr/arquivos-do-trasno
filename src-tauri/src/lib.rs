@@ -155,6 +155,7 @@ pub fn run() {
             commands::pdf_page_numbers,
             commands::pdf_stamp_image,
             commands::pdf_crop,
+            commands::pdf_transform,
             commands::pdf_compress,
             commands::pdf_protect,
             commands::pdf_unprotect,

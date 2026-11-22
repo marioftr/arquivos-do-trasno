@@ -1,4 +1,4 @@
-// Menú do trasno: Pegar do portapapeis (ligazón → Descargar por ligazón xa cargada; texto sen ligazón → aviso) e o voo do trasno
+// Pegar do portapapeis con Ctrl+V (ligazón → Descargar por ligazón xa cargada; texto sen ligazón → aviso) e o voo do trasno
 // entre o recanto e a xanela ao abrila e pechala.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -6,18 +6,20 @@ import path from "node:path";
 const SPRITES = `document.querySelectorAll('body > img[src="/trasno/base.png"], body > div > img[src="/trasno/base.png"]').length`;
 
 export default {
-  about: "Pegar do portapapeis e voo do trasno ao abrir e pechar Descargar por ligazón",
+  about: "Pegar do portapapeis (Ctrl+V) e voo do trasno ao abrir e pechar Descargar por ligazón",
   async run(app, c) {
     await app.reload();
     const url = "https://example.com/video/1";
     // O portapapeis do sistema (o que le o botón), non o do webview.
     const copy = (text) => (spawnSync("powershell", ["-NoProfile", "-Command", `Set-Clipboard -Value '${text.replace(/'/g, "''")}'`]).status === 0 ? "ok" : "erro");
 
-    c.ok((await app.ev(`[...document.querySelectorAll('.dock .rd')].map(b=>b.getAttribute('aria-label')).slice(4).join()`)) === "Pegar do portapapeis,Comentario do trasno,Buscar", "o círculo exterior: portapapeis, comentario e buscar");
+    c.ok((await app.ev(`[...document.querySelectorAll('.dock .rd')].map(b=>b.getAttribute('aria-label')).slice(4).join()`)) === "Descargar torrent,Comentario do trasno,Buscar", "o círculo exterior: torrent, comentario e buscar");
+    // O portapapeis xa non ten botón no menú: Ctrl+V (fóra dun campo de texto).
+    const paste = () => app.ev(`document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'v',ctrlKey:true,bubbles:true}))`);
 
     // Texto que non é ligazón nin ruta: avisa o trasno.
     c.ok((await copy("hola, isto non é unha ligazón")) === "ok", "pódese escribir no portapapeis de proba");
-    await app.radial("Pegar do portapapeis");
+    await paste();
     await app.waitFor(`document.body.innerText.includes('O portapapeis non ten ligazóns')`, "o aviso do trasno", 8000);
     c.ok(true, "sen ligazón nin rutas, o trasno avisa");
 
@@ -28,7 +30,7 @@ export default {
     const before = existed ? new Set(fs.readdirSync(folder)) : new Set();
     const setImage = spawnSync("powershell", ["-NoProfile", "-STA", "-Command", "Add-Type -AssemblyName System.Windows.Forms,System.Drawing; $b=New-Object System.Drawing.Bitmap 40,30; $g=[System.Drawing.Graphics]::FromImage($b); $g.Clear([System.Drawing.Color]::OrangeRed); [System.Windows.Forms.Clipboard]::SetImage($b)"]);
     c.ok(setImage.status === 0, "pódese copiar unha imaxe ao portapapeis de proba");
-    await app.radial("Pegar do portapapeis");
+    await paste();
     await app.waitFor(`document.body.innerText.includes('Gardei a imaxe do portapapeis')`, "o trasno di que gardou a imaxe", 10000);
     const made = fs.existsSync(folder) ? fs.readdirSync(folder).filter((n) => !before.has(n)) : [];
     c.ok(made.length === 1 && /^portapapeis.*\.png$/.test(made[0]), "a imaxe gárdase como PNG en Imaxes/Arquivos do Trasno", made.join());
@@ -39,8 +41,7 @@ export default {
     // Unha ligazón: abre Descargar por ligazón con ela posta.
     c.ok((await copy(url)) === "ok", "e unha ligazón");
     // Mídese dentro da propia páxina, ao pouco de abrirse a xanela (o voo dura menos de medio segundo).
-    const fly = await app.ev(`(async()=>{ document.querySelector('.dock').dispatchEvent(new PointerEvent('pointerenter',{bubbles:false})); await new Promise(r=>setTimeout(r,600));
-      [...document.querySelectorAll('.dock .rd')].find(b=>b.getAttribute('aria-label')==='Pegar do portapapeis').click();
+    const fly = await app.ev(`(async()=>{ document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'v',ctrlKey:true,bubbles:true}));
       for (let i=0;i<40 && !document.querySelector('[role=dialog]');i++) await new Promise(r=>setTimeout(r,25));
       await new Promise(r=>setTimeout(r,100));
       return {sprites: ${SPRITES}, hidden: getComputedStyle(document.querySelector('.dock')).visibility === 'hidden'}; })()`);

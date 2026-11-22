@@ -18,7 +18,7 @@ export default {
     await app.ev(`[...document.querySelectorAll('.dock .rd')].find(b=>b.getAttribute('aria-label')==='Descargar por ligazón')?.dispatchEvent(new PointerEvent('pointerenter',{bubbles:false}))`);
     await app.sleep(400);
     await app.shot("ext-radial.png");
-    c.ok(await app.ev(`[...document.querySelectorAll('.dock .rd')].map(b=>b.getAttribute('aria-label')).join()`) === "Engadir ficheiros,Descargar por ligazón,Procesos,Axustes,Pegar do portapapeis,Comentario do trasno,Buscar", "o menú ten dous círculos: Engadir, Ligazón, Procesos e Axustes por dentro; Pegar, Comentario e Buscar por fóra");
+    c.ok(await app.ev(`[...document.querySelectorAll('.dock .rd')].map(b=>b.getAttribute('aria-label')).join()`) === "Engadir ficheiros,Descargar por ligazón,Procesos,Axustes,Descargar torrent,Comentario do trasno,Buscar", "o menú ten dous círculos: Engadir, Ligazón, Procesos e Axustes por dentro; Torrent, Comentario e Buscar por fóra");
     await app.radial("Axustes");
     await app.click("Extensións");
     await app.shot("ext-axustes.png");
