@@ -1,0 +1,11 @@
+target
+crates
+src-tauri
+dist
+dist-web
+docs
+.claude
+web/public/ocr
+web/public/ort
+public/ocr
+public/ort
