@@ -59,6 +59,25 @@ export async function pdfToImages(file: File, mime: "image/jpeg" | "image/png", 
   return out;
 }
 
+/** O texto seleccionable do PDF, páxina a páxina (cada unha co seu salto de liña). */
+export async function pdfToText(file: File, ctx: Ctx): Promise<Output> {
+  const doc = await open(file);
+  const parts: string[] = [];
+  for (let n = 1; n <= doc.numPages; n++) {
+    ctx.progress((n - 1) / doc.numPages, tr("Páxina {n} de {total}…", { n, total: doc.numPages }));
+    const page = await doc.getPage(n);
+    const content = await page.getTextContent();
+    let text = "";
+    for (const it of content.items as { str: string; hasEOL?: boolean }[]) text += it.str + (it.hasEOL ? "\n" : "");
+    page.cleanup();
+    parts.push(text.replace(/[ \t]+\n/g, "\n").trim());
+  }
+  const text = parts.filter(Boolean).join("\n\n");
+  if (!text) throw new UserError(tr("Non atopei texto neste PDF. Se é unha dixitalización, saca as imaxes e usa Recoñecer texto."));
+  const words = text.split(/\s+/).filter(Boolean).length;
+  return { name: `${stemOf(file.name)}.txt`, blob: new Blob([text], { type: "text/plain;charset=utf-8" }), text, note: tr("{n} palabras", { n: words }) };
+}
+
 /** Comprime un PDF volvendo gardar cada páxina como imaxe JPG: pesa moito menos (sobre todo dixitalizacións), pero perde o texto seleccionable. */
 export async function compressPdf(file: File, ppp: number, quality: number, ctx: Ctx): Promise<Output> {
   const [{ PDFDocument }, doc] = await Promise.all([import("pdf-lib"), open(file)]);

@@ -4,6 +4,7 @@
   import Icon from "@app/lib/components/Icon.svelte";
   import Info from "./components/Info.svelte";
   import Workbench from "./components/Workbench.svelte";
+  import ToolIcon from "./components/ToolIcon.svelte";
   import { route, href } from "./lib/route";
   import { theme, toggleTheme } from "./lib/theme";
   import { buildGroups, buildTools } from "./lib/tools";
@@ -66,7 +67,7 @@
           {#each tools.filter((x) => x.group === g.id) as x (x.id)}
             <li>
               <a class="card" href={href(x.id)} style={`--c:${ACCENT[x.group]}`}>
-                <span class="ic"><Icon name={x.icon} size={26} /></span>
+                <span class="ic"><ToolIcon name={x.icon} size={26} /></span>
                 <span class="tx"><span class="ti">{x.title}</span><span class="de">{x.desc}</span></span>
                 <Icon name="chevron-right" size={20} />
               </a>
@@ -86,11 +87,12 @@
   .brand { font-weight: 700; font-size: var(--fs-lg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .grow { flex: 1; }
   .logo { image-rendering: pixelated; flex: none; }
-  .back, .round { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: -0.5rem; padding: 0; background: none; border: 0; border-radius: var(--radius-md); color: var(--text); }
-  .round { margin-left: 0; }
-  .back:hover, .round:hover { background: var(--bg-hover); }
+  /* Os tres controis da cabeceira (volver, idioma, tema): mesma altura, mesmo marco, mesmo fondo. */
+  .back, .round, select { flex: none; height: 44px; background: var(--bg-card); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-md); }
+  .back, .round { display: grid; place-items: center; width: 44px; padding: 0; }
+  select { padding: 0 0.6rem; font-size: var(--fs-md); font-weight: 600; }
+  .back:hover, .round:hover, select:hover { background: var(--bg-hover); }
   .back:focus-visible, .round:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  select { min-height: 44px; padding: 0 0.5rem; background: var(--bg-card); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: var(--fs-md); }
   main { max-width: 60rem; margin: 0 auto; padding: 1.25rem max(1rem, env(safe-area-inset-right)) 1.5rem max(1rem, env(safe-area-inset-left)); }
   h1 { margin: 0 0 1.1rem; font-size: var(--fs-xl); line-height: 1.2; display: flex; align-items: center; gap: 0.6rem; outline: none; }
   .hero { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
@@ -100,10 +102,11 @@
   .group { margin-bottom: 1.5rem; }
   h2 { margin: 0 0 0.6rem; font-size: var(--fs-md); text-transform: none; color: var(--text-muted); font-weight: 700; }
   .cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
-  .card { display: flex; align-items: center; gap: 0.9rem; min-height: 4.5rem; padding: 0.75rem 0.9rem; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); color: var(--text); text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .cards li { display: flex; }
+  .card { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.9rem; min-height: 4.5rem; padding: 0.75rem 0.9rem; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); color: var(--text); text-decoration: none; -webkit-tap-highlight-color: transparent; }
   .card:hover { background: var(--bg-hover); }
   .card:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  .ic { flex: none; display: grid; place-items: center; width: 2.9rem; height: 2.9rem; border-radius: var(--radius-md); background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
+  .ic { flex: none; display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: var(--radius-md); background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
   .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .ti { font-weight: 700; }
   .de { font-size: var(--fs-sm); color: var(--text-muted); }

@@ -6,6 +6,7 @@
   import Info from "./Info.svelte";
   import { thumbnail } from "../lib/image";
   import { accepts, canShare, download, formatBytes, save, share, UserError, type Output } from "../lib/files";
+  import { downloadedModels, missingMb } from "../lib/models";
   import type { Tool, Values } from "../lib/tools";
 
   /** La pantalla de calquera ferramenta: elixir ficheiros, axustes, o botón verde e os resultados. */
@@ -53,6 +54,13 @@
   let over = false;
   let input: HTMLInputElement;
   let resultsEl: HTMLElement;
+
+  // Modelos de IA xa gardados no navegador: así se ve que non se van volver descargar.
+  let have = new Set<string>();
+  const checkModels = () => void downloadedModels().then((s) => (have = s));
+  if (tool.needs) checkModels();
+  $: need = tool.needs ? tool.needs(values) : [];
+  $: missing = missingMb(need, have);
 
   const min = tool.min ?? 1;
   $: ready = items.length >= min;
@@ -137,6 +145,7 @@
     }
     results = out.map((o) => ({ ...o, url: o.blob.type.startsWith("image/") ? URL.createObjectURL(o.blob) : "" }));
     busy = false;
+    if (tool.needs) checkModels();
     if (results.length || failed.length || error) {
       await tick();
       resultsEl?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
@@ -155,13 +164,23 @@
     }
   }
   let shareErr = "";
-  async function shareAll() {
+  /** Todos de vez: no móbil pola folla de compartir (permite gardalos en Fotos), no escritorio descargándoos. */
+  async function saveAll() {
     shareErr = "";
+    if (!canShare(results)) return results.forEach((r) => download(r));
     try {
       await share(results);
     } catch {
       shareErr = tr("Non se puido abrir a folla de compartir. Usa Gardar.");
     }
+  }
+
+  // Ver o resultado a pantalla completa.
+  let viewer: HTMLDialogElement;
+  let viewing: Done | null = null;
+  function view(r: Done) {
+    viewing = r;
+    viewer.showModal();
   }
   function again() {
     forgetResults();
@@ -181,11 +200,13 @@
 <div class="wb">
   <section class="files" aria-label={$t("Ficheiros")} class:over on:dragover|preventDefault={() => (over = true)} on:dragleave={() => (over = false)} on:drop|preventDefault={onDrop}>
     <input bind:this={input} type="file" class="sr-only" accept={tool.accept} multiple={tool.multiple} on:change={picked} tabindex="-1" aria-hidden="true" />
-    <button type="button" class="btn pick" class:empty={!items.length} on:click={() => input.click()}>
-      <Icon name={items.length ? "plus" : "load"} size={22} />
-      <span>{items.length ? (tool.multiple ? $t("Engadir máis") : $t("Cambiar ficheiro")) : tool.multiple ? $t("Elixir ficheiros") : $t("Elixir ficheiro")}</span>
-    </button>
-    {#if !items.length}<p class="drag">{$t("Tamén podes arrastralos aquí ou pegalos.")}</p>{/if}
+    {#if !items.length}
+      <button type="button" class="drop" on:click={() => input.click()}>
+        <Icon name="load" size={30} />
+        <span class="big">{tool.multiple ? $t("Elixir ficheiros") : $t("Elixir ficheiro")}</span>
+        <span class="drag">{$t("Tamén podes arrastralos aquí ou pegalos.")}</span>
+      </button>
+    {/if}
     {#if skipped}<p class="warn" role="status">{skipped === 1 ? $t("Saltouse un ficheiro que non vale para esta ferramenta.") : $t("Saltáronse {n} ficheiros que non valen para esta ferramenta.", { n: skipped })}</p>{/if}
 
     {#if items.length}
@@ -203,6 +224,10 @@
         {/each}
       </ul>
       {#if items.length < min}<p class="warn" role="status">{$t("Engade polo menos {n} ficheiros.", { n: min })}</p>{/if}
+      <button type="button" class="btn add" on:click={() => input.click()}>
+        <Icon name="plus" size={20} />
+        <span>{tool.multiple ? $t("Engadir máis") : $t("Cambiar ficheiro")}</span>
+      </button>
     {/if}
   </section>
 
@@ -210,7 +235,7 @@
     <section class="opts" aria-label={$t("Axustes")}>
       {#each visible as o (o.id)}
         {#if o.type === "seg"}
-          <Seg label={o.label} name={`${tool.id}-${o.id}`} choices={o.choices()} bind:value={values[o.id]} info={o.info ?? ""} />
+          <Seg label={o.label} name={`${tool.id}-${o.id}`} choices={o.choices()} bind:value={values[o.id]} info={o.info ?? ""} ready={have} />
         {:else}
           <div class="field">
             <label for={`${tool.id}-${o.id}`}>{o.label}{#if o.info}<Info text={o.info} />{/if}</label>
@@ -218,6 +243,12 @@
           </div>
         {/if}
       {/each}
+      {#if need.length}
+        <p class="model" class:done={!missing} role="status">
+          <Icon name={missing ? "download" : "check"} size={18} />
+          <span>{missing ? $t("Descárgase a primeira vez (uns {mb} MB) e queda gardado.", { mb: missing }) : $t("Xa descargado: funciona sen conexión.")}</span>
+        </p>
+      {/if}
     </section>
   {/if}
 
@@ -233,7 +264,7 @@
       <ul class="list">
         {#each results as r (r.name)}
           <li class="res">
-            {#if r.url}<img src={r.url} alt="" class="thumb" decoding="async" />{:else}<span class="thumb ico"><Icon name="document" size={22} /></span>{/if}
+            {#if r.url}<button type="button" class="thumb-btn" on:click={() => view(r)} aria-label={$t("Ver {name} a pantalla completa", { name: r.name })}><img src={r.url} alt="" class="thumb" decoding="async" /></button>{:else}<span class="thumb ico"><Icon name="document" size={22} /></span>{/if}
             <span class="meta"><span class="name">{r.name}</span>{#if r.note}<span class="sub">{r.note}</span>{/if}</span>
             {#if r.text}<textarea class="text" readonly rows="6" aria-label={$t("Texto")} value={r.text}></textarea>{/if}
             {#if r.text}<button type="button" class="btn save" on:click={() => copy(r)}><Icon name={copied === r.name ? "check" : "copy"} size={20} /><span>{copied === r.name ? $t("Copiado") : $t("Copiar")}</span></button>{/if}
@@ -242,11 +273,8 @@
         {/each}
       </ul>
       <div class="after">
-        {#if canShare(results)}
-          <button type="button" class="btn" on:click={shareAll}><Icon name="open" size={20} /><span>{$t("Compartir ou gardar en Fotos")}</span></button>
-        {/if}
-        {#if results.length > 1 && !canShare(results)}
-          <button type="button" class="btn" on:click={() => results.forEach((r) => download(r))}><Icon name="download" size={20} /><span>{$t("Gardar todo")}</span></button>
+        {#if results.length > 1}
+          <button type="button" class="btn" on:click={saveAll}><Icon name="download" size={20} /><span>{$t("Gardar todo")}</span></button>
         {/if}
         <button type="button" class="btn ghost" on:click={again}><Icon name="reset" size={20} /><span>{$t("Empezar de novo")}</span></button>
       </div>
@@ -268,6 +296,11 @@
   </div>
 </div>
 
+<dialog bind:this={viewer} class="viewer" aria-label={viewing?.name ?? ""} on:close={() => (viewing = null)} on:click={() => viewer.close()}>
+  {#if viewing}<img src={viewing.url} alt={viewing.name} />{/if}
+  <button type="button" class="x" on:click={() => viewer.close()} aria-label={$t("Pechar")}><Icon name="close" size={24} /></button>
+</dialog>
+
 <div class="sr-only" role="status" aria-live="polite">
   {#if busy}{$t("Procesando…")}{:else if results.length}{$t("Feito")}: {results.length === 1 ? $t("1 ficheiro") : $t("{n} ficheiros", { n: results.length })}{/if}
 </div>
@@ -275,12 +308,21 @@
 <style>
   .wb { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; align-items: start; }
   section { min-width: 0; }
-  .files { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.9rem; background: var(--bg-card); border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); }
-  .files.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--bg-card)); }
-  .pick { width: 100%; justify-content: center; }
-  .pick.empty { min-height: 5.5rem; font-size: var(--fs-lg); }
-  .drag { margin: 0; text-align: center; color: var(--text-muted); font-size: var(--fs-sm); }
+  .files { display: flex; flex-direction: column; gap: 0.75rem; border-radius: var(--radius-lg); }
+  .files.over { outline: 2px dashed var(--accent); outline-offset: 4px; }
+  /* Sen ficheiros, toda a zona é o botón: un só marco, grande e fácil de tocar. */
+  .drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; min-height: 9rem; padding: 1.25rem 1rem; text-align: center; color: var(--text); background: var(--bg-card); border: 2px dashed var(--border-strong); border-radius: var(--radius-lg); -webkit-tap-highlight-color: transparent; }
+  .drop:hover { background: var(--bg-hover); }
+  .drop:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .drop :global(svg) { color: var(--accent); }
+  .big { font-size: var(--fs-lg); font-weight: 700; }
+  .drag { color: var(--text-muted); font-size: var(--fs-sm); font-weight: 400; }
   @media (hover: none) { .drag { display: none; } }
+  .add { width: 100%; }
+  .model { display: flex; align-items: center; gap: 0.5rem; margin: 0; padding: 0.6rem 0.8rem; font-size: var(--fs-sm); color: var(--text-muted); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); }
+  .model :global(svg) { flex: none; }
+  .model.done { color: var(--text); }
+  .model.done :global(svg) { color: var(--accent); }
   .opts { display: flex; flex-direction: column; gap: 1.1rem; }
   .field { display: flex; flex-direction: column; gap: 0.4rem; }
   .field label { display: flex; align-items: center; gap: 0.4rem; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
@@ -301,12 +343,23 @@
   .results[hidden] { display: none; }
   h2 { margin: 0; font-size: var(--fs-lg); display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.7rem; }
   .count { font-size: var(--fs-sm); font-weight: 400; color: var(--text-muted); }
-  .save { flex: none; min-height: 44px; padding: 0 0.9rem; }
+  .save { flex: none; padding: 0 1rem; }
   .after { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .after .btn { flex: 1 1 12rem; }
   .prog { display: flex; flex-direction: column; gap: 0.4rem; font-size: var(--fs-sm); color: var(--text-muted); }
   progress { width: 100%; height: 0.6rem; accent-color: var(--accent); }
   .res { flex-wrap: wrap; }
+  .thumb-btn { flex: none; padding: 0; background: none; border: 0; border-radius: var(--radius-sm); cursor: zoom-in; }
+  .thumb-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .res .thumb { width: 4rem; height: 4rem; display: block; }
+  /* Pantalla completa: a imaxe enteira sobre fondo escuro; un toque en calquera parte pecha. */
+  .viewer { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #1c1c1c conic-gradient(#2a2a2a 25%, #1c1c1c 0 50%, #2a2a2a 0 75%, #1c1c1c 0) 0 0 / 20px 20px; display: none; cursor: zoom-out; }
+  .viewer[open] { display: block; }
+  .viewer::backdrop { background: transparent; }
+  /* Ocupa todo o espazo (as imaxes pequenas amplíanse) sen deformarse; o fondo de cadros deixa ver as transparencias. */
+  .viewer img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .viewer .x { position: absolute; top: max(0.75rem, env(safe-area-inset-top)); right: 0.75rem; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; color: #fff; background: rgb(0 0 0 / 0.6); border: 1px solid rgb(255 255 255 / 0.5); border-radius: 50%; }
+  .viewer .x:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
   .text { order: 9; flex: 1 0 100%; margin: 0; padding: 0.7rem 0.8rem; resize: vertical; width: 100%; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); font: inherit; font-size: var(--fs-sm); user-select: text; }
 
   /* Móbil: o botón verde queda sempre á man, pegado abaixo. */

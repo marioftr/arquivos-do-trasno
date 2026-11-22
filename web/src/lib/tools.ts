@@ -1,6 +1,6 @@
 /** As ferramentas da versión web, descritas con datos: a pantalla (Workbench) constrúese soa a partir de cada unha. */
 import { tr } from "@app/lib/i18n";
-import { EXT, encoders, render, sameMime, type Mime } from "./image";
+import { EXT, encoders, render, sameMime, transform, type Mime } from "./image";
 import { lang } from "@app/lib/i18n";
 import { get } from "svelte/store";
 import { formatBytes, stemOf, uniqueName, UserError, type Ctx, type Output } from "./files";
@@ -11,6 +11,8 @@ export interface Choice {
   label: string;
   /** Valor ou detalle pequeno baixo o nome («85», «1280 px»). */
   sub?: string;
+  /** Modelo de IA que fai falta con esta opción (ver models.ts): se xa está descargado, amósase no seu sitio. */
+  model?: string;
 }
 export type Opt =
   | { id: string; type: "seg"; label: string; info?: string; choices: () => Choice[]; when?: (v: Values) => boolean }
@@ -31,6 +33,8 @@ export interface Tool {
   /** Cantos ficheiros fan falta polo menos (1 se non se di). */
   min?: number;
   options: Opt[];
+  /** Modelos de IA que usa co que hai elixido (ver models.ts). */
+  needs?: (v: Values) => string[];
   defaults: Values;
   /** Texto do botón verde segundo cantos ficheiros hai. */
   action: (n: number) => string;
@@ -50,6 +54,8 @@ const LANGS = (): Choice[] => [
   { value: "cat", label: "Catalán" },
 ];
 const DEFAULT_LANG = (): Lang => (({ gl: "glg", es: "spa", en: "eng" } as Record<string, Lang>)[get(lang)] ?? "glg");
+/** A tradución pasa polo inglés: un modelo para ir a el e outro para volver (ver @app/lib/mt). */
+const translationModels = (from: Lang, to: Lang): string[] => (from === to ? [] : [...(from !== "eng" ? ["mt-to-en"] : []), ...(to !== "eng" ? ["mt-from-en"] : [])]);
 const MIME_OF: Record<string, string> = { mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav", opus: "audio/ogg", gif: "image/gif" };
 
 const QUALITY = (): Choice[] => [
@@ -104,7 +110,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "redimensionar",
     group: "imaxe",
-    icon: "scaling",
+    icon: "resize",
     title: tr("Redimensionar imaxes"),
     desc: tr("Máis pequenas, por lado maior ou porcentaxe."),
     info: tr("Reduce o tamaño en píxeles sen cambiar a proporción. Non amplía imaxes pequenas. Mantense o formato."),
@@ -174,6 +180,50 @@ export const buildTools = (): Tool[] => [
       const r = await render(file, { mime, quality: qualityOf(v) });
       if (r.blob.size >= file.size && file.type === mime) return { name: uniqueName(file.name, taken), blob: file, note: tr("Xa estaba comprimida: queda igual.") };
       return { name: outName(file, mime, taken, "-comprimido"), blob: r.blob, note: sizeNote(file, r.blob, r.capped) };
+    },
+  },
+  {
+    id: "mellorar",
+    group: "imaxe",
+    icon: "enhance",
+    title: tr("Mellorar imaxes"),
+    desc: tr("Luz, cor, ruído e nitidez. Tamén páxinas fotografadas."),
+    info: tr("Corrixe o que a foto xa ten, sen inventar detalle. Automático equilibra luz e cor; Documento deixa o fondo branco e o texto negro."),
+    accept: IMG,
+    multiple: true,
+    options: [
+      {
+        id: "mode",
+        type: "seg",
+        label: tr("Axuste"),
+        choices: () => [
+          { value: "auto", label: tr("Automático"), sub: tr("luz e cor") },
+          { value: "light", label: tr("Máis luz"), sub: tr("levanta sombras") },
+          { value: "doc", label: tr("Documento"), sub: tr("fondo branco") },
+          { value: "bw", label: tr("Branco e negro") },
+          { value: "denoise", label: tr("Menos ruído") },
+          { value: "sharp", label: tr("Máis nitidez") },
+        ],
+      },
+      {
+        id: "amount",
+        type: "seg",
+        label: tr("Intensidade"),
+        when: (v) => v.mode === "denoise" || v.mode === "sharp",
+        choices: () => [
+          { value: "soft", label: tr("Suave") },
+          { value: "normal", label: tr("Normal") },
+          { value: "strong", label: tr("Forte") },
+        ],
+      },
+    ],
+    defaults: { mode: "auto", amount: "normal" },
+    action: (n) => (n === 1 ? tr("Mellorar 1 imaxe") : tr("Mellorar {n} imaxes", { n })),
+    each: async (file, v, taken) => {
+      const { enhance, MAX_AREA } = await import("./enhance");
+      const mime = v.mode === "doc" || v.mode === "bw" ? (sameMime(file) === "image/png" ? "image/png" : "image/jpeg") : sameMime(file);
+      const r = await transform(file, mime, 0.92, MAX_AREA, (d) => enhance(d, v.mode as never, v.amount as never));
+      return { name: outName(file, mime, taken, "-mellorado"), blob: r.blob, note: `${r.width} × ${r.height} · ${formatBytes(r.blob.size)}${r.capped ? ` · ${tr("Reducida ao máximo que admite o navegador.")}` : ""}` };
     },
   },
   {
@@ -255,8 +305,8 @@ export const buildTools = (): Tool[] => [
         type: "seg",
         label: tr("Modelo"),
         choices: () => [
-          { value: "fast", label: tr("Rápido"), sub: tr("uns {mb} MB", { mb: 5 }) },
-          { value: "best", label: tr("Mellor"), sub: tr("uns {mb} MB", { mb: 46 }) },
+          { value: "fast", label: tr("Rápido"), sub: tr("uns {mb} MB", { mb: 5 }), model: "cut-fast" },
+          { value: "best", label: tr("Mellor"), sub: tr("uns {mb} MB", { mb: 46 }), model: "cut-best" },
         ],
       },
       {
@@ -270,6 +320,7 @@ export const buildTools = (): Tool[] => [
         ],
       },
     ],
+    needs: (v) => [`cut-${v.quality}`],
     defaults: { quality: "fast", backdrop: "clear" },
     action: (n) => (n === 1 ? tr("Quitar o fondo") : tr("Quitar o fondo a {n} imaxes", { n })),
     each: async (file, v, taken, ctx) => {
@@ -281,7 +332,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "audio",
     group: "audio",
-    icon: "audio",
+    icon: "wave",
     title: tr("Converter audio"),
     desc: tr("A MP3, M4A, WAV ou Opus. Tamén saca o son dun vídeo."),
     info: tr("Pasa audio a outro formato. Se o ficheiro é un vídeo, saca o son. O motor descárgase a primeira vez."),
@@ -325,7 +376,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "cortar",
     group: "audio",
-    icon: "slice",
+    icon: "scissors",
     title: tr("Cortar audio ou vídeo"),
     desc: tr("Deixa só un tramo, sen perder calidade."),
     info: tr("Garda o tramo entre as dúas marcas sen volver codificar, así que é rápido. O corte vai ao fotograma clave máis próximo. Exemplos: 45, 1:30, 1:02:03"),
@@ -352,7 +403,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "gif",
     group: "audio",
-    icon: "video",
+    icon: "film",
     title: tr("Vídeo a GIF"),
     desc: tr("Un GIF animado dun tramo curto."),
     info: tr("Fai un GIF desde o comezo do vídeo. Canto máis grande e longo, máis pesa. O motor descárgase a primeira vez."),
@@ -392,7 +443,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "transcribir",
     group: "audio",
-    icon: "transcribe",
+    icon: "mic",
     title: tr("Transcribir"),
     desc: tr("Pasa a voz a subtítulos ou texto."),
     info: tr("Pasa a voz de un audio ou vídeo a texto con subtítulos, e opcionalmente tradúceo. Os modelos descárganse a primeira vez e traballan no aparello."),
@@ -406,8 +457,8 @@ export const buildTools = (): Tool[] => [
         label: tr("Modelo"),
         info: tr("O rápido recoñece peor, sobre todo con ruído ou acentos. O mellor vai máis lento e usa máis memoria."),
         choices: () => [
-          { value: "tiny", label: tr("Rápido"), sub: tr("uns {mb} MB", { mb: 40 }) },
-          { value: "base", label: tr("Mellor"), sub: tr("uns {mb} MB", { mb: 80 }) },
+          { value: "tiny", label: tr("Rápido"), sub: tr("uns {mb} MB", { mb: 40 }), model: "asr-tiny" },
+          { value: "base", label: tr("Mellor"), sub: tr("uns {mb} MB", { mb: 80 }), model: "asr-base" },
         ],
       },
       { id: "to", type: "seg", label: tr("Traducir a"), info: tr("Tradución automática: serve para entender, non para publicar sen revisar."), choices: () => [{ value: "none", label: tr("Non traducir") }, ...LANGS()] },
@@ -422,6 +473,7 @@ export const buildTools = (): Tool[] => [
         ],
       },
     ],
+    needs: (v) => [`asr-${v.model}`, ...(v.to !== "none" ? translationModels(v.lang as Lang, v.to as Lang) : [])],
     defaults: { lang: DEFAULT_LANG(), model: "tiny", to: "none", format: "srt" },
     action: () => tr("Transcribir"),
     all: async ([file], v, ctx) => {
@@ -442,7 +494,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "traducir",
     group: "audio",
-    icon: "type",
+    icon: "translate",
     title: tr("Traducir subtítulos"),
     desc: tr("Dun SRT ou VTT a galego, castelán, catalán ou inglés."),
     info: tr("Traduce un ficheiro de subtítulos mantendo os tempos. É tradución automática: serve para entender, non para publicar sen revisar."),
@@ -452,6 +504,7 @@ export const buildTools = (): Tool[] => [
       { id: "from", type: "seg", label: tr("Está en"), choices: LANGS },
       { id: "to", type: "seg", label: tr("Traducir a"), choices: LANGS },
     ],
+    needs: (v) => translationModels(v.from as Lang, v.to as Lang),
     defaults: { from: "eng", to: DEFAULT_LANG() },
     action: () => tr("Traducir"),
     all: async ([file], v, ctx) => {
@@ -468,7 +521,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "unir-pdf",
     group: "pdf",
-    icon: "merge",
+    icon: "merge-doc",
     title: tr("Unir PDF"),
     desc: tr("Xunta varios PDF nun só."),
     info: tr("Xunta os PDF na orde da lista: usa as frechas para mover cada un."),
@@ -484,7 +537,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "dividir-pdf",
     group: "pdf",
-    icon: "pages",
+    icon: "split-doc",
     title: tr("Dividir PDF"),
     desc: tr("Extrae ou separa páxinas."),
     info: tr("Extrae páxinas nun PDF, separa por intervalos ou fai un PDF por páxina. Os intervalos escríbense así: 1-3, 5, 8-"),
@@ -510,7 +563,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "xirar-pdf",
     group: "pdf",
-    icon: "rotate-cw",
+    icon: "rotate-ccw",
     title: tr("Xirar PDF"),
     desc: tr("Xira todas as páxinas."),
     info: tr("Xira todas as páxinas do PDF. O contido non se volve gardar como imaxe."),
@@ -535,7 +588,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "imaxes-a-pdf",
     group: "pdf",
-    icon: "document",
+    icon: "image-doc",
     title: tr("Imaxes a PDF"),
     desc: tr("Un PDF coas imaxes, unha por páxina."),
     info: tr("Fai un PDF cunha imaxe por páxina, na orde da lista. As fotos quedan coa orientación correcta."),
@@ -560,7 +613,7 @@ export const buildTools = (): Tool[] => [
   {
     id: "pdf-imaxes",
     group: "pdf",
-    icon: "image",
+    icon: "image-pdf",
     title: tr("PDF a imaxes"),
     desc: tr("Unha imaxe por cada páxina."),
     info: tr("Garda cada páxina do PDF como imaxe. Máis resolución dá máis detalle e máis peso. Ata 150 páxinas."),
@@ -584,9 +637,23 @@ export const buildTools = (): Tool[] => [
     all: async ([file], v, ctx) => (await import("./pdfimg")).pdfToImages(file, v.format as "image/jpeg" | "image/png", Number(v.ppp), ctx),
   },
   {
+    id: "pdf-texto",
+    group: "pdf",
+    icon: "text-doc",
+    title: tr("PDF a texto"),
+    desc: tr("Saca o texto dun PDF a un TXT."),
+    info: tr("Copia o texto seleccionable do PDF. Se é unha dixitalización non hai texto: saca as imaxes e usa Recoñecer texto."),
+    accept: "application/pdf,.pdf",
+    multiple: false,
+    options: [],
+    defaults: {},
+    action: () => tr("Sacar o texto"),
+    all: async ([file], _v, ctx) => [await (await import("./pdfimg")).pdfToText(file, ctx)],
+  },
+  {
     id: "comprimir-pdf",
     group: "pdf",
-    icon: "compress",
+    icon: "compress-doc",
     title: tr("Comprimir PDF"),
     desc: tr("Pesa moito menos, sobre todo se é unha dixitalización."),
     info: tr("Volve gardar cada páxina como imaxe JPG. Perde o texto seleccionable: serve para dixitalizacións e fotos, non para texto."),

@@ -105,6 +105,36 @@ export async function render(file: File, o: RenderOptions): Promise<Rendered> {
   }
 }
 
+/** Abre unha imaxe (coa orientación da foto, ata `maxArea` píxeles), deixa que `fn` cambie os seus píxeles e gárdaa. */
+export async function transform(file: File, mime: Mime, quality: number, maxArea: number, fn: (d: ImageData) => void): Promise<Rendered> {
+  const src = await open(file);
+  try {
+    const k = Math.min(1, Math.sqrt(maxArea / (src.width * src.height)));
+    const w = Math.max(1, Math.round(src.width * k));
+    const h = Math.max(1, Math.round(src.height * k));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const g = canvas.getContext("2d", { willReadFrequently: true });
+    if (!g) throw new Error("canvas");
+    if (mime === "image/jpeg") {
+      g.fillStyle = "#fff";
+      g.fillRect(0, 0, w, h);
+    }
+    g.imageSmoothingQuality = "high";
+    g.drawImage(src.img, 0, 0, w, h);
+    const data = g.getImageData(0, 0, w, h);
+    fn(data);
+    g.putImageData(data, 0, 0);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, mime, mime === "image/png" ? undefined : quality));
+    canvas.width = canvas.height = 0;
+    if (!blob) throw new Error("codificar");
+    return { blob, width: w, height: h, capped: k < 1 };
+  } finally {
+    src.close();
+  }
+}
+
 /** Mime de saída «igual que o orixinal» (o que non se pode escribir, JPG ou PNG). */
 export function sameMime(file: File): Mime {
   if (file.type === "image/png") return "image/png";

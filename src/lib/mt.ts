@@ -29,7 +29,8 @@ export async function lib(): Promise<TF> {
 /** Dice canto vai da descarga de un modelo (suma de todos os seus ficheiros). */
 export function downloads(ctx: Ctx, label: string) {
   const files = new Map<string, { loaded: number; total: number }>();
-  ctx.progress(0, label);
+  // Se o modelo xa está gardado non hai descarga: «Cargando», e só se di «Descargando» cando chegan os primeiros datos.
+  ctx.progress(null, tr("Cargando o modelo…"));
   return (e: { status: string; file?: string; loaded?: number; total?: number }) => {
     if (e.status === "progress" && e.file && e.total) {
       files.set(e.file, { loaded: e.loaded ?? 0, total: e.total });

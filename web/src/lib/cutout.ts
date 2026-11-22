@@ -29,7 +29,10 @@ async function ort(): Promise<Ort> {
 async function modelBytes(url: string, ctx: Ctx, label: string): Promise<ArrayBuffer> {
   const cache = await caches.open("trasno-models").catch(() => null);
   const hit = await cache?.match(url);
-  if (hit) return hit.arrayBuffer();
+  if (hit) {
+    ctx.progress(null, tr("Cargando o modelo…"));
+    return hit.arrayBuffer();
+  }
   ctx.progress(0, label);
   const res = await fetch(url);
   if (!res.ok || !res.body) throw new UserError(tr("Non puiden descargar ou arrancar o modelo. Comproba a conexión e proba de novo."));
