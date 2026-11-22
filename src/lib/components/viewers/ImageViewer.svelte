@@ -6,7 +6,7 @@
   import AnnotLayer from "../ui/AnnotLayer.svelte";
   import OcrLayer from "../ui/OcrLayer.svelte";
   import ZoomRuler from "../ui/ZoomRuler.svelte";
-  import { backdrop } from "../../transparency";
+  import { backdrop, cutoutView } from "../../transparency";
   import InfoTip from "../ui/InfoTip.svelte";
   import { ocrActive, ocrShown } from "../../ocr";
   import { annoActive } from "../../annot";
@@ -339,7 +339,8 @@
       {:else if url}
         <div class="canvas">
           <div class="view" bind:this={viewEl} style={(nw ? `width:${vw}px;height:${vh}px` : "width:1px;height:1px") + ($backdrop ? `;background:${$backdrop}` : "")}>
-            <img bind:this={imgEl} src={url} alt={file.name} style={nw ? imgStyle : "opacity:0"} on:error={onError} on:load={loaded} draggable="false" />
+            <img bind:this={imgEl} src={url} alt={file.name} style={nw ? imgStyle + ($cutoutView ? ";opacity:0" : "") : "opacity:0"} on:error={onError} on:load={loaded} draggable="false" />
+            {#if $cutoutView && nw}<img class="cut" src={$cutoutView} alt="" style={`width:${nw * eff}px;height:${nh * eff}px;transform:translate(-50%,-50%) scale(${e?.flipH ? -1 : 1}, ${e?.flipV ? -1 : 1}) rotate(${rot}deg)`} draggable="false" />{/if}
           </div>
         </div>
         {#if ocrOn && $ocrShown && box.w}
@@ -412,6 +413,7 @@
   }
   .canvas { box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 26px; min-width: 100%; min-height: 100%; width: max-content; height: max-content; }
   .view { position: relative; flex: none; }
+  .cut { pointer-events: none; }
   img { position: absolute; left: 50%; top: 50%; max-width: none; display: block; user-select: none; transform-origin: center; }
   .stage.pan { cursor: grab; }
   .stage.panning { cursor: grabbing; }

@@ -54,11 +54,27 @@ export class Check {
   }
 }
 
+/** Extensións opcionais (whisper.cpp, yt-dlp e modelos) que se enlazan no perfil illado desde unha caché. */
+const TOOL_DIRS = ["whisper", "yt-dlp", "models"];
+const toolsOf = (root) => path.join(root, "lad", "ArquivosDoTrasno", "tools");
+/** Desfai as unións (sen tocar o que apuntan): `rmdir` só quita a unión, nunca o contido da caché. */
+function unlinkTools(root) {
+  for (const d of TOOL_DIRS) {
+    const p = path.join(toolsOf(root), d);
+    try {
+      if (fs.lstatSync(p).isSymbolicLink()) fs.rmdirSync(p);
+    } catch {
+      // non había
+    }
+  }
+}
+
 /** Arranca a app (e vite se fai falta) e devolve o obxecto `app` coas axudas. */
 export async function launch({ tessdata = false } = {}) {
   const exeSrc = path.join(repo, "target", "debug", "trasno.exe");
   if (!fs.existsSync(exeSrc)) throw new Error("Falta target/debug/trasno.exe: executa antes «cargo build -p trasno».");
   const root = path.join(os.tmpdir(), "trasno-e2e");
+  unlinkTools(root);
   fs.rmSync(root, { recursive: true, force: true });
   for (const d of ["tmp", "lad", "wv", "media"]) fs.mkdirSync(path.join(root, d), { recursive: true });
   const exe = path.join(root, "trasno-e2e.exe");
@@ -79,6 +95,8 @@ export async function launch({ tessdata = false } = {}) {
     cwd: root,
     env: {
       ...process.env,
+      // Sen yt-dlp nin whisper.cpp do sistema: as probas das extensións mandan só o que hai no perfil illado.
+      TRASNO_ONLY_OWN_TOOLS: "1",
       TEMP: path.join(root, "tmp"),
       TMP: path.join(root, "tmp"),
       LOCALAPPDATA: path.join(root, "lad"),
@@ -123,6 +141,51 @@ export async function launch({ tessdata = false } = {}) {
     /** Nivel (RMS, 0 a 1) do son que sae agora do visor, medido no grafo de efectos; só en builds de desenvolvemento. */
     async level(ms = 700) {
       return ev(`(async()=>{const f=window.__trasnoFx; if(!f||!f.probe) return -1; const b=new Float32Array(f.probe.fftSize); let acc=0,n=0; const t0=performance.now(); while(performance.now()-t0<${ms}){f.probe.getFloatTimeDomainData(b); for(const x of b){acc+=x*x;n++} await new Promise(r=>setTimeout(r,40))} return Math.sqrt(acc/n)})()`);
+    },
+    /**
+     * Enlaza no perfil illado as extensións xa descargadas dunha caché (`TRASNO_E2E_TOOLS`: un cartafol coma o de datos da app,
+     * con `whisper`, `yt-dlp` e `models`; énchese con `cargo test -p trasno-engine --test extensiones -- --ignored`). Devolve `false` se
+     * non hai caché. Despois hai que facer `reload()` para que a interface as vexa.
+     */
+    useTools() {
+      const cache = process.env.TRASNO_E2E_TOOLS;
+      if (!cache || !fs.existsSync(cache)) return false;
+      fs.mkdirSync(toolsOf(root), { recursive: true });
+      let any = false;
+      for (const d of TOOL_DIRS) {
+        const src = path.join(cache, d);
+        const to = path.join(toolsOf(root), d);
+        if (fs.existsSync(src) && !fs.existsSync(to)) fs.symlinkSync(src, to, "junction");
+        any ||= fs.existsSync(src);
+      }
+      return any;
+    },
+    /** Quita as extensións enlazadas: a app volve a non ter ningunha (ata un `reload()`). */
+    noTools() {
+      unlinkTools(root);
+    },
+    /** Pon un valor nun selector pola súa etiqueta. */
+    async select(label, value) {
+      const r = await ev(`(()=>{const s=[...document.querySelectorAll('select')].find(x=>x.getAttribute('aria-label')===${JSON.stringify(label)}); if(!s) return 'sen selector '+${JSON.stringify(label)}; s.value=${JSON.stringify(value)}; s.dispatchEvent(new Event('change',{bubbles:true})); return s.value===${JSON.stringify(value)}?'ok':'sen opción '+${JSON.stringify(value)};})()`);
+      if (r !== "ok") throw new Error(r);
+      await sleep(250);
+    },
+    /** Abre o menú radial do trasno (pasando o rato) e preme un dos seus botóns polo nome. */
+    async radial(label) {
+      const r = await ev(`(()=>{const d=document.querySelector('.dock'); if(!d) return 'sen dock'; d.dispatchEvent(new PointerEvent('pointerenter',{bubbles:false})); return 'ok'})()`);
+      if (r !== "ok") throw new Error(r);
+      await sleep(600);
+      const c = await ev(`(()=>{const b=[...document.querySelectorAll('.dock .rd')].find(b=>b.getAttribute('aria-label')===${JSON.stringify(label)}); if(!b) return 'sen botón '+${JSON.stringify(label)}; b.click(); return 'ok'})()`);
+      if (c !== "ok") throw new Error(c);
+      await sleep(500);
+    },
+    /** Audio de voz de proba (a voz sintética de Windows): `name`.wav co texto dado. */
+    speech(name, text) {
+      const p = path.join(root, "media", name);
+      const script = `Add-Type -AssemblyName System.Speech; $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.SetOutputToWaveFile('${p.replace(/'/g, "''")}'); $s.Speak('${text.replace(/'/g, "''")}'); $s.Dispose()`;
+      const r = spawnSync("powershell", ["-NoProfile", "-Command", script], { encoding: "utf8" });
+      if (r.status !== 0 || !fs.existsSync(p)) throw new Error("Non puiden crear a voz de proba: " + (r.stderr || r.stdout));
+      return p;
     },
     /** Espera ata que `fn` (executada na páxina, devolve valor verdadeiro) se cumpra. */
     async waitFor(js, what, ms = 20000) {
@@ -189,7 +252,8 @@ export async function launch({ tessdata = false } = {}) {
       return p;
     },
     async reload() {
-      await ev("localStorage.setItem('arquivos-do-trasno.output-mode','beside'); location.reload()");
+      // Cada escenario empeza sen os ficheiros (nin os marcados) do anterior: a sesión lembrada bórrase.
+      await ev("localStorage.setItem('arquivos-do-trasno.output-mode','beside'); localStorage.removeItem('arquivos-do-trasno.session'); location.reload()");
       await sleep(4500);
     },
     async close() {
@@ -202,6 +266,7 @@ export async function launch({ tessdata = false } = {}) {
       else child.kill();
       if (vite) spawnSync("taskkill", ["/F", "/T", "/PID", String(vite.pid)]);
       await sleep(500);
+      unlinkTools(root);
     },
   };
   // Espera a que a ventá cargue a interface de verdade (ao principio é unha páxina baleira).

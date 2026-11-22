@@ -8,6 +8,9 @@ Cargo.lock.bak
 ## Node / frontend
 node_modules/
 dist/
+dist-web/
+web/public/ocr/
+web/public/ort/
 .vite/
 *.local
 
@@ -29,3 +32,4 @@ Thumbs.db
 /tmp-trasno/
 .claude/
 public/ocr/
+public/ort/

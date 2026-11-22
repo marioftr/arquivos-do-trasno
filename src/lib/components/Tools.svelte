@@ -74,11 +74,11 @@
     }
     switch (cat) {
       case "imaxe":
-        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("resize", "Redimensionar"), tab("slice", "Dividir"), tab("annotate", "Anotar"), tab("icons", "Iconas"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("compress", "Comprimir"), tab("edit", "Editar"), tab("cutout", "Quitar fondo"), tab("resize", "Redimensionar"), tab("slice", "Dividir"), tab("annotate", "Anotar"), tab("icons", "Iconas"), tab("ocr", "Recoñecer texto (OCR)"), tab("info", "Información")];
       case "video":
-        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...(ext === "gif" ? [] : [tab("restore", "Restaurar")]), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), ...(ext === "gif" ? [] : [tab("restore", "Restaurar"), tab("transcribe", "Transcribir")]), tab("subtitles", "Subtítulos"), ...mkvTab(), tab("extract", "Extraer"), tab("info", "Información")];
       case "audio":
-        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), tab("tags", "Etiquetas"), ...mkvTab(), tab("info", "Información")];
+        return [tab("convert", "Converter"), tab("edit", "Editar"), tab("sound", "Son"), tab("transcribe", "Transcribir"), tab("tags", "Etiquetas"), ...mkvTab(), tab("info", "Información")];
       case "documento":
         return pdf
           ? [
@@ -243,6 +243,10 @@
           <ConvertSection {selection} {category} />
         {:else if current === "icons" && category === "imaxe" && first}
           <Lazy loader={() => import("./tools/IconsSection.svelte")} file={first} />
+        {:else if current === "cutout" && category === "imaxe" && first}
+          <Lazy loader={() => import("./tools/CutoutSection.svelte")} file={first} />
+        {:else if current === "transcribe" && first && (category === "audio" || category === "video")}
+          <Lazy loader={() => import("./tools/TranscribeSection.svelte")} file={first} />
         {:else if current === "resize" && category === "imaxe"}
           <ResizeSection {selection} />
         {:else if current === "stitch" && category === "imaxe"}

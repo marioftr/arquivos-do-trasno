@@ -125,7 +125,33 @@ export interface Bubble {
 export const bubble = writable<Bubble | null>(null);
 let bubbleId = 0;
 let bubbleTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** O trasno está na cabeceira dunha xanela (non no seu sitio). Os avisos importantes sáenlle alí; o resto agarda a que volva (os consellos e comentarios de compañía, non). */
+export const trasnoCovered = writable(false);
+type Say = { text: string; kind: Bubble["kind"]; ms: number; action?: Bubble["action"]; extra: { copy?: string; notify?: boolean; quiet?: boolean } };
+let held: Say | null = null;
+const important = (kind: Bubble["kind"], extra: { notify?: boolean }) => kind === "warn" || !!extra.notify;
+trasnoCovered.subscribe((covered) => {
+  if (covered) {
+    // O que se estaba dicindo ao abrirse a xanela: se é importante queda no globo da cabeceira; se non, agarda.
+    const b = get(bubble);
+    if (b && !important(b.kind, b)) {
+      if (!b.quiet && b.kind !== "tip") held = { text: b.text, kind: b.kind, ms: 14000, action: b.action, extra: { copy: b.copy, notify: b.notify } };
+      hideBubble();
+    }
+  } else if (held) {
+    const h = held;
+    held = null;
+    trasnoSay(h.text, h.kind, h.ms, h.action, h.extra);
+  }
+});
+
 export function trasnoSay(text: string, kind: Bubble["kind"] = "info", ms = 14000, action?: Bubble["action"], extra: { copy?: string; notify?: boolean; quiet?: boolean } = {}) {
+  if (get(trasnoCovered) && !important(kind, extra)) {
+    // Un comentario de compañía ou un consello perdense; un resultado agarda a que o trasno volva.
+    if (!extra.quiet && kind !== "tip") held = { text, kind, ms, action, extra };
+    return;
+  }
   const id = ++bubbleId;
   bubble.set({ id, text, kind, action, copy: extra.copy, notify: extra.notify, quiet: extra.quiet });
   clearTimeout(bubbleTimer);
@@ -279,9 +305,11 @@ const LABEL: Record<string, string> = {
   how: "o modo de axuste", width: "o ancho", height: "o alto", percent: "a porcentaxe", noUpscale: "non ampliar as imaxes pequenas", crop: "o que facer coa proporción", side: "o lado maior", lock: "manter a proporción",
   cols: "as columnas", rows: "as filas", shape: "a forma das partes", order: "a numeración",
   direction: "a dirección", align: "a igualación do tamaño", removeOverlap: "quitar tramos repetidos", gap: "o espazo entre capturas", background: "o fondo", format: "o formato",
+  // Transcribir e Quitar fondo
+  model: "a calidade", language: "o idioma da voz", translate: "traducir ao inglés", shortLines: "as liñas curtas", ext: "o formato", color: "a cor do fondo",
 };
 // Valores de texto que se amosan tal cal; para os demais amósase só o que cambiou (nunca un código interno).
-const RAW_VALUE = new Set(["targetExt", "pageSpec", "wmText", "wmFamily", "dar", "maxHeight", "wmColor", "format", "background"]);
+const RAW_VALUE = new Set(["targetExt", "pageSpec", "wmText", "wmFamily", "dar", "maxHeight", "wmColor", "format", "ext"]);
 const LEVEL_NAMES = { 0: "non", 1: "suave", 2: "normal", 3: "forte" };
 const VALUE_LABEL: Record<string, Record<string, string>> = {
   mode: { quality: "calidade", bitrate: "bitrate", size: "tamaño máximo" },
@@ -291,6 +319,9 @@ const VALUE_LABEL: Record<string, Record<string, string>> = {
   shape: { 0: "libre", 1: "1:1", 2: "4:5", 3: "3:4", 4: "9:16", 5: "16:9" },
   order: { 0: "por filas", 1: "por columnas" },
   format: { same: "igual que o orixinal" },
+  background: { transparent: "transparente", white: "branco", black: "negro", gray: "gris neutro", color: "unha cor" },
+  model: { "whisper-base": "rápida", "whisper-small": "equilibrada", "whisper-medium": "precisa" },
+  language: { auto: "detectar" },
   direction: { vertical: "unha debaixo doutra", horizontal: "unha ao carón doutra" },
   align: { narrowest: "á máis pequena", widest: "á máis grande" },
 };
@@ -304,7 +335,7 @@ export function describeForm(before: Record<string, any>, after: Record<string, 
     const what = tr(LABEL[k]);
     if (typeof v === "boolean") noteHere(v ? "O trasno activou {what}" : "O trasno desactivou {what}", { what }, restore);
     else if (VALUE_LABEL[k]?.[v]) noteHere("O trasno cambiou {what} a {value}", { what, value: tr(VALUE_LABEL[k][v]) }, restore);
-    else if (typeof v === "number" || RAW_VALUE.has(k)) noteHere("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" || k === "format" ? String(v).toUpperCase() : String(v) }, restore);
+    else if (typeof v === "number" || RAW_VALUE.has(k)) noteHere("O trasno cambiou {what} a {value}", { what, value: k === "targetExt" || k === "format" || k === "ext" ? String(v).toUpperCase() : String(v) }, restore);
     else noteHere("O trasno cambiou {what}", { what }, restore);
     if (seen.size >= 2) break;
   }

@@ -7,8 +7,9 @@
   import { fileNameOf, TRASNO, fallo, listo } from "../../formats";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
-  import { createJob } from "../../job";
+  import { createJob, reportProgress } from "../../job";
   import { askOutput } from "./shared";
+  import type { Lang } from "../../mt";
   import Segmented from "../ui/Segmented.svelte";
   import Levels from "../ui/Levels.svelte";
   import NumberField from "../ui/NumberField.svelte";
@@ -25,7 +26,7 @@
     { id: "d", label: "25 → 24", values: { fromFps: 25, toFps: 24 } },
   ];
 
-  const form = createForm({ how: "shift", seconds: 0, fromFps: 23.976, toFps: 25, firstAt: "", lastAt: "" }, "subtitulos", "subtitulos|" + file.path);
+  const form = createForm({ mode: "sync", from: "eng" as Lang, to: "glg" as Lang, how: "shift", seconds: 0, fromFps: 23.976, toFps: 25, firstAt: "", lastAt: "" }, "subtitulos", "subtitulos|" + file.path);
   onMount(() => useForm(form));
 
   const job = createJob();
@@ -67,6 +68,41 @@
     return engine.subtitleTwoPoints(info.first_start, info.last_start, a, b);
   }
 
+  /** Idiomas da tradución (Opus-MT románico: galego, español e catalán, co inglés de ponte). */
+  const LANGS: { value: Lang; label: string; suffix: string }[] = [
+    { value: "glg", label: "Galego", suffix: "gl" },
+    { value: "spa", label: "Español", suffix: "es" },
+    { value: "eng", label: "English", suffix: "en" },
+    { value: "cat", label: "Català", suffix: "ca" },
+  ];
+
+  async function translateSubs() {
+    try {
+      const f = $form;
+      if (f.from === f.to) throw new Error(tr("Elixe dous idiomas distintos."));
+      const suffix = LANGS.find((l) => l.value === f.to)?.suffix ?? f.to;
+      const out = await askOutput(file, `-${suffix}`, file.ext);
+      if (!out) return;
+      await job.run(TRASNO.traballando, fallo("editando"), async () => {
+        const texts = await engine.subtitleTexts(file.path);
+        const ctx = {
+          progress: (frac: number | null, label?: string) => {
+            if (frac !== null) reportProgress(frac);
+            if (label) job.text.set(label);
+          },
+        };
+        const { translate } = await import("../../mt");
+        const lines = await translate(texts, f.from, f.to, ctx);
+        const path = await engine.subtitleReplaceTexts(file.path, out, lines, true);
+        return `${listo()} ${fileNameOf(path)}
+${tr("{n} falas.", { n: lines.length })} ${tr("Tradución automática: convén revisala antes de usala.")}`;
+      });
+    } catch (e) {
+      job.say(false, `${fallo("editando")}
+${errText(e)}`);
+    }
+  }
+
   async function run(identity = false) {
     try {
       const r = identity ? { shift_ms: 0, factor: 1 } : await compute();
@@ -85,7 +121,12 @@
 
 <div class="stack">
   <div class="group">
-    <PanelInfo text={$t("Axusta uns subtítulos que saen adiantados, atrasados ou que se van desfasando.")} />
+    <PanelInfo text={$form.mode === "translate" ? $t("Traduce os subtítulos mantendo os tempos. É automática: serve para entender, non para publicar sen revisar.") : $t("Axusta uns subtítulos que saen adiantados, atrasados ou que se van desfasando.")} />
+    <Segmented label={$t("Que queres facer")} options={[{ value: "sync", label: $t("Resincronizar") }, { value: "translate", label: $t("Traducir") }]} bind:value={$form.mode} />
+    {#if $form.mode === "translate"}
+      <Segmented label={$t("Está en")} options={LANGS.map((l) => ({ value: l.value, label: l.label }))} bind:value={$form.from} />
+      <Segmented label={$t("Traducir a")} options={LANGS.map((l) => ({ value: l.value, label: l.label }))} bind:value={$form.to} info={$t("Cada modelo baixa unha vez (uns 120 MB) e despois traballa sen conexión. Entre galego, español e catalán pásase polo inglés.")} />
+    {:else}
     {#if info}
       <p class="muted info">
         {$t("{n} falas · a primeira empeza en {a} e a última en {b}.", { n: info.cues, a: clock(info.first_start), b: clock(info.last_start) })}
@@ -126,9 +167,14 @@
       <TextField label={$t("A primeira fala debe saír en")} placeholder="0:00:02,500" bind:value={$form.firstAt} hint={info ? $t("Agora sae en {a}.", { a: clock(info.first_start) }) : ""} />
       <TextField label={$t("A última fala debe saír en")} placeholder="1:32:10,000" bind:value={$form.lastAt} hint={info ? $t("Agora sae en {a}.", { a: clock(info.last_start) }) : ""} />
     {/if}
+    {/if}
   </div>
 
-  <button class="btn primary block" on:click={() => run(false)} disabled={$busy || !info}>{$t("Resincronizar")}</button>
+  {#if $form.mode === "translate"}
+    <button class="btn primary block" on:click={translateSubs} disabled={$busy}>{$t("Traducir")}</button>
+  {:else}
+    <button class="btn primary block" on:click={() => run(false)} disabled={$busy || !info}>{$t("Resincronizar")}</button>
+  {/if}
   <JobStatus {job} />
 </div>
 

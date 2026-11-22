@@ -16,7 +16,8 @@ export interface Job {
   text: Writable<string>;
   /** Avance real (0 a 1) cando o motor o dá; `null` se non se sabe. */
   progress: Writable<number | null>;
-  run: (working: string, fail: string, job: () => Promise<string | void>) => Promise<void>;
+  /** `title`: nome co que queda o traballo nos procesos e no historial (por defecto, o ficheiro aberto). */
+  run: (working: string, fail: string, job: () => Promise<string | void>, title?: string) => Promise<void>;
   say: (ok: boolean, text: string) => void;
   clear: () => void;
 }
@@ -39,16 +40,17 @@ export function createJob(): Job {
     busy,
     text,
     progress,
-    async run(working, fail, job) {
+    async run(working, fail, job, title) {
       busy.set(true);
       text.set(tr(working));
       progress.set(null);
       await beginJob().catch(() => {});
       const current = get(files).find((f) => f.path === get(activePath));
-      const tracker = track({ title: current?.name ?? tr("Traballo"), subtitle: tr(working), source: "app" });
+      const name = title ?? current?.name;
+      const tracker = track({ title: name ?? tr("Traballo"), subtitle: tr(working), source: "app" });
       active = { tracker, progress };
       setTimeout(refreshProcs, 250);
-      noteAction("O trasno comezou o traballo de «{name}»", { name: current?.name ?? "" });
+      noteAction("O trasno comezou o traballo de «{name}»", { name: name ?? "" });
       const outs: string[] = [];
       outputHook.fn = (p) => {
         if (!outs.includes(p)) outs.push(p);
@@ -59,26 +61,26 @@ export function createJob(): Job {
         // O resultado (tamaño, aforro...) di o trasno e queda no historial, cos botóns dos ficheiros que deixou.
         const info = done ? String(done) : "";
         if (info) noteAction(info, undefined, undefined, undefined, outs.length ? [...outs] : undefined);
-        else noteAction("O trasno rematou o traballo de «{name}»", { name: current?.name ?? "" }, undefined, undefined, outs.length ? [...outs] : undefined);
+        else noteAction("O trasno rematou o traballo de «{name}»", { name: name ?? "" }, undefined, undefined, outs.length ? [...outs] : undefined);
         tracker.finish("done", { detail: done ? String(done).slice(0, 200) : undefined });
-        jobEnd.set({ kind: "done", title: current?.name ?? tr("Traballo"), at: Date.now() });
+        jobEnd.set({ kind: "done", title: name ?? tr("Traballo"), at: Date.now() });
         if (info) trasnoSay(info, "info", 16000);
-        else trasnoDone(current?.name ?? tr("Traballo"));
+        else trasnoDone(name ?? tr("Traballo"));
       } catch (e) {
         // Cancelar non é un fallo: sen frase de «tropezou».
         if (isCancelled(e)) {
           trasnoSay(tr("Traballo cancelado. Deixei todo ordenado, sen ficheiros a medias."), "info", 8000);
-          noteAction("O trasno cancelou o traballo de «{name}»", { name: current?.name ?? "" });
+          noteAction("O trasno cancelou o traballo de «{name}»", { name: name ?? "" });
           tracker.finish("cancelled");
-          jobEnd.set({ kind: "cancelled", title: current?.name ?? tr("Traballo"), at: Date.now() });
+          jobEnd.set({ kind: "cancelled", title: name ?? tr("Traballo"), at: Date.now() });
         } else {
           const missing = missingToolOf(e);
           if (missing) requestTool(missing, undefined, () => void this.run(working, fail, job));
           const full = `${tr(fail)}\n${errText(e)}`;
           trasnoSay(full, "warn", 45000, undefined, { copy: full, notify: true });
-          noteAction("O trasno tropezou co traballo de «{name}»", { name: current?.name ?? "" }, undefined, `${tr(fail)}\n${errText(e)}`);
+          noteAction("O trasno tropezou co traballo de «{name}»", { name: name ?? "" }, undefined, `${tr(fail)}\n${errText(e)}`);
           tracker.finish("error", { detail: errText(e).slice(0, 200) });
-          jobEnd.set({ kind: "error", title: current?.name ?? tr("Traballo"), at: Date.now() });
+          jobEnd.set({ kind: "error", title: name ?? tr("Traballo"), at: Date.now() });
         }
       } finally {
         active = null;

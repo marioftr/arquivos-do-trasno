@@ -10,13 +10,14 @@
   import LockNote from "../ui/LockNote.svelte";
   import { t, tr } from "../../i18n";
   import { createForm, useForm } from "../../forms";
-  import { NO_ALPHA, BACKGROUNDS, hasTransparency, backdrop, cssOf, type Bg } from "../../transparency";
+  import { NO_ALPHA, rgbOf, hasTransparency, backdrop, cssOf, type Bg } from "../../transparency";
   import { createJob } from "../../job";
   import { askOutput } from "./shared";
   import Slider from "../ui/Slider.svelte";
   import NumberField from "../ui/NumberField.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import Segmented from "../ui/Segmented.svelte";
+  import BackgroundPicker from "../ui/BackgroundPicker.svelte";
   import JobStatus from "../ui/JobStatus.svelte";
   import Icon from "../Icon.svelte";
 
@@ -37,6 +38,7 @@
     cw: file.width ?? 0,
     ch: file.height ?? 0,
     bg: "white" as Bg,
+    bgColor: "#ffffff",
   }, undefined, "imgedit|" + file.path);
   onMount(() => useForm(form));
 
@@ -50,7 +52,7 @@
   let transparent = false;
   $: void hasTransparency(file.path).then((r) => (transparent = r));
 
-  $: backdrop.set(outExt && NO_ALPHA.includes(outExt) && transparent ? cssOf($form.bg) : null);
+  $: backdrop.set(outExt && NO_ALPHA.includes(outExt) && transparent ? cssOf($form.bg, $form.bgColor) : null);
   onDestroy(() => backdrop.set(null));
 
   const job = createJob();
@@ -194,7 +196,7 @@
             blur: f.blur,
             crop: f.cropOn ? [f.cx, f.cy, f.cw, f.ch] : undefined,
             quality: 90,
-            background: NO_ALPHA.includes(outExt) ? BACKGROUNDS[f.bg] : undefined,
+            background: NO_ALPHA.includes(outExt) ? rgbOf(f.bg, f.bgColor) : undefined,
           },
           true,
         );
@@ -263,11 +265,10 @@
 
   <div class="group">
     {#if outExt && NO_ALPHA.includes(outExt) && transparent}
-      <Segmented
-        label={$t("Fondo")}
+      <BackgroundPicker
         info={$t("A imaxe ten transparencia e este formato non a admite: hai que escoller un fondo sobre o que compoñela.")}
-        options={[{ value: "white", label: $t("Branco"), glyph: { k: "swatch", color: "#ffffff" } }, { value: "black", label: $t("Negro"), glyph: { k: "swatch", color: "#000000" } }, { value: "gray", label: $t("Gris neutro"), glyph: { k: "swatch", color: "#808080" } }]}
         bind:value={$form.bg}
+        bind:color={$form.bgColor}
       />
     {/if}
     <button class="btn primary block" on:click={apply} disabled={!$dirty || $busy || !outExt}>

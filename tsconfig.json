@@ -7,13 +7,28 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ],
+      "@app/*": [
+        "src/*"
+      ]
     },
     "allowJs": true,
     "checkJs": true,
     "isolatedModules": true,
     "moduleResolution": "bundler"
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.svelte"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.svelte",
+    "web/src/**/*.ts",
+    "web/src/**/*.svelte"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
 }

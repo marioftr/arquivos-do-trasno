@@ -95,6 +95,12 @@ pub fn is_cancelled() -> bool {
     CANCELLED.load(std::sync::atomic::Ordering::SeqCst)
 }
 
+/// Se hai que parar o traballo que corre neste fío: só conta para os traballos do usuario, non para os de fondo (vistas previas,
+/// análise para elas...), que non deben quedar paralizados por unha cancelación vella.
+pub fn cancelled_here() -> bool {
+    !is_background() && is_cancelled()
+}
+
 /// Pon en pausa (ou retoma) o ffmpeg que estea a correr. Devolve `true` se había un ffmpeg ao que facerllo.
 /// En Windows suspende o proceso; noutros sistemas envía SIGSTOP / SIGCONT.
 pub fn set_paused(paused: bool) -> bool {
@@ -186,6 +192,18 @@ pub fn set_progress_sink(sink: Option<ProgressSink>) {
 
 pub fn set_progress_phase(offset: f64, span: f64) {
     *PHASE.lock().unwrap_or_else(|e| e.into_inner()) = (offset, span);
+}
+
+/// Informa do avance (0 a 1) dun traballo que non é de ffmpeg (transcrición, descargas…): chega á interface igual ca o de ffmpeg.
+pub(crate) fn report_progress(f: f64) {
+    if is_background() || !f.is_finite() {
+        return;
+    }
+    let sink = SINK.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    if let Some(sink) = sink {
+        let (offset, span) = *PHASE.lock().unwrap_or_else(|e| e.into_inner());
+        sink(offset + span * f.clamp(0.0, 1.0));
+    }
 }
 
 /// Duración que se agarda do resultado (segundos), para a barra de progreso cando é distinta da do orixinal (p. ex. se se cortan
@@ -288,8 +306,29 @@ pub(crate) struct External {
 
 /// Executa un programa externo (LibreOffice, Microsoft Office…) como un traballo máis: Pausa e Cancelar chéganlle (a el e aos
 /// procesos que declare coa liña `PID <n>` na súa saída) e acaba matado se pasa de `timeout`.
-pub(crate) fn run_external(mut cmd: Command, timeout: std::time::Duration) -> Result<External> {
-    use std::io::{BufRead, BufReader, Read};
+pub(crate) fn run_external(cmd: Command, timeout: std::time::Duration) -> Result<External> {
+    run_external_watch(cmd, timeout, None)
+}
+
+/// Lee `reader` liña a liña (sen romper se hai bytes que non son UTF-8) e entrega cada unha a `f`.
+fn for_each_line(reader: impl std::io::Read, mut f: impl FnMut(&str)) {
+    use std::io::{BufRead, BufReader};
+    let mut r = BufReader::new(reader);
+    let mut buf = Vec::new();
+    loop {
+        buf.clear();
+        match r.read_until(b'\n', &mut buf) {
+            Ok(0) | Err(_) => break,
+            Ok(_) => f(String::from_utf8_lossy(&buf).trim_end_matches(['\n', '\r'])),
+        }
+    }
+}
+
+/// Un observador das liñas de saída dun programa externo.
+pub(crate) type Watch = std::sync::Arc<dyn Fn(&str) + Send + Sync>;
+
+/// Como `run_external`, e `watch` recibe cada liña de saída (normal ou de erro) segundo chega: serve para ler o avance dun programa longo.
+pub(crate) fn run_external_watch(mut cmd: Command, timeout: std::time::Duration, watch: Option<Watch>) -> Result<External> {
     use std::process::Stdio;
     let bg = is_background();
     if !bg && CANCELLED.load(std::sync::atomic::Ordering::SeqCst) {
@@ -308,9 +347,10 @@ pub(crate) fn run_external(mut cmd: Command, timeout: std::time::Duration) -> Re
     let stdout = child.stdout.take().expect("stdout");
     let mut stderr = child.stderr.take().expect("stderr");
     let t2 = tracked.clone();
+    let w_out = watch.clone();
     let out_thread = std::thread::spawn(move || {
         let mut text = String::new();
-        for line in BufReader::new(stdout).lines().map_while(|l| l.ok()) {
+        for_each_line(stdout, |line| {
             if let Some(n) = line.strip_prefix("PID ").and_then(|v| v.trim().parse::<u32>().ok()).filter(|n| *n > 0) {
                 t2.lock().unwrap_or_else(|e| e.into_inner()).push(n);
                 if !bg {
@@ -319,16 +359,25 @@ pub(crate) fn run_external(mut cmd: Command, timeout: std::time::Duration) -> Re
                         suspend_process(n, true);
                     }
                 }
-                continue;
+                return;
             }
-            text.push_str(&line);
+            if let Some(w) = &w_out {
+                w(line);
+            }
+            text.push_str(line);
             text.push('\n');
-        }
+        });
         text
     });
     let err_thread = std::thread::spawn(move || {
         let mut text = String::new();
-        let _ = stderr.read_to_string(&mut text);
+        for_each_line(&mut stderr, |line| {
+            if let Some(w) = &watch {
+                w(line);
+            }
+            text.push_str(line);
+            text.push('\n');
+        });
         text
     });
     let started = std::time::Instant::now();

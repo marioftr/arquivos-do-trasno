@@ -1,0 +1,80 @@
+/* Aparencia: grafito neutro, capas claras (fondo < paneis < xanelas) e un único acento verde. */
+:root {
+  color-scheme: dark;
+
+  --bg: #131417;
+  --bg-rail: #181a1e;
+  --bg-elevated: #1f2126;
+  --bg-card: #1b1d22;
+  --bg-hover: #272a30;
+  --bg-input: #111215;
+  --border: #25282e;
+  --border-strong: #353941;
+  --text: #ecedf0;
+  --text-muted: #9ca0aa;
+  --text-faint: #8b909b;
+
+  --accent-imaxe: #5fcf6e;
+  --accent-audio: #8f8cf0;
+  --accent-pdf: #d19a3a;
+  --accent-video: #e0674f;
+  --accent-conversor: #5fcf6e;
+  --accent: var(--accent-conversor);
+  --on-accent: #07140a; /* texto sobre botóns de cor */
+
+  /* fondos dos visores */
+  --viewer-bg: #0e0f12;
+  --checker-a: #14151a;
+  --checker-b: #191b20;
+
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.03);
+
+  --sidebar-w: 190px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Todos os controis (botóns, campos, selectores) miden o mesmo. */
+  --control-h: 30px;
+
+  /* Escala de tipografía única (a base é 13 px): etiquetas pequenas e insignias, texto secundario, texto de controis e títulos,
+     título de panel e cabeceiras grandes. Non se escriben tamaños soltos: úsase sempre un destes. */
+  --fs-xs: 0.74rem;
+  --fs-sm: 0.82rem;
+  --fs-md: 0.88rem;
+  --fs-lg: 1rem;
+  --fs-xl: 1.2rem;
+
+  /* Atkinson Hyperlegible Next vai incluída no programa (non depende de que a persoa a teña instalada). */
+  font-family: "Atkinson Hyperlegible Next Variable", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-feature-settings: "tnum";
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f1f2f4;
+  --bg-rail: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --bg-hover: #eceef1;
+  --bg-input: #ffffff;
+  --border: #e3e5e9;
+  --border-strong: #c8ccd3;
+  --text: #1b1d21;
+  --text-muted: #5b616b;
+  --text-faint: #666c77;
+
+  --accent-imaxe: #1f7d34;
+  --accent-audio: #5d52c4;
+  --accent-pdf: #a3720f;
+  --accent-video: #bb4630;
+  --accent-conversor: #1f7d34;
+  --on-accent: #ffffff;
+
+  --viewer-bg: #dfe2e6;
+  --checker-a: #e6e8eb;
+  --checker-b: #dde0e4;
+
+  --shadow-pop: 0 12px 32px rgba(20, 24, 32, 0.16), 0 0 0 1px rgba(20, 24, 32, 0.04);
+}

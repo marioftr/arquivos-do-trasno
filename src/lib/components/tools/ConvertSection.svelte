@@ -20,9 +20,10 @@
   import Toggle from "../ui/Toggle.svelte";
   import PhotoMeta from "../ui/PhotoMeta.svelte";
   import Segmented from "../ui/Segmented.svelte";
+  import BackgroundPicker from "../ui/BackgroundPicker.svelte";
   import { IMAGE_LEVELS } from "../../levels";
   import Levels from "../ui/Levels.svelte";
-  import { NO_ALPHA, BACKGROUNDS, anyTransparent, backdrop, cssOf, type Bg } from "../../transparency";
+  import { NO_ALPHA, rgbOf, anyTransparent, backdrop, cssOf, type Bg } from "../../transparency";
   import JobStatus from "../ui/JobStatus.svelte";
 
   export let selection: FileEntry[];
@@ -58,12 +59,9 @@
     quality: 85,
     bitrate: category === "audio" ? 192 : category === "video" ? 4000 : 0,
     audioBitrate: 192,
-    resizeW: null as number | null,
-    resizeH: null as number | null,
-    keepRatio: true,
-    maxSide: null as number | null,
     lossless: false,
     bg: "white" as Bg,
+    bgColor: "#ffffff",
     clipFps: 15,
     clipWidth: 640 as number | null,
     clipQuality: 75,
@@ -103,7 +101,7 @@
   const keepsAnimation = (f: FileEntry, to: string) => ["gif", "png", "apng"].includes(f.ext.toLowerCase()) && ["gif", "webp"].includes(to) && f.ext.toLowerCase() !== to;
   $: losing = category === "imaxe" ? animatedFiles.filter((f) => !keepsAnimation(f, $form.targetExt)) : [];
 
-  $: backdrop.set(needsBg && transparent && selection.length === 1 ? cssOf($form.bg) : null);
+  $: backdrop.set(needsBg && transparent && selection.length === 1 ? cssOf($form.bg, $form.bgColor) : null);
   onDestroy(() => backdrop.set(null));
 
   // Vídeo → imaxe animada (GIF ou WebP): en vez de bitrate, cadencia e ancho.
@@ -115,31 +113,6 @@
   const job = createJob();
   const busy = job.busy;
   let results: { name: string; state: "agarda" | "feito" | "erro"; text?: string }[] = [];
-
-  function onW(raw: string) {
-    const w = raw === "" ? null : Number(raw);
-    form.update((f) => ({
-      ...f,
-      resizeW: w,
-      resizeH: w && f.keepRatio && first.width && first.height ? Math.max(1, Math.round((w * first.height) / first.width)) : f.resizeH,
-    }));
-  }
-  function onH(raw: string) {
-    const h = raw === "" ? null : Number(raw);
-    form.update((f) => ({
-      ...f,
-      resizeH: h,
-      resizeW: h && f.keepRatio && first.width && first.height ? Math.max(1, Math.round((h * first.width) / first.height)) : f.resizeW,
-    }));
-  }
-
-  function resizeFor(f: FileEntry): [number, number] | undefined {
-    const v = $form;
-    if (!multi) return v.resizeW && v.resizeH ? [v.resizeW, v.resizeH] : undefined;
-    if (!v.maxSide || !f.width || !f.height) return undefined;
-    const k = Math.min(1, v.maxSide / Math.max(f.width, f.height));
-    return k >= 1 ? undefined : [Math.max(1, Math.round(f.width * k)), Math.max(1, Math.round(f.height * k))];
-  }
 
   const ENGINE_3D = ["obj", "stl", "ply"];
 
@@ -164,10 +137,9 @@
     return engine.convertFile(f.path, out, {
       overwrite,
       quality: f.category === "imaxe" ? v.quality : undefined,
-      resize: f.category === "imaxe" && !exact ? resizeFor(f) : undefined,
       bitrateKbps: canLossless && v.lossless ? undefined : toAudio ? v.audioBitrate : isMedia && v.bitrate ? v.bitrate : undefined,
       lossless: canLossless && v.lossless,
-      background: f.category === "imaxe" && NO_ALPHA.includes(v.targetExt) ? BACKGROUNDS[v.bg] : undefined,
+      background: f.category === "imaxe" && NO_ALPHA.includes(v.targetExt) ? rgbOf(v.bg, v.bgColor) : undefined,
       metadata: f.category === "imaxe" && !exact ? engine.photoMetadata(v.keepMeta, v.keepGps) : undefined,
     });
   }
@@ -242,11 +214,10 @@
     {/if}
 
     {#if needsBg && transparent}
-      <Segmented
-        label={$t("Fondo")}
+      <BackgroundPicker
         info={$t("A imaxe ten transparencia e este formato non a admite: hai que escoller un fondo sobre o que compoñela.")}
-        options={[{ value: "white", label: $t("Branco"), glyph: { k: "swatch", color: "#ffffff" } }, { value: "black", label: $t("Negro"), glyph: { k: "swatch", color: "#000000" } }, { value: "gray", label: $t("Gris neutro"), glyph: { k: "swatch", color: "#808080" } }]}
         bind:value={$form.bg}
+        bind:color={$form.bgColor}
       />
     {/if}
 
@@ -260,15 +231,6 @@
     {:else if category === "imaxe"}
       <Levels label={$t("Nivel de calidade")} levels={imageLevels} values={{ quality: $form.quality }} on:apply={(e) => form.update((f) => ({ ...f, ...e.detail }))} />
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={form.defaults.quality} hint={$t("Máis alto: mellor imaxe e máis peso (JPG, WebP, AVIF e JPEG XL).")} />
-      {#if multi}
-        <NumberField label={$t("Lado máximo")} unit="px" min={1} placeholder={$t("orixinal")} bind:value={$form.maxSide} def={null} />
-      {:else}
-        <div class="pair">
-          <NumberField label={$t("Ancho")} unit="px" min={1} value={$form.resizeW} onInput={onW} placeholder={first.width ? String(first.width) : ""} def={null} />
-          <NumberField label={$t("Alto")} unit="px" min={1} value={$form.resizeH} onInput={onH} placeholder={first.height ? String(first.height) : ""} def={null} />
-        </div>
-        <Toggle label={$t("Manter proporción")} bind:checked={$form.keepRatio} />
-      {/if}
     {:else if category === "video" && AUDIO_TARGETS.includes($form.targetExt)}
       <Slider label={$t("Bitrate de audio")} unit="kbps" min={32} max={320} step={8} bind:value={$form.audioBitrate} def={form.defaults.audioBitrate} hint={$t("Máis alto: máis calidade e máis peso.")} />
     {:else if toClip}

@@ -27,6 +27,7 @@
   $: cmds = [
     ...$toolActions.map((a): Cmd => ({ id: a.id, label: a.label, hint: $t("Ferramenta"), icon: "convert", run: () => (close(), jump.set({ tab: a.tab, mode: a.mode })) })),
     { id: "add", label: $t("Engadir ficheiros"), icon: "plus", run: () => (close(), onAdd()) },
+    { id: "download", label: $t("Descargar por ligazón"), icon: "link", run: () => dialog.set("download") },
     { id: "procs", label: $t("Procesos"), icon: "layers", run: () => openHub("procs.running") },
     { id: "news", label: $t("Novidades e rexistro de cambios"), icon: "info", run: () => openHub("news.changelog") },
     { id: "settings", label: $t("Axustes"), icon: "gear", run: () => openSettings("general") },

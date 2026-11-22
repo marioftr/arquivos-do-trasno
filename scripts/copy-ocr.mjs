@@ -18,3 +18,16 @@ for (const [src, name] of from) {
   copyFileSync(s, new URL(name, out));
 }
 console.log("OCR: ficheiros copiados a public/ocr");
+
+// O ONNX Runtime (WebAssembly) que usa a tradución de subtítulos: serve o a propia app, sen CDN.
+const ort = new URL("../public/ort/", import.meta.url);
+mkdirSync(ort, { recursive: true });
+for (const name of ["ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.wasm"]) {
+  const s = new URL(`../node_modules/onnxruntime-web/dist/${name}`, import.meta.url);
+  if (!existsSync(s)) {
+    console.error(`Falta ${name}: executa «npm install».`);
+    process.exit(1);
+  }
+  copyFileSync(s, new URL(name, ort));
+}
+console.log("ONNX Runtime: ficheiros copiados a public/ort");

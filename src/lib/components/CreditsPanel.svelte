@@ -15,13 +15,18 @@
     { name: "image (image-rs)", what: "Lectura e escritura de imaxes (PNG, JPG, WebP, GIF, BMP, ICO, TIFF, PNM, TGA e QOI)", license: "MIT / Apache-2.0" },
     { name: "kamadak-exif", what: "Datos EXIF das fotos", license: "BSD-2-Clause" },
     { name: "ttf-parser", what: "Lectura de tipos de letra do sistema", license: "MIT / Apache-2.0" },
-    { name: "ureq", what: "Descargas (actualizacións, programas e paquetes de idioma)", license: "MIT / Apache-2.0" },
+    { name: "ureq", what: "Descargas (actualizacións, programas, modelos e paquetes de idioma)", license: "MIT / Apache-2.0" },
+    { name: "tract", what: "Execución do modelo para quitar fondos de imaxes", license: "MIT / Apache-2.0" },
+    { name: "IS-Net «general use» (proxecto DIS, distribuído por rembg)", what: "Modelo para quitar fondos, que se descarga se o pides", license: "Apache-2.0 / MIT" },
+    { name: "Whisper (OpenAI, modelos en formato ggml)", what: "Modelos de recoñecemento de voz para transcribir, que se descargan se os pides", license: "MIT" },
     { name: "sevenz-rust e zip", what: "Descompresión dos programas descargados", license: "Apache-2.0 / MIT" },
     { name: "Rust e as súas bibliotecas (serde, uuid, sha2, which, tempfile…)", what: "Motor da aplicación", license: "MIT / Apache-2.0" },
   ];
   const ext: { name: string; what: string; license: string; link?: LinkId; licenseLink?: LinkId }[] = [
     { name: "FFmpeg", what: "Audio e vídeo, e tamén AVIF, JPEG 2000 e JPEG XL (non vai incluído: execútase se está instalado ou descargado)", license: "LGPL-2.1+ / GPL-2.0+ segundo a compilación", link: "ffmpeg", licenseLink: "ffmpeg-license" },
     { name: "MKVToolNix", what: "Edición de contedores MKV (non vai incluído: execútase se está instalado ou descargado)", license: "GPL-2.0", link: "mkvtoolnix", licenseLink: "mkvtoolnix-license" },
+    { name: "whisper.cpp", what: "Transcrición de voz a texto (non vai incluído: execútase se está instalado ou descargado)", license: "MIT", link: "whispercpp", licenseLink: "whispercpp-license" },
+    { name: "yt-dlp", what: "Descarga de vídeo e audio por ligazón (non vai incluído: execútase se está instalado ou descargado)", license: "Unlicense", link: "ytdlp", licenseLink: "ytdlp-license" },
     { name: "LibreOffice", what: "Conversión de documentos de Office e OpenDocument (non vai incluído: execútase se está instalado)", license: "MPL-2.0", link: "libreoffice", licenseLink: "libreoffice-license" },
     { name: "Microsoft Office (Word, Excel, PowerPoint)", what: "Conversión de documentos de Office (non vai incluído nin se descarga: úsase o que o usuario teña instalado, só en Windows)", license: "Software privativo de Microsoft, co seu propio contrato de licenza" },
   ];

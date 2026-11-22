@@ -50,6 +50,19 @@ pub enum EngineError {
     #[error("ffmpeg rematou con erro (código {code:?}): {stderr}")]
     FfmpegFailed { code: Option<i32>, stderr: String },
 
+    #[error("falta unha extensión opcional: {0}")]
+    ExtensionMissing(&'static str),
+
+    #[error("non hai voz que transcribir")]
+    NoSpeech,
+
+    #[error("{program} non puido rematar: {detail}")]
+    ExternalFailed { program: &'static str, detail: String },
+
+    /// Unha ligazón que non se pode descargar por un motivo coñecido («drm», «private», «login»…).
+    #[error("non se pode descargar ({0})")]
+    Unavailable(&'static str),
+
     #[error("verificación de integridade fallida: {0}")]
     IntegrityCheck(String),
 
@@ -92,6 +105,26 @@ impl EngineError {
                 "ffmpeg non puido rematar (código {code}). Detalle técnico: {stderr}",
                 json!({ "code": code.map(|c| c.to_string()).unwrap_or_else(|| "?".into()), "stderr": stderr }),
             ),
+            Self::ExtensionMissing(what) => (
+                match *what {
+                    "whisper" => "Para transcribir fai falta whisper.cpp, que non está instalado. Descárgase en Axustes → Extensións.",
+                    "whisper-model" => "Para transcribir fai falta o modelo de voz, que non está descargado. Descárgase en Axustes → Extensións.",
+                    "cutout-model" => "Para quitar o fondo fai falta o modelo de imaxe, que non está descargado. Descárgase en Axustes → Extensións.",
+                    _ => "Para descargar por ligazón fai falta yt-dlp, que non está instalado. Descárgase en Axustes → Extensións.",
+                },
+                json!({}),
+            ),
+            Self::NoSpeech => ("Non atopei voz que transcribir neste ficheiro.", json!({})),
+            Self::ExternalFailed { program, detail } => ("{program} non puido rematar. Detalle técnico: {detail}", json!({ "program": program, "detail": detail })),
+            Self::Unavailable("drm") => ("Non podo descargar este vídeo: está protexido con DRM e non hai forma de gardalo.", json!({})),
+            Self::Unavailable("private") => ("Non podo descargar este vídeo: é privado.", json!({})),
+            Self::Unavailable("age") => ("Non podo descargar este vídeo: ten restrición de idade e pide iniciar sesión.", json!({})),
+            Self::Unavailable("login") => ("Non podo descargar este vídeo: o sitio pide iniciar sesión para velo.", json!({})),
+            Self::Unavailable("geo") => ("Non podo descargar este vídeo: non está dispoñible neste país.", json!({})),
+            Self::Unavailable("live") => ("Non podo descargar este vídeo: é unha emisión que aínda non empezou.", json!({})),
+            Self::Unavailable("gone") => ("Non podo descargar este vídeo: xa non existe ou foi retirado.", json!({})),
+            Self::Unavailable("unsupported") => ("Non podo descargar desta ligazón: o sitio non é compatible ou non leva a un vídeo.", json!({})),
+            Self::Unavailable(_) => ("Non puiden conectar co sitio. Revisa a conexión e volve probar.", json!({})),
             Self::IntegrityCheck(m) => ("Parei o traballo por seguridade: {detail}", json!({ "detail": m, "dk": true })),
             Self::EmptyOrCorruptOutput => ("O resultado quedaría baleiro ou estragado, así que cancelei a operación e non toquei nada.", json!({})),
             Self::DestinationExists(p) => ("O ficheiro de destino xa existe e non me deixaches sobrescribilo: {path}", json!({ "path": p.display().to_string() })),

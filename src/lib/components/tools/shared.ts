@@ -35,12 +35,12 @@ export async function askPath(defaultPath: string): Promise<string | null> {
 }
 
 /** O mesmo para lotes: devolve o cartafol onde se gardan todos os resultados. */
-export async function askDir(anchorPath: string): Promise<string | null> {
+export async function askDir(anchorPath: string, startAt?: string): Promise<string | null> {
   const mode = get(outputMode);
   const folder = get(outputFolder);
   if (mode === "beside") return dirName(anchorPath);
   if (mode === "folder" && folder) return folder;
-  const chosen = await open({ directory: true });
+  const chosen = await open({ directory: true, defaultPath: startAt });
   return typeof chosen === "string" ? chosen : null;
 }
 

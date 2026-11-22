@@ -41,6 +41,15 @@ const files = [];
     } else if (ext.test(f.name) && !/(legal|changelog)[.]ts$/.test(f.name)) files.push(p);
   }
 })(root, /[.](svelte|ts)$/);
+// A versión web (web/src) cumpre as mesmas regras.
+(function walk(d) {
+  if (!fs.existsSync(d)) return;
+  for (const f of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, f.name);
+    if (f.isDirectory()) walk(p);
+    else if (/[.](svelte|ts)$/.test(f.name)) files.push(p);
+  }
+})(path.join(repo, "web", "src"));
 for (const d of ["crates/trasno-engine/src", "crates/trasno-engine/tests", "src-tauri/src"]) {
   const dir = path.join(repo, d);
   if (fs.existsSync(dir)) for (const f of fs.readdirSync(dir)) if (f.endsWith(".rs")) files.push(path.join(dir, f));

@@ -109,7 +109,9 @@ function persistedText(key: string) {
 export const outputFolder = persistedText("arquivos-do-trasno.output-folder");
 
 /** Que xanela modal está aberta: o centro (procesos, axustes, novidades, créditos) ou o buscador de accións. */
-export const dialog = writable<"hub" | "palette" | null>(null);
+export const dialog = writable<"hub" | "palette" | "download" | null>(null);
+/** Ligazón que traía o portapapeis: Descargar por ligazón colleaa ao abrirse. */
+export const pastedLink = writable("");
 /** Páxina aberta no centro, como «grupo.subcategoría». */
 export const hubPage = writable("settings.general");
 export function openHub(page: string) {

@@ -21,6 +21,8 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Texto e imaxes do portapapeis (o webview pediría permiso cada vez).
+arboard = { version = "3", default-features = false, features = ["image-data"] }
 trasno-engine = { path = "../crates/trasno-engine" }
 
 [target.'cfg(windows)'.dependencies]

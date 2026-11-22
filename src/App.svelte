@@ -14,7 +14,7 @@
   import { get } from "svelte/store";
   import * as engine from "./lib/engine";
   import { t, lang, LANGS, type Lang } from "./lib/i18n";
-  import { theme, dialog, openSettings, openHub, welcomeIfNeeded, type Theme } from "./lib/settings";
+  import { theme, dialog, pastedLink, openSettings, openHub, welcomeIfNeeded, type Theme } from "./lib/settings";
   import { appVersion, updateAvailable, autoCheck, checkForUpdate, applyPendingMenuRefresh } from "./lib/updates";
   import { installExplorerMenu } from "./lib/explorerMenu";
   import QuickJob from "./lib/components/QuickJob.svelte";
@@ -22,7 +22,8 @@
   import { procs, refreshProcs, requestCancel, type Proc } from "./lib/procs";
   import { pausedId } from "./lib/jobui";
   import JobBar from "./lib/components/ui/JobBar.svelte";
-  import { actions, tipsOn, liveProgress, jobEnd, bubble, hideBubble, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, CLICK_ITEMS, holdBubble, releaseBubble, type ClickAction } from "./lib/agent";
+  import Bubble from "./lib/components/ui/Bubble.svelte";
+  import { actions, tipsOn, liveProgress, jobEnd, bubble, hideBubble, trasnoCovered, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, type ClickAction } from "./lib/agent";
   import { reportProgress } from "./lib/job";
   import { requestTool } from "./lib/toolinstall";
   import ToolNeedDialog from "./lib/components/ToolNeedDialog.svelte";
@@ -32,6 +33,8 @@
   import Splitter from "./lib/components/ui/Splitter.svelte";
   import Tooltips from "./lib/components/ui/Tooltips.svelte";
   import CommandPalette from "./lib/components/CommandPalette.svelte";
+  import DownloadDialog from "./lib/components/DownloadDialog.svelte";
+  import { trasnoFlying } from "./lib/flight";
 
   let dragging = false;
   let unlisten: (() => void) | null = null;
@@ -62,12 +65,55 @@
   $: if (!$tipsOn) hideBubble();
 
   // ---- menú radial do trasno: sae ao pasar o rato (ou co teclado) e péchase en canto o punteiro deixa as súas ruxas
-  // Catro botóns nun arco arredor do trasno (esquina de abaixo á esquerda).
-  const ITEMS = CLICK_ITEMS;
+  // Dous aneis de botóns arredor do trasno (esquina de abaixo á esquerda). O interior vai de arriba a abaixo;
+  // o exterior queda nos ocos entre cada dous botóns do interior (o oco do medio está reservado).
   const HALF = 48; // metade do trasno (96 px)
   const BTN = 52;
-  const RINGS = [91.5, 61.5, 31.5, 1.5].map((a) => ({ r: 118, a }));
-  const pos = RINGS.map((q) => ({ x: q.r * Math.cos((q.a * Math.PI) / 180), y: q.r * Math.sin((q.a * Math.PI) / 180) }));
+  const BTN_R1 = 118;
+  const BTN_R2 = 166;
+  interface DockItem { id: string; icon: string; label: string; tone: string; a: number; r: number; actionId?: string }
+  const DOCK: DockItem[] = [
+    { id: "add", icon: "plus", label: "Engadir ficheiros", tone: "var(--accent-imaxe)", a: 91.5, r: BTN_R1 },
+    { id: "link", icon: "link", label: "Descargar por ligazón", tone: "var(--accent-video)", a: 61.5, r: BTN_R1 },
+    { id: "procs", icon: "layers", label: "Procesos", tone: "var(--accent-conversor)", a: 31.5, r: BTN_R1 },
+    { id: "settings", icon: "gear", label: "Axustes", tone: "var(--text-muted)", a: 1.5, r: BTN_R1 },
+    { id: "paste", icon: "paste", label: "Pegar do portapapeis", tone: "var(--accent-audio)", a: 76.5, r: BTN_R2 },
+    { id: "say", icon: "chat", label: "Comentario do trasno", tone: "var(--accent-pdf)", a: 46.5, r: BTN_R2 },
+    { id: "palette", icon: "search", label: "Buscar", tone: "var(--accent)", a: 16.5, r: BTN_R2, actionId: "g.palette" },
+  ];
+  const allPos = DOCK.map((q) => ({ x: q.r * Math.cos((q.a * Math.PI) / 180), y: q.r * Math.sin((q.a * Math.PI) / 180) }));
+  function pickDock(id: string) {
+    dockClose();
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    if (id === "add") void escoller();
+    else if (id === "link") dialog.set("download");
+    else if (id === "paste") void pegar();
+    else runItem(id as ClickAction);
+  }
+  /** Pegar do portapapeis: unha ligazón abre Descargar por ligazón xa comprobándoa; rutas de ficheiros ou cartafoles e imaxes copiadas engádense á lista. */
+  async function pegar() {
+    let text = "";
+    try {
+      text = (await engine.clipboardText()).trim();
+    } catch {
+      trasnoSay($t("Non puiden ler o portapapeis."), "warn");
+      return;
+    }
+    const url = text.split(/\s+/)[0] ?? "";
+    if (/^https?:\/\/[^\s/]+\.[^\s/]+/i.test(url) && !text.includes("\n")) {
+      pastedLink.set(url);
+      dialog.set("download");
+      return;
+    }
+    const paths = text.split(/\r?\n/).map((l) => l.trim().replace(/^"(.*)"$/, "$1")).filter((l) => /^([a-zA-Z]:[\\/]|\\\\|\/)/.test(l));
+    if (paths.length) return void (await addPaths(paths));
+    // Unha imaxe copiada (captura, foto do navegador…): gárdase como PNG e entra na lista.
+    const image = await engine.clipboardImage().catch(() => null);
+    if (image) {
+      await addPaths([image]);
+      trasnoSay($t("Gardei a imaxe do portapapeis en Imaxes › Arquivos do Trasno."), "info", 9000);
+    } else trasnoSay($t("O portapapeis non ten ligazóns, rutas nin imaxes."), "warn");
+  }
   function runItem(id: ClickAction) {
     if (id === "palette") dialog.set("palette");
     else if (id === "procs") openHub("procs.running");
@@ -102,16 +148,11 @@
     const r = dockEl.getBoundingClientRect();
     const px = e.clientX - (r.left + HALF);
     const py = r.top + HALF - e.clientY;
-    const near = Math.hypot(px, py) <= 46 || pos.some((q) => Math.hypot(px - q.x, py - q.y) <= BTN / 2 + 22 || segDist(px, py, 0, 0, q.x, q.y) <= 24);
+    const near = Math.hypot(px, py) <= 46 || allPos.some((q) => Math.hypot(px - q.x, py - q.y) <= BTN / 2 + 22 || segDist(px, py, 0, 0, q.x, q.y) <= 24);
     if (near) {
       clearTimeout(closeTimer);
       closeTimer = undefined;
     } else if (!closeTimer) closeTimer = setTimeout(() => ((closeTimer = undefined), dockClose()), 320);
-  }
-  function pick(id: ClickAction) {
-    dockClose();
-    (document.activeElement as HTMLElement | null)?.blur?.();
-    runItem(id);
   }
   function clickTrasno() {
     dockClose();
@@ -122,16 +163,6 @@
   let lastShown = "";
   $: if (active && active.path !== lastShown) {
     lastShown = active.path;
-  }
-  let copied = "";
-  async function copyText(text: string, key: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      copied = key;
-      setTimeout(() => (copied = ""), 1400);
-    } catch {
-      // o texto tamén se pode seleccionar a man
-    }
   }
   let histOpen = false;
   // O globo do historial nunca desprázase: cabe toda a lista (ata 10 liñas) por riba da barra e, se a xanela é baixa, menos liñas.
@@ -380,27 +411,22 @@
   <div class="sr-only" role="alert" aria-live="assertive" aria-atomic="true">{#if $bubble?.kind === "warn"}{$t($bubble.text)}{/if}</div>
 
   <footer class="status">
-    {#if !dockOpen}
+    {#if !dockOpen && !$trasnoCovered}
       {#if $bubble}
-        <div class="bubble" class:tipb={$bubble.kind === "tip"} class:warnb={$bubble.kind === "warn"} role="group" on:pointerenter={holdBubble} on:pointerleave={() => releaseBubble()}>
-          <span class="bi"><Icon name={$bubble.kind === "tip" ? "bulb" : $bubble.kind === "warn" ? "warning" : "sparkles"} size={17} /></span>
-          <span class="bt">{#if $bubble.kind === "tip"}<b>{$t("Sabías que…")}</b>{" "}{/if}{$t($bubble.text)}{#if $bubble.action}{" "}<button class="bact" on:click={() => { $bubble?.action?.run(); hideBubble(); }}>{$bubble.action.label}</button>{/if}</span>
-          {#if $bubble.copy}<button class="bclose" on:click={() => copyText($bubble?.copy ?? "", "bubble")} aria-label={$t("Copiar")} title={$t("Copiar")}><Icon name={copied === "bubble" ? "check" : "copy"} size={14} /></button>{/if}
-          <button class="bclose" on:click={hideBubble} aria-label={$t("Pechar")} title={$t("Pechar")}><Icon name="close" size={13} /></button>
-        </div>
+        <Bubble b={$bubble} />
       {:else if important}
-        <button class="bubble warnb" on:click={important.run}><span class="bi"><Icon name="warning" size={17} /></span><span class="bt">{important.text}</span></button>
+        <Bubble b={{ id: 0, text: important.text, kind: "warn" }} press={important.run} />
       {/if}
     {/if}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div class="dock" class:open={dockOpen} bind:this={dockEl} on:pointerenter={dockShow} on:focusout={(e) => { if (!dockEl.contains(e.relatedTarget as Node)) dockClose(); }} on:keydown={(e) => e.key === "Escape" && dockClose()} role="group" aria-label="Arquivos do Trasno">
-      {#each ITEMS as it, i}
+    <div class="dock" class:open={dockOpen} class:covered={$dialog === "download" || $trasnoFlying} bind:this={dockEl} on:pointerenter={dockShow} on:focusout={(e) => { if (!dockEl.contains(e.relatedTarget as Node)) dockClose(); }} on:keydown={(e) => e.key === "Escape" && dockClose()} role="group" aria-label="Arquivos do Trasno">
+      {#each DOCK as it, i}
         <button
           class="rd"
           class:hot={hov === i}
-          style={`left:${HALF + pos[i].x - BTN / 2}px;bottom:${HALF + pos[i].y - BTN / 2}px;--dx:${-pos[i].x}px;--dy:${pos[i].y}px;--n:${i};--c:${it.tone}`}
+          style={`left:${HALF + allPos[i].x - BTN / 2}px;bottom:${HALF + allPos[i].y - BTN / 2}px;--dx:${-allPos[i].x}px;--dy:${allPos[i].y}px;--n:${i};--c:${it.tone}`}
           tabindex={dockOpen ? 0 : -1}
-          on:click={() => pick(it.id)}
+          on:click={() => pickDock(it.id)}
           on:pointerenter={() => (hov = i)}
           on:pointerleave={() => (hov = -1)}
           on:focus={() => (hov = i)}
@@ -462,7 +488,7 @@
   </footer>
 
 
-  {#if $dialog === "hub"}<HubDialog />{:else if $dialog === "palette"}<CommandPalette onAdd={escoller} />{/if}
+  {#if $dialog === "hub"}<HubDialog />{:else if $dialog === "palette"}<CommandPalette onAdd={escoller} />{:else if $dialog === "download"}<DownloadDialog />{/if}
   <ToolNeedDialog />
 
   {#if dragging}
@@ -480,6 +506,7 @@
   .ver { position: relative; height: 28px; padding: 0 0.65rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
   .ver:hover { background: var(--bg-hover); color: var(--text); }
   .vdot { position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .dock.covered { visibility: hidden; }
   .dock { position: absolute; left: 6px; bottom: 0; width: 96px; height: 96px; }
   .trasno { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: none; border: none; border-radius: var(--radius-md); padding: 0; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)); transition: transform 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.2s; }
   .trasno:hover:not(.away) { transform: translateY(-2px); }
@@ -495,18 +522,7 @@
   .badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: 700; padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
   .alert { position: absolute; top: -30px; right: -22px; z-index: 5; pointer-events: none; }
   @keyframes hop { 50% { transform: translateY(-3px); } }
-  .bubble { --c: var(--accent-conversor); position: absolute; left: 116px; bottom: calc(100% + 0.5rem); display: flex; align-items: flex-start; gap: 0.65rem; max-width: min(30rem, calc(100vw - 7rem)); padding: 0.6rem 0.85rem 0.6rem 0.6rem; text-align: left; color: var(--text); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: var(--fs-sm); line-height: 1.4; animation: rise 0.25s ease-out; }
-  .bubble.tipb { --c: var(--accent); }
-  .bubble.warnb { --c: var(--accent-pdf); }
-  button.bubble:hover { border-color: var(--c); }
-  .bact { background: none; border: none; padding: 0; font: inherit; font-weight: 600; color: var(--c); text-decoration: underline; text-underline-offset: 3px; }
-  .bact:hover { color: var(--text); }
-  .bclose { flex: none; align-self: flex-start; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; margin: 0 -0.45rem 0 -0.15rem; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-faint); }
-  .bclose:hover { background: var(--bg-hover); color: var(--text); }
-  .bubble::before { content: ""; position: absolute; left: -6px; bottom: 0.75rem; width: 10px; height: 10px; background: var(--bg-elevated); border-left: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); transform: rotate(45deg); }
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
-  .bi { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
-  .bt { min-width: 0; align-self: center; }
   .voice { justify-self: start; margin-left: 108px; max-width: calc(100% - 108px); min-width: 0; display: flex; align-items: center; gap: 0.6rem; height: 28px; padding: 0 0.6rem; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text); text-align: left; font-size: var(--fs-sm); }
   .voice:hover, .voice.on { background: var(--bg-hover); }
   .hist { position: absolute; left: 118px; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); overflow: visible; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }

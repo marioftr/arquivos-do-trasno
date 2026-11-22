@@ -473,6 +473,45 @@ pub fn subtitle_info(path: &Path) -> Result<SubtitleInfo> {
     Ok(SubtitleInfo { format: s.format, cues: s.cues.len(), first_start: first, last_start: last, last_end: end, encoding: s.encoding })
 }
 
+// ------------------------------------------------------------------------------------------------ traducir
+
+/// Os textos das falas, en orde, sen marcas (`<i>`, `<b>`, `<u>`) e cunha soa liña cada un: o que se lle pasa a un tradutor.
+pub fn cue_texts(path: &Path) -> Result<Vec<String>> {
+    let sub = read_subtitle(path)?;
+    let strip = |t: &str| {
+        let mut out = String::new();
+        let mut tag = false;
+        for ch in t.chars() {
+            match ch {
+                '<' => tag = true,
+                '>' if tag => tag = false,
+                _ if !tag => out.push(ch),
+                _ => {}
+            }
+        }
+        out.split_whitespace().collect::<Vec<_>>().join(" ")
+    };
+    Ok(sub.cues.iter().map(|c| strip(&c.text)).collect())
+}
+
+/// Garda uns subtítulos cos mesmos tempos pero con outros textos (a tradución): un por fala, na mesma orde. O formato de saída
+/// vén da extensión de `output`. Os estilos de ASS perdéronse ao traducir: as falas quedan co estilo por defecto.
+pub fn replace_texts(input: &Path, output: &Path, overwrite: bool, texts: &[String]) -> Result<PathBuf> {
+    ensure_distinct(&[input], output)?;
+    let mut sub = read_subtitle(input)?;
+    if sub.cues.len() != texts.len() {
+        return Err(EngineError::IntegrityCheck("A tradución non ten o mesmo número de falas que os subtítulos.".into()));
+    }
+    for (cue, text) in sub.cues.iter_mut().zip(texts) {
+        cue.text = text.trim().to_string();
+        cue.ass = None;
+    }
+    let to = Format::from_ext(&crate::formats::extension_of(output).unwrap_or_default())
+        .ok_or_else(|| EngineError::UnsupportedConversion { from: "subtítulos".into(), to: crate::formats::extension_of(output).unwrap_or_default() })?;
+    sub.ass_header = None;
+    write_text(output, overwrite, &render(&sub, to))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -600,5 +639,21 @@ mod tests {
         assert!(retime_subtitle(&ok, &dir.path().join("r.srt"), false, &Retime { shift_ms: -999_999, factor: 1.0 }).is_err());
         let info = subtitle_info(&ok).unwrap();
         assert_eq!((info.cues, info.first_start, info.last_start, info.last_end), (3, 1000, 60_000, 62_001));
+    }
+
+    #[test]
+    fn traducir_cambia_os_textos_e_garda_os_tempos() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("a.srt");
+        std::fs::write(&input, SRT).unwrap();
+        let texts = cue_texts(&input).unwrap();
+        assert_eq!(texts, vec!["Olá, mundo! Segunda liña con cursiva", "Niño, ñoño, çà, €", "Última fala"]);
+        let out = dir.path().join("a.en.vtt");
+        replace_texts(&input, &out, false, &["Hello, world!".into(), "Kid".into(), "Last line".into()]).unwrap();
+        let back = read_subtitle(&out).unwrap();
+        assert_eq!(back.format, Format::Vtt);
+        assert_eq!((back.cues[0].start, back.cues[0].end, back.cues[0].text.as_str()), (1000, 3500, "Hello, world!"));
+        assert_eq!((back.cues[2].start, back.cues[2].text.as_str()), (60000, "Last line"));
+        assert!(replace_texts(&input, &dir.path().join("b.srt"), false, &["so un".into()]).is_err());
     }
 }

@@ -32,6 +32,8 @@
     optimize: "wrench",
     ocr: "scan-text",
     security: "lock",
+    transcribe: "transcribe",
+    cutout: "cutout",
   };
 
   let bar: HTMLDivElement;

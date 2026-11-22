@@ -417,6 +417,18 @@ pub async fn subtitle_info(path: String) -> Result<trasno_engine::subtitles::Sub
     blocking_bg(move || trasno_engine::subtitles::subtitle_info(&PathBuf::from(path)).map_err(to_err)).await
 }
 
+/// Os textos das falas de uns subtítulos, un por fala (para traducilos).
+#[tauri::command]
+pub async fn subtitle_texts(path: String) -> Result<Vec<String>, String> {
+    blocking(move || trasno_engine::subtitles::cue_texts(&PathBuf::from(path)).map_err(to_err)).await
+}
+
+/// Garda uns subtítulos cos mesmos tempos e outros textos (a tradución), un por fala.
+#[tauri::command]
+pub async fn subtitle_replace_texts(input: String, output: String, overwrite: bool, texts: Vec<String>) -> Result<String, String> {
+    blocking(move || trasno_engine::subtitles::replace_texts(&PathBuf::from(input), &PathBuf::from(output), overwrite, &texts).map(|p| p.to_string_lossy().into_owned()).map_err(to_err)).await
+}
+
 /// Pistas de subtítulos dun vídeo.
 #[tauri::command]
 pub async fn subtitle_tracks(path: String) -> Result<Vec<trasno_engine::subtitle_video::SubtitleTrack>, String> {
@@ -1577,7 +1589,123 @@ fn tools_now() -> serde_json::Value {
         "ffmpeg": trasno_engine::ffmpeg::ffmpeg_path().is_ok(),
         "ffprobe": trasno_engine::ffmpeg::ffprobe_path().is_ok(),
         "mkvmerge": trasno_engine::mkv::is_available(),
+        "whisper_own": own(Tool::Whisper, Tool::Whisper.exe()),
+        "whisper": trasno_engine::transcribe::is_available(),
+        "ytdlp_own": own(Tool::YtDlp, Tool::YtDlp.exe()),
+        "ytdlp": trasno_engine::ytdlp::is_available(),
+        "models": trasno_engine::tools_install::models_installed(),
     })
+}
+
+/// Descarga un modelo (transcrición ou quitar fondos). A interface recibe `trasno://model-download` con `{ id, progress }`.
+#[tauri::command]
+pub async fn install_model(app: tauri::AppHandle, id: String) -> Result<serde_json::Value, String> {
+    use tauri::Emitter;
+    TOOL_CANCEL.store(false, std::sync::atomic::Ordering::SeqCst);
+    blocking(move || {
+        let name = id.clone();
+        let sink = |f: f64| {
+            let _ = app.emit("trasno://model-download", serde_json::json!({ "id": name, "progress": f }));
+        };
+        trasno_engine::tools_install::install_model(&id, &sink, &|| TOOL_CANCEL.load(std::sync::atomic::Ordering::SeqCst)).map_err(to_err)?;
+        Ok(tools_now())
+    })
+    .await
+}
+
+/// Quita un modelo descargado.
+#[tauri::command]
+pub async fn remove_model(id: String) -> Result<serde_json::Value, String> {
+    blocking(move || {
+        trasno_engine::tools_install::remove_model(&id).map_err(to_err)?;
+        Ok(tools_now())
+    })
+    .await
+}
+
+/// Transcribe un audio ou vídeo (whisper.cpp) a subtítulos ou texto.
+#[tauri::command]
+pub async fn transcribe_media(input: String, output: String, overwrite: bool, options: trasno_engine::transcribe::TranscribeOptions) -> Result<trasno_engine::transcribe::TranscribeReport, String> {
+    blocking(move || trasno_engine::transcribe::transcribe(&PathBuf::from(input), &PathBuf::from(output), overwrite, &options).map_err(to_err)).await
+}
+
+/// Quita o fondo dunha imaxe.
+#[tauri::command]
+pub async fn remove_background(input: String, output: String, overwrite: bool, options: trasno_engine::cutout::CutoutOptions) -> Result<trasno_engine::cutout::CutoutReport, String> {
+    blocking(move || trasno_engine::cutout::remove_background(&PathBuf::from(input), &PathBuf::from(output), overwrite, &options).map_err(to_err)).await
+}
+
+/// Analiza unha imaxe co modelo de quitar fondos (tarda a primeira vez) e deixa a máscara en memoria.
+#[tauri::command]
+pub async fn cutout_analyze(path: String) -> Result<(u32, u32), String> {
+    blocking_bg(move || trasno_engine::cutout::analyze(&PathBuf::from(path)).map_err(to_err)).await
+}
+
+/// Vista previa do recorte (PNG pequeno e transparente) cos axustes dados; `seq` fai o nome distinto para que o visor non a garde en caché.
+#[tauri::command]
+pub async fn cutout_preview(path: String, seq: u32, options: trasno_engine::cutout::CutoutOptions) -> Result<String, String> {
+    blocking_bg(move || {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        path.hash(&mut h);
+        let stem = format!("{:x}", h.finish());
+        let dir = preview_dir();
+        let out = dir.join(format!("{stem}-recorte-{seq}.png"));
+        trasno_engine::cutout::preview(&PathBuf::from(&path), &out, &options).map_err(to_err)?;
+        // Só interesa a última: as anteriores bórranse.
+        if let Ok(rd) = std::fs::read_dir(&dir) {
+            for e in rd.flatten() {
+                let name = e.file_name().to_string_lossy().to_string();
+                if name.starts_with(&format!("{stem}-recorte-")) && e.path() != out {
+                    let _ = std::fs::remove_file(e.path());
+                }
+            }
+        }
+        Ok(out.to_string_lossy().to_string())
+    })
+    .await
+}
+
+/// Esquece a máscara en memoria (ao pechar a ferramenta).
+#[tauri::command]
+pub fn cutout_forget() {
+    trasno_engine::cutout::forget();
+}
+
+/// Mira unha ligazón (título, duración, calidades) sen descargar nada.
+#[tauri::command]
+pub async fn ytdlp_info(url: String) -> Result<trasno_engine::ytdlp::MediaInfo, String> {
+    blocking_bg(move || trasno_engine::ytdlp::info(&url).map_err(to_err)).await
+}
+
+/// Imaxe do portapapeis, gardada como PNG en «Imaxes/Arquivos do Trasno» (devolve a ruta; `None` se non hai imaxe).
+#[tauri::command]
+pub fn clipboard_image(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri::Manager;
+    let img = match arboard::Clipboard::new().and_then(|mut c| c.get_image()) {
+        Ok(i) => i,
+        Err(arboard::Error::ContentNotAvailable) => return Ok(None),
+        Err(e) => return Err(e.to_string()),
+    };
+    let dir = app.path().picture_dir().map_err(|e| e.to_string())?.join("Arquivos do Trasno");
+    let path = trasno_engine::clipboard::save_rgba_png(img.width, img.height, &img.bytes, &dir).map_err(to_err)?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
+/// Baixa a miniatura dun vídeo e deixa que o visor a lea; devolve a ruta.
+#[tauri::command]
+pub async fn ytdlp_thumbnail(app: tauri::AppHandle, url: String) -> Result<String, String> {
+    let dir = std::env::temp_dir().join("arquivos-do-trasno-miniaturas");
+    let path = blocking_bg(move || trasno_engine::ytdlp::fetch_thumbnail(&url, &dir).map_err(to_err)).await?;
+    use tauri::Manager;
+    app.asset_protocol_scope().allow_file(&path).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+/// Descarga o vídeo ou audio dunha ligazón a un cartafol.
+#[tauri::command]
+pub async fn ytdlp_download(urls: Vec<String>, dir: String, options: trasno_engine::ytdlp::DownloadOptions) -> Result<trasno_engine::ytdlp::BatchReport, String> {
+    blocking(move || trasno_engine::ytdlp::download_many(&urls, &PathBuf::from(dir), &options).map_err(to_err)).await
 }
 
 #[tauri::command]
@@ -1674,6 +1802,14 @@ pub fn open_link(id: String) -> Result<(), String> {
         "mkvmerge-doc" => "https://mkvtoolnix.download/doc/mkvmerge.html",
         "libreoffice" => "https://www.libreoffice.org/download/download-libreoffice/",
         "libreoffice-license" => "https://www.libreoffice.org/about-us/licenses/",
+        "whispercpp" => "https://github.com/ggml-org/whisper.cpp",
+        "whispercpp-license" => "https://github.com/ggml-org/whisper.cpp/blob/master/LICENSE",
+        "ytdlp" => "https://github.com/yt-dlp/yt-dlp",
+        "ytdlp-license" => "https://github.com/yt-dlp/yt-dlp/blob/master/LICENSE",
+        "ffmpeg-project" => "https://github.com/FFmpeg/FFmpeg",
+        "mkvtoolnix-project" => "https://gitlab.com/mbunkus/mkvtoolnix",
+        "whisper-openai" => "https://github.com/openai/whisper",
+        "dis" => "https://github.com/xuebinqin/DIS",
         _ => return Err(msg("Non coñezo esa ligazón.", serde_json::json!({}))),
     };
     #[cfg(windows)]
@@ -1690,4 +1826,14 @@ pub fn open_link(id: String) -> Result<(), String> {
         std::process::Command::new("xdg-open").arg(url).spawn().map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+/// Texto do portapapeis do sistema (baleiro se hai outra cousa, como unha imaxe). Lese aquí e non no webview, que pediría permiso cada vez.
+#[tauri::command]
+pub fn clipboard_text() -> Result<String, String> {
+    match arboard::Clipboard::new().and_then(|mut c| c.get_text()) {
+        Ok(t) => Ok(t),
+        Err(arboard::Error::ContentNotAvailable) => Ok(String::new()),
+        Err(e) => Err(e.to_string()),
+    }
 }

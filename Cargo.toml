@@ -26,3 +26,28 @@ debug = "line-tables-only"
 # As dependencias non se depuran: sen información de depuración propia.
 [profile.dev.package."*"]
 debug = false
+
+# A inferencia de quitar fondos (tract) vai optimizada tamén en desenvolvemento: sen isto tardaría minutos por imaxe.
+[profile.dev.package.tract-core]
+opt-level = 3
+
+[profile.dev.package.tract-data]
+opt-level = 3
+
+[profile.dev.package.tract-hir]
+opt-level = 3
+
+[profile.dev.package.tract-linalg]
+opt-level = 3
+
+[profile.dev.package.tract-nnef]
+opt-level = 3
+
+[profile.dev.package.tract-onnx]
+opt-level = 3
+
+[profile.dev.package.tract-onnx-opl]
+opt-level = 3
+
+[profile.dev.package.ndarray]
+opt-level = 3

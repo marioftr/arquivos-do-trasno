@@ -16,7 +16,9 @@
 //!   sinatura dixital e a conversión doc↔pdf quedan para outra fase.
 
 pub mod animated;
+pub mod clipboard;
 pub mod compress;
+pub mod cutout;
 pub mod edit_plan;
 pub mod error;
 pub mod ffmpeg;
@@ -44,6 +46,8 @@ pub mod stitch;
 pub mod subtitle_video;
 pub mod subtitles;
 pub mod tools_install;
+pub mod transcribe;
+pub mod ytdlp;
 
 pub use error::{EngineError, Result};
 pub use formats::Category;

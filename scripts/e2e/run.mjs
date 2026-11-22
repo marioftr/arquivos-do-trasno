@@ -11,7 +11,11 @@ const names = wanted.length ? wanted : all;
 for (const n of names) if (!all.includes(n)) (console.error(`Non hai o escenario «${n}». Os que hai: ${all.join(", ")}`), process.exit(2));
 
 const mods = await Promise.all(names.map(async (n) => ({ n, mod: (await import(pathToFileURL(path.join(dir, n + ".mjs")).href)).default })));
-const app = await launch({ tessdata: mods.some((m) => m.mod.tessdata) });
+const opts = { tessdata: mods.some((m) => m.mod.tessdata) };
+let app = await launch(opts);
+// Despois de moitos escenarios seguidos o webview acumula estado e os de vídeo acaban esgotando o tempo: a app reiníciase cada poucos.
+const RESTART_EVERY = 6;
+let ran = 0;
 let failed = 0;
 try {
   for (const { n, mod } of mods) {
@@ -29,6 +33,10 @@ try {
       }
     }
     failed += check.fails.length;
+    if (++ran % RESTART_EVERY === 0 && ran < mods.length) {
+      await app.close();
+      app = await launch(opts);
+    }
   }
 } finally {
   await app.close();

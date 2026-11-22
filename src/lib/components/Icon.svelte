@@ -313,9 +313,23 @@
     <path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9" />
     <path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15" />
     <path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" />
+  {:else if name === "transcribe"}
+    <path d="M4 10v4M7.5 7v10M11 9v6" />
+    <path d="M15 8h5M15 12h5M15 16h3.5" />
+  {:else if name === "cutout"}
+    <circle cx="12" cy="12" r="9" stroke-dasharray="2.6 2.4" />
+    <circle cx="12" cy="10" r="2.4" />
+    <path d="M7.8 17.2a4.4 4.4 0 0 1 8.4 0" />
+  {:else if name === "link"}
+    <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+    <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
   {:else if name === "copy"}
     <rect x="9" y="9" width="12" height="12" rx="2" />
     <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+  {:else if name === "paste"}
+    <rect x="5" y="4.5" width="14" height="16.5" rx="2" />
+    <rect x="8.5" y="2.5" width="7" height="4" rx="1.2" />
+    <path d="M9 12h6M9 16h4" />
   {/if}
 </svg>
 

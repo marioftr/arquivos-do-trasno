@@ -1,8 +1,10 @@
-//! Descarga e instalación de FFmpeg e MKVToolNix desde as súas webs oficiais, a petición do usuario.
+//! Descarga e instalación de FFmpeg, MKVToolNix, whisper.cpp e yt-dlp desde as súas webs oficiais, e dos modelos que usan
+//! a transcrición e quitar fondos, sempre a petición do usuario.
 //!
-//! Cada descarga compróbase co SHA-256 que publica a propia fonte antes de extraela, e extráese nunha
-//! carpeta da app (`%LOCALAPPDATA%\ArquivosDoTrasno\tools\<programa>`): non se necesitan permisos de
-//! administrador nin se toca o sistema. Se o usuario xa ten o programa no PATH, úsase ese.
+//! Cada descarga compróbase co SHA-256 (o que publica a propia fonte ou, nos modelos e en whisper.cpp, o que ten fixado a app)
+//! antes de usala, e vai a unha carpeta da app (`%LOCALAPPDATA%\ArquivosDoTrasno\tools\<programa>`): non se necesitan permisos
+//! de administrador nin se toca o sistema. Se o usuario xa ten o programa no PATH, úsase ese. A variable `TRASNO_TOOLS_DIR`
+//! cambia esa carpeta (probas e versións portables).
 
 use crate::error::{EngineError, Result};
 use sha2::{Digest, Sha256};
@@ -15,6 +17,10 @@ use std::time::Duration;
 pub enum Tool {
     Ffmpeg,
     MkvToolNix,
+    /// whisper.cpp (`whisper-cli`): transcrición de audio.
+    Whisper,
+    /// yt-dlp: descarga de vídeo e audio por ligazón.
+    YtDlp,
 }
 
 impl Tool {
@@ -22,6 +28,8 @@ impl Tool {
         match s {
             "ffmpeg" => Some(Tool::Ffmpeg),
             "mkvmerge" | "mkvtoolnix" => Some(Tool::MkvToolNix),
+            "whisper" | "whisper-cli" => Some(Tool::Whisper),
+            "ytdlp" | "yt-dlp" => Some(Tool::YtDlp),
             _ => None,
         }
     }
@@ -29,6 +37,17 @@ impl Tool {
         match self {
             Tool::Ffmpeg => "ffmpeg",
             Tool::MkvToolNix => "mkvtoolnix",
+            Tool::Whisper => "whisper",
+            Tool::YtDlp => "yt-dlp",
+        }
+    }
+    /// O executable principal do paquete.
+    pub fn exe(self) -> &'static str {
+        match self {
+            Tool::Ffmpeg => "ffmpeg.exe",
+            Tool::MkvToolNix => "mkvmerge.exe",
+            Tool::Whisper => "whisper-cli.exe",
+            Tool::YtDlp => "yt-dlp.exe",
         }
     }
 }
@@ -43,6 +62,9 @@ pub enum Phase {
 
 /// Carpeta onde a app garda os programas que descarga.
 pub fn tools_dir() -> Option<PathBuf> {
+    if let Some(d) = std::env::var_os("TRASNO_TOOLS_DIR").filter(|d| !d.is_empty()) {
+        return Some(PathBuf::from(d));
+    }
     let base = std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local").join("share")))?;
@@ -103,12 +125,36 @@ fn parse_sha256(text: &str) -> Option<String> {
     text.split_whitespace().find(|w| w.len() == 64 && w.chars().all(|c| c.is_ascii_hexdigit())).map(|w| w.to_ascii_lowercase())
 }
 
-/// Onde descargar `tool`: (url do zip, url do SHA-256).
-fn sources(a: &ureq::Agent, tool: Tool) -> Result<(String, String)> {
+/// Como se comproba unha descarga.
+enum Checksum {
+    /// Un ficheiro `.sha256` á beira.
+    File(String),
+    /// Un SHA-256 fixado na app (a descarga é dunha versión concreta).
+    Pinned(&'static str),
+    /// Un ficheiro de sumas da release (`<hash> *<nome>` por liña) e o nome que se busca nel.
+    Sums { url: String, name: &'static str },
+}
+
+/// A versión de whisper.cpp que se instala (a release de GitHub e o seu SHA-256 fixado).
+const WHISPER_URL: &str = "https://github.com/ggml-org/whisper.cpp/releases/download/b5907/whisper-bin-x64.zip";
+const WHISPER_SHA256: &str = "ecca07b277d943e9b9f4712856a144b857271a6b333104e511e1988e80db582b";
+
+/// O hash de `name` nun ficheiro de sumas tipo `sha256sum` (`<hash> *<nome>` ou `<hash>  <nome>`).
+fn parse_sums(text: &str, name: &str) -> Option<String> {
+    text.lines().find_map(|l| {
+        let mut it = l.split_whitespace();
+        let hash = it.next()?;
+        let file = it.next()?.trim_start_matches('*');
+        (file == name && hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit())).then(|| hash.to_ascii_lowercase())
+    })
+}
+
+/// Onde descargar `tool`: (url do paquete, como se comproba).
+fn sources(a: &ureq::Agent, tool: Tool) -> Result<(String, Checksum)> {
     match tool {
         Tool::Ffmpeg => {
             let zip = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip".to_string();
-            Ok((zip.clone(), format!("{zip}.sha256")))
+            Ok((zip.clone(), Checksum::File(format!("{zip}.sha256"))))
         }
         Tool::MkvToolNix => {
             let version = a
@@ -122,8 +168,13 @@ fn sources(a: &ureq::Agent, tool: Tool) -> Result<(String, String)> {
                 return fail("A versión de MKVToolNix que anuncia a web non é válida.");
             }
             let zip = format!("https://mkvtoolnix.download/windows/releases/{version}/mkvtoolnix-64-bit-{version}.7z");
-            Ok((zip.clone(), format!("{zip}.sha256")))
+            Ok((zip.clone(), Checksum::File(format!("{zip}.sha256"))))
         }
+        Tool::Whisper => Ok((WHISPER_URL.to_string(), Checksum::Pinned(WHISPER_SHA256))),
+        Tool::YtDlp => Ok((
+            "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe".to_string(),
+            Checksum::Sums { url: "https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS".to_string(), name: "yt-dlp.exe" },
+        )),
     }
 }
 
@@ -136,10 +187,14 @@ pub fn install(tool: Tool, progress: &dyn Fn(Phase, f64), cancelled: &dyn Fn() -
     let root = tools_dir().ok_or_else(|| EngineError::IntegrityCheck("Non atopo onde gardar os programas.".into()))?;
     fs::create_dir_all(&root)?;
     let a = agent();
-    let (zip_url, sum_url) = sources(&a, tool)?;
+    let (zip_url, sum) = sources(&a, tool)?;
 
-    let expected = parse_sha256(&a.get(&sum_url).call().map_err(|e| net_err("obter a suma de comprobación", e))?.into_string()?)
-        .ok_or_else(|| EngineError::IntegrityCheck("A suma de comprobación publicada non ten o formato esperado.".into()))?;
+    let bad_sum = || EngineError::IntegrityCheck("A suma de comprobación publicada non ten o formato esperado.".into());
+    let expected = match sum {
+        Checksum::Pinned(h) => h.to_string(),
+        Checksum::File(url) => parse_sha256(&a.get(&url).call().map_err(|e| net_err("obter a suma de comprobación", e))?.into_string()?).ok_or_else(bad_sum)?,
+        Checksum::Sums { url, name } => parse_sums(&a.get(&url).call().map_err(|e| net_err("obter a suma de comprobación", e))?.into_string()?, name).ok_or_else(bad_sum)?,
+    };
 
     // 1. Descarga a un ficheiro temporal, calculando o hash ao mesmo tempo.
     let tmp = root.join(format!("{}.download", tool.dir_name()));
@@ -188,7 +243,14 @@ pub fn install(tool: Tool, progress: &dyn Fn(Phase, f64), cancelled: &dyn Fn() -
         if stage.exists() {
             fs::remove_dir_all(&stage)?;
         }
-        let extracted = if zip_url.ends_with(".7z") { extract_7z(&tmp, &stage, progress, cancelled) } else { extract_zip(&tmp, &stage, progress, cancelled) };
+        let extracted = if zip_url.ends_with(".7z") {
+            extract_7z(&tmp, &stage, progress, cancelled)
+        } else if zip_url.ends_with(".exe") {
+            // Un programa solto (yt-dlp): non hai que extraer nada, só poñelo no seu cartafol.
+            fs::create_dir_all(&stage).and_then(|_| fs::copy(&tmp, stage.join(tool.exe())).map(|_| ())).map_err(EngineError::Io)
+        } else {
+            extract_zip(&tmp, &stage, progress, cancelled)
+        };
         if let Err(e) = extracted {
             let _ = fs::remove_dir_all(&stage);
             return Err(e);
@@ -209,7 +271,7 @@ pub fn install(tool: Tool, progress: &dyn Fn(Phase, f64), cancelled: &dyn Fn() -
             return Err(e.into());
         }
         let _ = fs::remove_dir_all(&old);
-        let main = if tool == Tool::Ffmpeg { "ffmpeg.exe" } else { "mkvmerge.exe" };
+        let main = tool.exe();
         installed(tool, main).ok_or_else(|| EngineError::IntegrityCheck(format!("Instaleino, pero non atopo {main} dentro do paquete.")))
     })();
     let _ = fs::remove_file(&tmp);
@@ -269,6 +331,133 @@ pub fn install_ocr_language(lang: &str, progress: &dyn Fn(f64), cancelled: &dyn 
             return fail("O paquete de idioma descargado non é válido.");
         }
         fs::rename(&part, &dest)?;
+        progress(1.0);
+        Ok(())
+    })();
+    let _ = fs::remove_file(&part);
+    result.map(|_| dest)
+}
+
+/// Un modelo que se descarga a parte (transcrición e quitar fondos): URL oficial, tamaño e SHA-256 fixados na app.
+#[derive(Debug, Clone, Copy)]
+pub struct Model {
+    pub id: &'static str,
+    pub file: &'static str,
+    pub url: &'static str,
+    pub sha256: &'static str,
+    pub size: u64,
+}
+
+/// Modelos de whisper.cpp (de OpenAI, licenza MIT, cuantizados a 5 bits no repositorio de Hugging Face de whisper.cpp: pesan
+/// unha terceira parte e a súa precisión é case a mesma) e o de quitar fondos
+/// (IS-Net «general use» de DIS, Apache-2.0, na release v0.0.0 de rembg).
+pub const MODELS: &[Model] = &[
+    Model {
+        id: "whisper-base",
+        file: "ggml-base-q5_1.bin",
+        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_1.bin",
+        sha256: "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
+        size: 59_707_625,
+    },
+    Model {
+        id: "whisper-small",
+        file: "ggml-small-q5_1.bin",
+        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin",
+        sha256: "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
+        size: 190_085_487,
+    },
+    Model {
+        id: "whisper-medium",
+        file: "ggml-medium-q5_0.bin",
+        url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium-q5_0.bin",
+        sha256: "19fea4b380c3a618ec4723c3eef2eb785ffba0d0538cf43f8f235e7b3b34220f",
+        size: 539_212_467,
+    },
+    Model {
+        id: "cutout",
+        file: "isnet-general-use.onnx",
+        url: "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
+        sha256: "60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a",
+        size: 178_648_008,
+    },
+];
+
+pub fn model(id: &str) -> Option<&'static Model> {
+    MODELS.iter().find(|m| m.id == id)
+}
+
+/// Carpeta dos modelos descargados.
+pub fn models_dir() -> Option<PathBuf> {
+    tools_dir().map(|d| d.join("models"))
+}
+
+/// Ruta dun modelo xa descargado e completo.
+pub fn model_path(id: &str) -> Option<PathBuf> {
+    let m = model(id)?;
+    let p = models_dir()?.join(m.file);
+    (fs::metadata(&p).ok()?.len() == m.size).then_some(p)
+}
+
+/// Ids dos modelos xa descargados.
+pub fn models_installed() -> Vec<String> {
+    MODELS.iter().filter(|m| model_path(m.id).is_some()).map(|m| m.id.to_string()).collect()
+}
+
+/// Quita un modelo descargado.
+pub fn remove_model(id: &str) -> Result<()> {
+    let m = model(id).ok_or_else(|| EngineError::IntegrityCheck("Modelo descoñecido.".into()))?;
+    if let Some(dir) = models_dir() {
+        for name in [m.file.to_string(), format!("{}.part", m.file)] {
+            let p = dir.join(name);
+            if p.exists() {
+                fs::remove_file(p)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Descarga un modelo e só o deixa no seu sitio se o SHA-256 coincide co fixado. `progress` vai de 0 a 1.
+pub fn install_model(id: &str, progress: &dyn Fn(f64), cancelled: &dyn Fn() -> bool) -> Result<PathBuf> {
+    let m = model(id).ok_or_else(|| EngineError::IntegrityCheck("Modelo descoñecido.".into()))?;
+    let dir = models_dir().ok_or_else(|| EngineError::IntegrityCheck("Non atopo onde gardar os programas.".into()))?;
+    fs::create_dir_all(&dir)?;
+    let dest = dir.join(m.file);
+    let part = dir.join(format!("{}.part", m.file));
+    let a = agent();
+    let result = (|| -> Result<()> {
+        let resp = a.get(m.url).call().map_err(|e| net_err("descargar o modelo", e))?;
+        let total: u64 = resp.header("Content-Length").and_then(|v| v.parse().ok()).unwrap_or(m.size).max(1);
+        let mut reader = resp.into_reader();
+        let mut out = File::create(&part)?;
+        let mut hasher = Sha256::new();
+        let mut buf = vec![0u8; 256 * 1024];
+        let mut done: u64 = 0;
+        let mut last = -1.0f64;
+        loop {
+            if cancelled() {
+                return Err(EngineError::Cancelled);
+            }
+            let n = reader.read(&mut buf)?;
+            if n == 0 {
+                break;
+            }
+            hasher.update(&buf[..n]);
+            out.write_all(&buf[..n])?;
+            done += n as u64;
+            let f = (done as f64 / total as f64).min(1.0);
+            if f - last >= 0.004 {
+                last = f;
+                progress(f);
+            }
+        }
+        out.flush()?;
+        drop(out);
+        let got = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect::<String>();
+        if done != m.size || got != m.sha256 {
+            return fail("O modelo descargado non coincide co esperado, así que non o instalo.");
+        }
+        crate::integrity::rename_retry(&part, &dest)?;
         progress(1.0);
         Ok(())
     })();
@@ -368,6 +557,29 @@ mod tests {
         assert_eq!(parse_sha256(h).as_deref(), Some(h));
         assert_eq!(parse_sha256(&format!("{}  ficheiro.zip\n", h.to_uppercase())).as_deref(), Some(h));
         assert!(parse_sha256("nada").is_none());
+    }
+
+    #[test]
+    fn busca_un_ficheiro_nunha_lista_de_sumas() {
+        let a = "a".repeat(64);
+        let b = "B".repeat(64);
+        let text = format!("{a} *yt-dlp\n{b} *yt-dlp.exe\n{a}  yt-dlp_x86.exe\n");
+        assert_eq!(parse_sums(&text, "yt-dlp.exe"), Some("b".repeat(64)));
+        assert_eq!(parse_sums(&text, "yt-dlp"), Some(a));
+        assert!(parse_sums(&text, "outro.exe").is_none());
+        assert!(parse_sums("corto yt-dlp.exe", "yt-dlp.exe").is_none());
+    }
+
+    #[test]
+    fn os_modelos_teñen_datos_validos() {
+        for m in MODELS {
+            assert_eq!(m.sha256.len(), 64, "{}", m.id);
+            assert!(m.sha256.chars().all(|c| c.is_ascii_hexdigit()), "{}", m.id);
+            assert!(m.url.starts_with("https://"), "{}", m.id);
+            assert!(m.size > 1_000_000, "{}", m.id);
+            assert!(model(m.id).is_some());
+        }
+        assert!(model("non-existe").is_none());
     }
 
     #[test]

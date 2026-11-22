@@ -8,6 +8,8 @@
     | { k: "stack"; dir: "v" | "h" } // dúas pezas unha debaixo ou ao carón da outra
     | { k: "turn"; deg: number } // páxina xirada (a frecha marca a parte de arriba)
     | { k: "swatch"; color: string } // mostra de cor
+    | { k: "checker" } // cadrados de xadrez: transparente
+    | { k: "rainbow" } // arco da vella: cor á escolla
     | { k: "match"; to: "small" | "large"; dir: "v" | "h" } // igualar o ancho (v) ou o alto (h) á peza máis pequena ou á máis grande
     | { k: "fit"; mode: "crop" | "stretch" | "contain" }; // meter unha imaxe nun cadro: cortando polo centro, deformándoa ou deixándoa enteira con marxes
 </script>
@@ -155,6 +157,20 @@
     {/if}
   {:else if spec.k === "swatch"}
     <rect x="11" y="5" width="18" height="20" rx="3" fill={spec.color} stroke="var(--border-strong)" stroke-width="1.2" />
+  {:else if spec.k === "checker"}
+    <defs><clipPath id="glyph-checker"><rect x="11" y="5" width="18" height="20" rx="3" /></clipPath></defs>
+    <g clip-path="url(#glyph-checker)" stroke="none">
+      <rect x="11" y="5" width="18" height="20" fill="#e8e8e8" />
+      <rect x="11" y="5" width="6" height="6.67" fill="#a8a8a8" /><rect x="23" y="5" width="6" height="6.67" fill="#a8a8a8" /><rect x="17" y="11.67" width="6" height="6.67" fill="#a8a8a8" />
+      <rect x="11" y="18.33" width="6" height="6.67" fill="#a8a8a8" /><rect x="23" y="18.33" width="6" height="6.67" fill="#a8a8a8" />
+    </g>
+    <rect x="11" y="5" width="18" height="20" rx="3" stroke="var(--border-strong)" stroke-width="1.2" />
+  {:else if spec.k === "rainbow"}
+    <defs>
+      <clipPath id="glyph-rainbow"><rect x="11" y="5" width="18" height="20" rx="3" /></clipPath>
+      <linearGradient id="glyph-rainbow-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff3b30" /><stop offset="0.25" stop-color="#ffcc00" /><stop offset="0.5" stop-color="#34c759" /><stop offset="0.75" stop-color="#007aff" /><stop offset="1" stop-color="#af52de" /></linearGradient>
+    </defs>
+    <rect x="11" y="5" width="18" height="20" rx="3" fill="url(#glyph-rainbow-g)" stroke="var(--border-strong)" stroke-width="1.2" />
   {/if}
 </svg>
 

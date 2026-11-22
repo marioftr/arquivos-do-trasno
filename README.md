@@ -11,6 +11,8 @@ telemetría. Os ficheiros orixinais nunca se modifican.
 - **Visores** para cada tipo de ficheiro (imaxe, audio con onda, vídeo con selección de pistas, PDF con busca e selección de texto, modelos 3D).
 - **Menú do clic dereito** do Explorador de Windows para converter e comprimir sen abrir a aplicación.
 - **Pistas de MKV** (con MKVToolNix, opcional): quitar, reordenar, renomear e mesturar.
+- **Extensións opcionais** (descárganse só se se piden, en *Axustes → Extensións*, e traballan no propio equipo): transcrición de audio e vídeo con [whisper.cpp](https://github.com/ggml-org/whisper.cpp), quitar o fondo das imaxes e descarga de vídeo e audio por ligazón con [yt-dlp](https://github.com/yt-dlp/yt-dlp).
+- Lista completa do que fai a aplicación en [docs/ferramentas.md](docs/ferramentas.md).
 - Xestor de procesos con historial, atallos de teclado configurables, tema claro/escuro e interface en galego, castelán e inglés.
 
 Para audio e vídeo úsase [FFmpeg](https://ffmpeg.org/), que non se inclúe na aplicación: debe estar instalado no sistema
@@ -30,7 +32,7 @@ Os instaladores non levan unha sinatura de código de Windows, así que SmartScr
 Os binarios constrúense con GitHub Actions a partir do código deste repositorio (ver
 [`.github/workflows/release.yml`](.github/workflows/release.yml)) e cada versión inclúe un ficheiro `.sig` coa
 sinatura que a aplicación comproba antes de instalar unha actualización. Os programas que a aplicación descarga
-por petición do usuario (FFmpeg e MKVToolNix) compróbanse coa suma SHA-256 publicada pola súa fonte.
+por petición do usuario (FFmpeg, MKVToolNix, whisper.cpp e yt-dlp) compróbanse coa suma SHA-256 antes de instalarse, e os modelos de voz e de imaxe co SHA-256 fixado na aplicación.
 
 ## Privacy policy
 
@@ -71,6 +73,14 @@ Probas e comprobacións:
 cargo test -p trasno-engine   # probas do motor de conversión
 npm run typecheck             # svelte-check
 npm run check:i18n            # traducións completas (gl, es, en)
+npm run test:web              # versión web: móbil e ordenador (Edge sen ventá)
+```
+
+Versión web (PWA para o móbil, sen servidor; ver `docs/web.md`):
+
+```bash
+npm run dev:web     # http://localhost:1421
+npm run build:web   # dist-web/ (o que se publica en Vercel)
 ```
 
 Estrutura:
@@ -79,6 +89,7 @@ Estrutura:
 crates/trasno-engine/   Motor de conversión (Rust, sen interface, con probas)
 src-tauri/              Aplicación Tauri (Rust): comandos, menú do Explorador, instalador
 src/                    Interface Svelte + TypeScript
+web/                    Versión web (PWA): imaxe, PDF, audio e vídeo no navegador
 docs/ROADMAP.md         Liñas de traballo futuras
 ```
 

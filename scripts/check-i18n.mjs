@@ -7,6 +7,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const root = new URL("../src", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const webRoot = new URL("../web/src", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const load = (f) => JSON.parse(readFileSync(join(root, "lib/locales", f), "utf8"));
 const dicts = { es: load("es.json"), en: load("en.json") };
 
@@ -22,10 +23,10 @@ const add = (key, where) => key && !used.has(key) && used.set(key, where);
 const str = String.raw`"((?:[^"\\\n]|\\.)*)"`;
 const unesc = (s) => JSON.parse(`"${s}"`);
 
-for (const file of walk(root)) {
+for (const file of [...walk(root), ...walk(webRoot)]) {
   if (file.endsWith("i18n.ts")) continue;
   const src = readFileSync(file, "utf8");
-  const rel = file.slice(root.length + 1);
+  const rel = file.startsWith(webRoot) ? `web/${file.slice(webRoot.length + 1)}` : file.slice(root.length + 1);
 
   // t("...") / $t("...") / tr("...")
   for (const m of src.matchAll(new RegExp(String.raw`(?:\$t|\btr)\(\s*${str}`, "g"))) add(unesc(m[1]), rel);

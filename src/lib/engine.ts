@@ -233,6 +233,10 @@ export const tagsRead = (path: string): Promise<TagInfo> => call("tags_read", { 
 export const tagsCover = (path: string): Promise<string> => call("tags_cover", { path });
 export const tagsWrite = (input: string, output: string, tags: MusicTags, cover: CoverAction, overwrite = false): Promise<{ output: string; not_saved: string[] }> =>
   call("tags_write", { input, output, overwrite, tags, cover });
+/** Os textos das falas (un por fala, sen marcas) para traducilos. */
+export const subtitleTexts = (path: string): Promise<string[]> => call("subtitle_texts", { path });
+/** Garda uns subtítulos cos mesmos tempos e outros textos (un por fala). Devolve a ruta. */
+export const subtitleReplaceTexts = (input: string, output: string, texts: string[], overwrite = false): Promise<string> => call("subtitle_replace_texts", { input, output, overwrite, texts });
 export const subtitleInfo = (path: string): Promise<SubtitleInfo> => call("subtitle_info", { path });
 export const retimeSubtitle = (input: string, output: string, r: Retime, overwrite = false): Promise<RetimeReport> =>
   call("retime_subtitle", { input, output, overwrite, shiftMs: r.shift_ms, factor: r.factor });
@@ -662,8 +666,78 @@ export interface ToolsStatus {
   /** Descargados pola propia app (poden quitarse desde aquí). */
   ffmpeg_own?: boolean;
   mkvmerge_own?: boolean;
+  /** Extensións opcionais: whisper.cpp (transcrición) e yt-dlp (descargas por ligazón). */
+  whisper?: boolean;
+  whisper_own?: boolean;
+  ytdlp?: boolean;
+  ytdlp_own?: boolean;
+  /** Modelos descargados (ver `ModelId`). */
+  models?: string[];
 }
-export type ToolId = "ffmpeg" | "mkvmerge";
+export type ToolId = "ffmpeg" | "mkvmerge" | "whisper" | "ytdlp";
+export type ModelId = "whisper-base" | "whisper-small" | "whisper-medium" | "cutout";
+export const installModel = (id: ModelId): Promise<ToolsStatus> => call("install_model", { id });
+export const removeModel = (id: ModelId): Promise<ToolsStatus> => call("remove_model", { id });
+
+export interface TranscribeOptions {
+  model: ModelId;
+  /** «auto» ou un código de idioma («gl», «en»…). */
+  language: string;
+  translate: boolean;
+  format: "srt" | "vtt" | "txt";
+  shortLines: boolean;
+}
+export interface TranscribeReport { output_path: string; language: string | null; duration: number; segments: number }
+export const transcribeMedia = (input: string, output: string, o: TranscribeOptions, overwrite = false): Promise<TranscribeReport> =>
+  call("transcribe_media", { input, output, overwrite, options: { model: o.model, language: o.language, translate: o.translate, format: o.format, short_lines: o.shortLines } });
+
+export interface CutoutReport { output_path: string; size: [number, number]; kept: number; bytes_written: number }
+/** Axustes do recorte (0 a 100 cada un) e, se se quere, a cor do fondo novo (sen ela, transparente). */
+export interface CutoutAdjust { edge: number; soft: number; detail: number }
+const cutoutOptions = (a: CutoutAdjust, background: [number, number, number] | null = null) => ({ background, edge: a.edge, soft: a.soft, detail: a.detail });
+/** Quita o fondo dunha imaxe. `background`: cor RGB do fondo novo (sen ela, transparente). */
+export const removeBackground = (input: string, output: string, background: [number, number, number] | null, a: CutoutAdjust, overwrite = false): Promise<CutoutReport> =>
+  call("remove_background", { input, output, overwrite, options: cutoutOptions(a, background) });
+/** Analiza a imaxe co modelo (tarda a primeira vez); despois a vista previa e o resultado saen ao momento. Devolve o tamaño. */
+export const cutoutAnalyze = (path: string): Promise<[number, number]> => call("cutout_analyze", { path });
+/** Vista previa do recorte: ruta dun PNG pequeno e transparente. */
+export const cutoutPreview = (path: string, seq: number, a: CutoutAdjust): Promise<string> => call("cutout_preview", { path, seq, options: cutoutOptions(a) });
+export const cutoutForget = (): Promise<void> => call("cutout_forget");
+/** Texto que hai no portapapeis (baleiro se non hai texto). */
+export const clipboardText = (): Promise<string> => call("clipboard_text");
+/** Imaxe do portapapeis gardada como PNG (devolve a ruta, ou null se non hai imaxe). */
+export const clipboardImage = (): Promise<string | null> => call("clipboard_image");
+
+export interface VideoOption { height: number; fps: number | null; codec: string; size: number | null }
+export interface PlaylistEntry { url: string; title: string; duration: number | null; uploader: string | null }
+export interface MediaInfo {
+  title: string;
+  duration: number | null;
+  uploader: string | null;
+  /** Sitio web (YouTube, Vimeo…). */
+  platform: string | null;
+  /** «AAAAMMDD». */
+  upload_date: string | null;
+  views: number | null;
+  /** Ligazón da miniatura. */
+  thumbnail: string | null;
+  heights: number[];
+  video: VideoOption[];
+  audio_kbps: number | null;
+  audio_codec: string | null;
+  playlist: boolean;
+  entries: PlaylistEntry[];
+  total: number;
+}
+export const ytdlpInfo = (url: string): Promise<MediaInfo> => call("ytdlp_info", { url });
+/** Ruta local da miniatura dun vídeo (xa lexible polo visor). */
+export const ytdlpThumbnail = (url: string): Promise<string> => call("ytdlp_thumbnail", { url });
+export interface DownloadOptions { kind: "video" | "audio"; maxHeight: number | null; container: "mp4" | "mkv"; audioFormat: string; audioKbps: number | null }
+export interface DownloadReport { output_path: string; title: string; bytes_written: number }
+export interface BatchReport { done: DownloadReport[]; failed: { url: string; detail: string }[] }
+/** Descarga unha ou varias ligazóns (os vídeos marcados dunha lista), unha tras outra. */
+export const ytdlpDownload = (urls: string[], dir: string, o: DownloadOptions): Promise<BatchReport> =>
+  call("ytdlp_download", { urls, dir, options: { kind: o.kind, max_height: o.maxHeight, container: o.container, audio_format: o.audioFormat, audio_kbps: o.audioKbps } });
 export const installTool = (tool: ToolId): Promise<ToolsStatus> => call("install_tool", { tool });
 export const cancelToolInstall = (): Promise<void> => call("cancel_tool_install");
 export const removeTool = (tool: ToolId): Promise<ToolsStatus> => call("remove_tool", { tool });
@@ -696,7 +770,7 @@ export interface TrackRef {
 export const mkvMux = (inputs: MuxInput[], order: TrackRef[], output: string, overwrite = false): Promise<string> =>
   call("mkv_mux", { inputs, order, output, overwrite });
 
-export type LinkId = "ffmpeg" | "ffmpeg-license" | "mkvtoolnix" | "mkvtoolnix-license" | "iso639-2" | "mkvmerge-doc" | "libreoffice" | "libreoffice-license";
+export type LinkId = "ffmpeg" | "ffmpeg-license" | "mkvtoolnix" | "mkvtoolnix-license" | "iso639-2" | "mkvmerge-doc" | "libreoffice" | "libreoffice-license" | "whispercpp" | "whispercpp-license" | "ytdlp" | "ytdlp-license" | "ffmpeg-project" | "mkvtoolnix-project" | "whisper-openai" | "dis";
 export const openUrl = (url: string): Promise<void> => call("open_url", { url });
 export const openLink = (id: LinkId): Promise<void> => call("open_link", { id });
 

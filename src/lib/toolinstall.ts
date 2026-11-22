@@ -1,4 +1,4 @@
-// Descarga de FFmpeg e MKVToolNix desde a propia app, e o aviso que sae cando unha acción os necesita.
+// Descarga dos programas externos (FFmpeg, MKVToolNix, whisper.cpp e yt-dlp) desde a propia app, e o aviso que sae cando unha acción os necesita.
 
 import { writable, get } from "svelte/store";
 import { listen } from "@tauri-apps/api/event";
@@ -13,15 +13,29 @@ export interface ToolInfo {
   name: string;
   why: string;
   unlocks: string;
+  /** Para que se usa, en tres palabras (na lista de «falta instalar»). */
+  role: string;
   link: LinkId;
   winget: string;
   size: string;
+  /** Tamaño da descarga, en bytes. */
+  bytes: number;
   source: string;
+  /** Páxina do proxecto, a licenza e o enderezo que se amosa. */
+  project: LinkId;
+  repo: string;
+  license: string;
 }
+const MB = 1024 * 1024;
 
 export const TOOL_INFO: Record<ToolId, ToolInfo> = {
   ffmpeg: {
     name: "FFmpeg",
+    role: "audio e vídeo",
+    bytes: 115 * MB,
+    project: "ffmpeg-project",
+    repo: "github.com/FFmpeg/FFmpeg",
+    license: "LGPL / GPL",
     why: "Lee e escribe case todos os formatos de audio e vídeo.",
     unlocks: "Convertir, comprimir, editar, cortar e unir audio e vídeo, extraer fotogramas e audio, efectos de son, vistas previas de MKV, AVI ou AIFF, e ler ou escribir imaxes AVIF, JPEG 2000 e JPEG XL.",
     link: "ffmpeg",
@@ -31,12 +45,45 @@ export const TOOL_INFO: Record<ToolId, ToolInfo> = {
   },
   mkvmerge: {
     name: "MKVToolNix",
+    role: "pistas de MKV",
+    bytes: 31 * MB,
+    project: "mkvtoolnix-project",
+    repo: "gitlab.com/mbunkus/mkvtoolnix",
+    license: "GPL-2.0",
     why: "Edita os contedores Matroska (MKV) sen recodificar nada, así que non hai perda de calidade.",
     unlocks: "Quitar ou reordenar pistas de audio e subtítulos nun MKV, cambiarlles o nome e o idioma e marcar cal vai por defecto.",
     link: "mkvtoolnix",
     winget: "winget install MoritzBunkus.MKVToolNix",
     size: "31 MB",
     source: "mkvtoolnix.download",
+  },
+  whisper: {
+    name: "whisper.cpp",
+    role: "programa de transcrición",
+    bytes: 9 * MB,
+    project: "whispercpp",
+    repo: "github.com/ggml-org/whisper.cpp",
+    license: "MIT",
+    why: "Pasa a voz a texto. Traballa co modelo de recoñecemento de voz que se elixa, que se descarga á parte.",
+    unlocks: "Transcribir audio e vídeo a subtítulos e texto.",
+    link: "whispercpp",
+    winget: "",
+    size: "9 MB",
+    source: "github.com/ggml-org/whisper.cpp",
+  },
+  ytdlp: {
+    name: "yt-dlp",
+    role: "descarga vídeos",
+    bytes: 24 * MB,
+    project: "ytdlp",
+    repo: "github.com/yt-dlp/yt-dlp",
+    license: "Unlicense",
+    why: "Descarga vídeo e audio dunha ligazón. Convén telo ao día, porque as webs cambian.",
+    unlocks: "Descargar vídeo ou audio por ligazón, para velo e traballar con el despois.",
+    link: "ytdlp",
+    winget: "winget install yt-dlp.yt-dlp",
+    size: "24 MB",
+    source: "github.com/yt-dlp/yt-dlp",
   },
 };
 
@@ -110,7 +157,11 @@ export function requestTool(tool: ToolId, reason?: string, retry?: () => void) {
       reason ??
       (tool === "ffmpeg"
         ? tr("Para facer isto necesito FFmpeg, que non está instalado.")
-        : tr("Para facer isto necesito MKVToolNix, que non está instalado.")),
+        : tool === "mkvmerge"
+          ? tr("Para facer isto necesito MKVToolNix, que non está instalado.")
+          : tool === "whisper"
+            ? tr("Para transcribir necesito whisper.cpp, que non está instalado.")
+            : tr("Para descargar necesito yt-dlp, que non está instalado.")),
     retry,
   });
 }
