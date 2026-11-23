@@ -253,7 +253,7 @@ export async function launch({ tessdata = false } = {}) {
     },
     async reload() {
       // Cada escenario empeza sen os ficheiros (nin os marcados) do anterior: a sesión lembrada bórrase.
-      await ev("localStorage.setItem('arquivos-do-trasno.output-mode','beside'); localStorage.removeItem('arquivos-do-trasno.session'); location.reload()");
+      await ev("localStorage.setItem('arquivos-do-trasno.output-mode','beside'); localStorage.setItem('arquivos-do-trasno.tutorial-visto','1'); localStorage.removeItem('arquivos-do-trasno.session'); location.reload()");
       await sleep(4500);
     },
     async close() {

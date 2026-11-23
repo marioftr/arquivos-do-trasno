@@ -14,9 +14,9 @@
   import { get } from "svelte/store";
   import * as engine from "./lib/engine";
   import { t, lang, LANGS, type Lang } from "./lib/i18n";
-  import { theme, dialog, pastedLink, downloadTab, openSettings, openHub, welcomeIfNeeded, type Theme } from "./lib/settings";
-  import { appVersion, updateAvailable, autoCheck, checkForUpdate, applyPendingMenuRefresh } from "./lib/updates";
-  import { installExplorerMenu } from "./lib/explorerMenu";
+  import { theme, dialog, pastedLink, downloadTab, openSettings, openHub, welcomeIfNeeded, tutorialOpen, tutorialSeen, openTutorial, type Theme } from "./lib/settings";
+  import { appVersion, updateAvailable, autoUpdate } from "./lib/updates";
+  import { watchExplorerMenu } from "./lib/explorerMenu";
   import QuickJob from "./lib/components/QuickJob.svelte";
   import HubDialog from "./lib/components/HubDialog.svelte";
   import { procs, refreshProcs, requestCancel, type Proc } from "./lib/procs";
@@ -33,6 +33,7 @@
   import Splitter from "./lib/components/ui/Splitter.svelte";
   import Tooltips from "./lib/components/ui/Tooltips.svelte";
   import CommandPalette from "./lib/components/CommandPalette.svelte";
+  import Tutorial from "./lib/components/Tutorial.svelte";
   import DownloadDialog from "./lib/components/DownloadDialog.svelte";
   import { trasnoFlying } from "./lib/flight";
 
@@ -279,15 +280,20 @@
     if ((await engine.startupJob().catch(() => null)) === null) {
       // Apertura normal: a xanela móstrase cando a interface xa está pintada.
       requestAnimationFrame(() => getCurrentWindow().show().catch(() => {}));
-      welcomeIfNeeded();
-      // Se se acaba de actualizar pedindo refrescar o menú do Explorador, faise agora coa versión nova.
-      applyPendingMenuRefresh(installExplorerMenu);
-      // Se o menú desta copia da app lle fai falta algún tipo de ficheiro, ponse ao día en silencio (nunca se mete por riba doutra copia).
-      engine.explorerStatus().then((s) => (s.installed && s.current && !s.complete ? installExplorerMenu() : undefined)).catch(() => {});
-      // Busca de versións novas, un pouco despois de abrir para non estorbar.
-      setTimeout(() => {
-        if (get(autoCheck)) checkForUpdate(true);
-      }, 6000);
+      // Na primeira execución, primeiro a volta rápida; despois (se falta algo) a xanela de extensións.
+      if (tutorialSeen()) welcomeIfNeeded();
+      else {
+        openTutorial();
+        const off = tutorialOpen.subscribe((open) => {
+          if (open) return;
+          queueMicrotask(() => off());
+          welcomeIfNeeded();
+        });
+      }
+      // O menú do clic dereito ponse ao día soo con cada versión e idioma (nunca se mete por riba doutra copia da app).
+      watchExplorerMenu();
+      // Busca de versións novas un pouco despois de abrir, para non estorbar; se hai unha, descárgase e instálase soa.
+      setTimeout(() => void autoUpdate(), 6000);
     }
     // Primeiro volve a lista da última vez; despois entran os ficheiros co que se abriu a aplicación.
     engine.startupJob().then((j) => {
@@ -501,6 +507,7 @@
 
 
   {#if $dialog === "hub"}<HubDialog />{:else if $dialog === "palette"}<CommandPalette onAdd={escoller} onPaste={pegar} />{:else if $dialog === "download"}<DownloadDialog />{/if}
+  {#if $tutorialOpen}<Tutorial />{/if}
   <ToolNeedDialog />
 
   {#if dragging}

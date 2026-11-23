@@ -1,0 +1,4594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arquivos do Trasno · Your system, as built</title>
+<!--
+OpenDesigner visual template: Your system, as built (engine.py audit-page). The person's own code against their system:
+every token family and decision with where the code follows it, then every inconsistency with file:line evidence, a
+count, and two or three options previewed with the project's own values. Reports only: nothing in the code changes.
+Feed it JSON in one of three ways: replace the contents of <script id="od-data">, set window.OD_DATA before the
+last script runs, or open the file with #data=<url-encoded JSON>. The sample payload below documents every field.
+"Copy my choice" produces OD: lines (grammar in references/rules.md section 9): OD:fix <issue>=<option> to change the code,
+OD:waive <issue> --why "..." to keep it on purpose. The agent records each as a ledger item (engine.py ledger).
+No network requests, no dependencies. The shared chrome is repeated in every template on purpose so each file stands alone.
+-->
+<style>:root{--c-bg:#f6f6f7;--c-surface:#fff;--c-fg:#18181b;--c-muted:#585862;--c-border:#dcdce1;--c-strong:#18181b;--c-on-strong:#fff;--c-ok:#166534;--c-bad:#b42318;--r:8px;--font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--c-bg:#111113;--c-surface:#19191c;--c-fg:#ececef;--c-muted:#a3a3ad;--c-border:#303036;--c-strong:#ececef;--c-on-strong:#111113;--c-ok:#4ade80;--c-bad:#f97066;color-scheme:dark}}
+:root[data-theme=dark]{--c-bg:#111113;--c-surface:#19191c;--c-fg:#ececef;--c-muted:#a3a3ad;--c-border:#303036;--c-strong:#ececef;--c-on-strong:#111113;--c-ok:#4ade80;--c-bad:#f97066;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-bottom:160px}
+body{margin:0;background:var(--c-bg);color:var(--c-fg);font:14px/1.5 var(--font)}
+h1{font-size:16px;margin:0;font-weight:600}h2{font-size:13px;margin:0 0 8px;font-weight:600;color:var(--c-muted);text-transform:uppercase;letter-spacing:.04em}
+h3{font-size:15px;margin:0;font-weight:600}
+.od-h{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--c-border);background:var(--c-surface)}
+.sub{color:var(--c-muted);font-size:13px;margin:4px 0 0;max-width:72ch;overflow-wrap:anywhere}
+main{max-width:1120px;margin:0 auto;padding:20px;display:grid;gap:32px;min-width:0}
+section{min-width:0}
+.kv{font:12px/1.4 var(--font);color:var(--c-muted)}.mono{font-family:var(--mono)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:inherit;min-height:44px;padding:0 14px;border-radius:var(--r);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-fg);cursor:pointer}
+button.primary{background:var(--c-strong);color:var(--c-on-strong);border-color:var(--c-strong);font-weight:600;font-size:15px}
+:focus-visible{outline:2px solid var(--c-strong);outline-offset:2px}
+input[type=text]{font:inherit;min-height:44px;padding:0 10px;border:1px solid var(--c-border);border-radius:var(--r);background:var(--c-surface);color:var(--c-fg);min-width:0}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--c-border);border-radius:var(--r);overflow:hidden;background:var(--c-surface)}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--c-border)}.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--c-strong);color:var(--c-on-strong)}
+.tbl{border-collapse:collapse;width:100%;font-size:13px}.tbl th,.tbl td{border-bottom:1px solid var(--c-border);padding:8px;text-align:left;vertical-align:top}.tbl th{color:var(--c-muted);font-weight:600}
+.ok{color:var(--c-ok);font-weight:600}.bad{color:var(--c-bad);font-weight:600}
+.od-f{position:sticky;bottom:0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 20px;background:var(--c-surface);border-top:1px solid var(--c-border);z-index:2}
+.od-out{flex:1 1 320px;min-height:44px;min-width:0;font:12px/1.4 var(--mono);padding:8px;border:1px solid var(--c-border);border-radius:var(--r);background:var(--c-bg);color:var(--c-fg);resize:vertical}
+input[type=radio]{accent-color:var(--c-strong);width:18px;height:18px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* audit page */
+.nav{display:flex;flex-wrap:wrap;gap:8px}.nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border:1px solid var(--c-border);border-radius:99px;color:var(--c-fg);text-decoration:none;background:var(--c-surface);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{border:1px solid var(--c-border);border-radius:var(--r);background:var(--c-surface);padding:12px}.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.verdict{border:1px solid var(--c-border);border-radius:var(--r);background:var(--c-surface);padding:12px;font-size:13px}
+.fam{border:1px solid var(--c-border);border-radius:var(--r);background:var(--c-surface);margin-bottom:10px}
+.fam>summary{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;justify-content:space-between;padding:12px;cursor:pointer;min-height:44px;list-style:none}
+.fam>summary::-webkit-details-marker{display:none}.fam>summary::before{content:"▸";margin-right:4px;color:var(--c-muted)}.fam[open]>summary::before{content:"▾"}
+.fam .in{padding:0 12px 12px;overflow-x:auto}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.chip{border:1px solid var(--c-border);border-radius:var(--r);padding:8px;display:grid;gap:4px;font-size:12px;min-width:0}
+.chip.unused{border-style:dashed}
+.chip i{display:block;height:28px;border-radius:4px;border:1px solid rgba(128,128,128,.3)}
+.chip .p{font:12px/1.3 var(--mono);white-space:nowrap}
+.unused .kv,.unused td{color:var(--c-muted)}
+.tag{display:inline-block;font:600 12px var(--font);padding:1px 6px;border:1px solid var(--c-border);border-radius:99px;color:var(--c-muted);white-space:nowrap}
+.tag.bad{border-color:var(--c-bad);color:var(--c-bad)}.tag.ok{border-color:var(--c-ok);color:var(--c-ok)}
+.issue{border:1px solid var(--c-border);border-radius:var(--r);background:var(--c-surface);padding:16px;display:grid;gap:12px;min-width:0}
+.issue.picked{border-color:var(--c-strong)}
+.ihead{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;justify-content:space-between}
+.ev{font:12px/1.5 var(--mono);margin:6px 0 0;padding:0;list-style:none;max-height:220px;overflow:auto;border:1px solid var(--c-border);border-radius:var(--r)}
+.ev li{padding:4px 8px;border-bottom:1px solid var(--c-border);overflow-wrap:anywhere}.ev li:last-child{border-bottom:0}
+.ev b{font-weight:600}
+details>summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;border:0;padding:0;margin:0;min-width:0}
+.opt{position:relative;display:flex;flex-direction:column;gap:4px;border:1px solid var(--c-border);border-radius:var(--r);padding:12px;cursor:pointer;min-height:44px;background:var(--c-bg)}
+.opt input{position:absolute;opacity:0;width:1px;height:1px}
+.opt:has(input:checked){border-color:var(--c-strong);box-shadow:inset 0 0 0 1px var(--c-strong)}
+.opt:has(input:focus-visible){outline:2px solid var(--c-strong);outline-offset:2px}
+.opt-t{font-weight:600}.opt-n{color:var(--c-muted);font-size:13px}
+.rec{display:inline-block;margin-left:6px;font:600 12px var(--font);padding:1px 6px;border:1px solid var(--c-border);border-radius:99px;color:var(--c-muted);vertical-align:1px}
+.ba{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.pane{position:relative;border:1px solid var(--c-border);border-radius:var(--r);background:var(--s-bg);color:var(--s-fg);font-family:var(--s-font);padding:30px 14px 14px;min-height:120px;overflow-x:auto;min-width:0}
+.pane::before{content:attr(data-label);position:absolute;top:8px;left:12px;font:12px var(--font);color:var(--c-muted)}
+.pane .empty{font:13px var(--font);opacity:.7}
+.blk{display:flex;flex-wrap:wrap;gap:6px}.blk span{display:inline-flex;align-items:center;justify-content:center;min-width:64px;height:40px;padding:0 8px;border-radius:6px;font:12px var(--mono)}
+.specbox{border:1px dashed rgba(128,128,128,.7);background:var(--s-surface);display:grid}
+.specbox div{background:rgba(128,128,128,.22);height:14px;border-radius:2px}
+.cmp{display:inline-flex;align-items:center;justify-content:center;background:var(--s-accent);color:var(--s-on-accent);border:1px solid rgba(128,128,128,.4);max-width:100%}
+.cmps{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+.cmps figure{margin:0;display:grid;gap:4px;justify-items:start;min-width:0}.cmps figcaption{font:12px/1.3 var(--mono);max-width:180px;overflow-wrap:anywhere}
+.shadowbox{width:90px;height:56px;border-radius:8px;background:var(--s-surface)}
+.more-issues>summary{list-style:none}.more-issues>summary::-webkit-details-marker{display:none}.more-issues>summary h3::before{content:"▸ ";color:var(--c-muted)}.more-issues[open]>summary h3::before{content:"▾ "}
+.top5{margin:8px 0 0;padding-left:20px;display:grid;gap:4px}.top5 a{color:var(--c-fg)}
+.waivewhy{display:none;gap:6px}.issue.waive .waivewhy{display:grid}
+.empty-state{border:1px dashed var(--c-border);border-radius:var(--r);padding:16px;color:var(--c-muted)}
+@media (max-width:520px){main{padding:16px}.od-h,.od-f{padding:12px 16px}.issue{padding:12px}.tbl{font-size:12px}.tbl th,.tbl td{padding:6px}}
+</style>
+</head>
+<body>
+<header class="od-h"><div><h1 id="t"></h1><p class="sub" id="st"></p></div><div class="seg" id="theme" role="group" aria-label="Color mode"></div></header>
+<main>
+<section aria-labelledby="h-sum">
+<h2 id="h-sum">Summary</h2>
+<div class="stats" id="stats"></div>
+<p class="verdict" id="verdict"></p>
+<nav class="nav" aria-label="Sections"><a href="#h-iss">What does not match</a><a href="#h-sys">Your system</a><a href="#h-dec">Decisions</a><a href="#h-kept">Kept on purpose and the ledger</a></nav>
+</section>
+<section aria-labelledby="h-iss"><h2 id="h-iss">What does not match</h2><p class="sub" id="iss-sub"></p><div id="issues" style="display:grid;gap:14px"></div></section>
+<section aria-labelledby="h-sys"><h2 id="h-sys">Your system, and where the code uses it</h2><p class="sub">Each token with the number of times the code uses it. A token with a dashed border is never used.</p><div id="fams"></div></section>
+<section aria-labelledby="h-dec"><h2 id="h-dec">Decisions</h2><p class="sub">Each answer, how it was set, and whether it changes the tokens or only adds a rule to DESIGN.md.</p><div id="decs" style="overflow-x:auto"></div></section>
+<section aria-labelledby="h-kept"><h2 id="h-kept">Kept on purpose, and the ledger</h2><div id="kept" style="display:grid;gap:12px"></div></section>
+</main>
+<footer class="od-f">
+<textarea id="out" class="od-out" rows="2" readonly aria-label="Your choices as OD lines"></textarea>
+<button type="button" class="primary" id="copy">Copy my choice</button>
+<span id="live" class="kv" role="status" aria-live="polite"></span>
+</footer>
+<script type="application/json" id="od-data">
+{
+ "name": "Arquivos do Trasno",
+ "project": "arquivos-do-trasno",
+ "scanned": 227,
+ "tokenUses": 0,
+ "raw": 672,
+ "standards": 89,
+ "verdict": [
+  "286 groups of hard-coded values (672 values)",
+  "89 lines breaking a standard or a removal",
+  "tokens are not in charge"
+ ],
+ "ok": false,
+ "tokens": "none",
+ "notes": [],
+ "families": [
+  {
+   "name": "Colours",
+   "plain": "The named colours: text, backgrounds, surfaces, borders and icons.",
+   "tokens": [
+    {
+     "path": "color.bg.accent.bold",
+     "var": "--ds-color-bg-accent-bold",
+     "value": "#5fcf6e",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.accent.bold-hover",
+     "var": "--ds-color-bg-accent-bold-hover",
+     "value": "#5bbe68",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.accent.bold-pressed",
+     "var": "--ds-color-bg-accent-bold-pressed",
+     "value": "#50b35e",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.accent.subtle",
+     "var": "--ds-color-bg-accent-subtle",
+     "value": "#dff0e0",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.accent.subtle-hover",
+     "var": "--ds-color-bg-accent-subtle-hover",
+     "value": "#cfead0",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.accent.subtle-pressed",
+     "var": "--ds-color-bg-accent-subtle-pressed",
+     "value": "#c0e3c1",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.action.primary",
+     "var": "--ds-color-bg-action-primary",
+     "value": "#5fcf6e",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.action.primary-hover",
+     "var": "--ds-color-bg-action-primary-hover",
+     "value": "#5bbe68",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.action.primary-pressed",
+     "var": "--ds-color-bg-action-primary-pressed",
+     "value": "#50b35e",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.brand",
+     "var": "--ds-color-bg-brand",
+     "value": "#5fcf6e",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.danger.bold",
+     "var": "--ds-color-bg-danger-bold",
+     "value": "#d53e38",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.danger.bold-hover",
+     "var": "--ds-color-bg-danger-bold-hover",
+     "value": "#c33530",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.danger.bold-pressed",
+     "var": "--ds-color-bg-danger-bold-pressed",
+     "value": "#b92a27",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.danger.subtle",
+     "var": "--ds-color-bg-danger-subtle",
+     "value": "#ffe6e3",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.disabled",
+     "var": "--ds-color-bg-disabled",
+     "value": "#efebe8",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.field",
+     "var": "--ds-color-bg-field",
+     "value": "#ffffff",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.info.bold",
+     "var": "--ds-color-bg-info-bold",
+     "value": "#007cb7",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.info.bold-hover",
+     "var": "--ds-color-bg-info-bold-hover",
+     "value": "#0070a6",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.info.bold-pressed",
+     "var": "--ds-color-bg-info-bold-pressed",
+     "value": "#006799",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.info.subtle",
+     "var": "--ds-color-bg-info-subtle",
+     "value": "#d9efff",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.inverse",
+     "var": "--ds-color-bg-inverse",
+     "value": "#272321",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.neutral.subtle",
+     "var": "--ds-color-bg-neutral-subtle",
+     "value": "#efebe8",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.neutral.subtle-hover",
+     "var": "--ds-color-bg-neutral-subtle-hover",
+     "value": "#e7e2de",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.neutral.subtle-pressed",
+     "var": "--ds-color-bg-neutral-subtle-pressed",
+     "value": "#dfd9d5",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.success.bold",
+     "var": "--ds-color-bg-success-bold",
+     "value": "#00883d",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.success.bold-hover",
+     "var": "--ds-color-bg-success-bold-hover",
+     "value": "#007b36",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.success.bold-pressed",
+     "var": "--ds-color-bg-success-bold-pressed",
+     "value": "#007132",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.success.subtle",
+     "var": "--ds-color-bg-success-subtle",
+     "value": "#daf1de",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.warning.bold",
+     "var": "--ds-color-bg-warning-bold",
+     "value": "#efb23a",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.warning.bold-hover",
+     "var": "--ds-color-bg-warning-bold-hover",
+     "value": "#dca332",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.warning.bold-pressed",
+     "var": "--ds-color-bg-warning-bold-pressed",
+     "value": "#d19923",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.bg.warning.subtle",
+     "var": "--ds-color-bg-warning-subtle",
+     "value": "#f5eada",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.accent",
+     "var": "--ds-color-border-accent",
+     "value": "#4d9655",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.danger",
+     "var": "--ds-color-border-danger",
+     "value": "#d3655b",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.default",
+     "var": "--ds-color-border-default",
+     "value": "#d8d1cc",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.focus",
+     "var": "--ds-color-border-focus",
+     "value": "#16742b",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.info",
+     "var": "--ds-color-border-info",
+     "value": "#008ed1",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.input",
+     "var": "--ds-color-border-input",
+     "value": "#8d857f",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.separator",
+     "var": "--ds-color-border-separator",
+     "value": "#efebe8",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.strong",
+     "var": "--ds-color-border-strong",
+     "value": "#8d857f",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.subtle",
+     "var": "--ds-color-border-subtle",
+     "value": "#dfd9d5",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.success",
+     "var": "--ds-color-border-success",
+     "value": "#21994c",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.border.warning",
+     "var": "--ds-color-border-warning",
+     "value": "#aa7f2d",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.icon.accent",
+     "var": "--ds-color-icon-accent",
+     "value": "#16742b",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.icon.default",
+     "var": "--ds-color-icon-default",
+     "value": "#5e5651",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.icon.on-accent",
+     "var": "--ds-color-icon-on-accent",
+     "value": "#272321",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.icon.subtle",
+     "var": "--ds-color-icon-subtle",
+     "value": "#6b635d",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.surface.base",
+     "var": "--ds-color-surface-base",
+     "value": "#fefcfb",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.surface.nav",
+     "var": "--ds-color-surface-nav",
+     "value": "#fefcfb",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.surface.overlay",
+     "var": "--ds-color-surface-overlay",
+     "value": "#ffffff",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.surface.raised",
+     "var": "--ds-color-surface-raised",
+     "value": "#ffffff",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.surface.sunken",
+     "var": "--ds-color-surface-sunken",
+     "value": "#f7f3f1",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.accent",
+     "var": "--ds-color-text-accent",
+     "value": "#16742b",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.danger",
+     "var": "--ds-color-text-danger",
+     "value": "#a42825",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.disabled",
+     "var": "--ds-color-text-disabled",
+     "value": "#8d857f",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.info",
+     "var": "--ds-color-text-info",
+     "value": "#005c8a",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.inverse",
+     "var": "--ds-color-text-inverse",
+     "value": "#ffffff",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.link",
+     "var": "--ds-color-text-link",
+     "value": "#16742b",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.on-accent",
+     "var": "--ds-color-text-on-accent",
+     "value": "#272321",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.on-action",
+     "var": "--ds-color-text-on-action",
+     "value": "#272321",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.on-brand",
+     "var": "--ds-color-text-on-brand",
+     "value": "#272321",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.on-danger",
+     "var": "--ds-color-text-on-danger",
+     "value": "#ffffff",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.on-info",
+     "var": "--ds-color-text-on-info",
+     "value": "#ffffff",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.on-success",
+     "var": "--ds-color-text-on-success",
+     "value": "#ffffff",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.on-warning",
+     "var": "--ds-color-text-on-warning",
+     "value": "#272321",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.primary",
+     "var": "--ds-color-text-primary",
+     "value": "#272321",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.secondary",
+     "var": "--ds-color-text-secondary",
+     "value": "#5e5651",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.success",
+     "var": "--ds-color-text-success",
+     "value": "#00652c",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.tertiary",
+     "var": "--ds-color-text-tertiary",
+     "value": "#5e5651",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "color.text.warning",
+     "var": "--ds-color-text-warning",
+     "value": "#845d00",
+     "uses": 0,
+     "at": []
+    }
+   ],
+   "used": 0,
+   "total": 70
+  },
+  {
+   "name": "Spacing",
+   "plain": "The space ladder, on a 4px unit.",
+   "tokens": [
+    {
+     "path": "space.0",
+     "var": "--ds-space-0",
+     "value": 0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.2",
+     "var": "--ds-space-2",
+     "value": 2,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.4",
+     "var": "--ds-space-4",
+     "value": 4,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.6",
+     "var": "--ds-space-6",
+     "value": 6,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.8",
+     "var": "--ds-space-8",
+     "value": 8,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.12",
+     "var": "--ds-space-12",
+     "value": 12,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.16",
+     "var": "--ds-space-16",
+     "value": 16,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.20",
+     "var": "--ds-space-20",
+     "value": 20,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.24",
+     "var": "--ds-space-24",
+     "value": 24,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.32",
+     "var": "--ds-space-32",
+     "value": 32,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.40",
+     "var": "--ds-space-40",
+     "value": 40,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.48",
+     "var": "--ds-space-48",
+     "value": 48,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.64",
+     "var": "--ds-space-64",
+     "value": 64,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.80",
+     "var": "--ds-space-80",
+     "value": 80,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "space.96",
+     "var": "--ds-space-96",
+     "value": 96,
+     "uses": 0,
+     "at": []
+    }
+   ],
+   "used": 0,
+   "total": 15
+  },
+  {
+   "name": "Corners",
+   "plain": "The corner radius for each kind of element.",
+   "tokens": [
+    {
+     "path": "radius.detail",
+     "var": "--ds-radius-detail",
+     "value": 6,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "radius.control",
+     "var": "--ds-radius-control",
+     "value": 12,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "radius.container",
+     "var": "--ds-radius-container",
+     "value": 16,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "radius.overlay",
+     "var": "--ds-radius-overlay",
+     "value": 24,
+     "uses": 0,
+     "at": []
+    }
+   ],
+   "used": 0,
+   "total": 4
+  },
+  {
+   "name": "Type sizes",
+   "plain": "The type scale, ratio 1.25.",
+   "tokens": [
+    {
+     "path": "font.size.13",
+     "var": "--ds-font-size-13",
+     "value": 13,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "font.size.16",
+     "var": "--ds-font-size-16",
+     "value": 16,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "font.size.20",
+     "var": "--ds-font-size-20",
+     "value": 20,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "font.size.25",
+     "var": "--ds-font-size-25",
+     "value": 25,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "font.size.31",
+     "var": "--ds-font-size-31",
+     "value": 31,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "font.size.39",
+     "var": "--ds-font-size-39",
+     "value": 39,
+     "uses": 0,
+     "at": []
+    }
+   ],
+   "used": 0,
+   "total": 6
+  },
+  {
+   "name": "Depth",
+   "plain": "Shadows (depth model: ring+faint-shadow).",
+   "tokens": [
+    {
+     "path": "elevation.raised",
+     "var": "--ds-elevation-raised",
+     "value": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107)",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "elevation.floating",
+     "var": "--ds-elevation-floating",
+     "value": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107), 0px 4px 12px 0px rgb(39 35 33 / 0.091)",
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "elevation.overlay",
+     "var": "--ds-elevation-overlay",
+     "value": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107), 0px 12px 32px 0px rgb(39 35 33 / 0.091)",
+     "uses": 0,
+     "at": []
+    }
+   ],
+   "used": 0,
+   "total": 3
+  },
+  {
+   "name": "Motion",
+   "plain": "How long things take to move.",
+   "tokens": [
+    {
+     "path": "motion.duration.instant",
+     "var": "--ds-motion-duration-instant",
+     "value": 0.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.micro",
+     "var": "--ds-motion-duration-micro",
+     "value": 100.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.short",
+     "var": "--ds-motion-duration-short",
+     "value": 150.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.medium",
+     "var": "--ds-motion-duration-medium",
+     "value": 200.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.long",
+     "var": "--ds-motion-duration-long",
+     "value": 250.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.extra",
+     "var": "--ds-motion-duration-extra",
+     "value": 710.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.medium-exit",
+     "var": "--ds-motion-duration-medium-exit",
+     "value": 160.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.long-exit",
+     "var": "--ds-motion-duration-long-exit",
+     "value": 200.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.drawer",
+     "var": "--ds-motion-duration-drawer",
+     "value": 500.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.modal",
+     "var": "--ds-motion-duration-modal",
+     "value": 250.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.reduced-fade",
+     "var": "--ds-motion-duration-reduced-fade",
+     "value": 200.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.reveal",
+     "var": "--ds-motion-duration-reveal",
+     "value": 600.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.stagger",
+     "var": "--ds-motion-duration-stagger",
+     "value": 50.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.toast",
+     "var": "--ds-motion-duration-toast",
+     "value": 400.0,
+     "uses": 0,
+     "at": []
+    },
+    {
+     "path": "motion.duration.tooltip",
+     "var": "--ds-motion-duration-tooltip",
+     "value": 125.0,
+     "uses": 0,
+     "at": []
+    }
+   ],
+   "used": 0,
+   "total": 15
+  }
+ ],
+ "decisions": [
+  {
+   "id": "Q-aud-01",
+   "answer": "Often, in an everyday app",
+   "setBy": "chosen",
+   "changesTokens": true,
+   "family": null,
+   "follows": null,
+   "raw": null
+  },
+  {
+   "id": "Q-plat-01",
+   "answer": "Desktop app (macOS, Windows, or built with web tech), Web",
+   "setBy": "chosen",
+   "changesTokens": true,
+   "family": null,
+   "follows": null,
+   "raw": null
+  },
+  {
+   "id": "Q-scope-07",
+   "answer": "Close to launch",
+   "setBy": "assumed",
+   "changesTokens": false,
+   "family": null,
+   "follows": null,
+   "raw": null
+  },
+  {
+   "id": "Q-theme-01",
+   "answer": "Light and dark, matching the device setting",
+   "setBy": "assumed",
+   "changesTokens": true,
+   "family": null,
+   "follows": null,
+   "raw": null
+  }
+ ],
+ "dials": [
+  {
+   "id": "brandPresence",
+   "value": null,
+   "setBy": "default"
+  },
+  {
+   "id": "colorfulness",
+   "value": null,
+   "setBy": "default"
+  },
+  {
+   "id": "density",
+   "value": 50,
+   "setBy": "chosen"
+  },
+  {
+   "id": "depth",
+   "value": null,
+   "setBy": "default"
+  },
+  {
+   "id": "energy",
+   "value": null,
+   "setBy": "default"
+  },
+  {
+   "id": "expression",
+   "value": null,
+   "setBy": "default"
+  },
+  {
+   "id": "roundness",
+   "value": null,
+   "setBy": "default"
+  },
+  {
+   "id": "warmth",
+   "value": null,
+   "setBy": "default"
+  }
+ ],
+ "issues": [
+  {
+   "id": "A-comp-badge",
+   "kind": "component",
+   "title": "10 different badges",
+   "plain": "The code draws badges 10 ways; 10 of them are used once. One look per kind, with named variants, is easier to keep consistent.",
+   "count": 10,
+   "files": 10,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": ".chip.svelte-17jmn20"
+    },
+    {
+     "file": "src\\App.svelte",
+     "line": 541,
+     "value": ".badge"
+    },
+    {
+     "file": "src\\lib\\components\\HubDialog.svelte",
+     "line": 100,
+     "value": ".badge"
+    },
+    {
+     "file": "src\\lib\\components\\NewsPanel.svelte",
+     "line": 74,
+     "value": ".tag"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 152,
+     "value": ".stage"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ColorField.svelte",
+     "line": 177,
+     "value": ".chip"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\FramePreview.svelte",
+     "line": 58,
+     "value": ".tag"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Timeline.svelte",
+     "line": 122,
+     "value": ".tag"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\ImageViewer.svelte",
+     "line": 408,
+     "value": ".stage"
+    },
+    {
+     "file": "web\\src\\pages\\Tools.svelte",
+     "line": 65,
+     "value": ".chip"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "system",
+     "label": "One badge, from the system's tokens",
+     "note": "Every variant takes the system's corner, padding and size; a variant you keep gets a name (primary, quiet...).",
+     "after": {
+      "props": {
+       "border-radius": "12px",
+       "padding": "16px",
+       "font-size": "16px"
+      }
+     },
+     "recommended": true
+    },
+    {
+     "id": "named",
+     "label": "Two badges: a main one and a quiet one",
+     "note": "The system's look for the main one, and the same shape with no fill for the rest; every variant becomes one of the two.",
+     "after": {
+      "props": {
+       "border-radius": "12px",
+       "padding": "16px",
+       "font-size": "16px",
+       "background": "transparent"
+      }
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-comp-badge"
+     ]
+    }
+   ],
+   "preview": {
+    "variants": [
+     {
+      "props": {
+       "background": "var(--bg-card)",
+       "border-radius": "999px",
+       "font-weight": "600",
+       "min-height": "44px",
+       "padding": "0 .9rem"
+      },
+      "count": 1,
+      "at": [
+       "dist-web\\assets\\index-wwQEC3OT.css:1"
+      ],
+      "selector": ".chip.svelte-17jmn20"
+     },
+     {
+      "props": {
+       "background": "var(--accent)",
+       "border-radius": "99px",
+       "font-size": "0.62rem",
+       "font-weight": "700",
+       "padding": "0 0.3em"
+      },
+      "count": 1,
+      "at": [
+       "src\\App.svelte:541"
+      ],
+      "selector": ".badge"
+     },
+     {
+      "props": {
+       "background": "var(--accent)",
+       "border-radius": "99px",
+       "font-size": "var(--fs-xs)",
+       "font-weight": "700",
+       "padding": "0 0.45em"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\HubDialog.svelte:100"
+      ],
+      "selector": ".badge"
+     },
+     {
+      "props": {
+       "font-size": "var(--fs-xs)",
+       "font-weight": "500"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\NewsPanel.svelte:74"
+      ],
+      "selector": ".tag"
+     },
+     {
+      "props": {
+       "background": "var(--bg)",
+       "border-radius": "var(--radius-lg)",
+       "min-height": "220px"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\Tutorial.svelte:152"
+      ],
+      "selector": ".stage"
+     },
+     {
+      "props": {
+       "border-radius": "4px",
+       "height": "20px"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\ui\\ColorField.svelte:177"
+      ],
+      "selector": ".chip"
+     },
+     {
+      "props": {
+       "background": "rgba(0, 0, 0, 0.75)",
+       "border-radius": "4px",
+       "font-size": "var(--fs-xs)",
+       "padding": "1px 6px"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\ui\\FramePreview.svelte:58"
+      ],
+      "selector": ".tag"
+     },
+     {
+      "props": {
+       "background": "rgba(0, 0, 0, 0.75)",
+       "border-radius": "4px",
+       "font-size": "var(--fs-xs)",
+       "padding": "1px 5px"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\ui\\Timeline.svelte:122"
+      ],
+      "selector": ".tag"
+     }
+    ],
+    "kind": "badge"
+   },
+   "why": ""
+  },
+  {
+   "id": "A-comp-button",
+   "kind": "component",
+   "title": "7 different buttons",
+   "plain": "The code draws buttons 7 ways; 4 of them are used once. One look per kind, with named variants, is easier to keep consistent.",
+   "count": 10,
+   "files": 5,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": ".btn"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": ".btn.primary"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": ".thumb-btn.svelte-1dqma1e"
+    },
+    {
+     "file": "src\\lib\\components\\DownloadDialog.svelte",
+     "line": 396,
+     "value": ".linkbtn"
+    },
+    {
+     "file": "src\\styles\\global.css",
+     "line": 57,
+     "value": ".btn"
+    },
+    {
+     "file": "src\\styles\\global.css",
+     "line": 81,
+     "value": ".btn.primary"
+    },
+    {
+     "file": "src\\styles\\global.css",
+     "line": 95,
+     "value": ".btn.danger"
+    },
+    {
+     "file": "web\\src\\web.css",
+     "line": 48,
+     "value": ".btn"
+    },
+    {
+     "file": "web\\src\\web.css",
+     "line": 82,
+     "value": ".btn.primary"
+    },
+    {
+     "file": "web\\src\\components\\Workbench.svelte",
+     "line": 341,
+     "value": ".thumb-btn"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "system",
+     "label": "One button, from the system's tokens",
+     "note": "Every variant takes the system's corner, padding and size; a variant you keep gets a name (primary, quiet...).",
+     "after": {
+      "props": {
+       "border-radius": "12px",
+       "padding": "0 16px",
+       "font-size": "16px",
+       "height": "40px"
+      }
+     },
+     "recommended": true
+    },
+    {
+     "id": "common",
+     "label": "One button, the one used most (.btn)",
+     "note": "Every variant takes the values of .btn, used 2 times.",
+     "after": {
+      "props": {
+       "background": "var(--bg-card)",
+       "border-radius": "var(--radius-md)",
+       "font-weight": "600",
+       "min-height": "var(--control-h)",
+       "padding": "0 1.1rem"
+      }
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-comp-button"
+     ]
+    }
+   ],
+   "preview": {
+    "variants": [
+     {
+      "props": {
+       "background": "var(--bg-card)",
+       "border-radius": "var(--radius-md)",
+       "font-weight": "600",
+       "min-height": "var(--control-h)",
+       "padding": "0 1.1rem"
+      },
+      "count": 2,
+      "at": [
+       "dist-web\\assets\\index-wwQEC3OT.css:1",
+       "web\\src\\web.css:48"
+      ],
+      "selector": ".btn"
+     },
+     {
+      "props": {
+       "background": "var(--accent)",
+       "font-size": "var(--fs-lg)"
+      },
+      "count": 2,
+      "at": [
+       "dist-web\\assets\\index-wwQEC3OT.css:1",
+       "web\\src\\web.css:82"
+      ],
+      "selector": ".btn.primary"
+     },
+     {
+      "props": {
+       "background": "none",
+       "border-radius": "var(--radius-sm)",
+       "padding": "0"
+      },
+      "count": 2,
+      "at": [
+       "dist-web\\assets\\index-wwQEC3OT.css:1",
+       "web\\src\\components\\Workbench.svelte:341"
+      ],
+      "selector": ".thumb-btn.svelte-1dqma1e"
+     },
+     {
+      "props": {
+       "background": "none",
+       "font-size": "var(--fs-sm)",
+       "padding": "0"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\DownloadDialog.svelte:396"
+      ],
+      "selector": ".linkbtn"
+     },
+     {
+      "props": {
+       "background": "var(--bg-card)",
+       "border-radius": "var(--radius-sm)",
+       "padding": "0 0.9em"
+      },
+      "count": 1,
+      "at": [
+       "src\\styles\\global.css:57"
+      ],
+      "selector": ".btn"
+     },
+     {
+      "props": {
+       "background": "var(--accent)",
+       "font-weight": "600"
+      },
+      "count": 1,
+      "at": [
+       "src\\styles\\global.css:81"
+      ],
+      "selector": ".btn.primary"
+     },
+     {
+      "props": {
+       "background": "var(--accent-video)",
+       "font-weight": "600"
+      },
+      "count": 1,
+      "at": [
+       "src\\styles\\global.css:95"
+      ],
+      "selector": ".btn.danger"
+     }
+    ],
+    "kind": "button"
+   },
+   "why": ""
+  },
+  {
+   "id": "A-comp-card",
+   "kind": "component",
+   "title": "10 different cards",
+   "plain": "The code draws cards 10 ways; 9 of them are used once. One look per kind, with named variants, is easier to keep consistent.",
+   "count": 11,
+   "files": 9,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": ".card.svelte-17jmn20"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": ".card.svelte-14syyd1"
+    },
+    {
+     "file": "src\\lib\\components\\DownloadDialog.svelte",
+     "line": 399,
+     "value": ".card"
+    },
+    {
+     "file": "src\\lib\\components\\ProfilesPanel.svelte",
+     "line": 48,
+     "value": ".card"
+    },
+    {
+     "file": "src\\lib\\components\\ToolsPanel.svelte",
+     "line": 216,
+     "value": ".card"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 149,
+     "value": ".panel"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PageGrid.svelte",
+     "line": 83,
+     "value": ".tile"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PageGrid.svelte",
+     "line": 85,
+     "value": ".tile.on"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PdfOrganizeSection.svelte",
+     "line": 193,
+     "value": ".tile"
+    },
+    {
+     "file": "web\\src\\pages\\Download.svelte",
+     "line": 82,
+     "value": ".card"
+    },
+    {
+     "file": "web\\src\\pages\\Tools.svelte",
+     "line": 75,
+     "value": ".card"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "system",
+     "label": "One card, from the system's tokens",
+     "note": "Every variant takes the system's corner, padding and size; a variant you keep gets a name (primary, quiet...).",
+     "after": {
+      "props": {
+       "border-radius": "16px",
+       "padding": "16px",
+       "font-size": "16px"
+      }
+     },
+     "recommended": true
+    },
+    {
+     "id": "common",
+     "label": "One card, the one used most (.card.svelte-14syyd1)",
+     "note": "Every variant takes the values of .card.svelte-14syyd1, used 2 times.",
+     "after": {
+      "props": {
+       "background": "var(--bg-card)",
+       "border-radius": "var(--radius-lg)",
+       "padding": "1.1rem"
+      }
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-comp-card"
+     ]
+    }
+   ],
+   "preview": {
+    "variants": [
+     {
+      "props": {
+       "background": "var(--bg-card)",
+       "border-radius": "var(--radius-lg)",
+       "padding": "1.1rem"
+      },
+      "count": 2,
+      "at": [
+       "dist-web\\assets\\index-wwQEC3OT.css:1",
+       "web\\src\\pages\\Download.svelte:82"
+      ],
+      "selector": ".card.svelte-14syyd1"
+     },
+     {
+      "props": {
+       "background": "var(--bg-card)",
+       "border-radius": "var(--radius-lg)",
+       "min-height": "4.5rem",
+       "padding": ".75rem .9rem"
+      },
+      "count": 1,
+      "at": [
+       "dist-web\\assets\\index-wwQEC3OT.css:1"
+      ],
+      "selector": ".card.svelte-17jmn20"
+     },
+     {
+      "props": {
+       "background": "var(--bg-card)",
+       "border-radius": "var(--radius-md)",
+       "padding": "0.7rem 0.8rem"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\DownloadDialog.svelte:399"
+      ],
+      "selector": ".card"
+     },
+     {
+      "props": {
+       "background": "var(--bg-card)",
+       "border-radius": "var(--radius-md)",
+       "padding": "0.6rem 0.7rem"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\ProfilesPanel.svelte:48"
+      ],
+      "selector": ".card"
+     },
+     {
+      "props": {
+       "background": "var(--bg-card)",
+       "border-radius": "var(--radius-md)",
+       "padding": "0.85rem 1rem"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\ToolsPanel.svelte:216"
+      ],
+      "selector": ".card"
+     },
+     {
+      "props": {
+       "background": "var(--bg-elevated)",
+       "border-radius": "calc(var(--radius-lg) + 2px)",
+       "padding": "1rem"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\Tutorial.svelte:149"
+      ],
+      "selector": ".panel"
+     },
+     {
+      "props": {
+       "background": "var(--bg-input)",
+       "border-radius": "var(--radius-sm)",
+       "padding": "0.35rem"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\tools\\PageGrid.svelte:83"
+      ],
+      "selector": ".tile"
+     },
+     {
+      "props": {
+       "background": "color-mix(in srgb, var(--accent) 16%, var(--bg-input))",
+       "font-weight": "600"
+      },
+      "count": 1,
+      "at": [
+       "src\\lib\\components\\tools\\PageGrid.svelte:85"
+      ],
+      "selector": ".tile.on"
+     }
+    ],
+    "kind": "card"
+   },
+   "why": ""
+  },
+  {
+   "id": "A-color-131417",
+   "kind": "color",
+   "title": "5 colours that look the same",
+   "plain": "These raw colours are so close that nobody can tell them apart, so they are one colour written several ways.",
+   "count": 9,
+   "files": 6,
+   "evidence": [
+    {
+     "file": "dist-web\\index.html",
+     "line": 13,
+     "value": "#131417"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#131417"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#111215"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#14151a"
+    },
+    {
+     "file": "web\\index.html",
+     "line": 13,
+     "value": "#131417"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 162,
+     "value": "#14161a"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\ImageViewer.svelte",
+     "line": 431,
+     "value": "#111111"
+    },
+    {
+     "file": "src\\lib\\eyedropper.ts",
+     "line": 31,
+     "value": "#111111"
+    },
+    {
+     "file": "src\\lib\\eyedropper.ts",
+     "line": 37,
+     "value": "#111111"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "token",
+     "label": "Use color.text.primary",
+     "note": "Every one of these becomes var(--ds-color-text-primary), #272321.",
+     "after": {
+      "color": "#272321"
+     },
+     "recommended": true
+    },
+    {
+     "id": "common",
+     "label": "Merge into #131417, the one used most",
+     "note": "6 uses change to #131417. It is not a token yet: add it as one first (engine.py set color.<role>.<name>).",
+     "after": {
+      "color": "#131417"
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-color-131417"
+     ]
+    }
+   ],
+   "preview": {
+    "values": [
+     {
+      "value": "#131417",
+      "count": 3
+     },
+     {
+      "value": "#111111",
+      "count": 3
+     },
+     {
+      "value": "#111215",
+      "count": 1
+     },
+     {
+      "value": "#14151a",
+      "count": 1
+     },
+     {
+      "value": "#14161a",
+      "count": 1
+     }
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-color-1c1c1c",
+   "kind": "color",
+   "title": "3 colours that look the same",
+   "plain": "These raw colours are so close that nobody can tell them apart, so they are one colour written several ways.",
+   "count": 8,
+   "files": 2,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#181a1e"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#1b1d21"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#1c1c1c"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#1c1c1c"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#1c1c1c"
+    },
+    {
+     "file": "web\\src\\components\\Workbench.svelte",
+     "line": 345,
+     "value": "#1c1c1c"
+    },
+    {
+     "file": "web\\src\\components\\Workbench.svelte",
+     "line": 345,
+     "value": "#1c1c1c"
+    },
+    {
+     "file": "web\\src\\components\\Workbench.svelte",
+     "line": 345,
+     "value": "#1c1c1c"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "token",
+     "label": "Use color.text.primary",
+     "note": "Every one of these becomes var(--ds-color-text-primary), #272321.",
+     "after": {
+      "color": "#272321"
+     },
+     "recommended": true
+    },
+    {
+     "id": "common",
+     "label": "Merge into #1c1c1c, the one used most",
+     "note": "2 uses change to #1c1c1c. It is not a token yet: add it as one first (engine.py set color.<role>.<name>).",
+     "after": {
+      "color": "#1c1c1c"
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-color-1c1c1c"
+     ]
+    }
+   ],
+   "preview": {
+    "values": [
+     {
+      "value": "#1c1c1c",
+      "count": 6
+     },
+     {
+      "value": "#181a1e",
+      "count": 1
+     },
+     {
+      "value": "#1b1d21",
+      "count": 1
+     }
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-color-1f2126",
+   "kind": "color",
+   "title": "2 colours that look the same",
+   "plain": "These raw colours are so close that nobody can tell them apart, so they are one colour written several ways.",
+   "count": 3,
+   "files": 2,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#1f2126"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#1b1d22"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 162,
+     "value": "#1f2126"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "token",
+     "label": "Use color.text.primary",
+     "note": "Every one of these becomes var(--ds-color-text-primary), #272321.",
+     "after": {
+      "color": "#272321"
+     },
+     "recommended": true
+    },
+    {
+     "id": "common",
+     "label": "Merge into #1f2126, the one used most",
+     "note": "1 use changes to #1f2126. It is not a token yet: add it as one first (engine.py set color.<role>.<name>).",
+     "after": {
+      "color": "#1f2126"
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-color-1f2126"
+     ]
+    }
+   ],
+   "preview": {
+    "values": [
+     {
+      "value": "#1f2126",
+      "count": 2
+     },
+     {
+      "value": "#1b1d22",
+      "count": 1
+     }
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-color-272a30",
+   "kind": "color",
+   "title": "2 colours that look the same",
+   "plain": "These raw colours are so close that nobody can tell them apart, so they are one colour written several ways.",
+   "count": 3,
+   "files": 2,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#272a30"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#25282e"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 162,
+     "value": "#272a30"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "token",
+     "label": "Use color.text.primary",
+     "note": "Every one of these becomes var(--ds-color-text-primary), #272321.",
+     "after": {
+      "color": "#272321"
+     },
+     "recommended": true
+    },
+    {
+     "id": "common",
+     "label": "Merge into #272a30, the one used most",
+     "note": "1 use changes to #272a30. It is not a token yet: add it as one first (engine.py set color.<role>.<name>).",
+     "after": {
+      "color": "#272a30"
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-color-272a30"
+     ]
+    }
+   ],
+   "preview": {
+    "values": [
+     {
+      "value": "#272a30",
+      "count": 2
+     },
+     {
+      "value": "#25282e",
+      "count": 1
+     }
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-color-5fcf6e",
+   "kind": "color",
+   "title": "2 colours that look the same",
+   "plain": "These raw colours are so close that nobody can tell them apart, so they are one colour written several ways.",
+   "count": 3,
+   "files": 2,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#5fcf6e"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#5fcf6e"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 170,
+     "value": "#5ecf6f"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "token",
+     "label": "Use color.bg.accent.bold",
+     "note": "Every one of these becomes var(--ds-color-bg-accent-bold), #5fcf6e.",
+     "after": {
+      "color": "#5fcf6e"
+     },
+     "recommended": true
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-color-5fcf6e"
+     ]
+    }
+   ],
+   "preview": {
+    "values": [
+     {
+      "value": "#5fcf6e",
+      "count": 2
+     },
+     {
+      "value": "#5ecf6f",
+      "count": 1
+     }
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-color-cfcfd8",
+   "kind": "color",
+   "title": "2 colours that look the same",
+   "plain": "These raw colours are so close that nobody can tell them apart, so they are one colour written several ways.",
+   "count": 2,
+   "files": 2,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\pdf-UA8D4yGl.js",
+     "line": 12,
+     "value": "#cfcfd8"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#c8ccd3"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "token",
+     "label": "Use color.border.default",
+     "note": "Every one of these becomes var(--ds-color-border-default), #d8d1cc.",
+     "after": {
+      "color": "#d8d1cc"
+     },
+     "recommended": true
+    },
+    {
+     "id": "common",
+     "label": "Merge into #cfcfd8, the one used most",
+     "note": "1 use changes to #cfcfd8. It is not a token yet: add it as one first (engine.py set color.<role>.<name>).",
+     "after": {
+      "color": "#cfcfd8"
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-color-cfcfd8"
+     ]
+    }
+   ],
+   "preview": {
+    "values": [
+     {
+      "value": "#cfcfd8",
+      "count": 1
+     },
+     {
+      "value": "#c8ccd3",
+      "count": 1
+     }
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-color-e3e5e9",
+   "kind": "color",
+   "title": "7 colours that look the same",
+   "plain": "These raw colours are so close that nobody can tell them apart, so they are one colour written several ways.",
+   "count": 7,
+   "files": 3,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#e3e5e9"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#dfe2e6"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#e6e8eb"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#dde0e4"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 161,
+     "value": "#e4e6ea"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 161,
+     "value": "#dcdfe4"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Glyph.svelte",
+     "line": 163,
+     "value": "#e8e8e8"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "token",
+     "label": "Use color.bg.neutral.subtle-hover",
+     "note": "Every one of these becomes var(--ds-color-bg-neutral-subtle-hover), #e7e2de.",
+     "after": {
+      "color": "#e7e2de"
+     },
+     "recommended": true
+    },
+    {
+     "id": "common",
+     "label": "Merge into #e3e5e9, the one used most",
+     "note": "6 uses change to #e3e5e9. It is not a token yet: add it as one first (engine.py set color.<role>.<name>).",
+     "after": {
+      "color": "#e3e5e9"
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-color-e3e5e9"
+     ]
+    }
+   ],
+   "preview": {
+    "values": [
+     {
+      "value": "#e3e5e9",
+      "count": 1
+     },
+     {
+      "value": "#dfe2e6",
+      "count": 1
+     },
+     {
+      "value": "#e6e8eb",
+      "count": 1
+     },
+     {
+      "value": "#dde0e4",
+      "count": 1
+     },
+     {
+      "value": "#e4e6ea",
+      "count": 1
+     },
+     {
+      "value": "#dcdfe4",
+      "count": 1
+     },
+     {
+      "value": "#e8e8e8",
+      "count": 1
+     }
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-color-f1f2f4",
+   "kind": "color",
+   "title": "4 colours that look the same",
+   "plain": "These raw colours are so close that nobody can tell them apart, so they are one colour written several ways.",
+   "count": 6,
+   "files": 4,
+   "evidence": [
+    {
+     "file": "dist-web\\index.html",
+     "line": 14,
+     "value": "#f1f2f4"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#ecedf0"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#f1f2f4"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#eceef1"
+    },
+    {
+     "file": "web\\index.html",
+     "line": 14,
+     "value": "#f1f2f4"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 161,
+     "value": "#f4f5f7"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "token",
+     "label": "Use color.surface.sunken",
+     "note": "Every one of these becomes var(--ds-color-surface-sunken), #f7f3f1.",
+     "after": {
+      "color": "#f7f3f1"
+     },
+     "recommended": true
+    },
+    {
+     "id": "common",
+     "label": "Merge into #f1f2f4, the one used most",
+     "note": "3 uses change to #f1f2f4. ",
+     "after": {
+      "color": "#f1f2f4"
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-color-f1f2f4"
+     ]
+    }
+   ],
+   "preview": {
+    "values": [
+     {
+      "value": "#f1f2f4",
+      "count": 3
+     },
+     {
+      "value": "#ecedf0",
+      "count": 1
+     },
+     {
+      "value": "#eceef1",
+      "count": 1
+     },
+     {
+      "value": "#f4f5f7",
+      "count": 1
+     }
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-space-108px",
+   "kind": "space",
+   "title": "Spacing of 108px, 1 time",
+   "plain": "This spacing is not on the system's ladder, so gaps drift a pixel or two from screen to screen.",
+   "count": 1,
+   "files": 1,
+   "evidence": [
+    {
+     "file": "src\\App.svelte",
+     "line": 545,
+     "value": "margin: 108px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "down",
+     "label": "Round down to 96px",
+     "note": "Use var(--ds-space-96).",
+     "after": {
+      "value": 96
+     },
+     "recommended": true
+    },
+    {
+     "id": "add",
+     "label": "Add 108px to the system",
+     "note": "Record it as a token with a reason (engine.py set), then use the token: worth it only if 108px is a deliberate step.",
+     "after": {
+      "value": 108
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-space-108px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 108,
+    "steps": [
+     2,
+     4,
+     6,
+     8,
+     12,
+     16,
+     20,
+     24,
+     32,
+     40,
+     48,
+     64,
+     80,
+     96
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-space-112px",
+   "kind": "space",
+   "title": "Spacing of 112px, 1 time",
+   "plain": "This spacing is not on the system's ladder, so gaps drift a pixel or two from screen to screen.",
+   "count": 1,
+   "files": 1,
+   "evidence": [
+    {
+     "file": "src\\App.svelte",
+     "line": 593,
+     "value": "gap: 112px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "down",
+     "label": "Round down to 96px",
+     "note": "Use var(--ds-space-96).",
+     "after": {
+      "value": 96
+     },
+     "recommended": true
+    },
+    {
+     "id": "add",
+     "label": "Add 112px to the system",
+     "note": "Record it as a token with a reason (engine.py set), then use the token: worth it only if 112px is a deliberate step.",
+     "after": {
+      "value": 112
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-space-112px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 112,
+    "steps": [
+     2,
+     4,
+     6,
+     8,
+     12,
+     16,
+     20,
+     24,
+     32,
+     40,
+     48,
+     64,
+     80,
+     96
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-space-26px",
+   "kind": "space",
+   "title": "Spacing of 26px, 1 time",
+   "plain": "This spacing is not on the system's ladder, so gaps drift a pixel or two from screen to screen.",
+   "count": 1,
+   "files": 1,
+   "evidence": [
+    {
+     "file": "src\\lib\\components\\viewers\\ImageViewer.svelte",
+     "line": 414,
+     "value": "padding: 26px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "down",
+     "label": "Round down to 24px",
+     "note": "Use var(--ds-space-24).",
+     "after": {
+      "value": 24
+     },
+     "recommended": true
+    },
+    {
+     "id": "up",
+     "label": "Round up to 32px",
+     "note": "Use var(--ds-space-32).",
+     "after": {
+      "value": 32
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-space-26px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 26,
+    "steps": [
+     2,
+     4,
+     6,
+     8,
+     12,
+     16,
+     20,
+     24,
+     32,
+     40,
+     48,
+     64,
+     80,
+     96
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-space-3px",
+   "kind": "space",
+   "title": "Spacing of 3px, 6 times",
+   "plain": "This spacing is not on the system's ladder, so gaps drift a pixel or two from screen to screen.",
+   "count": 6,
+   "files": 5,
+   "evidence": [
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 171,
+     "value": "gap: 3px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PdfMarksSection.svelte",
+     "line": 353,
+     "value": "padding: 3px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PdfOutlineSection.svelte",
+     "line": 142,
+     "value": "gap: 3px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PdfOutlineSection.svelte",
+     "line": 143,
+     "value": "gap: 3px"
+    },
+    {
+     "file": "src\\lib\\components\\HubDialog.svelte",
+     "line": 92,
+     "value": "padding: 3px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\OptionList.svelte",
+     "line": 53,
+     "value": "margin: 3px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "down",
+     "label": "Round down to 2px",
+     "note": "Use var(--ds-space-2).",
+     "after": {
+      "value": 2
+     },
+     "recommended": true
+    },
+    {
+     "id": "up",
+     "label": "Round up to 4px",
+     "note": "Use var(--ds-space-4).",
+     "after": {
+      "value": 4
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-space-3px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 3,
+    "steps": [
+     2,
+     4,
+     6,
+     8,
+     12,
+     16,
+     20,
+     24,
+     32,
+     40,
+     48,
+     64,
+     80,
+     96
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-space-5px",
+   "kind": "space",
+   "title": "Spacing of 5px, 3 times",
+   "plain": "This spacing is not on the system's ladder, so gaps drift a pixel or two from screen to screen.",
+   "count": 3,
+   "files": 2,
+   "evidence": [
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 178,
+     "value": "padding: 5px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 200,
+     "value": "gap: 5px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ColorField.svelte",
+     "line": 187,
+     "value": "gap: 5px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "down",
+     "label": "Round down to 4px",
+     "note": "Use var(--ds-space-4).",
+     "after": {
+      "value": 4
+     },
+     "recommended": true
+    },
+    {
+     "id": "up",
+     "label": "Round up to 6px",
+     "note": "Use var(--ds-space-6).",
+     "after": {
+      "value": 6
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-space-5px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 5,
+    "steps": [
+     2,
+     4,
+     6,
+     8,
+     12,
+     16,
+     20,
+     24,
+     32,
+     40,
+     48,
+     64,
+     80,
+     96
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-space-60px",
+   "kind": "space",
+   "title": "Spacing of 60px, 1 time",
+   "plain": "This spacing is not on the system's ladder, so gaps drift a pixel or two from screen to screen.",
+   "count": 1,
+   "files": 1,
+   "evidence": [
+    {
+     "file": "src\\App.svelte",
+     "line": 587,
+     "value": "padding: 60px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "up",
+     "label": "Round up to 64px",
+     "note": "Use var(--ds-space-64).",
+     "after": {
+      "value": 64
+     },
+     "recommended": true
+    },
+    {
+     "id": "down",
+     "label": "Round down to 48px",
+     "note": "Use var(--ds-space-48).",
+     "after": {
+      "value": 48
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-space-60px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 60,
+    "steps": [
+     2,
+     4,
+     6,
+     8,
+     12,
+     16,
+     20,
+     24,
+     32,
+     40,
+     48,
+     64,
+     80,
+     96
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-type-15px",
+   "kind": "type",
+   "title": "Text at 15px, 1 time",
+   "plain": "This text size is not on the type scale, so headings and labels stop lining up as one family.",
+   "count": 1,
+   "files": 1,
+   "evidence": [
+    {
+     "file": "src\\lib\\components\\viewers\\PdfViewer.svelte",
+     "line": 886,
+     "value": "font-size: 15px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "up",
+     "label": "Round up to 16px",
+     "note": "Use var(--ds-font-size-16) or a text style.",
+     "after": {
+      "value": 16
+     },
+     "recommended": true
+    },
+    {
+     "id": "down",
+     "label": "Round down to 13px",
+     "note": "Use var(--ds-font-size-13) or a text style.",
+     "after": {
+      "value": 13
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-type-15px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 15,
+    "steps": [
+     13,
+     16,
+     20,
+     25,
+     31,
+     39
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-radius-2px",
+   "kind": "radius",
+   "title": "Corners of 2px, 10 times",
+   "plain": "This corner radius is not one of the system's, so similar things end up with different corners.",
+   "count": 10,
+   "files": 8,
+   "evidence": [
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 181,
+     "value": "border-radius: 2px"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 166,
+     "value": "border-radius: 2px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\PdfViewer.svelte",
+     "line": 895,
+     "value": "border-radius: 2px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\PdfViewer.svelte",
+     "line": 986,
+     "value": "border-radius: 2px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\PdfViewer.svelte",
+     "line": 991,
+     "value": "border-radius: 2px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\ImageViewer.svelte",
+     "line": 431,
+     "value": "border-radius: 2px"
+    },
+    {
+     "file": "src\\styles\\global.css",
+     "line": 199,
+     "value": "border-radius: 2px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Timeline.svelte",
+     "line": 121,
+     "value": "border-radius: 2px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\OcrLayer.svelte",
+     "line": 160,
+     "value": "border-radius: 2px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\TextViewer.svelte",
+     "line": 97,
+     "value": "border-radius: 2px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "up",
+     "label": "Round up to 6px",
+     "note": "Use var(--ds-radius-detail), the detail radius.",
+     "after": {
+      "value": 6
+     },
+     "recommended": true
+    },
+    {
+     "id": "add",
+     "label": "Add 2px to the system",
+     "note": "Record it as a token with a reason (engine.py set), then use the token: worth it only if 2px is a deliberate step.",
+     "after": {
+      "value": 2
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-radius-2px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 2,
+    "steps": [
+     6,
+     12,
+     16,
+     24
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-radius-3px",
+   "kind": "radius",
+   "title": "Corners of 3px, 5 times",
+   "plain": "This corner radius is not one of the system's, so similar things end up with different corners.",
+   "count": 5,
+   "files": 4,
+   "evidence": [
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 174,
+     "value": "border-radius: 3px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 175,
+     "value": "border-radius: 3px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\PdfViewer.svelte",
+     "line": 611,
+     "value": "border-radius: 3px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Toggle.svelte",
+     "line": 24,
+     "value": "border-radius: 3px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\IconSelect.svelte",
+     "line": 79,
+     "value": "border-radius: 3px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "up",
+     "label": "Round up to 6px",
+     "note": "Use var(--ds-radius-detail), the detail radius.",
+     "after": {
+      "value": 6
+     },
+     "recommended": true
+    },
+    {
+     "id": "add",
+     "label": "Add 3px to the system",
+     "note": "Record it as a token with a reason (engine.py set), then use the token: worth it only if 3px is a deliberate step.",
+     "after": {
+      "value": 3
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-radius-3px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 3,
+    "steps": [
+     6,
+     12,
+     16,
+     24
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-radius-4px",
+   "kind": "radius",
+   "title": "Corners of 4px, 22 times",
+   "plain": "This corner radius is not one of the system's, so similar things end up with different corners.",
+   "count": 22,
+   "files": 16,
+   "evidence": [
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 172,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 186,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\App.svelte",
+     "line": 540,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\PdfViewer.svelte",
+     "line": 886,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ToolsPanel.svelte",
+     "line": 233,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\ImageViewer.svelte",
+     "line": 433,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\styles\\global.css",
+     "line": 261,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\MkvTracksSection.svelte",
+     "line": 217,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\MkvTracksSection.svelte",
+     "line": 220,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PdfOrganizeSection.svelte",
+     "line": 198,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PdfOrganizeSection.svelte",
+     "line": 205,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\NumberField.svelte",
+     "line": 101,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Slider.svelte",
+     "line": 65,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\OrderList.svelte",
+     "line": 67,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\OrderList.svelte",
+     "line": 70,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Timeline.svelte",
+     "line": 122,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ColorField.svelte",
+     "line": 177,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ColorField.svelte",
+     "line": 186,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\FramePreview.svelte",
+     "line": 58,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\SelectField.svelte",
+     "line": 48,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ZoomRuler.svelte",
+     "line": 67,
+     "value": "border-radius: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ZoomRuler.svelte",
+     "line": 68,
+     "value": "border-radius: 4px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "up",
+     "label": "Round up to 6px",
+     "note": "Use var(--ds-radius-detail), the detail radius.",
+     "after": {
+      "value": 6
+     },
+     "recommended": true
+    },
+    {
+     "id": "add",
+     "label": "Add 4px to the system",
+     "note": "Record it as a token with a reason (engine.py set), then use the token: worth it only if 4px is a deliberate step.",
+     "after": {
+      "value": 4
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-radius-4px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 4,
+    "steps": [
+     6,
+     12,
+     16,
+     24
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-radius-5px",
+   "kind": "radius",
+   "title": "Corners of 5px, 8 times",
+   "plain": "This corner radius is not one of the system's, so similar things end up with different corners.",
+   "count": 8,
+   "files": 6,
+   "evidence": [
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 157,
+     "value": "border-radius: 5px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\PdfViewer.svelte",
+     "line": 984,
+     "value": "border-radius: 5px"
+    },
+    {
+     "file": "src\\lib\\components\\FileList.svelte",
+     "line": 241,
+     "value": "border-radius: 5px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PdfMarksSection.svelte",
+     "line": 354,
+     "value": "border-radius: 5px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PdfMarksSection.svelte",
+     "line": 356,
+     "value": "border-radius: 5px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PdfMarksSection.svelte",
+     "line": 360,
+     "value": "border-radius: 5px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ColorField.svelte",
+     "line": 188,
+     "value": "border-radius: 5px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\FindBar.svelte",
+     "line": 35,
+     "value": "border-radius: 5px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "up",
+     "label": "Round up to 6px",
+     "note": "Use var(--ds-radius-detail), the detail radius.",
+     "after": {
+      "value": 6
+     },
+     "recommended": true
+    },
+    {
+     "id": "add",
+     "label": "Add 5px to the system",
+     "note": "Record it as a token with a reason (engine.py set), then use the token: worth it only if 5px is a deliberate step.",
+     "after": {
+      "value": 5
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-radius-5px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 5,
+    "steps": [
+     6,
+     12,
+     16,
+     24
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-radius-8px",
+   "kind": "radius",
+   "title": "Corners of 8px, 3 times",
+   "plain": "This corner radius is not one of the system's, so similar things end up with different corners.",
+   "count": 3,
+   "files": 2,
+   "evidence": [
+    {
+     "file": "src\\lib\\components\\ui\\Bubble.svelte",
+     "line": 52,
+     "value": "border-radius: 8px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Splitter.svelte",
+     "line": 81,
+     "value": "border-radius: 8px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Splitter.svelte",
+     "line": 86,
+     "value": "border-radius: 8px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "down",
+     "label": "Round down to 6px",
+     "note": "Use var(--ds-radius-detail), the detail radius.",
+     "after": {
+      "value": 6
+     },
+     "recommended": true
+    },
+    {
+     "id": "up",
+     "label": "Round up to 12px",
+     "note": "Use var(--ds-radius-control), the control radius.",
+     "after": {
+      "value": 12
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-radius-8px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 8,
+    "steps": [
+     6,
+     12,
+     16,
+     24
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-radius-99px",
+   "kind": "radius",
+   "title": "Corners of 99px, 15 times",
+   "plain": "This corner radius is not one of the system's, so similar things end up with different corners.",
+   "count": 15,
+   "files": 9,
+   "evidence": [
+    {
+     "file": "src\\App.svelte",
+     "line": 541,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\NewsPanel.svelte",
+     "line": 83,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\ToolsPanel.svelte",
+     "line": 226,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\ToolsPanel.svelte",
+     "line": 227,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ExtensionGate.svelte",
+     "line": 80,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ExtensionGate.svelte",
+     "line": 81,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\MediaViewer.svelte",
+     "line": 812,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\MediaViewer.svelte",
+     "line": 813,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\OfficeViewer.svelte",
+     "line": 71,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\OfficeViewer.svelte",
+     "line": 72,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\QuickJob.svelte",
+     "line": 332,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\QuickJob.svelte",
+     "line": 333,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\ToolNeedDialog.svelte",
+     "line": 73,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\ToolNeedDialog.svelte",
+     "line": 74,
+     "value": "border-radius: 99px"
+    },
+    {
+     "file": "src\\lib\\components\\HubDialog.svelte",
+     "line": 100,
+     "value": "border-radius: 99px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "down",
+     "label": "Round down to 24px",
+     "note": "Use var(--ds-radius-overlay), the overlay radius.",
+     "after": {
+      "value": 24
+     },
+     "recommended": true
+    },
+    {
+     "id": "add",
+     "label": "Add 99px to the system",
+     "note": "Record it as a token with a reason (engine.py set), then use the token: worth it only if 99px is a deliberate step.",
+     "after": {
+      "value": 99
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-radius-99px"
+     ]
+    }
+   ],
+   "preview": {
+    "value": 99,
+    "steps": [
+     6,
+     12,
+     16,
+     24
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-radius-others",
+   "kind": "radius",
+   "title": "3 more corner values off the scale",
+   "plain": "Values used less often: 1, 7, 10.",
+   "count": 5,
+   "files": 5,
+   "evidence": [
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 180,
+     "value": "border-radius: 7px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ColorField.svelte",
+     "line": 185,
+     "value": "border-radius: 7px"
+    },
+    {
+     "file": "src\\styles\\global.css",
+     "line": 189,
+     "value": "border-radius: 1px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Toggle.svelte",
+     "line": 25,
+     "value": "border-radius: 1px"
+    },
+    {
+     "file": "src\\lib\\eyedropper.ts",
+     "line": 31,
+     "value": "border-radius: 10px"
+    }
+   ],
+   "more": 0,
+   "options": [
+    {
+     "id": "nearest",
+     "label": "Round each to the nearest step",
+     "note": "Each value moves to the closest token.",
+     "after": {
+      "nearest": true
+     },
+     "recommended": true
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-radius-others"
+     ]
+    }
+   ],
+   "preview": {
+    "values": [
+     1,
+     7,
+     10
+    ],
+    "steps": [
+     6,
+     12,
+     16,
+     24
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-shadow",
+   "kind": "shadow",
+   "title": "32 shadows written by hand",
+   "plain": "The system has 3 shadow steps; these 32 others make depth look uneven.",
+   "count": 44,
+   "files": 33,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\index-4DQ5-ec_.js",
+     "line": 3,
+     "value": "shadow"
+    },
+    {
+     "file": "dist-web\\assets\\pdf-UA8D4yGl.js",
+     "line": 12,
+     "value": "shadow"
+    },
+    {
+     "file": "dist-web\\assets\\pdf-UA8D4yGl.js",
+     "line": 12,
+     "value": "shadow"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "box-shadow:inset 0 0 0 1px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 155,
+     "value": "box-shadow: 0 0 0 3px color-mix(in srgb,               30%, transparent)"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 193,
+     "value": "drop-shadow(0 3px 2px rgba(0, 0, 0, 0.35)"
+    },
+    {
+     "file": "src\\lib\\components\\CommandPalette.svelte",
+     "line": 84,
+     "value": "box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5)"
+    },
+    {
+     "file": "src\\App.svelte",
+     "line": 530,
+     "value": "drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)"
+    },
+    {
+     "file": "src\\App.svelte",
+     "line": 537,
+     "value": "box-shadow: 0 0 0 3px color-mix(in srgb,          20%, transparent),            "
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 159,
+     "value": "box-shadow: 0 0 0 2px color-mix(in srgb,               25%, transparent)"
+    },
+    {
+     "file": "web\\src\\pages\\Tools.svelte",
+     "line": 68,
+     "value": "box-shadow: inset 0 0 0 1px"
+    },
+    {
+     "file": "web\\src\\components\\Trasno.svelte",
+     "line": 66,
+     "value": "shadow"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Segmented.svelte",
+     "line": 67,
+     "value": "box-shadow: 0 0 0 1px"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\PdfViewer.svelte",
+     "line": 637,
+     "value": "box-shadow:0 0 0 1px rgba(0,0,0,.4)"
+    },
+    {
+     "file": "web\\src\\components\\Seg.svelte",
+     "line": 46,
+     "value": "box-shadow: inset 0 0 0 1px"
+    },
+    {
+     "file": "src\\lib\\flight.ts",
+     "line": 18,
+     "value": "drop-shadow(0 3px 0 rgba(0,0,0,.35)"
+    },
+    {
+     "file": "src\\lib\\flight.ts",
+     "line": 72,
+     "value": "boxShadow: \"0 4px 14px rgba(0,0,0,.35)"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\ImageViewer.svelte",
+     "line": 422,
+     "value": "box-shadow: 0 0 0 9999px rgba(8, 8, 12, 0.62)"
+    },
+    {
+     "file": "src\\styles\\global.css",
+     "line": 163,
+     "value": "box-shadow: 0 0 0 3px color-mix(in srgb,               20%, transparent)"
+    },
+    {
+     "file": "src\\lib\\components\\FileList.svelte",
+     "line": 208,
+     "value": "box-shadow: inset 0 0 0 2px color-mix(in srgb,               45%, transparent)"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\MkvTracksSection.svelte",
+     "line": 207,
+     "value": "box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4)"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\PdfOrganizeSection.svelte",
+     "line": 202,
+     "value": "box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\NumberField.svelte",
+     "line": 105,
+     "value": "box-shadow: 0 0 0 3px color-mix(in srgb,               20%, transparent)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Slider.svelte",
+     "line": 74,
+     "value": "box-shadow: 0 0 0 3px color-mix(in srgb,               20%, transparent)"
+    },
+    {
+     "file": "src\\lib\\components\\viewers\\MediaViewer.svelte",
+     "line": 805,
+     "value": "text-shadow: 0 0 3px #000, 0 0 6px #000, 1px 1px 2px #000"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\OrderList.svelte",
+     "line": 64,
+     "value": "box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Tooltips.svelte",
+     "line": 63,
+     "value": "box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Timeline.svelte",
+     "line": 119,
+     "value": "box-shadow: 0 0 0 1px"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\Timeline.svelte",
+     "line": 121,
+     "value": "box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\InfoTip.svelte",
+     "line": 81,
+     "value": "box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4)"
+    },
+    {
+     "file": "src\\lib\\components\\ShortcutsPanel.svelte",
+     "line": 119,
+     "value": "box-shadow: 0 0 0 2px color-mix(in srgb,               30%, transparent)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ColorField.svelte",
+     "line": 177,
+     "value": "box-shadow: inset 0 0 0 1px rgba(128, 128, 128, 0.55)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ColorField.svelte",
+     "line": 182,
+     "value": "box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ColorField.svelte",
+     "line": 184,
+     "value": "box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ColorField.svelte",
+     "line": 186,
+     "value": "box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\OcrLayer.svelte",
+     "line": 160,
+     "value": "box-shadow: 0 0 0 1px rgba(255, 196, 0, 0.35)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\OcrLayer.svelte",
+     "line": 161,
+     "value": "box-shadow: 0 0 0 1px rgba(255, 196, 0, 0.75)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\OcrLayer.svelte",
+     "line": 162,
+     "value": "box-shadow: 0 0 0 1px rgba(255, 150, 0, 0.9)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\FindBar.svelte",
+     "line": 34,
+     "value": "box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35)"
+    },
+    {
+     "file": "src\\lib\\components\\ui\\ZoomRuler.svelte",
+     "line": 74,
+     "value": "box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5)"
+    }
+   ],
+   "more": 4,
+   "options": [
+    {
+     "id": "tokens",
+     "label": "Use the system's shadow steps",
+     "note": "Each becomes the raised, floating or overlay step.",
+     "after": {
+      "steps": [
+       {
+        "path": "elevation.raised",
+        "value": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107)"
+       },
+       {
+        "path": "elevation.floating",
+        "value": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107), 0px 4px 12px 0px rgb(39 35 33 / 0.091)"
+       },
+       {
+        "path": "elevation.overlay",
+        "value": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107), 0px 12px 32px 0px rgb(39 35 33 / 0.091)"
+       }
+      ]
+     },
+     "recommended": true
+    },
+    {
+     "id": "borders",
+     "label": "Borders instead of shadows",
+     "note": "Each becomes a 1px border in the border colour; flat and quiet, like the borders depth model.",
+     "after": {
+      "steps": [
+       {
+        "path": "border",
+        "value": "0 0 0 1px rgba(128,128,128,.45)"
+       }
+      ]
+     },
+     "recommended": false
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-shadow"
+     ]
+    }
+   ],
+   "preview": {
+    "values": [
+     {
+      "value": "shadow",
+      "count": 4
+     },
+     {
+      "value": "box-shadow: 0 0 0 3px color-mix(in srgb,               20%, transparent)",
+      "count": 3
+     },
+     {
+      "value": "drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)",
+      "count": 2
+     },
+     {
+      "value": "box-shadow: inset 0 0 0 1px",
+      "count": 2
+     },
+     {
+      "value": "box-shadow: 0 0 0 1px",
+      "count": 2
+     },
+     {
+      "value": "drop-shadow(0 3px 0 rgba(0,0,0,.35)",
+      "count": 2
+     }
+    ],
+    "steps": [
+     {
+      "path": "elevation.raised",
+      "value": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107)"
+     },
+     {
+      "path": "elevation.floating",
+      "value": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107), 0px 4px 12px 0px rgb(39 35 33 / 0.091)"
+     },
+     {
+      "path": "elevation.overlay",
+      "value": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107), 0px 12px 32px 0px rgb(39 35 33 / 0.091)"
+     }
+    ]
+   },
+   "why": ""
+  },
+  {
+   "id": "A-bypass",
+   "kind": "bypass",
+   "title": "103 values on the scale, written by hand",
+   "plain": "These values match a token already, but they are typed in, so a change to the system never reaches them.",
+   "count": 103,
+   "files": 46,
+   "evidence": [
+    {
+     "file": "dist-web\\assets\\cutout-CncU28Dy.js",
+     "line": 1,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\imgtools-BCQC23-t.js",
+     "line": 1,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\index-4DQ5-ec_.js",
+     "line": 3,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\index-4DQ5-ec_.js",
+     "line": 3,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "font-size: 16px"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#5fcf6e"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#5fcf6e"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\index-wwQEC3OT.css",
+     "line": 1,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\pdf-UA8D4yGl.js",
+     "line": 2,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\pdf-UA8D4yGl.js",
+     "line": 2,
+     "value": "#ffffff"
+    },
+    {
+     "file": "dist-web\\assets\\pdfimg-CrInzaSO.js",
+     "line": 1,
+     "value": "#ffffff"
+    },
+    {
+     "file": "src\\lib\\annot.ts",
+     "line": 439,
+     "value": "#ffffff"
+    },
+    {
+     "file": "src\\lib\\components\\CommandPalette.svelte",
+     "line": 88,
+     "value": "border-radius: 6px"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 160,
+     "value": "border-radius: 6px"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 161,
+     "value": "#ffffff"
+    },
+    {
+     "file": "src\\lib\\components\\GeneralPanel.svelte",
+     "line": 170,
+     "value": "#5ecf6f"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 153,
+     "value": "gap: 8px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 156,
+     "value": "gap: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 156,
+     "value": "padding: 6px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 157,
+     "value": "padding: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 157,
+     "value": "gap: 6px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 163,
+     "value": "padding: 8px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 164,
+     "value": "border-radius: 6px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 170,
+     "value": "gap: 6px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 170,
+     "value": "padding: 6px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 172,
+     "value": "padding: 2px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 174,
+     "value": "margin: 4px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 178,
+     "value": "border-radius: 6px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 180,
+     "value": "gap: 8px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 185,
+     "value": "gap: 8px"
+    },
+    {
+     "file": "src\\lib\\components\\Tutorial.svelte",
+     "line": 185,
+     "value": "padding: 8px"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\ConvertSection.svelte",
+     "line": 64,
+     "value": "#ffffff"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\CutoutSection.svelte",
+     "line": 26,
+     "value": "#ffffff"
+    },
+    {
+     "file": "src\\lib\\components\\tools\\ImageEditSection.svelte",
+     "line": 34,
+     "value": "#ffffff"
+    }
+   ],
+   "more": 63,
+   "options": [
+    {
+     "id": "tokens",
+     "label": "Write the token instead",
+     "note": "The page looks the same; the value now follows the system.",
+     "after": {
+      "same": true
+     },
+     "recommended": true
+    },
+    {
+     "id": "keep",
+     "label": "Keep as it is, on purpose",
+     "note": "Nothing changes. Say why below: it goes in the ledger as a waiver, with your name.",
+     "after": null,
+     "recommended": false,
+     "od": [
+      "OD:waive A-bypass"
+     ]
+    }
+   ],
+   "preview": {
+    "same": true
+   },
+   "why": ""
+  }
+ ],
+ "exempt": [],
+ "kept": [],
+ "keptCount": 0,
+ "ledger": [],
+ "vars": {
+  "--ds-color-white": "#ffffff",
+  "--ds-color-black": "#000000",
+  "--ds-color-brand-seed": "#5fcf6e",
+  "--ds-color-neutral-light-1": "#fefcfb",
+  "--ds-color-neutral-light-2": "#f7f3f1",
+  "--ds-color-neutral-light-3": "#efebe8",
+  "--ds-color-neutral-light-4": "#e7e2de",
+  "--ds-color-neutral-light-5": "#dfd9d5",
+  "--ds-color-neutral-light-6": "#d8d1cc",
+  "--ds-color-neutral-light-7": "#d0c8c2",
+  "--ds-color-neutral-light-8": "#8d857f",
+  "--ds-color-neutral-light-9": "#7d746d",
+  "--ds-color-neutral-light-10": "#6b635d",
+  "--ds-color-neutral-light-11": "#5e5651",
+  "--ds-color-neutral-light-12": "#272321",
+  "--ds-color-neutral-dark-1": "#161514",
+  "--ds-color-neutral-dark-2": "#1f1d1b",
+  "--ds-color-neutral-dark-3": "#272522",
+  "--ds-color-neutral-dark-4": "#312d2a",
+  "--ds-color-neutral-dark-5": "#3a3532",
+  "--ds-color-neutral-dark-6": "#443e3a",
+  "--ds-color-neutral-dark-7": "#4e4742",
+  "--ds-color-neutral-dark-8": "#877f79",
+  "--ds-color-neutral-dark-9": "#8a817b",
+  "--ds-color-neutral-dark-10": "#9d948d",
+  "--ds-color-neutral-dark-11": "#b2aaa4",
+  "--ds-color-neutral-dark-12": "#ede8e4",
+  "--ds-color-accent-light-1": "#fafefa",
+  "--ds-color-accent-light-2": "#eef6ee",
+  "--ds-color-accent-light-3": "#dff0e0",
+  "--ds-color-accent-light-4": "#cfead0",
+  "--ds-color-accent-light-5": "#c0e3c1",
+  "--ds-color-accent-light-6": "#b0ddb2",
+  "--ds-color-accent-light-7": "#9fd7a3",
+  "--ds-color-accent-light-8": "#4d9655",
+  "--ds-color-accent-light-9": "#5fcf6e",
+  "--ds-color-accent-light-10": "#5bbe68",
+  "--ds-color-accent-light-11": "#16742b",
+  "--ds-color-accent-light-12": "#153b1a",
+  "--ds-color-accent-light-solid-pressed": "#50b35e",
+  "--ds-color-accent-dark-1": "#141a15",
+  "--ds-color-accent-dark-2": "#19221a",
+  "--ds-color-accent-dark-3": "#1a2b1b",
+  "--ds-color-accent-dark-4": "#1b351d",
+  "--ds-color-accent-dark-5": "#1a3f1f",
+  "--ds-color-accent-dark-6": "#194920",
+  "--ds-color-accent-dark-7": "#0f541e",
+  "--ds-color-accent-dark-8": "#3a9347",
+  "--ds-color-accent-dark-9": "#5fcf6e",
+  "--ds-color-accent-dark-10": "#76df82",
+  "--ds-color-accent-dark-11": "#87e791",
+  "--ds-color-accent-dark-12": "#bedec0",
+  "--ds-color-accent-dark-solid-pressed": "#82eb8e",
+  "--ds-color-success-light-1": "#f9fefa",
+  "--ds-color-success-light-2": "#ecf6ed",
+  "--ds-color-success-light-3": "#daf1de",
+  "--ds-color-success-light-4": "#c8ecce",
+  "--ds-color-success-light-5": "#b5e6bd",
+  "--ds-color-success-light-6": "#a1e1ad",
+  "--ds-color-success-light-7": "#8cdb9d",
+  "--ds-color-success-light-8": "#21994c",
+  "--ds-color-success-light-9": "#00883d",
+  "--ds-color-success-light-10": "#007b36",
+  "--ds-color-success-light-11": "#00652c",
+  "--ds-color-success-light-12": "#003d17",
+  "--ds-color-success-light-solid-pressed": "#007132",
+  "--ds-color-success-dark-1": "#141a15",
+  "--ds-color-success-dark-2": "#18221a",
+  "--ds-color-success-dark-3": "#182c1c",
+  "--ds-color-success-dark-4": "#17351f",
+  "--ds-color-success-dark-5": "#153f21",
+  "--ds-color-success-dark-6": "#0f4a23",
+  "--ds-color-success-dark-7": "#005423",
+  "--ds-color-success-dark-8": "#27944b",
+  "--ds-color-success-dark-9": "#009845",
+  "--ds-color-success-dark-10": "#1da650",
+  "--ds-color-success-dark-11": "#52c271",
+  "--ds-color-success-dark-12": "#bbdfc1",
+  "--ds-color-success-dark-solid-pressed": "#2eb05a",
+  "--ds-color-warning-light-1": "#fffcf8",
+  "--ds-color-warning-light-2": "#f8f4ec",
+  "--ds-color-warning-light-3": "#f5eada",
+  "--ds-color-warning-light-4": "#f1e1c6",
+  "--ds-color-warning-light-5": "#eed8b3",
+  "--ds-color-warning-light-6": "#ebce9f",
+  "--ds-color-warning-light-7": "#e7c58b",
+  "--ds-color-warning-light-8": "#aa7f2d",
+  "--ds-color-warning-light-9": "#efb23a",
+  "--ds-color-warning-light-10": "#dca332",
+  "--ds-color-warning-light-11": "#845d00",
+  "--ds-color-warning-light-12": "#463002",
+  "--ds-color-warning-light-solid-pressed": "#d19923",
+  "--ds-color-warning-dark-1": "#1b1814",
+  "--ds-color-warning-dark-2": "#241f18",
+  "--ds-color-warning-dark-3": "#2f2618",
+  "--ds-color-warning-dark-4": "#3a2d18",
+  "--ds-color-warning-dark-5": "#463516",
+  "--ds-color-warning-dark-6": "#523c14",
+  "--ds-color-warning-dark-7": "#5f4307",
+  "--ds-color-warning-dark-8": "#a37b30",
+  "--ds-color-warning-dark-9": "#e6b55e",
+  "--ds-color-warning-dark-10": "#f7c56e",
+  "--ds-color-warning-dark-11": "#fecf80",
+  "--ds-color-warning-dark-12": "#ebdbc1",
+  "--ds-color-warning-dark-solid-pressed": "#ffd388",
+  "--ds-color-danger-light-1": "#fffcfc",
+  "--ds-color-danger-light-2": "#fff1ef",
+  "--ds-color-danger-light-3": "#ffe6e3",
+  "--ds-color-danger-light-4": "#ffdbd6",
+  "--ds-color-danger-light-5": "#ffcfc9",
+  "--ds-color-danger-light-6": "#ffc4bc",
+  "--ds-color-danger-light-7": "#ffb8af",
+  "--ds-color-danger-light-8": "#d3655b",
+  "--ds-color-danger-light-9": "#d53e38",
+  "--ds-color-danger-light-10": "#c33530",
+  "--ds-color-danger-light-11": "#a42825",
+  "--ds-color-danger-light-12": "#5a211d",
+  "--ds-color-danger-light-solid-pressed": "#b92a27",
+  "--ds-color-danger-dark-1": "#1e1716",
+  "--ds-color-danger-dark-2": "#291d1c",
+  "--ds-color-danger-dark-3": "#38221f",
+  "--ds-color-danger-dark-4": "#482723",
+  "--ds-color-danger-dark-5": "#572b27",
+  "--ds-color-danger-dark-6": "#672f2a",
+  "--ds-color-danger-dark-7": "#7a312b",
+  "--ds-color-danger-dark-8": "#cb6359",
+  "--ds-color-danger-dark-9": "#d75f55",
+  "--ds-color-danger-dark-10": "#e66c62",
+  "--ds-color-danger-dark-11": "#ff8b7f",
+  "--ds-color-danger-dark-12": "#f8ccc6",
+  "--ds-color-danger-dark-solid-pressed": "#f2766b",
+  "--ds-color-info-light-1": "#fbfdff",
+  "--ds-color-info-light-2": "#eaf6ff",
+  "--ds-color-info-light-3": "#d9efff",
+  "--ds-color-info-light-4": "#c7e7ff",
+  "--ds-color-info-light-5": "#b5e0ff",
+  "--ds-color-info-light-6": "#a3d8ff",
+  "--ds-color-info-light-7": "#8fd1ff",
+  "--ds-color-info-light-8": "#008ed1",
+  "--ds-color-info-light-9": "#007cb7",
+  "--ds-color-info-light-10": "#0070a6",
+  "--ds-color-info-light-11": "#005c8a",
+  "--ds-color-info-light-12": "#003755",
+  "--ds-color-info-light-solid-pressed": "#006799",
+  "--ds-color-info-dark-1": "#11191f",
+  "--ds-color-info-dark-2": "#14212b",
+  "--ds-color-info-dark-3": "#0c2a3d",
+  "--ds-color-info-dark-4": "#00334e",
+  "--ds-color-info-dark-5": "#003b5a",
+  "--ds-color-info-dark-6": "#004467",
+  "--ds-color-info-dark-7": "#004d73",
+  "--ds-color-info-dark-8": "#0089c9",
+  "--ds-color-info-dark-9": "#008bcd",
+  "--ds-color-info-dark-10": "#0099e0",
+  "--ds-color-info-dark-11": "#3ab6ff",
+  "--ds-color-info-dark-12": "#abdcff",
+  "--ds-color-info-dark-solid-pressed": "#00a3ee",
+  "--ds-color-neutral-alpha-light-2": "#6e2500",
+  "--ds-color-neutral-alpha-light-3": "#4f2302",
+  "--ds-color-neutral-alpha-light-4": "#462001",
+  "--ds-color-neutral-alpha-light-5": "#3d1900",
+  "--ds-color-neutral-alpha-light-6": "#3c1900",
+  "--ds-color-neutral-alpha-light-7": "#3b1a01",
+  "--ds-color-neutral-alpha-light-8": "#1c0c00",
+  "--ds-color-neutral-alpha-light-9": "#1c0c00",
+  "--ds-color-neutral-alpha-light-10": "#160a00",
+  "--ds-color-neutral-alpha-light-11": "#130800",
+  "--ds-color-neutral-alpha-light-12": "#070200",
+  "--ds-color-neutral-alpha-dark-2": "#fde2c7",
+  "--ds-color-neutral-alpha-dark-3": "#fff0d4",
+  "--ds-color-neutral-alpha-dark-4": "#ffe4d2",
+  "--ds-color-neutral-alpha-dark-5": "#fee3d6",
+  "--ds-color-neutral-alpha-dark-6": "#fee4d4",
+  "--ds-color-neutral-alpha-dark-7": "#fee4d3",
+  "--ds-color-neutral-alpha-dark-8": "#fff0e4",
+  "--ds-color-neutral-alpha-dark-9": "#ffeee3",
+  "--ds-color-neutral-alpha-dark-10": "#fff0e5",
+  "--ds-color-neutral-alpha-dark-11": "#fff3eb",
+  "--ds-color-neutral-alpha-dark-12": "#fffaf5",
+  "--ds-font-size-13": "13px",
+  "--ds-font-size-16": "16px",
+  "--ds-font-size-20": "20px",
+  "--ds-font-size-25": "25px",
+  "--ds-font-size-31": "31px",
+  "--ds-font-size-39": "39px",
+  "--ds-font-size-input": "16px",
+  "--ds-font-line-height-20": "20px",
+  "--ds-font-line-height-24": "24px",
+  "--ds-font-line-height-28": "28px",
+  "--ds-font-line-height-36": "36px",
+  "--ds-font-line-height-40": "40px",
+  "--ds-font-line-height-48": "48px",
+  "--ds-space-0": "0px",
+  "--ds-space-2": "2px",
+  "--ds-space-4": "4px",
+  "--ds-space-6": "6px",
+  "--ds-space-8": "8px",
+  "--ds-space-12": "12px",
+  "--ds-space-16": "16px",
+  "--ds-space-20": "20px",
+  "--ds-space-24": "24px",
+  "--ds-space-32": "32px",
+  "--ds-space-40": "40px",
+  "--ds-space-48": "48px",
+  "--ds-space-64": "64px",
+  "--ds-space-80": "80px",
+  "--ds-space-96": "96px",
+  "--ds-radius-0": "0px",
+  "--ds-radius-2": "2px",
+  "--ds-radius-4": "4px",
+  "--ds-radius-6": "6px",
+  "--ds-radius-8": "8px",
+  "--ds-radius-12": "12px",
+  "--ds-radius-16": "16px",
+  "--ds-radius-20": "20px",
+  "--ds-radius-24": "24px",
+  "--ds-radius-28": "28px",
+  "--ds-radius-32": "32px",
+  "--ds-radius-full": "9999px",
+  "--ds-border-width-1": "1px",
+  "--ds-border-width-2": "2px",
+  "--ds-border-width-4": "4px",
+  "--ds-space-target-gap": "12px",
+  "--ds-size-icon-sm": "16px",
+  "--ds-size-icon-md": "20px",
+  "--ds-size-icon-lg": "24px",
+  "--ds-size-icon-default": "20px",
+  "--ds-size-target-pointer": "24px",
+  "--ds-size-target-touch": "44px",
+  "--ds-size-target-min": "44px",
+  "--ds-icon-stroke-sm": "1.5px",
+  "--ds-icon-stroke-md": "2px",
+  "--ds-icon-stroke-lg": "2.5px",
+  "--ds-layout-container-max": "1280px",
+  "--ds-layout-gutter-compact": "16px",
+  "--ds-layout-gutter-expanded": "24px",
+  "--ds-layout-margin-compact": "16px",
+  "--ds-layout-margin-expanded": "24px",
+  "--ds-layout-measure-prose": "572px",
+  "--ds-layout-measure-lead": "458px",
+  "--ds-radius-detail": "6px",
+  "--ds-radius-control": "12px",
+  "--ds-radius-control-sm": "8px",
+  "--ds-radius-container": "16px",
+  "--ds-radius-overlay": "24px",
+  "--ds-radius-person": "9999px",
+  "--ds-radius-nested": "2px",
+  "--ds-radius-focus": "14px",
+  "--ds-border-width-default": "1px",
+  "--ds-border-width-selected": "2px",
+  "--ds-border-width-emphasis": "4px",
+  "--ds-focus-ring-width": "2px",
+  "--ds-focus-ring-offset": "2px",
+  "--ds-component-toast-gap": "14px",
+  "--ds-component-toast-offset-desktop": "32px",
+  "--ds-component-toast-offset-mobile": "16px",
+  "--ds-motion-blur-crossfade": "2px",
+  "--ds-motion-gesture-direction-threshold": "10px",
+  "--ds-color-surface-sunken": "#f7f3f1",
+  "--ds-color-surface-base": "#fefcfb",
+  "--ds-color-surface-raised": "#ffffff",
+  "--ds-color-surface-overlay": "#ffffff",
+  "--ds-color-surface-nav": "#fefcfb",
+  "--ds-color-text-primary": "#272321",
+  "--ds-color-text-secondary": "#5e5651",
+  "--ds-color-text-tertiary": "#5e5651",
+  "--ds-color-text-disabled": "#8d857f",
+  "--ds-color-text-inverse": "#ffffff",
+  "--ds-color-text-link": "#16742b",
+  "--ds-color-text-accent": "#16742b",
+  "--ds-color-text-on-accent": "#272321",
+  "--ds-color-text-on-action": "#272321",
+  "--ds-color-text-on-brand": "#272321",
+  "--ds-color-text-success": "#00652c",
+  "--ds-color-text-on-success": "#ffffff",
+  "--ds-color-text-warning": "#845d00",
+  "--ds-color-text-on-warning": "#272321",
+  "--ds-color-text-danger": "#a42825",
+  "--ds-color-text-on-danger": "#ffffff",
+  "--ds-color-text-info": "#005c8a",
+  "--ds-color-text-on-info": "#ffffff",
+  "--ds-color-bg-neutral-subtle": "#efebe8",
+  "--ds-color-bg-neutral-subtle-hover": "#e7e2de",
+  "--ds-color-bg-neutral-subtle-pressed": "#dfd9d5",
+  "--ds-color-bg-accent-subtle": "#dff0e0",
+  "--ds-color-bg-accent-subtle-hover": "#cfead0",
+  "--ds-color-bg-accent-subtle-pressed": "#c0e3c1",
+  "--ds-color-bg-accent-bold": "#5fcf6e",
+  "--ds-color-bg-accent-bold-hover": "#5bbe68",
+  "--ds-color-bg-accent-bold-pressed": "#50b35e",
+  "--ds-color-bg-disabled": "#efebe8",
+  "--ds-color-bg-inverse": "#272321",
+  "--ds-color-bg-field": "#ffffff",
+  "--ds-color-bg-action-primary": "#5fcf6e",
+  "--ds-color-bg-action-primary-hover": "#5bbe68",
+  "--ds-color-bg-action-primary-pressed": "#50b35e",
+  "--ds-color-bg-brand": "#5fcf6e",
+  "--ds-color-bg-success-subtle": "#daf1de",
+  "--ds-color-bg-success-bold": "#00883d",
+  "--ds-color-bg-success-bold-hover": "#007b36",
+  "--ds-color-bg-success-bold-pressed": "#007132",
+  "--ds-color-bg-warning-subtle": "#f5eada",
+  "--ds-color-bg-warning-bold": "#efb23a",
+  "--ds-color-bg-warning-bold-hover": "#dca332",
+  "--ds-color-bg-warning-bold-pressed": "#d19923",
+  "--ds-color-bg-danger-subtle": "#ffe6e3",
+  "--ds-color-bg-danger-bold": "#d53e38",
+  "--ds-color-bg-danger-bold-hover": "#c33530",
+  "--ds-color-bg-danger-bold-pressed": "#b92a27",
+  "--ds-color-bg-info-subtle": "#d9efff",
+  "--ds-color-bg-info-bold": "#007cb7",
+  "--ds-color-bg-info-bold-hover": "#0070a6",
+  "--ds-color-bg-info-bold-pressed": "#006799",
+  "--ds-color-border-subtle": "#dfd9d5",
+  "--ds-color-border-default": "#d8d1cc",
+  "--ds-color-border-strong": "#8d857f",
+  "--ds-color-border-input": "#8d857f",
+  "--ds-color-border-focus": "#16742b",
+  "--ds-color-border-accent": "#4d9655",
+  "--ds-color-border-separator": "#efebe8",
+  "--ds-color-border-success": "#21994c",
+  "--ds-color-border-warning": "#aa7f2d",
+  "--ds-color-border-danger": "#d3655b",
+  "--ds-color-border-info": "#008ed1",
+  "--ds-color-icon-default": "#5e5651",
+  "--ds-color-icon-subtle": "#6b635d",
+  "--ds-color-icon-accent": "#16742b",
+  "--ds-color-icon-on-accent": "#272321",
+  "--ds-color-overlay-scrim": "#272321",
+  "--ds-color-shadow-key": "#272321",
+  "--ds-color-shadow-ambient": "#272321",
+  "--ds-color-shadow-ring": "#272321",
+  "--ds-space-inset-xs": "4px",
+  "--ds-space-inset-sm": "8px",
+  "--ds-space-inset-md": "12px",
+  "--ds-space-inset-lg": "16px",
+  "--ds-space-inset-xl": "24px",
+  "--ds-space-stack-xs": "4px",
+  "--ds-space-stack-sm": "8px",
+  "--ds-space-stack-md": "12px",
+  "--ds-space-stack-lg": "16px",
+  "--ds-space-stack-xl": "24px",
+  "--ds-space-inline-xs": "4px",
+  "--ds-space-inline-sm": "8px",
+  "--ds-space-inline-md": "12px",
+  "--ds-space-section-sm": "32px",
+  "--ds-space-section-md": "40px",
+  "--ds-space-section-lg": "64px",
+  "--ds-size-control-sm": "32px",
+  "--ds-size-control-md": "40px",
+  "--ds-size-control-lg": "48px",
+  "--ds-size-row-sm": "44px",
+  "--ds-size-row-md": "48px",
+  "--ds-size-row-lg": "56px",
+  "--ds-size-row-two-line": "72px"
+ },
+ "ledgerOpen": [],
+ "look": {
+  "shared": {
+   "font": "inherit, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+   "size": "16px",
+   "radius-control": "12px",
+   "radius-container": "16px",
+   "control-h": "40px",
+   "pad-x": "16px",
+   "gap": "12px",
+   "ratio": "1.25",
+   "heading-weight": "650"
+  },
+  "light": {
+   "bg": "#fefcfb",
+   "surface": "#ffffff",
+   "surface-2": "#efebe8",
+   "fg": "#272321",
+   "fg-muted": "#5e5651",
+   "border": "#dfd9d5",
+   "border-strong": "#8d857f",
+   "accent": "#5fcf6e",
+   "accent-hover": "#5bbe68",
+   "accent-pressed": "#50b35e",
+   "on-accent": "#272321",
+   "accent-subtle": "#dff0e0",
+   "focus": "#16742b",
+   "danger": "#d53e38",
+   "on-danger": "#ffffff",
+   "danger-subtle": "#ffe6e3",
+   "success-subtle": "#daf1de",
+   "on-success-subtle": "#00652c",
+   "warning-subtle": "#f5eada",
+   "on-warning-subtle": "#845d00",
+   "shadow-1": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107)",
+   "shadow-2": "0px 0px 0px 1px rgb(39 35 33 / 0.1), 0px 1px 2px 0px rgb(39 35 33 / 0.107), 0px 4px 12px 0px rgb(39 35 33 / 0.091)"
+  },
+  "dark": {
+   "bg": "#1f1d1b",
+   "surface": "#272522",
+   "surface-2": "#3a3532",
+   "fg": "#ede8e4",
+   "fg-muted": "#b2aaa4",
+   "border": "#3a3532",
+   "border-strong": "#877f79",
+   "accent": "#5fcf6e",
+   "accent-hover": "#76df82",
+   "accent-pressed": "#82eb8e",
+   "on-accent": "#161514",
+   "accent-subtle": "#1a2b1b",
+   "focus": "#87e791",
+   "danger": "#d75f55",
+   "on-danger": "#161514",
+   "danger-subtle": "#38221f",
+   "success-subtle": "#182c1c",
+   "on-success-subtle": "#52c271",
+   "warning-subtle": "#2f2618",
+   "on-warning-subtle": "#fecf80",
+   "shadow-1": "0px 0px 0px 1px rgb(237 232 228 / 0.12), 0px 1px 2px 0px rgb(0 0 0 / 0.214)",
+   "shadow-2": "0px 0px 0px 1px rgb(237 232 228 / 0.12), 0px 1px 2px 0px rgb(0 0 0 / 0.214), 0px 4px 12px 0px rgb(0 0 0 / 0.182)"
+  }
+ },
+ "prefix": "ds"
+}
+</script>
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function loadData(){let d={};try{d=JSON.parse($('#od-data').textContent)}catch(e){}
+ if(window.OD_DATA)d=window.OD_DATA;const m=location.hash.match(/[#&]data=([^&]+)/);
+ if(m){try{d=JSON.parse(decodeURIComponent(m[1]))}catch(e){console.warn('OpenDesigner: #data is not valid JSON')}}return d}
+const D=loadData();
+const PICK={};   // issue id -> option index
+const WHY={};    // issue id -> reason for keeping it
+const n=(x,w,m)=>x+' '+(x===1?w:(m||w+'s'));
+function mode(){const t=document.documentElement.dataset.theme;return t==='light'||t==='dark'?t:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}
+function look(){const L=D.look||{};const v=Object.assign({},L.light||{},(mode()==='dark'?L.dark:{})||{});return {v,s:L.shared||{}}}
+function paneStyle(el){const {v,s}=look();const set=(k,x)=>{if(x)el.style.setProperty(k,x)};
+ for(const k in (D.vars||{}))if(/^--[\w-]+$/.test(k))el.style.setProperty(k,D.vars[k]); // code written with var(--ds-x) draws as in the app
+ set('--s-bg',v.bg);set('--s-fg',v.fg);set('--s-surface',v.surface||v.bg);set('--s-accent',v.accent);set('--s-on-accent',v['on-accent'])}
+function px(x){return (typeof x==='number'?x:parseFloat(x))+'px'}
+function nearest(v,steps){return steps.reduce((a,b)=>Math.abs(b-v)<Math.abs(a-v)?b:a)}
+function cssval(raw){const m=String(raw||'').match(/^[\w-]+\s*:\s*(.*)$/);return (m?m[1]:String(raw||'')).replace(/;$/,'')}
+/* ---------- previews: built with the project's own values ---------- */
+function draw(kind,p,after,el){el.innerHTML='';
+ const add=h=>{const w=document.createElement('div');w.innerHTML=h;el.appendChild(w);return w};
+ if(after===undefined){add('<p class="empty">Pick an option to see it here.</p>');return}
+ if(after===null){add('<p class="empty">Nothing changes: this stays as it is, and the reason goes in the ledger.</p>');return}
+ if(kind==='color'){const vals=p.values||[];const w=add('<div class="blk"></div>').firstChild;
+  vals.forEach(x=>{const c=after&&after.color?after.color:x.value;const s=document.createElement('span');s.style.background=c;s.style.color=ink(c);s.textContent=(after&&after.color?c:x.value)+' ×'+x.count;w.appendChild(s)});
+  const card=add('<div class="specbox" style="padding:12px;gap:6px;margin-top:10px;border-radius:8px"><div></div><div style="width:60%"></div></div>').firstChild;
+  card.style.background=after&&after.color?after.color:(vals[0]||{}).value;return}
+ if(kind==='space'){const vals=p.values?p.values:[p.value];const w=add('<div style="display:grid;gap:10px"></div>').firstChild;
+  vals.slice(0,6).forEach(v0=>{const v=after&&after.value!=null?after.value:(after&&after.nearest?nearest(v0,p.steps):v0);
+   const f=document.createElement('div');f.innerHTML='<div class="kv mono">'+esc(v0)+'px'+(v!==v0?' → '+esc(v)+'px':'')+'</div>';
+   const b=document.createElement('div');b.className='specbox';b.style.padding=px(v);b.style.gap=px(v);b.innerHTML='<div></div><div style="width:70%"></div><div style="width:40%"></div>';f.appendChild(b);w.appendChild(f)});return}
+ if(kind==='type'){const vals=p.values?p.values:[p.value];const w=add('<div style="display:grid;gap:8px"></div>').firstChild;
+  vals.slice(0,6).forEach(v0=>{const v=after&&after.value!=null?after.value:(after&&after.nearest?nearest(v0,p.steps):v0);
+   const f=document.createElement('div');f.innerHTML='<div class="kv mono">'+esc(v0)+'px'+(v!==v0?' → '+esc(v)+'px':'')+'</div>';
+   const t=document.createElement('div');t.style.fontSize=px(v);t.style.lineHeight='1.3';t.textContent=(D.name||'Your product')+': settings saved';f.appendChild(t);w.appendChild(f)});
+  if(p.steps)add('<p class="kv" style="margin:8px 0 0">The scale: '+p.steps.map(esc).join(', ')+'</p>');return}
+ if(kind==='radius'){const vals=p.values?p.values:[p.value];const w=add('<div class="cmps"></div>').firstChild;
+  vals.slice(0,6).forEach(v0=>{const v=after&&after.value!=null?after.value:(after&&after.nearest?nearest(v0,p.steps):v0);
+   const f=document.createElement('figure');const b=document.createElement('span');b.className='cmp';b.style.cssText='height:40px;padding:0 16px';b.style.borderRadius=px(v);b.textContent='Save';
+   const c=document.createElement('div');c.className='specbox';c.style.cssText='width:120px;height:56px;padding:10px;gap:6px';c.style.borderRadius=px(v);c.innerHTML='<div></div>';
+   const cap=document.createElement('figcaption');cap.textContent=v0+'px'+(v!==v0?' → '+v+'px':'');f.append(b,c,cap);w.appendChild(f)});return}
+ if(kind==='shadow'){const w=add('<div class="cmps"></div>').firstChild;
+  const list=after&&after.steps?after.steps.map(s=>({value:s.value,label:s.path})):(p.values||[]).map(x=>({value:cssval(x.value),label:x.value+' ×'+x.count}));
+  list.forEach(x=>{const f=document.createElement('figure');const b=document.createElement('div');b.className='shadowbox';b.style.boxShadow=x.value;const cap=document.createElement('figcaption');cap.textContent=x.label;f.append(b,cap);w.appendChild(f)});return}
+ if(kind==='component'){const w=add('<div class="cmps"></div>').firstChild;
+  (p.variants||[]).forEach(x=>{const props=after&&after.props?after.props:x.props;const f=document.createElement('figure');const b=document.createElement('span');b.className='cmp';
+   b.style.padding='8px 14px';for(const k of ['border-radius','padding','font-size','height','min-height','background','font-weight']){if(props[k])b.style.setProperty(k,props[k])}
+   if(!after&&props.background){const h=(props.background.match(/#[0-9a-f]{6}\b|#[0-9a-f]{3}\b/i)||[])[0];b.style.color=h?(lum(h)>.4?'#111':'#fff'):'var(--s-fg)'}
+   b.textContent=p.kind||'item';const cap=document.createElement('figcaption');cap.textContent=x.selector+' ×'+x.count;f.append(b,cap);w.appendChild(f);
+   const bg=getComputedStyle(b).backgroundColor.match(/[\d.]+/g);if(bg&&(bg[3]===undefined||+bg[3]>.5))b.style.color=ink('#'+bg.slice(0,3).map(x=>(+x|0).toString(16).padStart(2,'0')).join(''))});return}
+ if(kind==='bypass'){add('<p class="empty">'+(after&&after.same?'Looks exactly the same. The difference is in the code: these values now come from the tokens, so a change to the system reaches them.':'Each value is typed in by hand.')+'</p>');return}
+}
+function ink(bg){const x=lum(bg);return (x+.05)/.0566>1.05/(x+.05)?'#111111':'#ffffff'} // the text colour with more contrast on bg
+function lum(h){h=String(h||'#888').replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');if(!/^[0-9a-f]{6}$/i.test(h))return .5;
+ const c=[0,2,4].map(i=>parseInt(h.substr(i,2),16)/255).map(v=>v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2]}
+/* ---------- sections ---------- */
+function summary(){$('#t').textContent=(D.name||'Your product')+': your system, as built';
+ $('#st').textContent='Read from the code of '+(D.project||'your project')+'. This page only reports: nothing in your code changes until you pick an option and say yes.';
+ const s=[['Files read',D.scanned],['Token uses',D.tokenUses],['Values typed by hand',D.raw],['Things to decide',(D.issues||[]).length]];
+ $('#stats').innerHTML=s.map(x=>'<div class="stat"><b>'+esc(x[1])+'</b><span class="kv">'+esc(x[0])+'</span></div>').join('');
+ const w={ok:'The code follows the tokens more than it skips them.',losing:'The tokens are losing: the code types values by hand more often than it uses them.',none:'The code uses none of the tokens yet.'};
+ $('#verdict').innerHTML=(D.ok?'<span class="ok">Review: ok.</span> ':'<span class="bad">Review: not yet.</span> ')+esc(w[D.tokens]||'')+(D.verdict&&D.verdict.length?' What review says: '+esc(D.verdict.join('; '))+'.':'')
+  +((D.notes||[]).length?'<br><span class="kv">'+D.notes.map(esc).join('. ')+'</span>':'')}
+function families(){$('#fams').innerHTML=(D.families||[]).map((f,i)=>{const sw=f.name==='Colours';
+ const body=sw?'<div class="sw">'+f.tokens.map(t=>'<div class="chip'+(t.uses?'':' unused')+'" title="'+esc(t.at.join(', '))+'"><i style="background:'+esc(t.value)+'"></i><span class="p">'+esc(t.path)+'</span><span class="kv">'+esc(t.value)+' · '+n(t.uses,'use')+'</span></div>').join('')+'</div>'
+  :'<table class="tbl"><thead><tr><th>Token</th><th>Value</th><th>Uses</th><th>Where, first few</th></tr></thead><tbody>'+f.tokens.map(t=>'<tr class="'+(t.uses?'':'unused')+'"><td class="kv">'+esc(t.var)+'</td><td>'+esc(typeof t.value==='number'?t.value+(f.name==='Motion'?'ms':'px'):t.value)+'</td><td>'+esc(t.uses)+'</td><td class="kv">'+esc(t.at.join(', ')||'never used')+'</td></tr>').join('')+'</tbody></table>';
+ return '<details class="fam"><summary><h3>'+esc(f.name)+'</h3><span class="kv">'+esc(f.used)+' of '+esc(f.total)+' used · '+esc(f.plain)+'</span></summary><div class="in">'+body+'</div></details>'}).join('')||'<p class="empty-state">No tokens yet.</p>'}
+function decisions(){const ds=D.decisions||[];if(!ds.length){$('#decs').innerHTML='<p class="empty-state">No answers recorded yet. The system is still on its sketch defaults.</p>';return}
+ $('#decs').innerHTML='<details><summary>'+n(ds.length,'answer')+', '+ds.filter(x=>x.changesTokens).length+' of them change tokens</summary><table class="tbl"><thead><tr><th>Question</th><th>Answer</th><th>How it was set</th><th>Changes tokens?</th><th>In the code</th></tr></thead><tbody>'+ds.map(x=>'<tr><td class="kv">'+esc(x.id)+'</td><td>'+esc(x.answer)+'</td><td>'+esc(x.setBy)+'</td><td>'+(x.changesTokens?'<span class="tag ok">yes</span>':'<span class="tag">a rule in DESIGN.md</span>')+'</td><td>'+(x.family?esc(x.family)+': '+n(x.follows||0,'token use')+(x.raw?', '+n(x.raw,'value')+' by hand':''):'<span class="kv">not checked in code</span>')+'</td></tr>').join('')+'</tbody></table></details>'}
+function issues(){const is=D.issues||[];
+ const real=i=>i.options.filter(o=>o.id!=='keep').length>1; // a decision has two or more real ways to settle it
+ const byCount=is.slice().sort((a,b)=>(real(b)-real(a))||(b.count-a.count));const top=new Set(byCount.slice(0,5).map(i=>i.id));
+ $('#iss-sub').textContent=is.length?n(is.length,'thing')+' where the code and the system disagree. Each one shows where, how often, and up to three ways to settle it. Pick one to see the change; leave the rest as they are.':'';
+ if(!is.length){$('#issues').innerHTML='<p class="empty-state">Nothing to settle: the code and the system agree.</p>';return}
+ const card=i=>{const led=i.ledger?'<span class="tag'+(i.ledger.status==='waived'||i.ledger.status==='done'?' ok':' bad')+'">ledger: '+esc(i.ledger.status)+'</span>':'';
+  return '<article class="issue" id="'+esc(i.id)+'" data-id="'+esc(i.id)+'"><div class="ihead"><h3>'+esc(i.title)+'</h3><span class="row"><span class="kv mono">'+esc(i.id)+'</span>'+led+'</span></div>'
+  +'<p class="sub" style="margin:0">'+esc(i.plain)+' <b>'+n(i.count,'time')+' in '+n(i.files,'file')+'.</b></p>'
+  +'<details><summary>Where: '+n(i.count,'place')+'</summary><ul class="ev">'+i.evidence.map(e=>'<li><b>'+esc(e.file)+':'+esc(e.line)+'</b> '+esc(e.value)+'</li>').join('')+(i.more?'<li>… and '+esc(i.more)+' more (engine.py audit-page --json)</li>':'')+'</ul></details>'
+  +'<fieldset class="opts"><legend class="vh">Options for '+esc(i.title)+'</legend>'+i.options.map((o,k)=>'<label class="opt"><input type="radio" name="o-'+esc(i.id)+'" value="'+k+'"><span class="opt-t">'+esc(o.label)+(o.recommended?'<span class="rec">Recommended</span>':'')+'</span><span class="opt-n">'+esc(o.note)+'</span></label>').join('')+'</fieldset>'
+  +'<label class="waivewhy"><span class="kv">Why keep it? (goes in the ledger)</span><input type="text" data-why="'+esc(i.id)+'" placeholder="for example: the print styles need exact points"></label>'
+  +'<div class="ba"><div class="pane" data-label="now, in your code" data-pane="now"></div><div class="pane" data-label="with this option" data-pane="after"></div></div></article>'};
+ const rest=is.filter(i=>!top.has(i.id));
+ $('#issues').innerHTML='<div class="verdict"><b>Start with these '+Math.min(5,is.length)+'</b>, the decisions that cover the most places:<ol class="top5">'
+  +byCount.slice(0,5).map(i=>'<li><a href="#'+esc(i.id)+'">'+esc(i.title)+'</a> <span class="kv">'+n(i.count,'place')+' in '+n(i.files,'file')+'</span></li>').join('')+'</ol></div>'
+  +byCount.slice(0,5).map(card).join('')
+  +(rest.length?'<details class="more-issues"><summary><h3>'+n(rest.length,'more thing')+' to settle</h3></summary><div style="display:grid;gap:14px;margin-top:12px">'+rest.map(card).join('')+'</div></details>':'');
+ is.forEach(i=>{const el=document.getElementById(i.id);el.querySelectorAll('.pane').forEach(paneStyle);
+  draw(i.kind,i.preview,false,el.querySelector('[data-pane=now]'));draw(i.kind,i.preview,undefined,el.querySelector('[data-pane=after]'));
+  el.querySelector('.opts').onchange=e=>{const k=+e.target.value;PICK[i.id]=k;const o=i.options[k];el.classList.add('picked');el.classList.toggle('waive',o.id==='keep');
+   draw(i.kind,i.preview,o.after,el.querySelector('[data-pane=after]'));update()};
+  el.querySelector('[data-why]').oninput=e=>{WHY[i.id]=e.target.value.trim();update()}})}
+function kept(){const parts=[];
+ const ex=D.exempt||[];parts.push('<div><h3>Left out of the check on purpose</h3>'+(ex.length?'<table class="tbl"><thead><tr><th>Files</th><th>Why</th><th>Who decided</th></tr></thead><tbody>'+ex.map(r=>'<tr><td class="kv">'+esc(r.glob)+' ('+n(r.files,'file')+')</td><td>'+esc(r.why)+'</td><td>'+esc(r.by)+', '+esc(r.date)+'</td></tr>').join('')+'</tbody></table>':'<p class="sub">Nothing. Files that break the system on purpose, such as a demo of mistakes, can be marked: <span class="kv">engine.py exempt &lt;folder&gt; --why "..."</span></p>')+'</div>');
+ const k=D.kept||[];parts.push('<div><h3>Lines kept on purpose (od-ignore with a reason)</h3>'+(k.length?'<details><summary>'+n(D.keptCount,'line')+'</summary><ul class="ev">'+k.map(x=>'<li><b>'+esc(x.file)+':'+esc(x.line)+'</b> '+esc(x.reason)+'</li>').join('')+'</ul></details>':'<p class="sub">None.</p>')+'</div>');
+ const L=D.ledger||[];const word={done:'done',broken:'broken',waived:'skipped on purpose',planned:'not done yet'};
+ parts.push('<div><h3>The ledger: what each round did</h3>'+(L.length?'<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Round</th><th>Item</th><th>Status</th><th>Note or reason</th></tr></thead><tbody>'+L.flatMap(r=>(r.items||[]).map(it=>'<tr><td>'+esc(r.id)+' '+esc(r.title)+(r.closed?'':' <span class="tag">open</span>')+'</td><td class="kv">'+esc(it.id)+'</td><td><span class="tag'+(it.status==='done'||it.status==='waived'?' ok':' bad')+'">'+esc(word[it.status]||it.status)+'</span></td><td>'+esc(it.status==='waived'?(it.why||'')+' ('+(it.by||'?')+')':(it.note||''))+'</td></tr>')).join('')+'</tbody></table></div>'
+  +((D.ledgerOpen||[]).length?'<p class="bad">'+n(D.ledgerOpen.length,'item')+' neither done nor skipped on purpose: review fails until each is settled.</p>':'<p class="ok">Every item is done or skipped on purpose.</p>'):'<p class="sub">Empty. Each implementation round starts one: <span class="kv">engine.py ledger start "what this round builds" --items a,b,c</span></p>')+'</div>');
+ $('#kept').innerHTML=parts.join('')}
+/* ---------- OD lines ---------- */
+function lines(){const L=[];(D.issues||[]).forEach(i=>{if(!(i.id in PICK))return;const o=i.options[PICK[i.id]];
+ if(o.id==='keep'){L.push('OD:waive '+i.id+' --why '+JSON.stringify(WHY[i.id]||'...'))}
+ else L.push(...(o.od||['OD:fix '+i.id+'='+o.id]))});return L}
+function update(){const L=lines();$('#out').value=L.join('\n')||'(nothing chosen yet)';
+ const missing=(D.issues||[]).filter(i=>i.id in PICK&&i.options[PICK[i.id]].id==='keep'&&!WHY[i.id]).length;
+ $('#live').textContent=missing?n(missing,'kept item needs','kept items need')+' a reason':''}
+async function copy(){const t=$('#out').value;let ok=false;
+ try{await navigator.clipboard.writeText(t);ok=true}catch(e){$('#out').select();try{ok=document.execCommand('copy')}catch(_){}}
+ $('#live').textContent=ok?'Copied. Paste it into the chat.':'Select the text and copy it by hand.'}
+function seg(el,values,cur,onPick,fmt=String){el.innerHTML=values.map(v=>'<button type="button" aria-pressed="'+(v==cur)+'" data-v="'+esc(v)+'">'+esc(fmt(v))+'</button>').join('');
+ el.onclick=e=>{const b=e.target.closest('button');if(!b)return;el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));onPick(b.dataset.v)}}
+function repaint(){document.querySelectorAll('.pane').forEach(paneStyle)}
+function boot(){summary();families();decisions();issues();kept();
+ seg($('#theme'),['auto','light','dark'],'auto',v=>{if(v==='auto')delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=v;repaint()},v=>v[0].toUpperCase()+v.slice(1));
+ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',repaint);$('#copy').onclick=copy;update()}
+boot();
+</script>
+</body>
+</html>

@@ -1,8 +1,9 @@
 <script lang="ts">
   import { open } from "@tauri-apps/plugin-dialog";
   import { t, lang, LANGS, type Lang } from "../i18n";
-  import { theme, outputMode, outputFolder, openHub, motionReduced, motionPref, uiScale, UI_SCALES, type Theme, type OutputMode } from "../settings";
+  import { theme, outputMode, outputFolder, openHub, openTutorial, motionReduced, motionPref, uiScale, UI_SCALES, type Theme, type OutputMode } from "../settings";
   import { installExplorerMenu } from "../explorerMenu";
+  import { autoCheck } from "../updates";
   import { fileNameOf } from "../formats";
   import * as engine from "../engine";
   import { errText } from "../errors";
@@ -122,7 +123,7 @@
 
   {#if ex?.available}
   <section>
-    <h3>{$t("Menú do clic dereito (Explorador)")}<InfoTip text={$t("Engade «Converter a…» e «Comprimir» ao clic dereito sobre un ficheiro. Non fai falta ser administrador. En Windows 11 sae en «Mostrar máis opcións»; se a app cambia de cartafol, hai que instalalo de novo.")} /></h3>
+    <h3>{$t("Menú do clic dereito (Explorador)")}<InfoTip text={$t("Engade «Converter a…» e «Comprimir» ao clic dereito. Sen administrador. En Windows 11 sae en «Mostrar máis opcións». Ponse ao día soo.")} /></h3>
     <div class="exrow">
       <button class="btn primary" on:click={exInstall} disabled={exBusy}>{ex.installed ? $t("Actualizar entradas") : $t("Instalar no menú")}</button>
       {#if ex.installed}<button class="btn" on:click={exRemove} disabled={exBusy}>{$t("Quitar do menú")}</button>{/if}
@@ -134,8 +135,14 @@
   
 
 <section>
-  <h3>{$t("Actualizacións")}<InfoTip text={$t("A busca de versións novas e o rexistro de cambios están en Novidades.")} /></h3>
-  <div class="exrow"><button class="btn" on:click={() => openHub("news.updates")}><Icon name="open" size={14} /> {$t("Ir a Actualizacións")}</button></div>
+  <h3>{$t("Volta rápida")}<InfoTip text={$t("O trasno amosa como se usa a app, paso a paso, cunha xanela de exemplo.")} /></h3>
+  <div class="exrow"><button class="btn" on:click={openTutorial}><Icon name="play" size={14} /> {$t("Repetir a volta rápida")}</button></div>
+</section>
+
+<section>
+  <h3>{$t("Actualizacións")}<InfoTip text={$t("As novidades de cada versión e o estado da actualización están en Novidades.")} /></h3>
+  <Toggle label={$t("Actualizar automaticamente")} bind:checked={$autoCheck} hint={$t("Ao abrir a app busca versións novas e instálaas soas. Apagado, non busca nada.")} />
+  <div class="exrow"><button class="btn" on:click={() => openHub("news.updates")}><Icon name="open" size={14} /> {$t("Ver o estado")}</button></div>
 </section>
 
 <style>

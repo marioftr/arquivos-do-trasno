@@ -114,6 +114,28 @@ export const dialog = writable<"hub" | "palette" | "download" | null>(null);
 export const pastedLink = writable("");
 /** Que pestana abre a xanela de descargas: ligazóns (yt-dlp) ou torrents. */
 export const downloadTab = writable<"link" | "torrent">("link");
+/** A volta rápida (tutorial): ábrese soa na primeira execución e pódese repetir desde Axustes. */
+const TUTORIAL_KEY = "arquivos-do-trasno.tutorial-visto";
+export const tutorialOpen = writable(false);
+export function tutorialSeen(): boolean {
+  try {
+    return localStorage.getItem(TUTORIAL_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+export function openTutorial() {
+  dialog.set(null);
+  tutorialOpen.set(true);
+}
+export function closeTutorial() {
+  try {
+    localStorage.setItem(TUTORIAL_KEY, "1");
+  } catch {
+    // ignorar
+  }
+  tutorialOpen.set(false);
+}
 /** Páxina aberta no centro, como «grupo.subcategoría». */
 export const hubPage = writable("settings.general");
 export function openHub(page: string) {

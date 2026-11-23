@@ -1,21 +1,14 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { t, lang } from "../i18n";
+    import { t, lang } from "../i18n";
   import { CHANGELOG, type Kind } from "../changelog";
-  import { appVersion, autoCheck, updState, updFound, updError, updProgress, checkForUpdate, installUpdate, explorerInstalled, notesFor } from "../updates";
+  import { appVersion, autoCheck, updState, updFound, updError, updProgress, notesFor } from "../updates";
   import Toggle from "./ui/Toggle.svelte";
-  import Icon from "./Icon.svelte";
 
   export let part: "changelog" | "updates" = "changelog";
 
   const KIND: Record<Kind, string> = { new: "Novo", better: "Mellorado", fixed: "Arranxado" };
   $: noRelease = /valid release JSON|404|not found/i.test($updError);
   $: notes = $updFound?.notes ? notesFor($updFound.notes, $lang) : [];
-  let refreshMenu = true;
-  let hasMenu = false;
-  onMount(async () => {
-    hasMenu = await explorerInstalled();
-  });
   const pick = (c: { gl: string; es: string; en: string }) => c[$lang === "es" ? "es" : $lang === "en" ? "en" : "gl"];
   const dateOf = (d: string) => new Date(d + "T12:00:00").toLocaleDateString($lang === "gl" ? "gl-ES" : $lang);
 </script>
@@ -43,33 +36,27 @@
       <strong>{$appVersion || "…"}</strong>
     </div>
 
-    {#if $updState === "found" && $updFound}
-      <div class="box">
+    <Toggle label={$t("Actualizar automaticamente")} bind:checked={$autoCheck} hint={$t("Ao abrir a app busca versións novas e instálaas soas. Apagado, non busca nada.")} />
+
+    {#if $updFound && ($updState === "found" || $updState === "downloading" || $updState === "ready")}
+      <div class="box" role="status">
         <h3>{$t("Hai unha versión nova")}: {$updFound.version}</h3>
         {#if notes.length}
           <p class="muted what">{$t("Esta actualización inclúe:")}</p>
           <ul class="notes selectable">{#each notes as n}<li>{n}</li>{/each}</ul>
         {/if}
-        {#if hasMenu}
-          <Toggle label={$t("Actualizar tamén as entradas do menú do clic dereito")} bind:checked={refreshMenu} hint={$t("As entradas do Explorador apuntan ao programa instalado. Se está marcado, créanse de novo coa versión nova ao reiniciar.")} />
+        {#if $updState === "ready"}
+          <p class="muted">{$t("Descargada. Instálase en canto non haxa nada en marcha.")}</p>
+        {:else}
+          <p class="muted">{$t("Estou descargando a versión nova…")}</p>
+          <div class="bar"><div class="fill" style={`width:${Math.round($updProgress * 100)}%`}></div></div>
+          <span class="muted pct">{Math.round($updProgress * 100)} %</span>
         {/if}
-        <button class="btn primary" on:click={() => installUpdate(hasMenu && refreshMenu)}><Icon name="download" size={14} /> {$t("Instalar e reiniciar")}</button>
       </div>
-    {:else if $updState === "downloading"}
-      <div class="box" role="status">
-        <p class="muted">{$t("Estou descargando a versión nova…")}</p>
-        <div class="bar"><div class="fill" style={`width:${Math.round($updProgress * 100)}%`}></div></div>
-        <span class="muted pct">{Math.round($updProgress * 100)} %</span>
-      </div>
+    {:else if $autoCheck}
+      <p class="muted" role="status">{$updState === "checking" ? $t("Buscando…") : $updState === "none" ? $t("Tes a última versión.") : $updState === "error" ? (noRelease ? $t("Aínda non hai ningunha versión publicada en GitHub.") : $t("Non puiden comprobar as actualizacións. Revisa a conexión a internet e proba de novo.")) : ""}</p>
     {:else}
-      <Toggle label={$t("Buscar versións novas ao abrir a app")} bind:checked={$autoCheck} />
-      <div class="row">
-        <button class="btn" on:click={() => checkForUpdate(false)} disabled={$updState === "checking"}><Icon name="reset" size={14} /> {$updState === "checking" ? $t("Buscando…") : $t("Buscar actualizacións")}</button>
-        {#if $updState === "none"}<span class="muted">{$t("Tes a última versión.")}</span>{/if}
-      </div>
-      {#if $updState === "error"}
-        <p class="warn selectable">{noRelease ? $t("Aínda non hai ningunha versión publicada en GitHub.") : $t("Non puiden comprobar as actualizacións. Revisa a conexión a internet e proba de novo.")}</p>
-      {/if}
+      <p class="muted">{$t("Co axuste apagado non busco versións novas. Podes baixalas desde GitHub.")}</p>
     {/if}
     <p class="muted note">{$t("As versións publícanse en GitHub. Só descargo ficheiros asinados coa clave do seu autor.")}</p>
   </section>
@@ -93,10 +80,8 @@
   .what { font-size: var(--fs-sm); }
   .notes { list-style: disc; padding-left: 1.2rem; display: block; font-size: var(--fs-md); max-height: 12rem; overflow-y: auto; overflow-x: hidden; }
   .notes li { display: list-item; margin-bottom: 0.3rem; }
-  .row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
   .bar { height: 7px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
   .fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
   .pct { font-size: var(--fs-sm); text-align: right; }
   .note { margin: 0; font-size: var(--fs-sm); }
-  .warn { margin: 0; font-size: var(--fs-sm); color: var(--accent-pdf); }
 </style>

@@ -39,3 +39,11 @@ export function parseSubs(text: string): Cue[] {
   }
   return cues;
 }
+
+/** Move os tempos `shift` segundos e multiplícaos por `ratio` (cambio de cadencia); o que queda antes do cero descártase. */
+export function retime(cues: Cue[], shift: number, ratio: number): Cue[] {
+  return cues
+    .map((c) => ({ ...c, start: c.start * ratio + shift, end: c.end * ratio + shift }))
+    .filter((c) => c.end > 0)
+    .map((c) => ({ ...c, start: Math.max(0, c.start) }));
+}

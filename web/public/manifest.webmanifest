@@ -1,7 +1,7 @@
 {
   "name": "Arquivos do Trasno",
   "short_name": "Trasno",
-  "description": "Ferramentas de imaxe e PDF que traballan no teu aparello.",
+  "description": "Ferramentas de imaxe, PDF, audio, vídeo e subtítulos que traballan no teu aparello.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

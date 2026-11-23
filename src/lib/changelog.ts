@@ -33,6 +33,8 @@ export const CHANGELOG: Release[] = [
       { kind: "better", gl: "Brillo, contraste, desenfoque e inverter cores pasan a Restaurar.", es: "Brillo, contraste, desenfoque e invertir colores pasan a Restaurar.", en: "Brightness, contrast, blur and invert colours move to Restore." },
       { kind: "better", gl: "Pegar do portapapeis agora vai con Ctrl+V e no buscador.", es: "Pegar del portapapeles ahora va con Ctrl+V y en el buscador.", en: "Paste from the clipboard now works with Ctrl+V and in the search box." },
       { kind: "better", gl: "Novas iconas en Transformar, Extraer e Transcribir.", es: "Nuevos iconos en Transformar, Extraer y Transcribir.", en: "New icons for Transform, Extract and Transcribe." },
+      { kind: "new", gl: "Volta rápida: o trasno amosa como se usa a app, paso a paso. Sae na primeira execución e repítese desde Axustes.", es: "Vuelta rápida: el trasno muestra cómo se usa la app, paso a paso. Sale en la primera ejecución y se repite desde Ajustes.", en: "Quick tour: the trasno shows how the app works, step by step. It runs on first launch and can be repeated from Settings." },
+      { kind: "better", gl: "As actualizacións instálanse soas (con interruptor en Axustes para apagalas) e o menú do clic dereito ponse ao día con cada versión e idioma.", es: "Las actualizaciones se instalan solas (con interruptor en Ajustes para apagarlas) y el menú del clic derecho se actualiza con cada versión e idioma.", en: "Updates now install on their own (with a switch in Settings to turn them off) and the right-click menu refreshes with each version and language." },
     ],
   },
   {

@@ -1,0 +1,44 @@
+/* Sistema de deseño da web. Sae de opendesigner/ (DESIGN.md e tokens): letra con razón 1,25 sobre 16 px,
+   espazo en múltiplos de 4 px, raios 8/12/16, un só botón principal por vista. As cores seguen en
+   tokens.css, as mesmas que usa a app. Se cambias unha escala, cámbiaa tamén en opendesigner/ (engine.py set). */
+:root {
+  /* Espazo (4 px de base) */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4rem;
+  --gap-section: clamp(2.5rem, 2rem + 3vw, 4rem);
+
+  /* Letra: 13 · 16 · 20 · 25 · 31 · 39 px. O que fica por debaixo de 14 px non leva texto de lectura. */
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.875rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-h3: 1.25rem;
+  --fs-xl: 1.5625rem;
+  --fs-h1: 1.9375rem;
+  --fs-display: clamp(2.25rem, 1.4rem + 3.6vw, 3.4375rem);
+  --fw-heading: 700;
+  --tracking-heading: -0.01em;
+  --tracking-display: -0.025em;
+
+  /* Forma e profundidade */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.18);
+  --elev-2: 0 10px 28px rgb(0 0 0 / 0.22), 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+  --glow: radial-gradient(70% 90% at 18% 20%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 70%);
+
+  /* Movemento: curto, e quitado con prefers-reduced-motion (web.css) */
+  --dur: 160ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Páxina */
+  --page-w: 64rem;
+}

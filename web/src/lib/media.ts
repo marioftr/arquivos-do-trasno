@@ -84,3 +84,26 @@ export async function pcm16k(file: File, ctx: Ctx, label: string): Promise<Float
   const blob = await run(file, "raw", (i, o) => ["-i", i, "-vn", "-ac", "1", "-ar", "16000", "-f", "f32le", o], ctx, label);
   return new Float32Array(await blob.arrayBuffer());
 }
+
+/** Varios ficheiros a un: escribe todas as entradas, executa `args(entradas, saída)` e devolve o resultado. */
+export async function runMany(files: File[], outExt: string, args: (inputs: string[], output: string) => string[], ctx: Ctx, label: string): Promise<Blob> {
+  if (files.reduce((a, f) => a + f.size, 0) > MAX_BYTES) throw new UserError(tr("Os ficheiros pesan demasiado para o navegador (máximo 250 MB en total)."));
+  const f = await engine(ctx);
+  ctx.progress(0, label);
+  const stamp = Date.now();
+  const inputs = files.map((file, i) => `in-${stamp}-${i}.${(/\.([a-z0-9]+)$/i.exec(file.name)?.[1] ?? "bin").toLowerCase()}`);
+  const output = `out-${stamp}.${outExt}`;
+  try {
+    for (const [i, file] of files.entries()) await f.writeFile(inputs[i], new Uint8Array(await file.arrayBuffer()));
+    const code = await f.exec(args(inputs, output));
+    if (code !== 0) throw new UserError(tr("Non puiden xuntar os ficheiros. Algún está danado ou ese formato non se admite."));
+    const data = (await f.readFile(output)) as Uint8Array;
+    return new Blob([data.slice().buffer as ArrayBuffer]);
+  } finally {
+    for (const i of inputs) await f.deleteFile(i).catch(() => {});
+    await f.deleteFile(output).catch(() => {});
+  }
+}
+
+/** Este ficheiro ten imaxe (vídeo) ou só son? */
+export const isVideo = (f: File) => f.type.startsWith("video/") || /\.(mp4|mov|mkv|webm|avi|m4v)$/i.test(f.name);

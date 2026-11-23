@@ -2,14 +2,6 @@
 :root {
   /* Controis cómodos co dedo (mínimo 44 px) e letra de 16 px (por debaixo, iOS achega a páxina ao tocar un campo). */
   --control-h: 48px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --fs-xs: 0.8125rem;
-  --fs-sm: 0.875rem;
-  --fs-md: 1rem;
-  --fs-lg: 1.125rem;
-  --fs-xl: 1.5rem;
 }
 
 * {
@@ -59,6 +51,10 @@ button {
   font-weight: 600;
   text-align: center;
   -webkit-tap-highlight-color: transparent;
+}
+
+a.btn {
+  text-decoration: none;
 }
 
 .btn:hover:not(:disabled) {

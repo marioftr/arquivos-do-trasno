@@ -20,7 +20,7 @@ export type Opt =
 
 export interface Tool {
   id: string;
-  group: "imaxe" | "pdf" | "audio";
+  group: "imaxe" | "pdf" | "audio" | "subs";
   icon: string;
   title: string;
   desc: string;
@@ -42,8 +42,8 @@ export interface Tool {
   all?: (files: File[], v: Values, ctx: Ctx) => Promise<Output[]>;
 }
 
-const IMG = "image/*,.heic,.heif";
-const MEDIA = "audio/*,video/*,.mp3,.m4a,.wav,.ogg,.opus,.flac,.mp4,.mov,.mkv,.webm";
+export const IMG = "image/*,.heic,.heif";
+export const MEDIA = "audio/*,video/*,.mp3,.m4a,.wav,.ogg,.opus,.flac,.mp4,.mov,.mkv,.webm";
 type Lang = "glg" | "spa" | "eng" | "cat";
 const LANGS = (): Choice[] => [
   { value: "glg", label: "Galego" },
@@ -52,7 +52,7 @@ const LANGS = (): Choice[] => [
   { value: "cat", label: "Catalán" },
 ];
 const DEFAULT_LANG = (): Lang => (({ gl: "glg", es: "spa", en: "eng" } as Record<string, Lang>)[get(lang)] ?? "glg");
-const MIME_OF: Record<string, string> = { mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav", opus: "audio/ogg", gif: "image/gif" };
+export const MIME_OF: Record<string, string> = { mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav", opus: "audio/ogg", gif: "image/gif" };
 
 const QUALITY = (): Choice[] => [
   { value: "95", label: tr("Máxima"), sub: "95" },
@@ -67,18 +67,18 @@ const mimeChoices = (withSame = false): Choice[] => [
   ...(encoders.webp ? [{ value: "image/webp", label: "WebP" }] : []),
 ];
 
-const outName = (file: File, mime: Mime, taken: Set<string>, suffix = "") => uniqueName(`${stemOf(file.name)}${suffix}.${EXT[mime]}`, taken);
+export const outName = (file: File, mime: Mime, taken: Set<string>, suffix = "") => uniqueName(`${stemOf(file.name)}${suffix}.${EXT[mime]}`, taken);
 
 /** Axustes que cambian o tamaño en bytes: o que se di ao rematar cada imaxe. */
-const sizeNote = (file: File, blob: Blob, capped: boolean) => {
+export const sizeNote = (file: File, blob: Blob, capped: boolean) => {
   const delta = blob.size - file.size;
   const pct = file.size ? Math.round((Math.abs(delta) / file.size) * 100) : 0;
   const base = `${formatBytes(file.size)} → ${formatBytes(blob.size)}${pct && Math.abs(delta) > 512 ? ` (${delta < 0 ? "−" : "+"}${pct} %)` : ""}`;
   return capped ? `${base} · ${tr("Reducida ao máximo que admite o navegador.")}` : base;
 };
 
-const mimeOf = (v: Values, file: File): Mime => (v.format && v.format !== "same" ? (v.format as Mime) : sameMime(file));
-const qualityOf = (v: Values) => Number(v.quality || 85) / 100;
+export const mimeOf = (v: Values, file: File): Mime => (v.format && v.format !== "same" ? (v.format as Mime) : sameMime(file));
+export const qualityOf = (v: Values) => Number(v.quality || 85) / 100;
 
 /** Constrúese ao pedilas (non ao cargar o módulo): os textos van no idioma que haxa nese momento. */
 export const buildTools = (): Tool[] => [
@@ -487,7 +487,7 @@ export const buildTools = (): Tool[] => [
   },
   {
     id: "traducir",
-    group: "audio",
+    group: "subs",
     icon: "translate",
     title: tr("Traducir subtítulos"),
     desc: tr("Dun SRT ou VTT a galego, castelán, catalán ou inglés."),
@@ -673,10 +673,4 @@ export const buildTools = (): Tool[] => [
       return { ...r, note: sizeNote(file, r.blob, false) };
     },
   },
-];
-
-export const buildGroups = (): { id: Tool["group"]; label: string; icon: string }[] => [
-  { id: "imaxe", label: tr("Imaxe"), icon: "image" },
-  { id: "pdf", label: "PDF", icon: "document" },
-  { id: "audio", label: tr("Audio e vídeo"), icon: "audio" },
 ];

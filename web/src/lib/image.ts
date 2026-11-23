@@ -41,9 +41,9 @@ export interface Rendered {
   capped: boolean;
 }
 
-type Source = { img: CanvasImageSource; width: number; height: number; close: () => void };
+export type Source = { img: CanvasImageSource; width: number; height: number; close: () => void };
 
-async function open(file: File): Promise<Source> {
+export async function open(file: File): Promise<Source> {
   try {
     const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
     return { img: bmp, width: bmp.width, height: bmp.height, close: () => bmp.close() };

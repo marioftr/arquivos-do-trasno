@@ -6,7 +6,7 @@
   export let size = 24;
 </script>
 
-{#if ["resize", "compress", "rotate-cw", "rotate-ccw", "scan-text", "cutout", "wave", "scissors", "film", "mic", "translate", "merge-doc", "split-doc", "image-doc", "image-pdf", "compress-doc", "text-doc", "enhance", "convert"].includes(name)}
+{#if ["resize", "compress", "rotate-cw", "rotate-ccw", "scan-text", "cutout", "wave", "scissors", "film", "mic", "translate", "merge-doc", "split-doc", "image-doc", "image-pdf", "compress-doc", "text-doc", "enhance", "convert", "hash"].includes(name)}
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
     {#if name === "convert"}
       <path d="M4 8h14" /><path d="m14 4 4 4-4 4" /><path d="M20 16H6" /><path d="m10 12-4 4 4 4" />
@@ -44,6 +44,8 @@
       <path d="M6 3h8l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M14 3v5h5" /><path d="m9 12.5 3 2.5 3-2.5" /><path d="m9 18 3-2.5 3 2.5" />
     {:else if name === "text-doc"}
       <path d="M6 3h8l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M14 3v5h5" /><path d="M8 12h8" /><path d="M8 15.5h8" /><path d="M8 19h5" />
+    {:else if name === "hash"}
+      <path d="M5 9h14" /><path d="M5 15h14" /><path d="M10 4 8 20" /><path d="m16 4-2 16" />
     {:else if name === "enhance"}
       <path d="m12 3 1.7 4.6L18.3 9.3l-4.6 1.7L12 15.6l-1.7-4.6L5.7 9.3l4.6-1.7z" /><path d="m18.5 15 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />
     {/if}

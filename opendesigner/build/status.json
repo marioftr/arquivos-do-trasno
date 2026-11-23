@@ -1,0 +1,237 @@
+{
+  "v": 1,
+  "prefix": "ds",
+  "statuses": {
+    "success": {
+      "meaning": "an action finished as asked",
+      "when": "after an action that worked, and for a state that is good (paid, verified)",
+      "words": [
+        "saved",
+        "done",
+        "sent",
+        "paid",
+        "approved",
+        "complete",
+        "on time",
+        "verified"
+      ],
+      "icon": "circle-check",
+      "tokens": {
+        "text": "color.text.success",
+        "bg": "color.bg.success.subtle",
+        "bgBold": "color.bg.success.bold",
+        "onBold": "color.text.on-success",
+        "border": "color.border.success",
+        "icon": "color.text.success"
+      },
+      "css": {
+        "text": "--ds-color-text-success",
+        "bg": "--ds-color-bg-success-subtle",
+        "bgBold": "--ds-color-bg-success-bold",
+        "onBold": "--ds-color-text-on-success",
+        "border": "--ds-color-border-success",
+        "icon": "--ds-color-text-success"
+      },
+      "values": {
+        "light": {
+          "text": "#00652c",
+          "bg": "#daf1de",
+          "bgBold": "#00883d",
+          "onBold": "#ffffff",
+          "border": "#21994c",
+          "icon": "#00652c"
+        },
+        "dark": {
+          "text": "#51c070",
+          "bg": "#182b1c",
+          "bgBold": "#009845",
+          "onBold": "#141516",
+          "border": "#27944b",
+          "icon": "#51c070"
+        }
+      }
+    },
+    "warning": {
+      "meaning": "something needs attention soon, but nothing is lost yet",
+      "when": "for a risk the person can still avoid: a limit near, a date close, a change that is hard to undo",
+      "words": [
+        "check",
+        "expires soon",
+        "almost full",
+        "due soon",
+        "at risk",
+        "needs review"
+      ],
+      "icon": "triangle-alert",
+      "tokens": {
+        "text": "color.text.warning",
+        "bg": "color.bg.warning.subtle",
+        "bgBold": "color.bg.warning.bold",
+        "onBold": "color.text.on-warning",
+        "border": "color.border.warning",
+        "icon": "color.text.warning"
+      },
+      "css": {
+        "text": "--ds-color-text-warning",
+        "bg": "--ds-color-bg-warning-subtle",
+        "bgBold": "--ds-color-bg-warning-bold",
+        "onBold": "--ds-color-text-on-warning",
+        "border": "--ds-color-border-warning",
+        "icon": "--ds-color-text-warning"
+      },
+      "values": {
+        "light": {
+          "text": "#845d00",
+          "bg": "#f5eada",
+          "bgBold": "#efb23a",
+          "onBold": "#222428",
+          "border": "#aa7f2d",
+          "icon": "#845d00"
+        },
+        "dark": {
+          "text": "#fecf80",
+          "bg": "#2f2618",
+          "bgBold": "#e6b55e",
+          "onBold": "#141516",
+          "border": "#a37b30",
+          "icon": "#fecf80"
+        }
+      }
+    },
+    "danger": {
+      "meaning": "something failed or would destroy data",
+      "when": "for errors, failures, and actions that delete or cannot be undone",
+      "words": [
+        "error",
+        "failed",
+        "delete",
+        "overdue",
+        "declined",
+        "unpaid",
+        "rejected"
+      ],
+      "icon": "circle-x",
+      "tokens": {
+        "text": "color.text.danger",
+        "bg": "color.bg.danger.subtle",
+        "bgBold": "color.bg.danger.bold",
+        "onBold": "color.text.on-danger",
+        "border": "color.border.danger",
+        "icon": "color.text.danger"
+      },
+      "css": {
+        "text": "--ds-color-text-danger",
+        "bg": "--ds-color-bg-danger-subtle",
+        "bgBold": "--ds-color-bg-danger-bold",
+        "onBold": "--ds-color-text-on-danger",
+        "border": "--ds-color-border-danger",
+        "icon": "--ds-color-text-danger"
+      },
+      "values": {
+        "light": {
+          "text": "#a42825",
+          "bg": "#ffe6e3",
+          "bgBold": "#d53e38",
+          "onBold": "#ffffff",
+          "border": "#d3655b",
+          "icon": "#a42825"
+        },
+        "dark": {
+          "text": "#ff8b7f",
+          "bg": "#38221f",
+          "bgBold": "#d75e54",
+          "onBold": "#141516",
+          "border": "#ca6359",
+          "icon": "#ff8b7f"
+        }
+      }
+    },
+    "info": {
+      "meaning": "neutral news the person may want",
+      "when": "for neutral facts and tips; never for errors or success",
+      "words": [
+        "note",
+        "tip",
+        "update",
+        "draft",
+        "scheduled"
+      ],
+      "icon": "info",
+      "tokens": {
+        "text": "color.text.info",
+        "bg": "color.bg.info.subtle",
+        "bgBold": "color.bg.info.bold",
+        "onBold": "color.text.on-info",
+        "border": "color.border.info",
+        "icon": "color.text.info"
+      },
+      "css": {
+        "text": "--ds-color-text-info",
+        "bg": "--ds-color-bg-info-subtle",
+        "bgBold": "--ds-color-bg-info-bold",
+        "onBold": "--ds-color-text-on-info",
+        "border": "--ds-color-border-info",
+        "icon": "--ds-color-text-info"
+      },
+      "values": {
+        "light": {
+          "text": "#005c8a",
+          "bg": "#d9efff",
+          "bgBold": "#007cb7",
+          "onBold": "#ffffff",
+          "border": "#008ed1",
+          "icon": "#005c8a"
+        },
+        "dark": {
+          "text": "#39b5ff",
+          "bg": "#0b2a3d",
+          "bgBold": "#008bcd",
+          "onBold": "#141516",
+          "border": "#0089c9",
+          "icon": "#39b5ff"
+        }
+      }
+    }
+  },
+  "aliases": {
+    "good": "success",
+    "ok": "success",
+    "positive": "success",
+    "bad": "danger",
+    "error": "danger",
+    "critical": "danger",
+    "negative": "danger",
+    "pending": "warning",
+    "caution": "warning",
+    "neutral": "info",
+    "new": "discovery"
+  },
+  "rules": {
+    "neverColourAlone": true,
+    "pairWith": [
+      "icon",
+      "word"
+    ],
+    "source": "WCAG 2.2 SC 1.4.1; DC-L01-15"
+  },
+  "feedback": {
+    "confirm": "inline-banner",
+    "confirmSetBy": "default",
+    "usesToasts": true,
+    "toastsFor": "low-stakes confirmations with Undo",
+    "toastMs": {
+      "success": 4000,
+      "info": 4000,
+      "warning": 4000,
+      "danger": null
+    },
+    "errorsStay": true,
+    "actionToastStays": true,
+    "undo": "both",
+    "undoStays": "until the person acts or dismisses it",
+    "sources": [
+      "STD-components-toasts-drawers-15",
+      "STD-visual-details-40"
+    ]
+  }
+}

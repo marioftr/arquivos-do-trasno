@@ -52,7 +52,7 @@ const ev = async (expr) => {
 const view = (w, h, mobile) => send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: mobile ? 2 : 1, mobile });
 const go = async (hash) => (await ev(`location.hash=${JSON.stringify(hash)}`), await sleep(500));
 
-const TOOLS = ["converter", "redimensionar", "comprimir", "restaurar", "xirar", "ocr", "quitar-fondo", "unir-pdf", "dividir-pdf", "xirar-pdf", "imaxes-a-pdf", "pdf-imaxes", "pdf-texto", "comprimir-pdf", "audio", "cortar", "gif", "transcribir", "traducir"];
+const TOOLS = ["converter", "redimensionar", "comprimir", "restaurar", "xirar", "ocr", "quitar-fondo", "unir-pdf", "dividir-pdf", "xirar-pdf", "imaxes-a-pdf", "pdf-imaxes", "pdf-texto", "comprimir-pdf", "audio", "cortar", "gif", "transcribir", "traducir", "recortar", "dividir-imaxe", "xuntar-imaxes", "iconas", "info-imaxe", "ordenar-pdf", "recortar-pdf", "marca-pdf", "numeros-pdf", "limpar-pdf", "info-pdf", "video", "axustar", "unir-audios", "fotograma", "converter-subs", "resincronizar"];
 const NET = !!process.env.TRASNO_WEB_NET; // as probas que descargan motores e modelos (uns cantos centos de MB) só se piden
 let fails = 0;
 const ok = (cond, what, detail = "") => {
@@ -82,11 +82,19 @@ try {
     await go("");
     await ev("localStorage.clear(); document.documentElement.lang='gl'");
     await sleep(200);
+    ok((await ev(`document.querySelectorAll('a.card').length`)) === 0 && (await ev(`!!document.querySelector('.hero')`)), "o inicio presenta a web (sen a lista de ferramentas)");
+    await go("#/ferramentas");
     const cards = await ev(`document.querySelectorAll('a.card').length`);
-    ok(cards === 19, "o inicio ten as 19 ferramentas", String(cards));
-    for (const hash of ["", ...TOOLS.map((t) => `#/${t}`)]) {
+    ok(cards === TOOLS.length, `a páxina de ferramentas ten as ${TOOLS.length}`, String(cards));
+    await ev(`(() => { const i = document.querySelector('input[type=search]'); i.value = 'subt'; i.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await sleep(150);
+    ok((await ev(`document.querySelectorAll('a.card').length`)) === 4, "a busca filtra («subt» deixa as 4 que falan de subtítulos)");
+    await ev(`(() => { const i = document.querySelector('input[type=search]'); i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await go("#/ferramentas/pdf");
+    ok((await ev(`[...document.querySelectorAll('a.card')].length`)) === 13, "o filtro de grupo deixa as de PDF");
+    for (const hash of ["", "#/ferramentas", "#/descarga", "#/privacidade", ...TOOLS.map((t) => `#/${t}`)]) {
       await go(hash);
-      const m = await ev(`({ over: document.documentElement.scrollWidth - innerWidth, small: [...document.querySelectorAll('button:not(:disabled):not(.sr-only), a.card, select, input[type=text]')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.height < 43.5 || r.width < 43.5) }).map((e) => (e.getAttribute('aria-label') || e.textContent).trim().slice(0, 24)) })`);
+      const m = await ev(`({ over: document.documentElement.scrollWidth - innerWidth, small: [...document.querySelectorAll('button:not(:disabled):not(.sr-only), a.card, a.chip, a.btn, .nav a, .round, select, input[type=text], input[type=search]')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.height < 43.5 || r.width < 43.5) }).map((e) => (e.getAttribute('aria-label') || e.textContent).trim().slice(0, 24)) })`);
       ok(m.over <= 0, `${hash || "inicio"}: sen desprazamento lateral`, `${m.over}px`);
       ok(m.small.length === 0, `${hash || "inicio"}: controis de 44 px ou máis`, m.small.join(", "));
     }
@@ -148,6 +156,76 @@ try {
   await ev(`(async () => { await __t.feed([window.__pdf]); await __t.go(); })()`);
   ok(/Non atopei texto/.test(await ev(`document.querySelector('.results .warn')?.innerText ?? ''`)), "PDF a texto avisa se o PDF só ten imaxes");
 
+  console.log("\n▶ máis ferramentas de imaxe");
+  const txt = `(document.querySelector('.results textarea')?.value ?? '')`;
+  await go("#/recortar");
+  await ev(`(async () => { await __t.feed([await __t.png(1200, 800, '#d01818', 'foto.png')]); await __t.go(); })()`);
+  let rr = await ev(`__t.results()`);
+  ok(rr.length === 1 && /800 × 800/.test(rr[0]), "recortar a 1:1 dá 800 × 800", rr.join(" | "));
+  await go("#/dividir-imaxe");
+  await ev(`(async () => { await __t.feed([await __t.png(900, 600, '#d01818', 'tira.png')]); await __t.go(); })()`);
+  rr = await ev(`__t.results()`);
+  ok(rr.length === 3 && /300 × 600/.test(rr[0]) && rr[0].startsWith("tira-1.png"), "dividir en 3 × 1 dá tres partes de 300 × 600", rr.join(" | "));
+  await go("#/xuntar-imaxes");
+  await ev(`(async () => { await __t.feed([await __t.png(400, 300, '#d01818', 'a.png'), await __t.png(400, 200, '#20c040', 'b.png')]); await __t.go(); })()`);
+  rr = await ev(`__t.results()`);
+  ok(rr.length === 1 && /400 × 500/.test(rr[0]), "xuntar dúas imaxes en vertical dá 400 × 500", rr.join(" | "));
+  await go("#/iconas");
+  await ev(`(async () => { await __t.feed([await __t.png(600, 600, '#d01818', 'logo.png')]); await __t.go(); })()`);
+  rr = await ev(`__t.results()`);
+  ok(rr.length === 5 && rr[0].startsWith("logo.ico") && rr.some((x) => x.startsWith("logo-512.png")), "iconas: un .ico e catro PNG", rr.join(" | "));
+  await go("#/info-imaxe");
+  await ev(`(async () => { await __t.feed([await __t.png(600, 400, '#d01818', 'dato.png')]); await __t.go(); })()`);
+  ok(/Dimensións: 600 × 400 px/.test(await ev(txt)), "información da imaxe: dimensións", await ev(txt));
+
+  console.log("\n▶ máis ferramentas de PDF");
+  const setText = (v) => ev(`(() => { const t = document.querySelector('input[type=text]'); t.value = ${JSON.stringify(v)}; t.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  const pick = (name, value) => ev(`(async () => { document.querySelector('input[name=${name}][value="${value}"]').click(); await __t.sleep(100); })()`);
+  await go("#/ordenar-pdf");
+  await ev(`(async () => { await __t.feed([window.__pdf]); })()`);
+  await setText("1");
+  await ev(`__t.go()`);
+  ok(/2 páxinas/.test((await ev(`__t.results()`)).join()), "ordenar: quitar a páxina 1 deixa 2 páxinas");
+  await pick("ordenar-pdf-mode", "order");
+  await setText("3, 1, 1");
+  await ev(`__t.go()`);
+  ok(/3 páxinas/.test((await ev(`__t.results()`)).join()), "ordenar: unha orde nova con repetición dá 3 páxinas");
+  await pick("ordenar-pdf-mode", "reverse");
+  await ev(`__t.go()`);
+  ok(/3 páxinas/.test((await ev(`__t.results()`)).join()), "ordenar: dar a volta mantén 3 páxinas");
+  for (const [id, what] of [["recortar-pdf", "recortar márxenes"], ["marca-pdf", "marca de auga"], ["numeros-pdf", "numerar páxinas"], ["limpar-pdf", "limpar metadatos"]]) {
+    await go(`#/${id}`);
+    await ev(`(async () => { await __t.feed([window.__pdf]); await __t.go(); })()`);
+    const o = await ev(`__t.results()`);
+    ok(o.length === 1 && /\.pdf/.test(o[0]), `${what} devolve un PDF`, o.join(" | ") + (await ev(`document.querySelector('.results .warn')?.innerText ?? ''`)));
+  }
+  await go("#/marca-pdf");
+  await ev(`(async () => { await __t.feed([window.__pdf]); })()`);
+  await setText("");
+  await ev(`__t.go()`);
+  ok(/Escribe o texto/.test(await ev(`document.querySelector('.results .warn')?.innerText ?? ''`)), "a marca de auga baleira di o motivo");
+  await go("#/info-pdf");
+  await ev(`(async () => { await __t.feed([window.__pdf]); await __t.go(); })()`);
+  ok(/Páxinas: 3/.test(await ev(txt)), "información do PDF: 3 páxinas", await ev(txt));
+
+  console.log("\n▶ subtítulos");
+  const SRT = "1\\n00:00:01,000 --> 00:00:03,000\\nOla\\n\\n2\\n00:00:04,000 --> 00:00:05,500\\nAdeus\\n";
+  await go("#/converter-subs");
+  await ev(`(async () => { await __t.feed([new File(['${SRT}'], 'a.srt', { type: 'application/x-subrip' })]); })()`);
+  await pick("converter-subs-format", "vtt");
+  await ev(`__t.go()`);
+  ok(/^WEBVTT/.test(await ev(txt)), "converter subtítulos a VTT: o texto empeza por WEBVTT");
+  const vttName = await ev(`__t.results()`);
+  ok(vttName.length === 1 && vttName[0].startsWith("a.vtt"), "converter subtítulos: sae a.vtt", vttName.join(" | "));
+  await go("#/resincronizar");
+  await ev(`(async () => { await __t.feed([new File(['${SRT}'], 'a.srt', { type: 'application/x-subrip' })]); })()`);
+  await setText("2,5");
+  await ev(`__t.go()`);
+  ok(/Ola/.test(await ev(txt)) && /2 subtítulos/.test((await ev(`__t.results()`)).join()), "resincronizar desprazando 2,5 s", (await ev(`__t.results()`)).join(" | "));
+  await setText("");
+  await ev(`__t.go()`);
+  ok(/Escribe canto/.test(await ev(`document.querySelector('.results .warn')?.innerText ?? ''`)), "resincronizar sen cambios di o motivo");
+
   console.log("\n▶ modelos descargados");
   await ev(`(async () => { for (const n of await caches.keys()) if (!n.startsWith('trasno-web')) await caches.delete(n); })()`);
   await go("#/quitar-fondo");
@@ -175,6 +253,25 @@ try {
     await ev(`(async () => { const sr = 16000, n = sr * 2, buf = new ArrayBuffer(44 + n * 2), dv = new DataView(buf); const w = (o, s) => [...s].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0))); w(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, n * 2, true); for (let i = 0; i < n; i++) dv.setInt16(44 + i * 2, Math.sin(i * 2 * Math.PI * 440 / sr) * 12000, true); await __t.feed([new File([buf], 'tono.wav', { type: 'audio/wav' })]); document.querySelector('[data-testid=go]').click(); for (let i = 0; i < 120 && !document.querySelector('.results li') && !document.querySelector('.results .warn'); i++) await __t.sleep(1000); })()`);
     const au = await ev(`__t.results()`);
     ok(au.length === 1 && au[0].startsWith("tono.mp3"), "converte un WAV a MP3 co motor de FFmpeg", au.join(" | "));
+    // Máis audio e vídeo con FFmpeg: un WAV curto e un vídeo gravado no propio navegador.
+    await ev(`window.__wav = (name, secs, hz) => { const sr = 16000, n = sr * secs, buf = new ArrayBuffer(44 + n * 2), dv = new DataView(buf); const w = (o, s) => [...s].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0))); w(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, n * 2, true); for (let i = 0; i < n; i++) dv.setInt16(44 + i * 2, Math.sin(i * 2 * Math.PI * hz / sr) * 12000, true); return new File([buf], name, { type: 'audio/wav' }); }; window.__ok = true`);
+    await go("#/unir-audios");
+    await ev(`(async () => { await __t.feed([__wav('a.wav', 1, 440), __wav('b.wav', 1, 880)]); document.querySelector('[data-testid=go]').click(); for (let i = 0; i < 120 && !document.querySelector('.results li') && !document.querySelector('.results .warn'); i++) await __t.sleep(1000); })()`);
+    const un = await ev(`__t.results()`);
+    ok(un.length === 1 && un[0].startsWith("a-unido.mp3"), "unir dous audios dá un MP3", un.join(" | ") + (await ev(`document.querySelector('.results .warn')?.innerText ?? ''`)));
+    await go("#/axustar");
+    await ev(`(async () => { await __t.feed([__wav('tono.wav', 2, 440)]); document.querySelector('input[name=axustar-mode][value=speed]').click(); await __t.sleep(100); document.querySelector('[data-testid=go]').click(); for (let i = 0; i < 120 && !document.querySelector('.results li') && !document.querySelector('.results .warn'); i++) await __t.sleep(1000); })()`);
+    const ax = await ev(`__t.results()`);
+    ok(ax.length === 1 && ax[0].startsWith("tono-velocidade.mp3"), "velocidade: un audio máis rápido en MP3", ax.join(" | ") + (await ev(`document.querySelector('.results .warn')?.innerText ?? ''`)));
+    await ev(`(async () => { window.__vid = await new Promise((res) => { const c = document.createElement('canvas'); c.width = 160; c.height = 120; const g = c.getContext('2d'); const rec = new MediaRecorder(c.captureStream(15), { mimeType: 'video/webm' }); const chunks = []; rec.ondataavailable = (e) => chunks.push(e.data); rec.onstop = () => res(new File(chunks, 'clip.webm', { type: 'video/webm' })); rec.start(); let n = 0; const t = setInterval(() => { g.fillStyle = 'hsl(' + n * 20 + ',70%,50%)'; g.fillRect(0, 0, 160, 120); n++; if (n > 20) { clearInterval(t); rec.stop(); } }, 66); }); })()`);
+    await go("#/fotograma");
+    await ev(`(async () => { await __t.feed([window.__vid]); const t = document.querySelector('input[type=text]'); t.value = '0.3'; t.dispatchEvent(new Event('input', { bubbles: true })); document.querySelector('[data-testid=go]').click(); for (let i = 0; i < 120 && !document.querySelector('.results li') && !document.querySelector('.results .warn'); i++) await __t.sleep(1000); })()`);
+    const fo = await ev(`__t.results()`);
+    ok(fo.length === 1 && fo[0].startsWith("clip-fotograma.jpg"), "fotograma: unha imaxe JPG do vídeo", fo.join(" | ") + (await ev(`document.querySelector('.results .warn')?.innerText ?? ''`)));
+    await go("#/video");
+    await ev(`(async () => { await __t.feed([window.__vid]); document.querySelector('[data-testid=go]').click(); for (let i = 0; i < 180 && !document.querySelector('.results li') && !document.querySelector('.results .warn'); i++) await __t.sleep(1000); })()`);
+    const vi = await ev(`__t.results()`);
+    ok(vi.length === 1 && vi[0].startsWith("clip-comprimido.mp4"), "comprimir vídeo dá un MP4", vi.join(" | ") + (await ev(`document.querySelector('.results .warn')?.innerText ?? ''`)));
     await go("#/traducir");
     await ev(`(async () => { await __t.feed([new File(['1\\n00:00:01,000 --> 00:00:03,000\\nGood morning, how are you today?\\n'], 'a.srt', { type: 'application/x-subrip' })]); document.querySelector('input[name=traducir-to][value=spa]').click(); document.querySelector('[data-testid=go]').click(); for (let i = 0; i < 240 && !document.querySelector('.results textarea') && !document.querySelector('.results .warn'); i++) await __t.sleep(1000); })()`);
     const tr = await ev(`document.querySelector('.results textarea')?.value ?? document.querySelector('.results .warn')?.innerText ?? ''`);
@@ -182,7 +279,7 @@ try {
   }
 
   console.log("\n▶ contraste e idioma");
-  for (const [hash, label] of [["", "inicio"], ["#/converter", "converter"], ["#/dividir-pdf", "dividir"]]) {
+  for (const [hash, label] of [["", "inicio"], ["#/ferramentas", "ferramentas"], ["#/descarga", "descarga"], ["#/converter", "converter"], ["#/dividir-pdf", "dividir"]]) {
     await go(hash);
     for (const theme of ["dark", "light"]) {
       await ev(`document.documentElement.dataset.theme = ${JSON.stringify(theme)}`);
@@ -194,6 +291,7 @@ try {
   await go("");
   await ev(`localStorage.setItem('arquivos-do-trasno.lang', 'en'); location.reload()`);
   await sleep(1500);
+  await go("#/ferramentas");
   ok(/Convert images/.test(await ev(`document.body.innerText`)), "o inglés tradúcese");
 } finally {
   try {

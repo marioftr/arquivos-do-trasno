@@ -1,6 +1,7 @@
 import { mount } from "svelte";
 import "@fontsource-variable/atkinson-hyperlegible-next";
 import "@app/styles/tokens.css";
+import "./ds.css";
 import "./web.css";
 import { detectEncoders } from "./lib/image";
 import App from "./App.svelte";

@@ -6,6 +6,7 @@
   <p>{$t("Os ficheiros que elixes procésanse no teu aparello, dentro do navegador. Non se envían a ningún servidor.")}</p>
   <p>{$t("Non hai contas, publicidade nin rastrexadores.")}</p>
   <p>{$t("Algunhas ferramentas descargan o seu motor ou modelo: o de audio e vídeo vén de jsDelivr e os de IA de Hugging Face. Só se descarga ese programa, nunca os teus ficheiros. Queda gardado no navegador e bórrase ao limpar os datos do sitio.")}</p>
+  <p>{$t("A páxina de descarga pregunta a GitHub cal é a última versión da app. Só se fai ao abrila, e GitHub pode ver o teu enderezo IP.")}</p>
   <p>{$t("O navegador garda no aparello o tema, o idioma e os últimos axustes de cada ferramenta.")}</p>
   <p>{$t("A web aloxase en Vercel, que, coma calquera servidor, pode rexistrar o enderezo IP das visitas.")}</p>
 </article>
