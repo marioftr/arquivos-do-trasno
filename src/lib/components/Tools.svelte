@@ -320,7 +320,7 @@
   header { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.8rem 0.45rem 1.1rem; min-height: 3rem; }
   .ttl { flex: 1; min-width: 0; }
   .tt { display: flex; align-items: center; gap: 0.25rem; min-width: 0; }
-  header h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header h2 { margin: 0; font-size: var(--fs-lg); font-weight: var(--fw-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sub { margin: 0.1rem 0 0; font-size: var(--fs-xs); }
   .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; padding: 0.9rem 1.1rem 1.5rem; }
   .locked { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; text-align: center; padding: 2rem 1rem; color: var(--accent-pdf); }

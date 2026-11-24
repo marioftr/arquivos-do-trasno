@@ -298,6 +298,6 @@
   .rows { display: grid; grid-template-columns: auto 1fr; column-gap: 0; row-gap: 0.35rem; margin: 0; font-size: var(--fs-md); }
   .rows dt { color: var(--text-muted); padding-right: 1rem; }
   .rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; user-select: text; }
-  .rows .total { padding-top: 0.45rem; border-top: 1px solid var(--border); font-weight: 600; color: var(--text); }
-  .was { color: var(--text-faint); font-weight: 400; }
+  .rows .total { padding-top: 0.45rem; border-top: 1px solid var(--border); font-weight: var(--fw-strong); color: var(--text); }
+  .was { color: var(--text-faint); font-weight: var(--fw-regular); }
 </style>

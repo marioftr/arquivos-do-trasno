@@ -400,18 +400,18 @@
   .thumb { flex: none; width: 7.5rem; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-sm); background: var(--bg-hover); }
   .body { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; flex: 1; }
   .chips { display: flex; gap: 0.4rem; }
-  .site { align-self: flex-start; font-size: var(--fs-xs); font-weight: 600; padding: 0.1rem 0.5rem; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--accent-video) 18%, transparent); color: var(--accent-video); }
+  .site { align-self: flex-start; font-size: var(--fs-xs); font-weight: var(--fw-strong); padding: 0.1rem 0.5rem; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--accent-video) 18%, transparent); color: var(--accent-video); }
   .site.alt { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
   .title { font-size: var(--fs-md); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
   .facts { font-size: var(--fs-sm); }
   .format { margin: -0.3rem 0 0; font-size: var(--fs-sm); }
-  .format strong { color: var(--text); font-weight: 600; }
+  .format strong { color: var(--text); font-weight: var(--fw-strong); }
   .list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); min-height: 0; overflow: hidden; }
   /* En dúas columnas, a lista enche o alto da columna sen estirar a xanela; ao desbordar, desprázase por dentro. */
   .wide .side { min-height: 14rem; }
   .wide .list { position: absolute; inset: 0; }
   .wide ul { flex: 1; min-height: 0; max-height: none; }
-  .all { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.7rem; font-size: var(--fs-md); font-weight: 550; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .all { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.7rem; font-size: var(--fs-md); font-weight: var(--fw-medium); border-bottom: 1px solid var(--border); cursor: pointer; }
   ul { list-style: none; margin: 0; padding: 0.2rem 0; max-height: 9.5rem; overflow-y: auto; }
   li label { display: flex; align-items: center; gap: 0.55rem; padding: 0.3rem 0.7rem; cursor: pointer; font-size: var(--fs-md); }
   li label:hover { background: var(--bg-hover); }

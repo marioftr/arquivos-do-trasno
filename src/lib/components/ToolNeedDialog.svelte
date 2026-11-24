@@ -62,7 +62,7 @@
 <style>
   .body { display: flex; flex-direction: column; gap: 0.7rem; }
   .body p { margin: 0; }
-  .reason { font-weight: 550; }
+  .reason { font-weight: var(--fw-medium); }
   .small { font-size: var(--fs-sm); }
   .fail { color: var(--accent-video); font-size: var(--fs-md); }
   .done { display: flex; align-items: center; gap: 0.4rem; color: var(--accent-imaxe); }

@@ -135,8 +135,8 @@
   
 
 <section>
-  <h3>{$t("Volta rápida")}<InfoTip text={$t("O trasno amosa como se usa a app, paso a paso, cunha xanela de exemplo.")} /></h3>
-  <div class="exrow"><button class="btn" on:click={openTutorial}><Icon name="play" size={14} /> {$t("Repetir a volta rápida")}</button></div>
+  <h3>{$t("Titorial")}</h3>
+  <div class="exrow"><button class="btn" on:click={() => openTutorial()}><Icon name="play" size={14} /> {$t("Ver o titorial")}</button></div>
 </section>
 
 <section>
@@ -148,7 +148,7 @@
 <style>
   .hint { margin: 0.3rem 0 0; font-size: var(--fs-sm); line-height: 1.4; }
   section { display: flex; flex-direction: column; gap: 0.6rem; }
-  h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; }
+  h3 { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-strong); }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
   .lab { font-size: var(--fs-md); display: inline-flex; align-items: center; }
   /* Etiqueta dun control que ocupa a liña enteira (igual que a dos selectores segmentados): máis pequena e apagada. */

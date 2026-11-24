@@ -4,6 +4,18 @@
   box-sizing: border-box;
 }
 
+b,
+strong,
+th,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: var(--fw-strong);
+}
+
 html,
 body {
   overflow: hidden;
@@ -82,7 +94,7 @@ input[type="number"],
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
-  font-weight: 600;
+  font-weight: var(--fw-strong);
 }
 
 /* O texto atenuado dentro dun botón verde herda a súa cor (o gris de sempre case non se le sobre o verde). */
@@ -96,7 +108,7 @@ input[type="number"],
   background: var(--accent-video);
   border-color: var(--accent-video);
   color: #fff;
-  font-weight: 600;
+  font-weight: var(--fw-strong);
 }
 
 .btn.ghost {
@@ -352,7 +364,7 @@ dd {
 .group-title {
   margin: 0;
   font-size: var(--fs-xs);
-  font-weight: 650;
+  font-weight: var(--fw-strong);
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -369,7 +381,7 @@ dd {
 }
 .est-main {
   font-size: var(--fs-lg);
-  font-weight: 600;
+  font-weight: var(--fw-strong);
 }
 
 .group-note {

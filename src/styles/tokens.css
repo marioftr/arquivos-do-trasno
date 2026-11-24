@@ -45,6 +45,11 @@
   --fs-lg: 1rem;
   --fs-xl: 1.2rem;
 
+  /* Tres pesos de letra, nada máis: texto, rótulos e controis, e énfase (títulos, botóns, cifras). */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-strong: 650;
+
   /* Atkinson Hyperlegible Next vai incluída no programa (non depende de que a persoa a teña instalada). */
   font-family: "Atkinson Hyperlegible Next Variable", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   font-feature-settings: "tnum";

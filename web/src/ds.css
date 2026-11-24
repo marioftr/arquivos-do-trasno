@@ -22,7 +22,6 @@
   --fs-xl: 1.5625rem;
   --fs-h1: 1.9375rem;
   --fs-display: clamp(2.25rem, 1.4rem + 3.6vw, 3.4375rem);
-  --fw-heading: 700;
   --tracking-heading: -0.01em;
   --tracking-display: -0.025em;
 
@@ -41,4 +40,6 @@
 
   /* Páxina */
   --page-w: 64rem;
+  /* Marxe lateral: 16 px no móbil, ata 32 px en pantallas grandes (a mesma na cabeceira, o contido e o pé) */
+  --gutter: clamp(1rem, 0.4rem + 2.6vw, 2rem);
 }

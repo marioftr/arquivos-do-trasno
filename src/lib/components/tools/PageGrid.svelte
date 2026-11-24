@@ -82,7 +82,7 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 0.5rem; }
   .tile { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0.35rem; border: 2px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-muted); cursor: pointer; }
   .tile:hover { border-color: var(--border-strong); }
-  .tile.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--bg-input)); color: var(--text); font-weight: 600; }
+  .tile.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--bg-input)); color: var(--text); font-weight: var(--fw-strong); }
   .thumb { width: 100%; height: 84px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .thumb img { max-width: 100%; max-height: 100%; background: #fff; user-select: none; -webkit-user-drag: none; pointer-events: none; }
   .tile:not(.on) .thumb img { opacity: 0.75; }

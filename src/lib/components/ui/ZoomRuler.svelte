@@ -70,7 +70,7 @@
   .tick.major { height: 6px; background: var(--text-muted); }
   .tick.on { height: 8px; background: var(--text); }
   .tl { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-size: 0.62rem; line-height: 1; color: var(--text-faint); font-variant-numeric: tabular-nums; pointer-events: none; }
-  .tick.on .tl { color: var(--text); font-weight: 600; top: 10px; }
+  .tick.on .tl { color: var(--text); font-weight: var(--fw-strong); top: 10px; }
   .thumb { position: absolute; top: 6px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg-rail); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); box-sizing: border-box; transition: transform 0.12s; pointer-events: none; }
   .thumb.drag { transform: scale(1.2); }
 </style>

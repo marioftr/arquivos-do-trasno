@@ -37,15 +37,15 @@
 
 <style>
   fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
-  legend { padding: 0; margin-bottom: 0.45rem; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; }
+  legend { padding: 0; margin-bottom: 0.45rem; font-size: var(--fs-sm); font-weight: var(--fw-strong); color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; }
   .seg { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  label { position: relative; flex: 1 1 calc(50% - 0.25rem); min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; min-height: var(--control-h); padding: 0.4rem 0.6rem; text-align: center; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); color: var(--text); font-weight: 600; line-height: 1.25; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+  label { position: relative; flex: 1 1 calc(50% - 0.25rem); min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; min-height: var(--control-h); padding: 0.4rem 0.6rem; text-align: center; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); color: var(--text); font-weight: var(--fw-strong); line-height: 1.25; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
   .row label { flex: 1 1 0; }
   label.tall { min-height: 3.6rem; }
   label:hover { background: var(--bg-hover); }
   label.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg-card)); }
   input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
   label:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
-  .s { font-size: var(--fs-xs); font-weight: 400; color: var(--text-muted); }
-  .s.done { display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 600; color: var(--accent); }
+  .s { font-size: var(--fs-xs); font-weight: var(--fw-regular); color: var(--text-muted); }
+  .s.done { display: inline-flex; align-items: center; gap: 0.25rem; font-weight: var(--fw-strong); color: var(--accent); }
 </style>

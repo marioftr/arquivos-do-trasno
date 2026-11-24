@@ -36,5 +36,5 @@
   .i { display: grid; place-items: center; width: 44px; height: 44px; margin: -12px -8px; padding: 0; background: none; border: 0; border-radius: 50%; color: var(--text-muted); }
   .i:hover { color: var(--text); }
   .i:focus-visible { outline: 3px solid var(--accent); outline-offset: -4px; }
-  .tip { position: fixed; z-index: 30; padding: 0.7rem 0.85rem; background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: var(--fs-sm); font-weight: 400; line-height: 1.45; text-align: left; }
+  .tip { position: fixed; z-index: 30; padding: 0.7rem 0.85rem; background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: var(--fs-sm); font-weight: var(--fw-regular); line-height: 1.45; text-align: left; }
 </style>

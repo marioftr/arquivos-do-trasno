@@ -78,5 +78,5 @@
 <style>
   .tip { display: inline-grid; place-items: center; vertical-align: middle; width: 18px; height: 18px; padding: 0; margin-left: 0.25rem; background: none; border: none; border-radius: 50%; color: var(--text-faint); cursor: help; position: relative; z-index: 2; }
   .tip:hover, .tip[aria-expanded="true"] { color: var(--accent); }
-  .pop { position: fixed; z-index: 90; width: max-content; max-width: 280px; padding: 0.5rem 0.65rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); font-size: var(--fs-sm); line-height: 1.4; color: var(--text); user-select: text; cursor: text; font-weight: 400; text-transform: none; letter-spacing: 0; white-space: pre-line; }
+  .pop { position: fixed; z-index: 90; width: max-content; max-width: 280px; padding: 0.5rem 0.65rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); font-size: var(--fs-sm); line-height: 1.4; color: var(--text); user-select: text; cursor: text; font-weight: var(--fw-regular); text-transform: none; letter-spacing: 0; white-space: pre-line; }
 </style>

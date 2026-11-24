@@ -145,5 +145,5 @@
   table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
   td { padding: 0.2rem 0.45rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
   tr:last-child td { border-bottom: none; }
-  tr:first-child td { font-weight: 600; background: var(--bg-hover); }
+  tr:first-child td { font-weight: var(--fw-strong); background: var(--bg-hover); }
 </style>

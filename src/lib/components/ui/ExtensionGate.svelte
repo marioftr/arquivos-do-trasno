@@ -70,9 +70,9 @@
   .gate { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.8rem 0.9rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); }
   .gate p, .gate ul { margin: 0; }
   ul { padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.2rem; }
-  .lead { font-weight: 550; }
+  .lead { font-weight: var(--fw-medium); }
   .small { font-size: var(--fs-sm); }
-  .size { font-weight: 400; }
+  .size { font-weight: var(--fw-regular); }
   .fail { color: var(--accent-video); font-size: var(--fs-md); }
   .prog { display: flex; flex-direction: column; gap: 0.4rem; }
   .line { display: flex; justify-content: space-between; font-size: var(--fs-md); }

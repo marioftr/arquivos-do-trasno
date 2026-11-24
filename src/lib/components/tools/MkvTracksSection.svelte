@@ -209,7 +209,7 @@
   .l1, .l2 { display: flex; align-items: center; gap: 0.35rem; }
   .l2 { padding-left: 1.5rem; }
   .grip { cursor: grab; touch-action: none; user-select: none; color: var(--text-faint); padding: 0 0.15rem; line-height: 1; }
-  .kind { flex: 0 0 auto; font-size: var(--fs-sm); font-weight: 650; }
+  .kind { flex: 0 0 auto; font-size: var(--fs-sm); font-weight: var(--fw-strong); }
   .kind.video { color: var(--accent-video); }
   .kind.audio { color: var(--accent-audio); }
   .kind.subtitles { color: var(--accent-pdf); }

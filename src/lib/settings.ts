@@ -114,9 +114,9 @@ export const dialog = writable<"hub" | "palette" | "download" | null>(null);
 export const pastedLink = writable("");
 /** Que pestana abre a xanela de descargas: ligazóns (yt-dlp) ou torrents. */
 export const downloadTab = writable<"link" | "torrent">("link");
-/** A volta rápida (tutorial): ábrese soa na primeira execución e pódese repetir desde Axustes. */
+/** O titorial: na primeira execución sae primeiro a benvida («welcome») e, se a persoa quere, os pasos; desde Axustes vai directo aos pasos. */
 const TUTORIAL_KEY = "arquivos-do-trasno.tutorial-visto";
-export const tutorialOpen = writable(false);
+export const tutorialOpen = writable<false | "welcome" | "steps">(false);
 export function tutorialSeen(): boolean {
   try {
     return localStorage.getItem(TUTORIAL_KEY) === "1";
@@ -124,9 +124,9 @@ export function tutorialSeen(): boolean {
     return true;
   }
 }
-export function openTutorial() {
+export function openTutorial(from: "welcome" | "steps" = "steps") {
   dialog.set(null);
-  tutorialOpen.set(true);
+  tutorialOpen.set(from);
 }
 export function closeTutorial() {
   try {

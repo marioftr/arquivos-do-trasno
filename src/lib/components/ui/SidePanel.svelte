@@ -89,7 +89,7 @@
   .grip::after { content: ""; position: absolute; left: 3px; top: 0; bottom: 0; width: 1px; background: transparent; }
   .grip:hover::after, .grip.drag::after, .grip:focus-visible::after { width: 2px; left: 2px; background: var(--accent); }
   header { display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 0.7rem 0.55rem 0.9rem; border-bottom: 1px solid var(--border); }
-  h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; }
+  h3 { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-strong); }
   .x { display: grid; place-items: center; width: 26px; height: 26px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-faint); }
   .x:hover { background: var(--bg-hover); color: var(--text); }
   .body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; display: flex; flex-direction: column; }

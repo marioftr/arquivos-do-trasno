@@ -426,7 +426,7 @@
   .vline { top: 0; bottom: 0; width: 1px; background: rgba(255, 255, 255, 0.8); }
   .hline { left: 0; right: 0; height: 1px; background: rgba(255, 255, 255, 0.8); }
   .part { position: absolute; display: grid; place-items: center; pointer-events: none; }
-  .part b { font-size: var(--fs-lg); font-weight: 650; color: #fff; background: rgba(0, 0, 0, 0.55); border-radius: 999px; min-width: 1.7em; padding: 0.05em 0.4em; text-align: center; }
+  .part b { font-size: var(--fs-lg); font-weight: var(--fw-strong); color: #fff; background: rgba(0, 0, 0, 0.55); border-radius: 999px; min-width: 1.7em; padding: 0.05em 0.4em; text-align: center; }
   .v1 { left: 33.33%; } .v2 { left: 66.66%; } .h1 { top: 33.33%; } .h2 { top: 66.66%; }
   .handle { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; background: #fff; border: 1.5px solid #111; border-radius: 2px; touch-action: none; }
   .size.inside { bottom: auto; top: 8px; transform: translateX(-50%); }

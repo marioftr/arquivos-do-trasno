@@ -108,8 +108,8 @@
   .ask { font-size: var(--fs-sm); }
   .top :global(.btn) { height: var(--control-h); min-height: var(--control-h); padding-block: 0; }
   .grp { display: flex; flex-direction: column; gap: 0.15rem; }
-  h4 { margin: 0 0 0.3rem; font-size: var(--fs-md); font-weight: 600; }
-  .fx { font-weight: 400; font-size: var(--fs-xs); }
+  h4 { margin: 0 0 0.3rem; font-size: var(--fs-md); font-weight: var(--fw-strong); }
+  .fx { font-weight: var(--fw-regular); font-size: var(--fs-xs); }
   .row { display: grid; grid-template-columns: minmax(0, 1fr) 8.2rem 8.2rem 1.8rem; align-items: center; gap: 0.4rem; padding: 0.15rem 0; border-top: 1px solid var(--border); }
   .d { font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; }
   .slot { position: relative; display: flex; }

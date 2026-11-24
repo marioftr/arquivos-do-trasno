@@ -401,13 +401,13 @@
   .chaps li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: 0.4rem; align-items: baseline; }
   .cn { color: var(--text-muted); font-variant-numeric: tabular-nums; text-align: right; }
   .cb { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
-  .cname { overflow-wrap: anywhere; font-weight: 600; }
+  .cname { overflow-wrap: anywhere; font-weight: var(--fw-strong); }
   .ctime { color: var(--text-muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
   .fold dl { margin-top: 0.5rem; }
   .raw { margin-top: 1.1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; }
   .raw summary { cursor: pointer; font-size: var(--fs-md); color: var(--text-muted); }
   .sub { margin-top: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.4rem; }
-  .sub summary { cursor: pointer; font-size: var(--fs-sm); font-weight: 600; }
+  .sub summary { cursor: pointer; font-size: var(--fs-sm); font-weight: var(--fw-strong); }
   .sub dl { margin-top: 0.5rem; }
   dl.mono { font-size: var(--fs-xs); }
   dl.mono dt { font-family: Consolas, monospace; }

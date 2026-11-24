@@ -60,9 +60,9 @@
   .seg.two button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; min-height: calc(var(--control-h) + 0.7rem); padding: 0.3em 0.5em; }
   .seg.glyphs button { gap: 0.15rem; padding-top: 0.35em; }
   .seg.glyphs button span { font-size: var(--fs-sm); }
-  small { font-size: var(--fs-xs); font-weight: 400; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+  small { font-size: var(--fs-xs); font-weight: var(--fw-regular); color: var(--text-faint); font-variant-numeric: tabular-nums; }
   button.on small { color: var(--text-muted); }
   button { flex: 1 1 0; min-height: calc(var(--control-h) - 6px); background: transparent; border: none; border-radius: var(--radius-sm); color: var(--text-muted); font-size: var(--fs-md); padding: 0 0.5em; white-space: nowrap; }
   button:hover { color: var(--text); background: var(--bg-hover); }
-  button.on { background: var(--bg-hover); color: var(--text); font-weight: 600; box-shadow: 0 0 0 1px var(--border-strong); }
+  button.on { background: var(--bg-hover); color: var(--text); font-weight: var(--fw-strong); box-shadow: 0 0 0 1px var(--border-strong); }
 </style>

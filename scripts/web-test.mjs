@@ -74,6 +74,9 @@ try {
   await send("Page.enable");
   await send("Page.navigate", { url: "http://localhost:1422/" });
   await sleep(1500);
+  // O idioma do navegador de proba pode non ser o galego: fíxase antes de empezar.
+  await ev("localStorage.setItem('arquivos-do-trasno.lang', 'gl'); location.reload()");
+  await sleep(1500);
   await ev(HELP);
 
   for (const [label, w, h, mobile] of [["móbil 390 px", 390, 844, true], ["móbil estreito 320 px", 320, 640, true], ["ordenador 1280 px", 1280, 800, false]]) {
@@ -307,7 +310,11 @@ try {
     preview.kill();
   }
   await sleep(500);
-  fs.rmSync(profile, { recursive: true, force: true });
+  try {
+    fs.rmSync(profile, { recursive: true, force: true });
+  } catch {
+    // Windows ainda pode ter o perfil bloqueado un instante: o sistema limpa a carpeta temporal.
+  }
 }
 console.log(fails ? `\n✗ ${fails} comprobación(s) fallaron.` : "\n✓ Todo en orde.");
 process.exit(fails ? 1 : 0);

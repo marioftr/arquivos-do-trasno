@@ -19,5 +19,5 @@
 <style>
   .hd { display: flex; align-items: center; gap: 0.1rem; }
   .hd .group-title { padding-right: 0; }
-  .meta { margin-left: auto; font-size: var(--fs-xs); font-weight: 500; color: var(--text-faint); }
+  .meta { margin-left: auto; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--text-faint); }
 </style>

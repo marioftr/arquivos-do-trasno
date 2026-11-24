@@ -37,14 +37,13 @@
 
 {#each visibleGroups as g (g.id)}
   <section class="group" aria-labelledby={`g-${g.id}`} style={`--c:${g.color}`}>
-    <h2 id={`g-${g.id}`}><Icon name={g.icon} size={20} />{g.label}</h2>
+    <h2 id={`g-${g.id}`}><Icon name={g.icon} size={22} />{g.label}<small>{shown.filter((x) => x.group === g.id).length}</small></h2>
     <ul class="cards">
       {#each shown.filter((x) => x.group === g.id) as x (x.id)}
         <li>
           <a class="card" href={href(x.id)}>
             <span class="ic"><ToolIcon name={x.icon} size={26} /></span>
             <span class="tx"><span class="ti">{x.title}</span><span class="de">{x.desc}</span></span>
-            <Icon name="chevron-right" size={20} />
           </a>
         </li>
       {/each}
@@ -55,32 +54,32 @@
 {/each}
 
 <style>
-  h1 { margin: 0 0 var(--sp-4); font-size: var(--fs-h1); line-height: 1.15; outline: none; font-weight: var(--fw-heading); letter-spacing: var(--tracking-heading); }
+  h1 { margin: 0 0 var(--sp-5); font-size: var(--fs-h1); line-height: 1.15; outline: none; font-weight: var(--fw-strong); letter-spacing: var(--tracking-heading); }
   .filters { display: flex; flex-direction: column; gap: var(--sp-3); margin-bottom: var(--sp-6); }
-  .search { display: flex; align-items: center; gap: 0.6rem; min-height: var(--control-h); padding: 0 0.8rem; background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-md); color: var(--text-muted); }
+  .search { display: flex; align-items: center; gap: 0.6rem; min-height: var(--control-h); padding: 0 0.8rem; background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-muted); }
   .search:focus-within { outline: 3px solid var(--accent); outline-offset: 1px; }
   .search input { flex: 1; min-width: 0; height: 100%; min-height: calc(var(--control-h) - 2px); padding: 0; background: none; border: 0; outline: none; color: var(--text); }
   .search input::placeholder { color: var(--text-muted); }
-  .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-  .chip { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 44px; padding: 0 0.9rem; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 999px; color: var(--text); font-weight: 600; text-decoration: none; }
-  .chip span { font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); }
-  .chip:hover { background: var(--bg-hover); }
-  .chip.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg-card)); }
+  /* Filtros: pestanas rectas e planas; a elixida leva o fondo e o texto en negra. */
+  .chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+  .chip { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 44px; padding: 0 var(--sp-4); border-radius: var(--radius-sm); color: var(--text-muted); font-weight: var(--fw-medium); text-decoration: none; }
+  .chip span { font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+  .chip:hover { background: var(--bg-hover); color: var(--text); }
+  .chip.on { background: var(--bg-card); color: var(--text); font-weight: var(--fw-strong); }
   .chip:focus-visible, .card:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .group { margin-bottom: var(--sp-6); }
-  h2 { display: flex; align-items: center; gap: var(--sp-2); margin: 0 0 var(--sp-3); padding-bottom: var(--sp-2); border-bottom: 1px solid var(--border); font-size: var(--fs-h3); color: var(--text); font-weight: var(--fw-heading); }
+  h2 { display: flex; align-items: center; gap: var(--sp-2); margin: 0 0 var(--sp-3); font-size: var(--fs-h3); color: var(--text); font-weight: var(--fw-strong); }
   h2 :global(svg) { color: var(--c); }
-  .cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); }
+  h2 small { color: var(--text-muted); font-size: var(--fs-sm); font-weight: var(--fw-regular); font-variant-numeric: tabular-nums; }
+  .cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
   .cards li { display: flex; }
-  .card { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.9rem; min-height: 5rem; padding: var(--sp-3) var(--sp-4); background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); color: var(--text); text-decoration: none; -webkit-tap-highlight-color: transparent; transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease); }
-  .card:hover { background: var(--bg-hover); border-color: var(--c); transform: translateY(-1px); box-shadow: var(--elev-2); }
-  .ic { flex: none; display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: var(--radius-md); background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
-  .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .ti { font-weight: 700; font-size: var(--fs-md); }
-  .de { font-size: var(--fs-sm); color: var(--text-muted); }
-  .card :global(svg:last-child) { color: var(--text-faint); flex: none; }
+  .card { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); color: var(--text); text-decoration: none; transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); -webkit-tap-highlight-color: transparent; }
+  .card:hover { background: var(--bg-hover); border-color: var(--c); }
+  .ic { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: var(--radius-md); background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
+  .tx { display: flex; flex-direction: column; gap: 2px; }
+  .ti { font-weight: var(--fw-strong); }
+  .de { font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.4; }
   .none { color: var(--text-muted); }
-  @media (prefers-reduced-motion: reduce) { .card:hover { transform: none; } }
-  @media (min-width: 640px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (min-width: 960px) { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 720px) { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 960px) { .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 </style>

@@ -85,7 +85,7 @@
   .mas { display: block; line-height: 0; margin-right: 0.5rem; }
   .mas.flying { visibility: hidden; }
   header.mascot h2 { margin-right: auto; }
-  h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
+  h2 { margin: 0; font-size: var(--fs-lg); font-weight: var(--fw-strong); }
   .content { padding: 1rem 1.1rem 1.2rem; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; min-height: 0; flex: 1; display: flex; flex-direction: column; gap: 1rem; }
   .box.tall { height: min(660px, 100%); }
   .content.tall { overflow: hidden; }

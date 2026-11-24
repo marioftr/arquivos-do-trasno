@@ -325,7 +325,7 @@
   .titles { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
   .titles strong { font-size: var(--fs-md); }
   .what { font-size: var(--fs-sm); }
-  .head { margin: 0.2rem 0 0; font-size: var(--fs-lg); font-weight: 600; color: var(--text); }
+  .head { margin: 0.2rem 0 0; font-size: var(--fs-lg); font-weight: var(--fw-strong); color: var(--text); }
   .head.bad { color: var(--accent-video); }
   .head.cancel { color: var(--accent-pdf); }
 
@@ -348,9 +348,9 @@
   .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: turn 0.8s linear infinite; }
   @keyframes turn { to { transform: rotate(360deg); } }
   .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
-  .n { font-size: var(--fs-md); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .n { font-size: var(--fs-md); font-weight: var(--fw-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sub { font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .note { color: var(--accent); font-weight: 600; }
+  .note { color: var(--accent); font-weight: var(--fw-strong); }
   .err { font-size: var(--fs-sm); color: var(--accent-video); word-break: break-word; }
   footer { display: flex; align-items: center; gap: 0.6rem; font-size: var(--fs-sm); padding-top: 0.5rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
   .grow { flex: 1; }

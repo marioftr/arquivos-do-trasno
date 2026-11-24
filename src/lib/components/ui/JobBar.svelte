@@ -108,11 +108,11 @@
   .jtext .pct { margin-left: auto; }
   .q { overflow: hidden; text-overflow: ellipsis; }
   .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
-  .jt { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
+  .jt { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--fw-medium); }
   .col .jt { flex: none; font-size: var(--fs-lg); }
   .sub { font-size: var(--fs-xs); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pct { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-muted); }
-  .pct.big { font-size: var(--fs-xl); font-weight: 600; color: var(--text); }
+  .pct.big { font-size: var(--fs-xl); font-weight: var(--fw-strong); color: var(--text); }
   .jx { position: relative; z-index: 1; flex: none; display: grid; place-items: center; width: 32px; padding: 0; background: none; border: none; border-left: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 0; color: var(--text-muted); }
   .large .jx { width: 52px; }
   .jx:hover { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text); }

@@ -81,7 +81,7 @@
 <style>
   .panel { display: flex; flex-direction: column; gap: 1rem; }
   section { display: flex; flex-direction: column; gap: 0.4rem; }
-  h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; }
+  h3 { margin: 0; font-size: var(--fs-md); font-weight: var(--fw-strong); }
   p { margin: 0; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.35rem 0; border-top: 1px solid var(--border); }
   .small { font-size: var(--fs-sm); }

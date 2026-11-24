@@ -66,12 +66,12 @@
   section { display: flex; flex-direction: column; gap: 1rem; }
   .rel { display: flex; flex-direction: column; gap: 0.5rem; }
   header { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
-  h3 { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
+  h3 { margin: 0; font-size: var(--fs-lg); font-weight: var(--fw-strong); }
   .sep::before { content: "·"; margin: 0 0.55em; }
   .date { font-size: var(--fs-sm); }
   ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
   li { display: flex; gap: 0.6rem; align-items: baseline; font-size: var(--fs-md); line-height: 1.4; }
-  .tag { flex: 0 0 5.4rem; text-align: left; font-size: var(--fs-xs); font-weight: 500; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-faint); }
+  .tag { flex: 0 0 5.4rem; text-align: left; font-size: var(--fs-xs); font-weight: var(--fw-medium); letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-faint); }
   .tag.fixed { color: var(--accent-pdf); }
   .tx { flex: 1; min-width: 0; }
   .cur { display: flex; align-items: baseline; gap: 0.6rem; font-size: var(--fs-md); }

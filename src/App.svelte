@@ -280,10 +280,10 @@
     if ((await engine.startupJob().catch(() => null)) === null) {
       // Apertura normal: a xanela móstrase cando a interface xa está pintada.
       requestAnimationFrame(() => getCurrentWindow().show().catch(() => {}));
-      // Na primeira execución, primeiro a volta rápida; despois (se falta algo) a xanela de extensións.
+      // Na primeira execución, primeiro a benvida (e o titorial se a persoa quere); despois (se falta algo) a xanela de extensións.
       if (tutorialSeen()) welcomeIfNeeded();
       else {
-        openTutorial();
+        openTutorial("welcome");
         const off = tutorialOpen.subscribe((open) => {
           if (open) return;
           queueMicrotask(() => off());
@@ -535,10 +535,10 @@
   .rd { --c: var(--accent); position: absolute; z-index: 1; display: grid; place-items: center; width: 52px; height: 52px; margin: 0; padding: 0; border-radius: 50%; color: var(--text-muted); background: radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--text-muted) 14%, var(--bg-elevated)), var(--bg-elevated) 74%); border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop), inset 0 0 0 4px var(--bg-elevated), inset 0 0 0 5px transparent; opacity: 0; pointer-events: none; transform: translate(var(--dx), var(--dy)) scale(0.3); transition: opacity 0.16s, transform 0.26s cubic-bezier(0.3, 1.25, 0.5, 1), color 0.14s, border-color 0.14s, box-shadow 0.14s, background 0.14s; transition-delay: calc(var(--n) * 22ms), calc(var(--n) * 22ms), 0s, 0s, 0s, 0s; }
   .dock.open .rd { opacity: 1; pointer-events: auto; transform: none; }
   .dock.open .rd.hot { z-index: 3; transform: scale(1.08); color: var(--c); border-color: color-mix(in srgb, var(--c) 55%, var(--border-strong)); background: radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--c) 26%, var(--bg-elevated)), var(--bg-elevated) 74%); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 20%, transparent), var(--shadow-pop), inset 0 0 0 4px var(--bg-elevated), inset 0 0 0 5px color-mix(in srgb, var(--c) 50%, transparent); transition-delay: 0s; }
-  .rl { position: absolute; left: calc(100% + 12px); top: 50%; display: flex; align-items: center; padding: 0.3rem 0.7rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); color: var(--text); font-size: var(--fs-sm); font-weight: 550; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-6px, -50%); transition: opacity 0.14s, transform 0.18s ease; }
+  .rl { position: absolute; left: calc(100% + 12px); top: 50%; display: flex; align-items: center; padding: 0.3rem 0.7rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); color: var(--text); font-size: var(--fs-sm); font-weight: var(--fw-medium); white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-6px, -50%); transition: opacity 0.14s, transform 0.18s ease; }
   .rd.hot .rl { opacity: 1; transform: translate(0, -50%); }
   .rl kbd { margin-left: 0.55rem; padding: 0 5px; font: inherit; font-size: var(--fs-xs); color: var(--text-muted); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: 4px; }
-  .badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: 700; padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
+  .badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: var(--fw-strong); padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
   .alert { position: absolute; top: -30px; right: -22px; z-index: 5; pointer-events: none; }
   @keyframes hop { 50% { transform: translateY(-3px); } }
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
@@ -546,7 +546,7 @@
   .voice:hover, .voice.on { background: var(--bg-hover); }
   .hist { position: absolute; left: 118px; bottom: calc(100% + 0.4rem); width: min(30rem, calc(100vw - 8rem)); overflow: visible; padding: 0.6rem 0.2rem 0.4rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: rise 0.18s ease-out; }
   .hhead { display: flex; align-items: center; justify-content: space-between; padding: 0 0.5rem 0.2rem 0.8rem; }
-  .hhead h4 { margin: 0; font-size: var(--fs-xs); font-weight: 650; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
+  .hhead h4 { margin: 0; font-size: var(--fs-xs); font-weight: var(--fw-strong); letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
   .hclock { display: grid; place-items: center; width: 28px; height: 28px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-muted); }
   .hclock:hover { background: var(--bg-hover); color: var(--text); }
   .vt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -567,7 +567,7 @@
   .idle { display: inline-flex; align-items: center; gap: 0.5rem; height: 32px; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: var(--fs-sm); }
   .idle { padding: 0 0.9rem; }
   .idle:hover { border-color: var(--accent); color: var(--text); }
-  .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: var(--fs-sm); font-weight: 550; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); }
+  .aviso { background: none; border: none; display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent-pdf); font-size: var(--fs-sm); font-weight: var(--fw-medium); padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); }
   .aviso:hover { background: var(--bg-hover); }
   .aviso.up { color: var(--accent); }
 
@@ -577,7 +577,7 @@
     text-align: center; padding: 2rem; border: 1px dashed var(--border-strong); border-radius: var(--radius-lg);
     background: radial-gradient(ellipse at 50% 38%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 62%);
   }
-  .drop h1 { margin: 0.4rem 0 0; font-size: var(--fs-xl); font-weight: 600; letter-spacing: -0.01em; }
+  .drop h1 { margin: 0.4rem 0 0; font-size: var(--fs-xl); font-weight: var(--fw-strong); letter-spacing: -0.01em; }
   .drop p { margin: 0; max-width: 54ch; }
   .formatos { font-size: var(--fs-xs); letter-spacing: 0.04em; margin-top: 0.8rem !important; }
 

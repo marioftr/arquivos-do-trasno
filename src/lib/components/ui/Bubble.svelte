@@ -41,7 +41,7 @@
   .bubble.tipb { --c: var(--accent); }
   .bubble.warnb { --c: var(--accent-pdf); }
   button.bubble:hover { border-color: var(--c); }
-  .bact { background: none; border: none; padding: 0; font: inherit; font-weight: 600; color: var(--c); text-decoration: underline; text-underline-offset: 3px; }
+  .bact { background: none; border: none; padding: 0; font: inherit; font-weight: var(--fw-strong); color: var(--c); text-decoration: underline; text-underline-offset: 3px; }
   .bact:hover { color: var(--text); }
   .bclose { flex: none; align-self: flex-start; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; margin: 0 -0.45rem 0 -0.15rem; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-faint); }
   .bclose:hover { background: var(--bg-hover); color: var(--text); }
