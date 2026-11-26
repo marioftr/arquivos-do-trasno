@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick } from "svelte";
+  import Trasno from "./components/Trasno.svelte";
   import { t, lang, LANGS, type Lang } from "@app/lib/i18n";
   import Icon from "@app/lib/components/Icon.svelte";
   import Info from "./components/Info.svelte";
@@ -13,7 +14,7 @@
   import { theme, toggleTheme } from "./lib/theme";
   import { buildGroups, buildTools } from "./lib/catalog";
   import { REPO_URL, RELEASES_URL } from "./lib/release";
-  import { heroInView } from "./lib/hero";
+  import { heroEl } from "./lib/hero";
 
   // Os textos das ferramentas fanse no idioma actual: cámbianse ao cambiar de idioma.
   const build = (_l: Lang) => ({ tools: buildTools(), groups: buildGroups() });
@@ -36,18 +37,56 @@
     { id: "download", to: "descarga", label: $t("Descarga") },
   ];
   $: current = view === "tool" ? "tools" : view;
-  // Inicio e descarga levan o trasno en grande: a cabeceira só o ten cando ese se vai.
-  $: logoOff = (view === "home" || view === "download") && $heroInView;
+  // Hai un só trasno: está no seu sitio grande (inicio, descarga) mentres a páxina está arriba e viaxa ao oco da cabeceira cando sobe ou cambias de páxina.
+  let logoEl: HTMLElement | undefined;
+  let topEl: HTMLElement | undefined;
+  let fly = { x: 0, y: 0, s: 0.2, docked: true };
+  let flyShown = false;
+  let flying = false;
+  let measured = false;
+  let flyTimer: ReturnType<typeof setTimeout> | undefined;
+  let queued = 0;
+  function measure() {
+    queued = 0;
+    flyShown = !tool && !!logoEl;
+    if (!flyShown || !logoEl || !topEl) return;
+    const slot = logoEl.getBoundingClientRect();
+    const top = topEl.getBoundingClientRect().bottom;
+    const h = $heroEl?.getBoundingClientRect();
+    const hero = !!h && h.width > 0 && h.top > top + 4;
+    const next = hero ? { x: h!.left, y: h!.top, s: h!.width / 160, docked: false } : { x: slot.left + (slot.width - 32) / 2, y: slot.top + (slot.height - 32) / 2, s: 32 / 160, docked: true };
+    if (measured && next.docked !== fly.docked) {
+      flying = true;
+      clearTimeout(flyTimer);
+      flyTimer = setTimeout(() => (flying = false), 600);
+    }
+    measured = true;
+    fly = next;
+  }
+  const schedule = () => {
+    if (!queued) queued = requestAnimationFrame(measure);
+  };
+  $: view, $heroEl, logoEl, topEl, void tick().then(() => {
+    schedule();
+    setTimeout(schedule, 150);
+    setTimeout(schedule, 500);
+  });
 </script>
+
+<svelte:window on:scroll={schedule} on:resize={schedule} />
 
 <a class="skip" href="#main" on:click|preventDefault={() => h1?.focus()}>{$t("Ir ao contido")}</a>
 
-<header class="top">
+<div class="fly" class:flying class:docked={fly.docked} class:shown={flyShown} style={`transform: translate(${fly.x}px, ${fly.y}px) scale(${fly.s})`}>
+  <Trasno size={160} />
+</div>
+
+<header class="top" bind:this={topEl}>
   <div class="top-in">
     {#if tool}
       <a class="back" href={href("ferramentas")} aria-label={$t("Volver ás ferramentas")}><Icon name="back" size={24} /></a>
     {:else}
-      <a class="logo" class:off={logoOff} href={href("")} aria-label={$t("Inicio")} tabindex={logoOff ? -1 : undefined}><img src="/trasno/base.png" alt="" width="32" height="32" /></a>
+      <a class="logo" href={href("")} aria-label={$t("Inicio")} bind:this={logoEl}></a>
     {/if}
     <a class="brand" href={href("")}>{NAME}</a>
     <nav class="nav" aria-label={$t("Principal")}>
@@ -114,10 +153,11 @@
   .grow { flex: 1; }
   .logo { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: -6px; }
   /* O oco do trasno é sempre o mesmo: o texto da cabeceira non se move cando aparece ou desaparece. */
-  .logo img { image-rendering: pixelated; transition: opacity 0.25s var(--ease), transform 0.35s var(--ease); }
-  /* Con o trasno grande á vista, o da cabeceira agáchase un chisco máis abaixo; ao saír aquel, sobe ao seu sitio. */
-  .logo.off { visibility: hidden; transition: visibility 0s 0.35s; }
-  .logo.off img { opacity: 0; transform: translateY(14px); }
+  /* O trasno viaxa: fixo sobre a páxina; segue o seu sitio grande ao facer scroll e voa á cabeceira (e volta) ao cambiar. */
+  .fly { position: fixed; left: 0; top: 0; z-index: 25; width: 160px; transform-origin: 0 0; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .fly.shown { opacity: 1; }
+  .fly:not(.docked) { pointer-events: auto; }
+  .fly.flying { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s; }
   /* Os controis da cabeceira (volver, GitHub, idioma, tema): mesma altura, mesmo marco, mesmo fondo. */
   .back, .round, select { flex: none; height: 44px; background: var(--bg-card); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-md); }
   .back, .round { display: grid; place-items: center; width: 44px; padding: 0; text-decoration: none; }

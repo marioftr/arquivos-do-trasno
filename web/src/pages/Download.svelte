@@ -3,8 +3,7 @@
   import { t, lang } from "@app/lib/i18n";
   import Icon from "@app/lib/components/Icon.svelte";
   import GitHubMark from "../components/GitHubMark.svelte";
-  import Trasno from "../components/Trasno.svelte";
-  import { watchHero } from "../lib/hero";
+  import { heroSlot } from "../lib/hero";
   import { formatBytes } from "../lib/files";
   import { LATEST_URL, REPO_URL, RELEASES_URL, latestRelease, platform, type Release } from "../lib/release";
   import { href } from "../lib/route";
@@ -25,7 +24,7 @@
 </script>
 
 <div class="head">
-  <div class="hero-tr" use:watchHero><Trasno size={96} /></div>
+  <div class="hero-tr" use:heroSlot></div>
   <div>
     <h1 tabindex="-1" bind:this={h1}>{$t("Descargar a app")}</h1>
     <p class="lead">{$t("Arquivos do Trasno para Windows: todas as ferramentas, máis as que non caben nun navegador.")}</p>
@@ -77,7 +76,7 @@
 </section>
 
 <style>
-  .hero-tr { flex: none; }
+  .hero-tr { flex: none; width: 96px; height: 106px; }
   .head { display: flex; align-items: center; gap: var(--sp-5); margin-bottom: var(--sp-6); }
   h1 { margin: 0 0 var(--sp-2); font-size: var(--fs-h1); line-height: 1.15; outline: none; font-weight: var(--fw-strong); letter-spacing: var(--tracking-heading); }
   .lead { margin: 0; color: var(--text-muted); max-width: 36rem; }

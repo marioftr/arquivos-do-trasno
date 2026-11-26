@@ -1,11 +1,13 @@
 import { writable } from "svelte/store";
 
-/** Hai un trasno en grande á vista (inicio e descarga)? Mentres si, a cabeceira non leva o seu; ao saír da pantalla ou cambiar de páxina, sobe e ocupa o seu sitio. */
-export const heroInView = writable(true);
+/** O sitio onde vai o trasno grande da páxina (inicio, descarga). A cabeceira ten un único trasno que viaxa entre ese sitio e o seu oco; se non hai sitio, está na cabeceira. */
+export const heroEl = writable<HTMLElement | null>(null);
 
-export function watchHero(node: HTMLElement) {
-  heroInView.set(true);
-  const io = new IntersectionObserver(([e]) => heroInView.set(e.isIntersecting), { rootMargin: "-80px 0px 0px 0px" });
-  io.observe(node);
-  return { destroy: () => io.disconnect() };
+export function heroSlot(node: HTMLElement) {
+  heroEl.set(node);
+  return {
+    destroy() {
+      heroEl.update((c) => (c === node ? null : c));
+    },
+  };
 }

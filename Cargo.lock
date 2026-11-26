@@ -6569,7 +6569,7 @@ dependencies = [
 
 [[package]]
 name = "trasno"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "arboard",
  "serde",
@@ -6585,7 +6585,7 @@ dependencies = [
 
 [[package]]
 name = "trasno-engine"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "color_quant",
  "encoding_rs",

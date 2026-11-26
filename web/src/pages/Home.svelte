@@ -1,9 +1,8 @@
 <script lang="ts">
   import { t } from "@app/lib/i18n";
   import Icon from "@app/lib/components/Icon.svelte";
-  import Trasno from "../components/Trasno.svelte";
   import { href } from "../lib/route";
-  import { watchHero } from "../lib/hero";
+  import { heroSlot } from "../lib/hero";
   import type { Group } from "../lib/catalog";
   import type { Tool } from "../lib/tools";
 
@@ -15,7 +14,7 @@
 </script>
 
 <section class="hero">
-  <div class="hero-tr" use:watchHero><Trasno size={160} /></div>
+  <div class="hero-tr" use:heroSlot></div>
   <div class="hero-tx">
     <h1 tabindex="-1" bind:this={h1}>Arquivos do Trasno</h1>
     <p class="lead">{$t("Son o trasno. Converto, comprimo e arranxo imaxes, PDF, audio, vídeo e subtítulos sen que os ficheiros saian do teu aparello.")}</p>
@@ -59,7 +58,8 @@
 
 <style>
   .hero { display: flex; flex-direction: column; align-items: center; gap: var(--sp-5); padding: var(--sp-4) 0 var(--sp-6); text-align: center; }
-  .hero-tr { flex: none; }
+  /* O oco do trasno: o trasno de verdade vive na cabeceira e para aquí cando a páxina está arriba. */
+  .hero-tr { flex: none; width: 160px; height: 176px; }
   .hero-tx { min-width: 0; }
   h1 { margin: 0 0 var(--sp-3); font-size: var(--fs-display); line-height: 1.05; outline: none; letter-spacing: var(--tracking-display); font-weight: var(--fw-strong); }
   .lead { margin: 0 auto var(--sp-5); max-width: 32rem; color: var(--text-muted); font-size: var(--fs-lg); line-height: 1.5; }

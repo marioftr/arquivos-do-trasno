@@ -19,6 +19,19 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.2.3",
+    date: "2026-11-26",
+    title: {
+      gl: "Vídeos .ts e unha letra máis clara",
+      es: "Vídeos .ts y una letra más clara",
+      en: ".ts video and clearer type",
+    },
+    changes: [
+      { kind: "new", gl: "Vídeos .ts (MPEG-TS), como as gravacións de Ace Stream ou da TDT: abren, convértense e edítanse coma calquera outro vídeo, aínda que estean cortados polo final.", es: "Vídeos .ts (MPEG-TS), como las grabaciones de Ace Stream o de la TDT: se abren, convierten y editan como cualquier otro vídeo, aunque estén cortados por el final.", en: "Video files in .ts (MPEG-TS), such as Ace Stream or digital-TV recordings: they open, convert and edit like any other video, even if they end abruptly." },
+      { kind: "better", gl: "Mellorada a apariencia xeral: a letra ten só tres pesos (normal, medio e negra) e os títulos e o texto en negra lense mellor.", es: "Mejorada la apariencia general: la letra tiene solo tres pesos (normal, medio y negrita) y los títulos y el texto en negrita se leen mejor.", en: "Improved overall look: the type has only three weights (regular, medium and bold), so headings and bold text read better." },
+    ],
+  },
+  {
     version: "0.2.2",
     date: "2026-11-22",
     title: {
@@ -27,7 +40,6 @@ export const CHANGELOG: Release[] = [
       en: "Image restoration, torrents and clearer tools",
     },
     changes: [
-      { kind: "new", gl: "Vídeos .ts (MPEG-TS), como as gravacións de Ace Stream ou da TDT: abren, convértense e edítanse coma calquera outro vídeo, aínda que estean cortados polo final.", es: "Vídeos .ts (MPEG-TS), como las grabaciones de Ace Stream o de la TDT: se abren, convierten y editan como cualquier otro vídeo, aunque estén cortados por el final.", en: "Video files in .ts (MPEG-TS), such as Ace Stream or digital-TV recordings: they open, convert and edit like any other video, even if they end abruptly." },
       { kind: "new", gl: "Restaurar imaxes: corrixe luz, cor, ruído e nitidez con perfís (automático, documento, branco e negro…), con vista previa en directo e «Ver orixinal».", es: "Restaurar imágenes: corrige luz, color, ruido y nitidez con perfiles (automático, documento, blanco y negro…), con vista previa en directo y «Ver original».", en: "Image restoration: fixes light, colour, noise and sharpness with profiles (automatic, document, black and white…), with a live preview and «View original»." },
       { kind: "new", gl: "Descarga de torrents (ligazóns magnet e ficheiros .torrent) nunha pestana propia, co seu botón no menú do trasno.", es: "Descarga de torrents (enlaces magnet y archivos .torrent) en una pestaña propia, con su botón en el menú del trasno.", en: "Torrent downloads (magnet links and .torrent files) in their own tab, with their own button in the trasno menu." },
       { kind: "better", gl: "Transformar xunta xirar e recortar no mesmo panel, nas imaxes e nos PDF.", es: "Transformar junta girar y recortar en el mismo panel, en las imágenes y en los PDF.", en: "Transform brings rotating and cropping together in one panel, for images and PDFs." },
