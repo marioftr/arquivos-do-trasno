@@ -33,7 +33,13 @@ pub const AUDIO_EXTS: &[&str] = &[
 
 pub const VIDEO_EXTS: &[&str] = &[
     "mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "mpg", "mpeg", "gif",
+    // Transmisión MPEG-TS: o que gardan os reproductores de emisións en directo (Ace Stream, IPTV) e as gravadoras de TDT.
+    // Só como orixe: non se ofrece como destino (FFmpeg escollería MPEG-2 por defecto).
+    "ts",
 ];
+
+/// Contedores que se len pero non se ofrecen como saída.
+pub const VIDEO_INPUT_ONLY: &[&str] = &["ts"];
 
 /// Extensións recoñecidas como categoría "documento". As saídas posibles
 /// dependen da orixe (ver `trasno_engine::suggested_targets`): un .pdf

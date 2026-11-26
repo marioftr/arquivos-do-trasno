@@ -113,9 +113,11 @@
   .brand { flex: 1 1 0; color: var(--text); font-weight: var(--fw-strong); font-size: var(--fs-lg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; text-decoration: none; }
   .grow { flex: 1; }
   .logo { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: -6px; }
-  .logo img { image-rendering: pixelated; }
-  /* Escondido mentres o trasno grande está á vista (aparece e desaparece sen animación). */
-  .logo.off { display: none; }
+  /* O oco do trasno é sempre o mesmo: o texto da cabeceira non se move cando aparece ou desaparece. */
+  .logo img { image-rendering: pixelated; transition: opacity 0.25s var(--ease), transform 0.35s var(--ease); }
+  /* Con o trasno grande á vista, o da cabeceira agáchase un chisco máis abaixo; ao saír aquel, sobe ao seu sitio. */
+  .logo.off { visibility: hidden; transition: visibility 0s 0.35s; }
+  .logo.off img { opacity: 0; transform: translateY(14px); }
   /* Os controis da cabeceira (volver, GitHub, idioma, tema): mesma altura, mesmo marco, mesmo fondo. */
   .back, .round, select { flex: none; height: 44px; background: var(--bg-card); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-md); }
   .back, .round { display: grid; place-items: center; width: 44px; padding: 0; text-decoration: none; }

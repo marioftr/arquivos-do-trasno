@@ -215,7 +215,7 @@ pub fn suggested_targets(input: &Path) -> Vec<&'static str> {
             v
         }
         Category::Audio => formats::AUDIO_EXTS.to_vec(),
-        Category::Video => formats::VIDEO_EXTS.to_vec(),
+        Category::Video => formats::VIDEO_EXTS.iter().copied().filter(|e| !formats::VIDEO_INPUT_ONLY.contains(e)).collect(),
         Category::Documento => match formats::extension_of(input).as_deref() {
             Some("pdf") => vec!["txt"],
             Some(e) if formats::PLAIN_TEXT_EXTS.contains(&e) => vec!["pdf"],

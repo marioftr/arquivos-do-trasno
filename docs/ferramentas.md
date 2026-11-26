@@ -24,6 +24,8 @@ Varias imaxes xuntas: Converter, Comprimir, Restaurar, Redimensionar, Unir (nun 
 
 ## Vídeo
 
+Formatos de entrada: MP4, MKV, MOV, AVI, WebM, FLV, WMV, MPG/MPEG, GIF e TS (MPEG-TS: gravacións de Ace Stream, IPTV ou TDT, mesmo cortadas polo final). O `.ts` só se ofrece como orixe, non como destino, e non leva menú no Explorador porque tamén é a extensión de TypeScript.
+
 | Pestana | Que fai |
 |---|---|
 | Converter | A MP4 con perfís de saída (Universal, Mini DV, YouTube, móbil e os propios) ou a outro formato; GIF e WebP animado. |

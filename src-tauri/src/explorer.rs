@@ -583,9 +583,10 @@ mod tests {
             .iter()
             .chain(image_ffmpeg::DECODE_EXTS)
             .chain(formats::AUDIO_EXTS)
-            .chain(formats::VIDEO_EXTS)
+            .chain(formats::VIDEO_EXTS.iter().filter(|e| !formats::VIDEO_INPUT_ONLY.contains(e)))
             .chain(formats::DOCUMENT_EXTS)
             .chain(formats::MODEL3D_EXTS);
+        // O .ts (MPEG-TS) acéptase na app pero non leva menú no Explorador: tamén é a extensión de TypeScript.
         for e in aceptadas {
             assert!(rexistradas.contains(e), ".{e} non ten entrada no menú do Explorador");
         }
