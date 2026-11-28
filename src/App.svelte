@@ -538,7 +538,8 @@
   .rl { position: absolute; left: calc(100% + 12px); top: 50%; display: flex; align-items: center; padding: 0.3rem 0.7rem; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); color: var(--text); font-size: var(--fs-sm); font-weight: var(--fw-medium); white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-6px, -50%); transition: opacity 0.14s, transform 0.18s ease; }
   .rd.hot .rl { opacity: 1; transform: translate(0, -50%); }
   .rl kbd { margin-left: 0.55rem; padding: 0 5px; font: inherit; font-size: var(--fs-xs); color: var(--text-muted); background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: 4px; }
-  .badge { position: absolute; top: -4px; right: -4px; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: 0.62rem; font-weight: var(--fw-strong); padding: 0 0.3em; min-width: 1.1em; line-height: 1.3; text-align: center; }
+  /* Número de procesos: dentro do círculo, na esquina superior dereita do icono. */
+  .badge { position: absolute; top: 5px; right: 5px; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; background: var(--accent); color: var(--on-accent); border-radius: 99px; font-size: var(--fs-sm); font-weight: var(--fw-strong); line-height: 1; font-variant-numeric: tabular-nums; }
   .alert { position: absolute; top: -30px; right: -22px; z-index: 5; pointer-events: none; }
   @keyframes hop { 50% { transform: translateY(-3px); } }
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } }

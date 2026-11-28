@@ -21,23 +21,24 @@
     /** Ficheiros na lista (0: a pantalla baleira de «Arrastra os ficheiros aquí»). */
     files: number;
     menu?: boolean;
-    hl?: "list" | "rail" | "levels" | "bar" | "toast";
+    hl?: "list" | "rail" | "levels" | "bar";
     level?: 0 | 1 | 2 | 3;
-    job?: "run" | "done";
+    job?: "run";
     radial?: boolean;
-    palette?: boolean;
+    /** Xanela aberta por riba: descargas ou Axustes. */
+    dlg?: "links" | "hub";
   }
 
   $: steps = [
     { text: $t("Arrastra ficheiros á xanela, preme Escoller ficheiros (Ctrl+O) ou pega con Ctrl+V. Valen imaxes, audio, vídeo, PDF e modelos 3D."), target: ".gbtn", side: "right", state: "notice", files: 0 },
-    { text: $t("Fai clic nun ficheiro para velo no visor. Marca a caixa de varios para traballar con eles á vez."), target: ".row.sel", side: "right", state: "idle", files: 4, hl: "list" },
-    { text: $t("Co botón dereito sobre un ficheiro: amosalo no cartafol, copiar a ruta, marcalo ou quitalo da lista. Quitalo da lista non o borra do disco."), target: ".menu", side: "right", state: "idle", files: 4, menu: true },
-    { text: $t("As ferramentas están na columna de iconos ao carón do visor e cambian co tipo de ficheiro: unha imaxe ten Converter, Comprimir ou Redimensionar, e un vídeo, Editar, Son ou Subtítulos."), target: ".rail span:nth-child(2)", side: "left", state: "working", files: 4, hl: "rail" },
-    { text: $t("Elixe un nivel con nome (WhatsApp, Web, Arquivo) ou Personalizado para fixar a calidade exacta."), target: ".seg", side: "left", state: "idle", files: 4, hl: "levels", level: 1 },
-    { text: $t("Preme o botón verde. A barra de abaixo mostra o progreso e a ✕ cancela o traballo."), target: ".jobs", side: "above", state: "working", files: 4, hl: "bar", level: 1, job: "run" },
-    { text: $t("Ao rematar, o trasno avisa co tamaño final. O resultado gárdase onde elixas: por defecto pregunta, e en Axustes podes fixar un cartafol."), target: ".toast", side: "left", state: "notice", files: 4, hl: "toast", level: 1, job: "done" },
-    { text: $t("Pasa o rato sobre min: sae un menú con Engadir ficheiros, Descargar por ligazón, Descargar torrent, Procesos, Axustes e Buscar."), at: [64, 606], state: "idle", size: 96, files: 4, radial: true, level: 1 },
-    { text: $t("Ctrl+K abre o buscador: escribe o que queres facer e vai á ferramenta ou acción."), target: ".pal", side: "below", state: "idle", files: 4, palette: true, level: 1 },
+    { text: $t("Preme un ficheiro da lista para velo no visor. Se marcas varios, a ferramenta que uses aplícase a todos á vez."), target: ".row.sel", side: "right", state: "idle", files: 4, hl: "list" },
+    { text: $t("Fai clic co botón dereito nun ficheiro da lista para ver as súas accións: abrir o cartafol onde está, copiar a súa ruta, marcalo para traballar con varios ou quitalo da lista."), target: ".menu", side: "right", state: "idle", files: 4, menu: true },
+    { text: $t("As ferramentas están na columna de iconos ao carón do visor. Cada tipo de ficheiro ten as súas propias opcións, así que a columna cambia segundo o que abras: unha imaxe ten Converter, Comprimir ou Redimensionar, e un vídeo, Editar, Son ou Subtítulos."), target: ".rail span:nth-child(2)", side: "left", state: "working", files: 4, hl: "rail" },
+    { text: $t("Cada ferramenta ten o seu panel de axustes. Podes elixir un perfil con valores xa preparados ou usar Personalizado para axustalos ti mesmo."), target: ".seg", side: "left", state: "idle", files: 4, hl: "levels", level: 1 },
+    { text: $t("O botón verde pon a ferramenta a traballar. A barra de abaixo mostra o progreso, e premendo nela ves a lista de procesos activos."), target: ".jobs", side: "above", state: "working", files: 4, hl: "bar", level: 1, job: "run" },
+    { text: $t("Pasa o rato sobre min e sae un menú con funcións como descargar por ligazón ou abrir Axustes, e outras como engadir ficheiros, ver os procesos ou buscar."), at: [64, 606], state: "idle", size: 96, files: 4, radial: true, level: 1 },
+    { text: $t("Con Descargar por ligazón pegas a ligazón dun vídeo e premes Buscar para ver os seus datos antes de descargalo. A pestana Torrents acepta ligazóns magnet e ficheiros .torrent."), target: ".dlg", side: "right", state: "idle", files: 4, level: 1, dlg: "links" },
+    { text: $t("En Axustes cambias o idioma e o tema, escolles onde se gardan os resultados, defines atallos e perfís de saída e instalas as extensións opcionais."), target: ".dlg", side: "right", state: "idle", files: 4, level: 1, dlg: "hub" },
   ] as Step[];
 
   const FILES = [
@@ -53,9 +54,10 @@
     { n: "Arquivo", v: "95 %" },
     { n: "Personalizado", v: "" },
   ];
-  const SEARCH = [
-    { n: "Comprimir", k: "Ferramenta" },
-    { n: "Comprimir · PDF", k: "Ferramenta" },
+  const HUB = [
+    { g: "Procesos", icon: "layers", items: ["En marcha", "Historial"] },
+    { g: "Axustes", icon: "gear", items: ["Xeral", "Atallos de teclado", "Perfís de saída", "Extensións"] },
+    { g: "Novidades", icon: "info", items: ["Rexistro de cambios", "Actualizacións"] },
   ];
   const RADIAL = [
     { icon: "plus", dx: -1, dy: -138 },
@@ -174,7 +176,7 @@
     <div class="panel welcome" role="dialog" aria-modal="true" aria-labelledby="tut-title" bind:this={panel}>
       <div class="big" aria-hidden="true"><TrasnoSprite state="idle" size={192} /></div>
       <h2 id="tut-title">{$t("Arquivos do Trasno")}</h2>
-      <p>{$t("Son o trasno. Converto, comprimo e edito imaxes, audio, vídeo, PDF e modelos 3D sen que os ficheiros saian deste ordenador.")}</p>
+      <p>{$t("Ola! Son o trasno e vivo nesta app. Convirto, comprimo e arranxo imaxes, audio, vídeo, PDF e modelos 3D: ti arrastras os ficheiros e eu póñome ao traballo.")}</p>
       <div class="wbtn">
         <button type="button" class="btn ghost" on:click={closeTutorial}>{$t("Agora non")}</button>
         <button type="button" class="btn primary" on:click={startSteps}>{$t("Ver o titorial")}</button>
@@ -253,15 +255,37 @@
                 <span class="sep"><Icon name="close" size={14} />{$t("Quitar da lista")}</span>
               </div>
             {/if}
-            {#if step.job === "done"}
-              <div class="toast" class:hl={step.hl === "toast"}><span class="ti"><Icon name="sparkles" size={16} /></span>{$t("Listo! Deixei o ficheiro en 310 KB (−87 %; antes eran 2.4 MB).")}</div>
-            {/if}
-            {#if step.palette}
-              <div class="pal">
-                <div class="pq"><Icon name="search" size={18} /><span>comprimir</span></div>
-                {#each SEARCH as r, n}<div class="pr" class:on={n === 0}><Icon name="convert" size={16} /><b>{r.n}</b><small>{$t(r.k)}</small></div>{/each}
-                <div class="pf">↑↓ · Enter · Esc</div>
-              </div>
+            {#if step.dlg}
+              <div class="veil2"></div>
+              {#if step.dlg === "links"}
+                <div class="dlg">
+                  <div class="dh"><b>{$t("Descargar por ligazón")}</b><Icon name="close" size={15} /></div>
+                  <div class="db">
+                    <div class="seg2"><span class="on"><Icon name="link" size={16} />{$t("Ligazóns")}</span><span><Icon name="magnet" size={16} />{$t("Torrents")}</span></div>
+                    <span class="dl">{$t("Ligazón")}</span>
+                    <div class="urow"><span class="inp">https://…</span><span class="bt">{$t("Buscar")}</span></div>
+                    <div class="gobtn">{$t("Descargar")}</div>
+                  </div>
+                </div>
+              {:else}
+                <div class="dlg hub">
+                  <div class="dh"><b>Arquivos do Trasno</b><Icon name="close" size={15} /></div>
+                  <div class="split">
+                    <div class="nv">
+                      {#each HUB as g}
+                        <div class="gh"><Icon name={g.icon} size={14} />{$t(g.g)}</div>
+                        {#each g.items as it}<span class:on={it === "Xeral"}>{$t(it)}</span>{/each}
+                      {/each}
+                    </div>
+                    <div class="pn">
+                      <b class="pt">{$t("Axustes")} · {$t("Xeral")}</b>
+                      <span class="ph">{$t("Onde se gardan os resultados")}</span><i class="fc"></i>
+                      <span class="ph">{$t("Aparencia")}</span><i class="fc"></i>
+                      <span class="ph">{$t("Extensións")}</span><i class="fc"></i>
+                    </div>
+                  </div>
+                </div>
+              {/if}
             {/if}
             {#if step.radial}
               <div class="rad" style={`left:64px;top:${H - 57}px`}>
@@ -367,15 +391,30 @@
   .menu span { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: var(--radius-sm); font-size: var(--fs-md); }
   .menu span.sep { margin-top: 4px; border-top: 1px solid var(--border); border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
   .menu span:first-child { background: var(--bg-hover); }
-  .toast { position: absolute; z-index: 5; left: 134px; bottom: 56px; display: flex; align-items: center; gap: 12px; max-width: 480px; padding: 10px 14px 10px 10px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); font-size: var(--fs-sm); animation: pop 0.3s ease-out; }
-  .ti { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
-  .pal { position: absolute; z-index: 5; left: 280px; top: 96px; width: 460px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: pop 0.25s ease-out; }
-  .pq { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; font-size: var(--fs-lg); border-bottom: 1px solid var(--border); }
-  .pr { display: flex; align-items: center; gap: 10px; height: 36px; margin: 4px 6px; padding: 0 10px; border-radius: var(--radius-sm); font-size: var(--fs-md); }
-  .pr.on { background: color-mix(in srgb, var(--accent) 18%, var(--bg-elevated)); }
-  .pr b { font-weight: var(--fw-medium); }
-  .pr small { margin-left: auto; color: var(--text-muted); font-size: var(--fs-xs); }
-  .pf { padding: 6px 14px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: var(--fs-xs); }
+  .veil2 { position: absolute; inset: 0; z-index: 4; background: rgba(8, 9, 12, 0.6); animation: pop 0.25s ease-out; }
+  .dlg { position: absolute; z-index: 5; left: 50%; top: 46%; width: 480px; transform: translate(-50%, -50%); display: flex; flex-direction: column; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); animation: pop 0.25s ease-out; }
+  .dlg.hub { width: 680px; }
+  .dh { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: var(--fs-lg); color: var(--text); }
+  .dh :global(svg) { color: var(--text-muted); }
+  .db { display: flex; flex-direction: column; gap: 10px; padding: 18px; }
+  .seg2 { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-input); overflow: hidden; }
+  .seg2 span { display: flex; align-items: center; justify-content: center; gap: 8px; height: 40px; color: var(--text-muted); font-size: var(--fs-md); }
+  .seg2 span.on { background: var(--bg-hover); color: var(--text); font-weight: var(--fw-strong); border-radius: var(--radius-md); }
+  .dl { color: var(--text-muted); font-size: var(--fs-sm); }
+  .urow { display: flex; gap: 10px; }
+  .inp { flex: 1; display: flex; align-items: center; height: 40px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-input); color: var(--text-muted); font-size: var(--fs-md); }
+  .bt { display: grid; place-items: center; height: 40px; padding: 0 18px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: var(--fs-md); font-weight: var(--fw-medium); }
+  .dlg .gobtn { margin: 6px 0 0; }
+  .split { display: flex; gap: 16px; padding: 16px; height: 350px; }
+  .nv { flex: 0 0 190px; display: flex; flex-direction: column; gap: 2px; }
+  .nv .gh { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 2px 10px; color: var(--text-faint); font-size: var(--fs-xs); font-weight: var(--fw-strong); letter-spacing: 0.05em; text-transform: uppercase; }
+  .nv .gh:first-child { margin-top: 0; }
+  .nv span { padding: 6px 10px 6px 30px; border-radius: var(--radius-sm); color: var(--text-muted); font-size: var(--fs-md); font-weight: var(--fw-medium); }
+  .nv span.on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); font-weight: var(--fw-strong); }
+  .pn { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .pt { margin-bottom: 4px; font-size: var(--fs-lg); }
+  .ph { margin-top: 6px; font-size: var(--fs-md); font-weight: var(--fw-strong); }
+  .fc { display: block; height: 38px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-input); }
   .rad { position: absolute; z-index: 4; width: 0; height: 0; }
   .rad span { position: absolute; display: grid; place-items: center; width: 52px; height: 52px; margin: -26px; border-radius: 50%; color: var(--text-muted); background: radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--text-muted) 14%, var(--bg-elevated)), var(--bg-elevated) 74%); border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop); transform: translate(var(--dx), var(--dy)); animation: pop 0.3s calc(var(--n) * 50ms) ease-out backwards; }
 

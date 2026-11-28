@@ -24,10 +24,10 @@ export default {
       shots.push(await app.shot(`titorial-paso-${k}.png`));
     }
     c.ok(await app.ev(`document.querySelector('.go .primary')?.textContent.trim() === 'Rematar'`), "o último paso ten o botón Rematar");
-    c.ok(await app.ev(`!/repet|Axustes/i.test(document.querySelector('.say')?.textContent ?? '')`), "o último texto non fala de repetir");
-    // O trasno para xunto ao que explica o paso (aqui, debaixo do buscador), sen taparo.
-    const near = await app.ev(`(()=>{const t=document.querySelector('.tr').getBoundingClientRect(), p=document.querySelector('.pal').getBoundingClientRect(); return [Math.round(t.top-p.bottom), Math.round(Math.abs((t.left+t.right)/2-(p.left+p.right)/2))]})()`);
-    c.ok(near[0] >= -4 && near[0] < 40 && near[1] < 40, "o trasno está debaixo do buscador, sen taparo", JSON.stringify(near));
+    c.ok(await app.ev(`!/repet/i.test(document.querySelector('.say')?.textContent ?? '')`), "o último texto non fala de repetir");
+    // O trasno para xunto ao que explica o paso (aqui, ao carón da xanela de Axustes), sen taparo.
+    const near = await app.ev(`(()=>{const t=document.querySelector('.tr').getBoundingClientRect(), p=document.querySelector('.dlg').getBoundingClientRect(); return [Math.round(t.left-p.right), Math.round(Math.abs((t.top+t.bottom)/2-(p.top+p.bottom)/2))]})()`);
+    c.ok(near[0] >= -4 && near[0] < 40 && near[1] < 80, "o trasno está ao carón da xanela de Axustes, sen taparla", JSON.stringify(near));
     c.ok(await app.ev(`document.querySelector('[role=dialog] .wrap')?.getAttribute('aria-hidden') === 'true' && !!document.querySelector('[role=dialog] .say[aria-live=polite]')`), "o escenario é decorativo e o texto vai nunha rexión en vivo");
     // Os círculos dos pasos están centrados no seu contido.
     const dots = await app.ev(`(()=>{const d=document.querySelector('.dots').getBoundingClientRect(), n=document.querySelector('.nav').getBoundingClientRect(); return Math.abs((d.left+d.width/2)-(n.left+n.width/2))})()`);
