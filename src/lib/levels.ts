@@ -7,9 +7,9 @@ export const IMAGE_LEVELS = [
   { id: "arquivo", label: "Arquivo", q: 95, hint: "Case sen perdas, para gardar" },
 ];
 
-/** Vídeo: o CRF que levan os botóns (menos é máis calidade). */
+/** Vídeo: os mesmos nomes de uso ca nas imaxes, do máis lixeiro ao de máis calidade, co CRF que levan os botóns (menos é máis calidade). */
 export const VIDEO_LEVELS = [
-  { label: "Alta", crf: 23, hint: "Case idéntico ao orixinal." },
-  { label: "Equilibrada", crf: 28, hint: "Bo equilibrio entre peso e calidade" },
-  { label: "Forte", crf: 33, hint: "O máis pequeno; nótase perda de nitidez." },
+  { label: "WhatsApp", crf: 33, hint: "O máis pequeno; nótase perda de nitidez." },
+  { label: "Web", crf: 28, hint: "Bo equilibrio entre peso e calidade" },
+  { label: "Arquivo", crf: 23, hint: "Case idéntico ao orixinal." },
 ];

@@ -40,10 +40,10 @@ export default {
     await app.open(app.video("niveis.mp4", 3));
     await app.click("Converter");
     l = await levels(app);
-    c.ok(l.length === 4 && l[0].t === "Alta CRF 23" && l[1].t === "Equilibrada CRF 28" && l[2].t === "Forte CRF 33" && l[3].t === "Personalizado", "o vídeo mostra Alta/Equilibrada/Forte co seu CRF", l.map((x) => x.t).join(" | "));
+    c.ok(l.length === 4 && l[0].t === "WhatsApp CRF 33" && l[1].t === "Web CRF 28" && l[2].t === "Arquivo CRF 23" && l[3].t === "Personalizado", "o vídeo mostra WhatsApp/Web/Arquivo co seu CRF", l.map((x) => x.t).join(" | "));
     c.ok(l[3].on, "o perfil por defecto (CRF 20) non coincide con ningún nivel: Personalizado");
-    await pick(app, "Equilibrada");
-    c.near(await slider(app, "Calidade (CRF)"), 28, 0.1, "«Equilibrada» pon o CRF en 28");
+    await pick(app, "Web");
+    c.near(await slider(app, "Calidade (CRF)"), 28, 0.1, "«Web» pon o CRF en 28");
     l = await levels(app);
     c.ok(l[1].on, "e queda marcada");
     const loose = await app.ev(`[...document.querySelectorAll('.stack .group-note')].map(n=>n.textContent.trim())`);
