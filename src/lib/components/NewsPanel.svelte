@@ -48,13 +48,13 @@
         {#if $updState === "ready"}
           <p class="muted">{$t("Descargada. Instálase en canto non haxa nada en marcha.")}</p>
         {:else}
-          <p class="muted">{$t("Estou descargando a versión nova…")}</p>
+          <p class="muted">{$t("Descargando a versión nova…")}</p>
           <div class="bar"><div class="fill" style={`width:${Math.round($updProgress * 100)}%`}></div></div>
           <span class="muted pct">{Math.round($updProgress * 100)} %</span>
         {/if}
       </div>
     {:else if $autoCheck}
-      <p class="muted" role="status">{$updState === "checking" ? $t("Buscando…") : $updState === "none" ? $t("Tes a última versión.") : $updState === "error" ? (noRelease ? $t("Aínda non hai ningunha versión publicada en GitHub.") : $t("Non puiden comprobar as actualizacións. Revisa a conexión a internet e proba de novo.")) : ""}</p>
+      <p class="muted" role="status">{$updState === "checking" ? $t("Buscando…") : $updState === "none" ? $t("Tes a última versión.") : $updState === "error" ? (noRelease ? $t("Aínda non hai ningunha versión publicada en GitHub.") : $t("Non se puido comprobar as actualizacións. Revisa a conexión a internet e proba de novo.")) : ""}</p>
     {:else}
       <p class="muted">{$t("Co axuste apagado non busco versións novas. Podes baixalas desde GitHub.")}</p>
     {/if}

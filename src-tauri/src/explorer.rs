@@ -81,7 +81,7 @@ fn sources() -> Vec<(&'static str, Kind)> {
     for e in ["mp3", "wav", "flac", "ogg", "opus", "m4a", "aac", "wma", "aiff"] {
         v.push((e, Kind::Audio));
     }
-    for e in ["mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "mpg", "mpeg"] {
+    for e in ["mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "mpg", "mpeg", "ts"] {
         v.push((e, Kind::Video));
     }
     for e in ["txt", "md", "csv", "json", "xml", "log"] {
@@ -102,6 +102,12 @@ fn sources() -> Vec<(&'static str, Kind)> {
         v.push((e, Kind::Model3d));
     }
     v
+}
+
+/// Condición de Windows para que a entrada saia só nos ficheiros que de verdade son o que di a extensión.
+/// O `.ts` tamén é TypeScript: o Explorador só ensina o menú se o ficheiro ten duración ou ancho de vídeo (MPEG-TS), non se é código.
+fn applies_to(ext: &str) -> Option<&'static str> {
+    (ext == "ts").then_some("System.Media.Duration:>0 OR System.Video.FrameWidth:>0")
 }
 
 fn menu_for(ext: &str, kind: Kind, l: &Labels) -> Vec<Item> {
@@ -228,8 +234,10 @@ fn build_install_reg(exe: &str, labels: &Labels) -> String {
     let mut reg = String::from("Windows Registry Editor Version 5.00\r\n\r\n");
     for (ext, kind) in sources() {
         let base = format!("HKEY_CURRENT_USER\\{ROOT}\\.{ext}\\shell\\{KEY}");
+        // A condición, se a hai, é un valor máis da chave da entrada (xunto ao título).
+        let cond = applies_to(ext).map(|c| format!("\"AppliesTo\"=\"{}\"\r\n", reg_str(c))).unwrap_or_default();
         reg.push_str(&format!(
-            "[{base}]\r\n\"MUIVerb\"=\"{}\"\r\n\"SubCommands\"=\"\"\r\n\"Icon\"=\"\\\"{q}\\\",0\"\r\n\r\n",
+            "[{base}]\r\n\"MUIVerb\"=\"{}\"\r\n\"SubCommands\"=\"\"\r\n\"Icon\"=\"\\\"{q}\\\",0\"\r\n{cond}\r\n",
             reg_str(&labels.get("title"))
         ));
         let mut items = vec![Item::Cmd { id: "00_open".into(), label: labels.get("open"), args: String::new() }];
@@ -545,6 +553,18 @@ mod tests {
     }
 
     #[test]
+    fn o_ts_so_sae_nos_ficheiros_que_son_video() {
+        let reg = build_install_reg(r"C:\Programas\Trasno\trasno.exe", &labels());
+        let ts: String = reg.split("[HKEY_CURRENT_USER").filter(|b| b.starts_with(r"\Software\Classes\SystemFileAssociations\.ts\")).collect();
+        assert!(!ts.is_empty(), ".ts ten entrada");
+        let raiz = ts.split("[HKEY_CURRENT_USER").next().unwrap();
+        assert!(raiz.contains("\"AppliesTo\"=\"System.Media.Duration:>0 OR System.Video.FrameWidth:>0\""), "o .ts leva condicion de vídeo: {raiz}");
+        assert!(ts.contains("--convert mp4 ") && !ts.contains("--convert ts "), "converte a MP4 e non se ofrece como destino");
+        // As demais extensións levan o menú sempre.
+        assert_eq!(reg.matches("AppliesTo").count(), 1);
+    }
+
+    #[test]
     fn o_ficheiro_reg_ten_as_entradas_esperadas() {
         let reg = build_install_reg(r"C:\Programas\Trasno\trasno.exe", &labels());
         assert!(reg.starts_with("Windows Registry Editor Version 5.00"));
@@ -583,10 +603,9 @@ mod tests {
             .iter()
             .chain(image_ffmpeg::DECODE_EXTS)
             .chain(formats::AUDIO_EXTS)
-            .chain(formats::VIDEO_EXTS.iter().filter(|e| !formats::VIDEO_INPUT_ONLY.contains(e)))
+            .chain(formats::VIDEO_EXTS)
             .chain(formats::DOCUMENT_EXTS)
             .chain(formats::MODEL3D_EXTS);
-        // O .ts (MPEG-TS) acéptase na app pero non leva menú no Explorador: tamén é a extensión de TypeScript.
         for e in aceptadas {
             assert!(rexistradas.contains(e), ".{e} non ten entrada no menú do Explorador");
         }

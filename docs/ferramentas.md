@@ -24,7 +24,7 @@ Varias imaxes xuntas: Converter, Comprimir, Restaurar, Redimensionar, Unir (nun 
 
 ## Vídeo
 
-Formatos de entrada: MP4, MKV, MOV, AVI, WebM, FLV, WMV, MPG/MPEG, GIF e TS (MPEG-TS: gravacións de Ace Stream, IPTV ou TDT, mesmo cortadas polo final). O `.ts` só se ofrece como orixe, non como destino, e non leva menú no Explorador porque tamén é a extensión de TypeScript.
+Formatos de entrada: MP4, MKV, MOV, AVI, WebM, FLV, WMV, MPG/MPEG, GIF e TS (MPEG-TS: gravacións de Ace Stream, IPTV ou TDT, mesmo cortadas polo final). O `.ts` só se ofrece como orixe, non como destino. No menú do clic dereito do Explorador sae só nos `.ts` que son vídeo (os que Windows lé con duración ou ancho de imaxe), non nos de código TypeScript.
 
 | Pestana | Que fai |
 |---|---|
@@ -74,7 +74,7 @@ Varios PDF xuntos: Unir.
 - **Titorial**: na primeira execución sae unha benvida co trasno en grande; se a persoa quere, seguen nove pasos sobre unha copia da xanela real (lista de ficheiros, visor, columna de ferramentas, botón verde, barra de progreso, menú do trasno e buscador). Antes da xanela de extensións. Repítese desde Axustes → Xeral ou no buscador (Ctrl+K).
 - **Actualizacións automáticas**: ao abrir, a app busca unha versión nova en GitHub, descárgaa e instálaa soa cando non hai ningún proceso en marcha (o instalador reinicia a app). Axustes → Xeral e Novidades → Actualizacións teñen o interruptor «Actualizar automaticamente» (acendido por defecto): apagado, non busca nada. Non hai botón manual.
 - Buscador de accións (Ctrl+K), atallos de teclado configurables, procesos e historial, Novidades, tema claro e escuro.
-- Menú do clic dereito no Explorador de Windows: converter, comprimir, redimensionar e xirar sen abrir a app. Ponse ao día soo con cada versión e cada cambio de idioma (só se as entradas son desta copia da app); Axustes → Xeral permite instalalo, actualizalo ou quitalo.
+- Menú do clic dereito no Explorador de Windows: converter, comprimir, redimensionar e xirar sen abrir a app. Ponse ao día soo con cada versión e cada cambio de idioma (só se as entradas son desta copia da app); Axustes → Xeral permite instalalo ou quitalo.
 - Visores propios: imaxe, PDF, audio e vídeo (con pistas), 3D, texto e Office.
 
 ## Extensións opcionais

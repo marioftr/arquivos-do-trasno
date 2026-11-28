@@ -35,7 +35,7 @@
       text = decodeText(new Uint8Array(await res.arrayBuffer())).slice(0, 200_000);
       textCache.set(path, text);
     } catch (e) {
-      text = tr("Non puiden ler o ficheiro: {error}", { error: errText(e) });
+      text = tr("Non se puido ler o ficheiro: {error}", { error: errText(e) });
     }
   }
 

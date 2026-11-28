@@ -104,7 +104,7 @@ export async function clean(file: File, meta: boolean, flat: boolean): Promise<O
     try {
       doc.getForm().flatten();
     } catch {
-      throw new UserError(tr("Non puiden aplanar o formulario deste PDF."));
+      throw new UserError(tr("Non se puido aplanar o formulario deste PDF."));
     }
   }
   if (meta) {

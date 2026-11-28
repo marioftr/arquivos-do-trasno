@@ -35,7 +35,7 @@ async function modelBytes(url: string, ctx: Ctx, label: string): Promise<ArrayBu
   }
   ctx.progress(0, label);
   const res = await fetch(url);
-  if (!res.ok || !res.body) throw new UserError(tr("Non puiden descargar ou arrancar o modelo. Comproba a conexión e proba de novo."));
+  if (!res.ok || !res.body) throw new UserError(tr("Non se puido descargar ou arrancar o modelo. Comproba a conexión e proba de novo."));
   const total = Number(res.headers.get("content-length")) || 0;
   const reader = res.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -62,7 +62,7 @@ function session(q: Quality, ctx: Ctx): Promise<Session> {
   })().catch((e) => {
     sessions.delete(q);
     console.error(e);
-    throw e instanceof UserError ? e : new UserError(tr("Non puiden descargar ou arrancar o modelo. Comproba a conexión e proba de novo."));
+    throw e instanceof UserError ? e : new UserError(tr("Non se puido descargar ou arrancar o modelo. Comproba a conexión e proba de novo."));
   });
   sessions.set(q, p);
   return p;

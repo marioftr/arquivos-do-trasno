@@ -343,7 +343,7 @@
       status = "";
       if (import.meta.env.DEV) (window as any).__trasnoWire = () => { let lines = 0, shown = 0; const on = (o: any) => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }; model?.traverse((o: any) => { if (o.isLineSegments && o.visible && o.layers.isEnabled(0)) lines += o.geometry.attributes.position.count / 2; if (o.isMesh && on(o) && o.layers.isEnabled(0)) shown++; }); return { lines, shown, tris: Math.round(tris) }; };
     } catch (e) {
-      status = tr("Non puiden abrir o modelo: {error}", { error: errText(e) });
+      status = tr("Non se puido abrir o modelo: {error}", { error: errText(e) });
     }
   }
 

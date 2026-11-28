@@ -937,7 +937,7 @@
     <p class="muted msg">{$t("Este PDF ten contrasinal. Desbloquéao na pestana Seguridade para velo.")}</p>
   {:else if error}
     <div class="msg">
-      <p class="muted">{$t("Non puiden abrir o PDF: {error}", { error })}</p>
+      <p class="muted">{$t("Non se puido abrir o PDF: {error}", { error })}</p>
       <button class="btn" on:click={() => open(file.path)}>{$t("Tentar de novo")}</button>
     </div>
   {:else}

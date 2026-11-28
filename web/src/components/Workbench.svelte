@@ -134,7 +134,7 @@
           try {
             out.push(await tool.each(f, values, taken, ctx));
           } catch (e) {
-            failed = [...failed, { name: f.name, why: e instanceof UserError ? e.message : tr("Non puiden abrir esta imaxe. O navegador non admite ese formato.") }];
+            failed = [...failed, { name: f.name, why: e instanceof UserError ? e.message : tr("Non se puido abrir esta imaxe. O navegador non admite ese formato.") }];
           }
         }
       }

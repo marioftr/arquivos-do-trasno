@@ -20,7 +20,7 @@
       const res = await fetch(await viewUrl(path));
       source = (await res.text()).slice(0, 2_000_000);
     } catch (e) {
-      error = tr("Non puiden ler o ficheiro: {error}", { error: errText(e) });
+      error = tr("Non se puido ler o ficheiro: {error}", { error: errText(e) });
     }
   }
 

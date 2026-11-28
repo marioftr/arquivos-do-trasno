@@ -125,8 +125,11 @@
   <section>
     <h3>{$t("Menú do clic dereito (Explorador)")}<InfoTip text={$t("Engade «Converter a…» e «Comprimir» ao clic dereito. Sen administrador. En Windows 11 sae en «Mostrar máis opcións». Ponse ao día soo.")} /></h3>
     <div class="exrow">
-      <button class="btn primary" on:click={exInstall} disabled={exBusy}>{ex.installed ? $t("Actualizar entradas") : $t("Instalar no menú")}</button>
-      {#if ex.installed}<button class="btn" on:click={exRemove} disabled={exBusy}>{$t("Quitar do menú")}</button>{/if}
+      {#if ex.installed}
+        <button class="btn" on:click={exRemove} disabled={exBusy}>{$t("Quitar do menú")}</button>
+      {:else}
+        <button class="btn primary" on:click={exInstall} disabled={exBusy}>{$t("Instalar no menú")}</button>
+      {/if}
       <span class="muted note">{ex.installed ? (ex.current ? $t("Instalado") : $t("Instalado, pero apunta a outra copia da app")) : $t("Non instalado")}</span>
     </div>
     {#if exMsg}<p class="note selectable">{exMsg}</p>{/if}

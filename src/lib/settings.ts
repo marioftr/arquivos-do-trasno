@@ -117,9 +117,10 @@ export const downloadTab = writable<"link" | "torrent">("link");
 /** O titorial: na primeira execución sae primeiro a benvida («welcome») e, se a persoa quere, os pasos; desde Axustes vai directo aos pasos. */
 const TUTORIAL_KEY = "arquivos-do-trasno.tutorial-visto";
 export const tutorialOpen = writable<false | "welcome" | "steps">(false);
+/** Só sae na primeira vez que se abre a app. Quen xa a usaba antes de existir o titorial (versións anteriores deixaron a marca das extensións) non o ve tras actualizar. */
 export function tutorialSeen(): boolean {
   try {
-    return localStorage.getItem(TUTORIAL_KEY) === "1";
+    return localStorage.getItem(TUTORIAL_KEY) === "1" || localStorage.getItem(WELCOME_KEY) === "1";
   } catch {
     return true;
   }

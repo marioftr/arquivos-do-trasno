@@ -163,7 +163,7 @@ export const buildExtraTools = (): Tool[] => [
         size = `${s.width} × ${s.height} px`;
         s.close();
       } catch {
-        throw new UserError(tr("Non puiden abrir esta imaxe. O navegador non admite ese formato."));
+        throw new UserError(tr("Non se puido abrir esta imaxe. O navegador non admite ese formato."));
       }
       const e = await readExif(file);
       const rows: [string, string][] = [

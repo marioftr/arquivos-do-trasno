@@ -52,7 +52,7 @@
     </div>
     <p class="small">{$t("Windows 10 e 11. A app actualízase soa; podes apagalo en Axustes.")}</p>
   {:else if failed}
-    <p role="status">{$t("Non puiden consultar GitHub agora. Podes ver as versións na súa páxina.")}</p>
+    <p role="status">{$t("Non se puido consultar GitHub agora. Podes ver as versións na súa páxina.")}</p>
     <a class="btn primary" href={LATEST_URL} rel="noopener noreferrer"><GitHubMark size={20} />{$t("Ver a última versión en GitHub")}</a>
   {:else}
     <p role="status">{$t("Buscando a última versión…")}</p>

@@ -333,7 +333,7 @@
     >
       {#if failed}
         <div class="msg">
-          <p class="muted">{$t("Non puiden preparar unha vista previa de {ext}.", { ext: file.ext.toUpperCase() })}</p>
+          <p class="muted">{$t("Non se puido preparar unha vista previa de {ext}.", { ext: file.ext.toUpperCase() })}</p>
           <button class="btn" on:click={() => load(file.path)}>{$t("Tentar de novo")}</button>
         </div>
       {:else if url}

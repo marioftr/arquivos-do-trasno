@@ -698,13 +698,13 @@
 <div class="wrap">
   {#if preparing}
     <div class="msg loading" role="status">
-      <p class="muted">{$t("Estou preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}<InfoTip text={$t(WHY_PREVIEW)} /></p>
+      <p class="muted">{$t("Preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}<InfoTip text={$t(WHY_PREVIEW)} /></p>
       <div class="indet" aria-hidden="true"><span></span></div>
     </div>
   {:else if failed}
     <div class="msg">
       <p class="muted">
-        {#if $tools && !$tools.ffmpeg}{$t("Non podo preparar a vista previa porque falta ffmpeg.")}{:else}{$t("Non puiden preparar a vista previa.")}{/if}
+        {#if $tools && !$tools.ffmpeg}{$t("Non se pode preparar a vista previa porque falta ffmpeg.")}{:else}{$t("Non se puido preparar a vista previa.")}{/if}
       </p>
       {#if failMsg && !($tools && !$tools.ffmpeg)}<p class="muted tiny selectable">{failMsg}</p>{/if}
       {#if $tools && !$tools.ffmpeg}<button class="btn primary" on:click={() => requestTool("ffmpeg", tr("Para ver este vídeo ou audio necesito FFmpeg, que non está instalado."), retry)}>{$t("Instalar agora")}</button>
@@ -779,7 +779,7 @@
     <div class="audio">
       <div class="nome">{file.name}</div>
       <Timeline {duration} {now} {peaks} height={200} on:seek={(e) => seek(e.detail)} />
-      {#if !peaks.length}<span class="muted ph">{$t("Estou lendo as ondas do son…")}</span>{/if}
+      {#if !peaks.length}<span class="muted ph">{$t("Lendo as ondas do son…")}</span>{/if}
       <div class="ctl center">
         <button class="btn icon" on:click={toggle} aria-label={playing ? $t("Pausa") : $t("Reproducir")} title={`${playing ? $t("Pausa") : $t("Reproducir")} (${$t("Espazo")})`}><Icon name={playing ? "pause" : "play"} size={15} /></button>
         <span class="muted time">{fmt(now)} / {fmt(duration)}</span>

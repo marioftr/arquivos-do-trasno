@@ -155,7 +155,7 @@
       <button class="btn ghost" on:click={reset} disabled={!changed}><Icon name="reset" size={14} /> {$t("Restablecer")}</button>
     </div>
     {#if loadError}
-      <p class="group-note">{$t("Non puiden abrir o PDF: {error}", { error: loadError })}</p>
+      <p class="group-note">{$t("Non se puido abrir o PDF: {error}", { error: loadError })}</p>
     {:else}
       <div class="grid">
         {#each tiles as tile, i (tile.page)}

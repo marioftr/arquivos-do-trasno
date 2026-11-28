@@ -91,7 +91,7 @@ export async function imagesToPdf(files: File[], page: "image" | "a4", ctx: Ctx)
     try {
       r = await render(f, { mime: png ? "image/png" : "image/jpeg", quality: 0.9, maxSide: 2600 });
     } catch {
-      throw new UserError(tr("Non puiden abrir «{name}».", { name: f.name }));
+      throw new UserError(tr("Non se puido abrir «{name}».", { name: f.name }));
     }
     const bytes = new Uint8Array(await r.blob.arrayBuffer());
     const img = png ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);

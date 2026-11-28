@@ -7,7 +7,7 @@ export default {
     const shots = [];
 
     // Primeira execución: sen a marca de «visto», sae a benvida (e non os pasos).
-    await app.ev("localStorage.removeItem('arquivos-do-trasno.tutorial-visto'); location.reload()");
+    await app.ev("localStorage.removeItem('arquivos-do-trasno.tutorial-visto'); localStorage.removeItem('arquivos-do-trasno.extensions-seen'); location.reload()");
     await app.sleep(4500);
     c.ok(await dialog(), "na primeira execución sae unha xanela");
     c.ok(await app.ev(`!!document.querySelector('.panel.welcome') && !document.querySelector('.say')`), "primeiro é a benvida, non os pasos");
@@ -41,6 +41,13 @@ export default {
     // Tab non saca o foco da xanela.
     for (let k = 0; k < 8; k++) await app.ev(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }))`);
     c.ok(await app.ev(`document.querySelector('[role=dialog]')?.contains(document.activeElement) ?? false`), "o foco queda dentro do titorial");
+    // Quen xa usaba a app (marca das extensións de versións anteriores) non ve o titorial tras actualizar, aínda sen a súa marca.
+    await app.ev("localStorage.removeItem('arquivos-do-trasno.tutorial-visto'); localStorage.setItem('arquivos-do-trasno.extensions-seen', '1'); location.reload()");
+    await app.sleep(4500);
+    c.ok(!(await dialog()), "unha instalación anterior non ve o titorial tras actualizar");
+    await app.ev("localStorage.removeItem('arquivos-do-trasno.extensions-seen'); localStorage.removeItem('arquivos-do-trasno.tutorial-visto'); location.reload()");
+    await app.sleep(4500);
+    c.ok(await dialog(), "e na primeira execución de verdade si sae");
     // Esc pecha e xa non volve saír.
     await app.ev(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
     await app.sleep(400);
@@ -51,7 +58,7 @@ export default {
     c.ok(!(await dialog()), "ao abrir de novo non volve saír");
 
     // «Agora non» na benvida tamén o deixa como visto.
-    await app.ev("localStorage.removeItem('arquivos-do-trasno.tutorial-visto'); location.reload()");
+    await app.ev("localStorage.removeItem('arquivos-do-trasno.tutorial-visto'); localStorage.removeItem('arquivos-do-trasno.extensions-seen'); location.reload()");
     await app.sleep(4500);
     await app.click("Agora non");
     await app.sleep(400);

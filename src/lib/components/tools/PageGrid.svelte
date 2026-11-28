@@ -66,7 +66,7 @@
 </script>
 
 {#if error}
-  <p class="group-note">{$t("Non puiden abrir o PDF: {error}", { error })}</p>
+  <p class="group-note">{$t("Non se puido abrir o PDF: {error}", { error })}</p>
 {:else}
   <div class="grid">
     {#each Array.from({ length: total }, (_, k) => k + 1) as n (n)}

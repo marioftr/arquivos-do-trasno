@@ -14,7 +14,7 @@ let current: Ctx | null = null;
 /** Descarga un ficheiro dicindo canto vai (o núcleo pesa moito) e devolve unha URL local para o motor. */
 async function fetchBlobURL(url: string, type: string, onFrac: (f: number) => void): Promise<string> {
   const res = await fetch(url);
-  if (!res.ok || !res.body) throw new UserError(tr("Non puiden descargar o motor de audio e vídeo. Comproba a conexión."));
+  if (!res.ok || !res.body) throw new UserError(tr("Non se puido descargar o motor de audio e vídeo. Comproba a conexión."));
   const total = Number(res.headers.get("content-length")) || 0;
   const chunks: Uint8Array[] = [];
   let got = 0;
@@ -46,7 +46,7 @@ async function engine(ctx: Ctx): Promise<FFmpegT> {
   })().catch((e) => {
     loading = null;
     console.error(e);
-    throw e instanceof UserError ? e : new UserError(tr("Non puiden arrancar o motor de audio e vídeo neste navegador."));
+    throw e instanceof UserError ? e : new UserError(tr("Non se puido arrancar o motor de audio e vídeo neste navegador."));
   });
   return loading;
 }
@@ -61,7 +61,7 @@ export async function run(file: File, outExt: string, args: (input: string, outp
   await f.writeFile(input, new Uint8Array(await file.arrayBuffer()));
   try {
     const code = await f.exec(args(input, output));
-    if (code !== 0) throw new UserError(tr("Non puiden procesar «{name}». O ficheiro está danado ou ese formato non se admite.", { name: file.name }));
+    if (code !== 0) throw new UserError(tr("Non se puido procesar «{name}». O ficheiro está danado ou ese formato non se admite.", { name: file.name }));
     const data = (await f.readFile(output)) as Uint8Array;
     return new Blob([data.slice().buffer as ArrayBuffer]);
   } finally {
@@ -96,7 +96,7 @@ export async function runMany(files: File[], outExt: string, args: (inputs: stri
   try {
     for (const [i, file] of files.entries()) await f.writeFile(inputs[i], new Uint8Array(await file.arrayBuffer()));
     const code = await f.exec(args(inputs, output));
-    if (code !== 0) throw new UserError(tr("Non puiden xuntar os ficheiros. Algún está danado ou ese formato non se admite."));
+    if (code !== 0) throw new UserError(tr("Non se puideron xuntar os ficheiros. Algún está danado ou ese formato non se admite."));
     const data = (await f.readFile(output)) as Uint8Array;
     return new Blob([data.slice().buffer as ArrayBuffer]);
   } finally {

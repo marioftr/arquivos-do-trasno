@@ -40,7 +40,7 @@
 <div class="wrap">
   {#if state === "loading"}
     <div class="msg" role="status">
-      <p class="muted">{$t("Estou preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}</p>
+      <p class="muted">{$t("Preparando a vista previa de {ext}…", { ext: file.ext.toUpperCase() })}</p>
       <div class="indet" aria-hidden="true"><span></span></div>
     </div>
   {:else if state === "missing"}
@@ -50,7 +50,7 @@
     </div>
   {:else if state === "failed"}
     <div class="msg">
-      <p class="muted">{$t("Non puiden preparar a vista previa.")}</p>
+      <p class="muted">{$t("Non se puido preparar a vista previa.")}</p>
       {#if failMsg}<p class="muted tiny selectable">{failMsg}</p>{/if}
       <button class="btn" on:click={load}><Icon name="reset" size={14} /> {$t("Tentar de novo")}</button>
     </div>
