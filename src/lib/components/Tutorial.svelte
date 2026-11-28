@@ -31,13 +31,13 @@
 
   $: steps = [
     { text: $t("Arrastra ficheiros á xanela, preme Escoller ficheiros (Ctrl+O) ou pega con Ctrl+V. Valen imaxes, audio, vídeo, PDF e modelos 3D."), target: ".gbtn", side: "right", state: "notice", files: 0 },
-    { text: $t("Preme un ficheiro da lista para velo no visor. Se marcas varios, a ferramenta que uses aplícase a todos á vez."), target: ".row.sel", side: "right", state: "idle", files: 4, hl: "list" },
+    { text: $t("Preme un ficheiro da lista para velo no visor. Se marcas varios, a columna de ferramentas tamén cambia e ofrece opcións propias para traballar con eles xuntos, como Unir."), target: ".row.sel", side: "right", state: "idle", files: 4, hl: "list" },
     { text: $t("Fai clic co botón dereito nun ficheiro da lista para ver as súas accións: abrir o cartafol onde está, copiar a súa ruta, marcalo para traballar con varios ou quitalo da lista."), target: ".menu", side: "right", state: "idle", files: 4, menu: true },
     { text: $t("As ferramentas están na columna de iconos ao carón do visor. Cada tipo de ficheiro ten as súas propias opcións, así que a columna cambia segundo o que abras: unha imaxe ten Converter, Comprimir ou Redimensionar, e un vídeo, Editar, Son ou Subtítulos."), target: ".rail span:nth-child(2)", side: "left", state: "working", files: 4, hl: "rail" },
     { text: $t("Cada ferramenta ten o seu panel de axustes. Podes elixir un perfil con valores xa preparados ou usar Personalizado para axustalos ti mesmo."), target: ".seg", side: "left", state: "idle", files: 4, hl: "levels", level: 1 },
     { text: $t("O botón verde pon a ferramenta a traballar. A barra de abaixo mostra o progreso, e premendo nela ves a lista de procesos activos."), target: ".jobs", side: "above", state: "working", files: 4, hl: "bar", level: 1, job: "run" },
     { text: $t("Pasa o rato sobre min e sae un menú con funcións como descargar por ligazón ou abrir Axustes, e outras como engadir ficheiros, ver os procesos ou buscar."), at: [64, 606], state: "idle", size: 96, files: 4, radial: true, level: 1 },
-    { text: $t("Con Descargar por ligazón pegas a ligazón dun vídeo e premes Buscar para ver os seus datos antes de descargalo. A pestana Torrents acepta ligazóns magnet e ficheiros .torrent."), target: ".dlg", side: "right", state: "idle", files: 4, level: 1, dlg: "links" },
+    { text: $t("Descargar por ligazón: vídeo ou audio dunha ligazón, co formato e a calidade que elixas, ou unha lista enteira. Torrents: ligazóns magnet ou ficheiros .torrent, marcando os ficheiros que queres."), target: ".dlg", side: "right", state: "idle", files: 4, level: 1, dlg: "links" },
     { text: $t("En Axustes cambias o idioma e o tema, escolles onde se gardan os resultados, defines atallos e perfís de saída e instalas as extensións opcionais."), target: ".dlg", side: "right", state: "idle", files: 4, level: 1, dlg: "hub" },
   ] as Step[];
 

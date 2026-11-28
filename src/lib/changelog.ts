@@ -19,6 +19,21 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.2.4",
+    date: "2026-11-28",
+    title: {
+      gl: "Titorial renovado e niveis de vídeo máis claros",
+      es: "Tutorial renovado y niveles de vídeo más claros",
+      en: "Renewed tutorial and clearer video levels",
+    },
+    changes: [
+      { kind: "better", gl: "Titorial máis claro: explica as ferramentas, as descargas e Axustes, e só sae a primeira vez que se abre a app.", es: "Tutorial más claro: explica las herramientas, las descargas y los Ajustes, y solo sale la primera vez que se abre la app.", en: "Clearer tutorial: it covers the tools, downloads and Settings, and only shows the first time the app is opened." },
+      { kind: "better", gl: "Os vídeos .ts tamén saen no menú do clic dereito do Explorador.", es: "Los vídeos .ts también salen en el menú de clic derecho del Explorador.", en: ".ts videos now also appear in the Explorer right-click menu." },
+      { kind: "better", gl: "Niveis de calidade do vídeo con nomes de uso: WhatsApp, Web e Arquivo.", es: "Niveles de calidad del vídeo con nombres de uso: WhatsApp, Web y Archivo.", en: "Video quality levels named by use: WhatsApp, Web and Archive." },
+      { kind: "better", gl: "Mellorada a apariencia xeral.", es: "Mejorada la apariencia general.", en: "Improved overall look." },
+    ],
+  },
+  {
     version: "0.2.3",
     date: "2026-11-26",
     title: {
