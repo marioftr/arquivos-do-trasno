@@ -151,7 +151,7 @@
     <div class="group">
       <h4 class="group-title">{$t("Resultado")}</h4>
       {#if words}
-        <p class="note">{$t("{n} palabras. Selecciona o texto co rato sobre a imaxe ou cópiao todo.", { n: words })}</p>
+        <p class="note">{$t("{n} {n:palabra|palabras}. Selecciona o texto co rato sobre a imaxe ou cópiao todo.", { n: words })}</p>
         <button class="btn block" on:click={copyAll}>{$t("Copiar todo o texto")}</button>
       {:else}
         <p class="note">{$t("Non atopei texto. Proba con outro idioma ou cunha imaxe máis nítida.")}</p>

@@ -182,7 +182,7 @@
     {/if}
   </div>
   <button class="btn primary block" on:click={save} disabled={$busy || loading || !changed || kept.length === 0}>
-    {$t("Gardar con {n} páxinas", { n: kept.length })}
+    {$t("Gardar con {n} {n:páxina|páxinas}", { n: kept.length })}
   </button>
   <JobStatus {job} />
 </div>

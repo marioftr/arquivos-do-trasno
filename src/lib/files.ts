@@ -146,8 +146,8 @@ export async function addPaths(input: string[]) {
   }
   const added = get(files).length - before;
   if (added === 1) noteAction("O trasno engadiu «{name}»", { name: get(files)[get(files).length - 1].name }, () => restoreFiles(beforeList));
-  else if (added > 1) noteAction("O trasno engadiu {n} ficheiros", { n: added }, () => restoreFiles(beforeList));
-  if (skipped) toast(tr("Deixei {n} ficheiros fóra da lista: non coñezo ese tipo de cousas.", { n: skipped }), { kind: "warn" });
+  else if (added > 1) noteAction("O trasno engadiu {n} {n:ficheiro|ficheiros}", { n: added }, () => restoreFiles(beforeList));
+  if (skipped) toast(tr("Deixei {n} {n:ficheiro|ficheiros} fóra da lista: non coñezo ese tipo de cousas.", { n: skipped }), { kind: "warn" });
 }
 
 // O último ficheiro quitado, para poder desfacelo.
@@ -212,8 +212,8 @@ export function removeChecked() {
   files.set(rest);
   checked.set(new Set());
   if (!rest.some((f) => f.path === get(activePath))) activePath.set(rest[0]?.path ?? null);
-  noteAction("O trasno quitou {n} ficheiros da lista", { n: gone.length }, () => restoreFiles(list));
-  toast(tr("{n} ficheiros desapareceron da lista (seguen onde estaban). Foi sen querer?", { n: gone.length }), { action: { label: tr("Desfacer"), run: undoBatch } });
+  noteAction("O trasno quitou {n} {n:ficheiro|ficheiros} da lista", { n: gone.length }, () => restoreFiles(list));
+  toast(tr("{n} {n:ficheiro desapareceu|ficheiros desapareceron} da lista ({n:segue|seguen} onde {n:estaba|estaban}). Foi sen querer?", { n: gone.length }), { action: { label: tr("Desfacer"), run: undoBatch } });
 }
 
 export function clearAll() {
@@ -433,7 +433,7 @@ export async function restoreSession() {
       await addPaths(alive);
       if (s.active && alive.includes(s.active)) activePath.set(s.active);
       checked.set(new Set((s.checked ?? []).filter((p) => alive.includes(p))));
-      if (missing > 0) toast(tr("Da última vez había {n} ficheiros que xa non están onde os deixaches. Busqueinos por todas partes e nada.", { n: missing }), { kind: "warn" });
+      if (missing > 0) toast(tr("Da última vez había {n} {n:ficheiro que xa non está|ficheiros que xa non están} onde {n:o|os} deixaches. {n:Busqueino|Busqueinos} por todas partes e nada.", { n: missing }), { kind: "warn" });
     }
   } catch {
     // sesión rota: empézase en branco

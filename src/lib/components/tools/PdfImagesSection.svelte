@@ -82,7 +82,7 @@
         const name = `${base}-${tr("páxina")}-${String(pages[i]).padStart(digits, "0")}.${ext}`;
         await writeBytes(await join(dir, name), file.path, new Uint8Array(await blob.arrayBuffer()), false);
       }
-      job.say(true, `${listo()} ${tr("Gardei {n} imaxes en {dir} sen perder nin unha páxina.", { n: pages.length, dir: fileNameOf(dir) })}`);
+      job.say(true, `${listo()} ${tr("Gardei {n} {n:imaxe|imaxes} en {dir} sen perder nin unha páxina.", { n: pages.length, dir: fileNameOf(dir) })}`);
     } catch (e) {
       job.say(false, `${fallo("convertendo")}\n${errText(e)}`);
     } finally {
@@ -107,7 +107,7 @@
     {#if $form.format === "jpg"}
       <Slider label={$t("Calidade")} unit="%" min={10} max={100} bind:value={$form.quality} def={90} hint={$t("Con JPG, canto máis alta, menos borrón e máis peso: ao 90 % case non se nota. O PNG non perde calidade.")} />
     {/if}
-    <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
+    <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} {n:páxina|páxinas}.", { n: file.pages }) : ""} />
   </div>
 
   <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Converter a imaxes")}</button>

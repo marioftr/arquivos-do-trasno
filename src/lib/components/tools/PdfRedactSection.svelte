@@ -67,7 +67,7 @@
           for (const f of fresh) add(f.page, f.x, f.y, f.w, f.h);
           const pagesHit = new Set(fresh.map((f) => f.page)).size;
           if (!found.length) return tr("Non atopei nada que coincida. Se o PDF é unha dixitalización, primeiro hai que lelo en Recoñecer texto (OCR).");
-          return tr("Zonas marcadas: {n}, en {pages} páxinas. Revísaas no visor antes de tapar.", { n: fresh.length, pages: pagesHit });
+          return tr("Zonas marcadas: {n}, en {pages} {pages:páxina|páxinas}. Revísa{n:a|as} no visor antes de tapar.", { n: fresh.length, pages: pagesHit });
         } finally {
           await doc.destroy();
         }
@@ -116,7 +116,7 @@
           job.text.set(tr("Estou gardando o PDF…"));
           const r = await engine.pdfRedact(file.path, out, zones, done, true);
           const note = r.rasterized
-            ? tr("{n} páxinas tiveron que pasar a imaxe para tapar con seguridade; as demais quedaron como estaban.", { n: r.rasterized })
+            ? tr("{n} {n:páxina tivo|páxinas tiveron} que pasar a imaxe para tapar con seguridade; as demais quedaron como estaban.", { n: r.rasterized })
             : tr("O resto do contido quedou como estaba.");
           return `${listo()} ${fileNameOf(r.output_path)}\n${tr("O que había debaixo das zonas xa non está no ficheiro.")} ${note}`;
         } finally {

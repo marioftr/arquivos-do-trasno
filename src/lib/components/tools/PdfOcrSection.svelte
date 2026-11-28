@@ -143,7 +143,7 @@
           if (await engine.jobCancelled()) throw new Error("Cancelei o traballo.");
           const r = await engine.pdfAddTextLayer(file.path, out, layers, true);
           const extra = [skipped ? tr("{n} xa tiñan texto.", { n: skipped }) : "", empty ? tr("{n} sen texto.", { n: empty }) : ""].filter(Boolean).join(" ");
-          return `${listo()} ${fileNameOf(r.output_path)}\n${tr("Engadiuse texto a {pages} páxinas ({words} palabras): agora pódese buscar e copiar.", { pages: r.pages, words: r.words })} ${extra}`.trim();
+          return `${listo()} ${fileNameOf(r.output_path)}\n${tr("Engadiuse texto a {pages} {pages:páxina|páxinas} ({words} {words:palabra|palabras}): agora pódese buscar e copiar.", { pages: r.pages, words: r.words })} ${extra}`.trim();
         } finally {
           unsubProgress.forEach((s) => s());
           await doc?.destroy();
@@ -183,7 +183,7 @@
       <Slider label={$t("Resolución")} unit={$t("ppp")} min={100} max={400} step={10} bind:value={$form.dpi} def={200} hint={$t("Máis ppp: letras pequenas mellor lidas, pero máis tempo por páxina.")} />
 
     <Toggle label={$t("Saltar páxinas con texto")} bind:checked={$form.skipText} disabled={$busy} hint={$t("As páxinas con texto quedan como están. Desactívao se ese texto está mal.")} />
-    <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
+    <TextField label={$t("Páxinas (baleiro = todas)")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} {n:páxina|páxinas}.", { n: file.pages }) : ""} />
   </div>
 
   <button class="btn primary block" on:click={run} disabled={$busy || !installed}>{$t("Engadir texto ao PDF")}</button>

@@ -217,13 +217,13 @@
     }
   };
   $: facts = tinfo
-    ? [tinfo.files.length === 1 ? tr("1 ficheiro") : tr("{n} ficheiros", { n: tinfo.files.length }), formatBytes(tinfo.total)]
+    ? [tinfo.files.length === 1 ? tr("1 ficheiro") : tr("{n} {n:ficheiro|ficheiros}", { n: tinfo.files.length }), formatBytes(tinfo.total)]
     : info
     ? [
-        info.playlist ? (info.total > info.entries.length ? tr("{n} vídeos (amósanse {m})", { n: info.total, m: info.entries.length }) : tr("{n} vídeos", { n: info.entries.length })) : clock(info.duration),
+        info.playlist ? (info.total > info.entries.length ? tr("{n} {n:vídeo|vídeos} (amósanse {m})", { n: info.total, m: info.entries.length }) : tr("{n} {n:vídeo|vídeos}", { n: info.entries.length })) : clock(info.duration),
         info.uploader ?? "",
         dateText(info.upload_date, $lang),
-        info.views ? tr("{n} visualizacións", { n: grouped(info.views, $lang) }) : "",
+        info.views ? tr("{n} {n:visualización|visualizacións}", { n: grouped(info.views, $lang) }) : "",
       ].filter(Boolean)
     : [];
 
@@ -277,7 +277,7 @@
           outputHook.fn?.(d.output_path);
         }
         const bytes = formatBytes(r.done.reduce((a, d) => a + d.bytes_written, 0));
-        let text = r.done.length === 1 ? `${listo()} ${fileNameOf(r.done[0].output_path)}\n${bytes}` : `${listo()} ${tr("Descargados {n} vídeos", { n: r.done.length })}\n${bytes}`;
+        let text = r.done.length === 1 ? `${listo()} ${fileNameOf(r.done[0].output_path)}\n${bytes}` : `${listo()} ${tr("Descargados {n} {n:vídeo|vídeos}", { n: r.done.length })}\n${bytes}`;
         if (r.failed.length) text += `\n${tr("Non se puideron descargar {n}: {detail}", { n: r.failed.length, detail: errText(r.failed[0].detail) })}`;
         return text;
       },
@@ -339,7 +339,7 @@
       <!-- Os vídeos da lista van nunha columna á dereita (nun móbil, debaixo dos detalles). -->
       <div class="side">
         <div class="list" data-testid="playlist">
-          <label class="all"><input type="checkbox" checked={allOn} use:some={selected.size > 0 && !allOn} on:change={toggleAll} /> <span>{tinfo ? tr("{n} de {m} ficheiros", { n: selected.size, m: items.length }) : tr("{n} de {m} vídeos", { n: selected.size, m: items.length })}</span></label>
+          <label class="all"><input type="checkbox" checked={allOn} use:some={selected.size > 0 && !allOn} on:change={toggleAll} /> <span>{tinfo ? tr("{n} de {m} {m:ficheiro|ficheiros}", { n: selected.size, m: items.length }) : tr("{n} de {m} {m:vídeo|vídeos}", { n: selected.size, m: items.length })}</span></label>
           <ul class="scrollbar-thin">
             {#each items as e, i (e.key)}
               <li><label><input type="checkbox" checked={selected.has(e.key)} on:change={() => flip(e.key)} /><span class="num">{i + 1}</span><span class="name" title={e.title}>{e.title}</span><span class="dur muted">{e.note}</span></label></li>
@@ -354,7 +354,7 @@
         <ExtensionGate {needs} />
       {:else if torrentMode}
         <button class="btn primary block" on:click={run} disabled={!tinfo || checking || $busy || (items.length > 1 && !count)} data-testid="download-go">
-          {items.length > 1 ? (count === 1 ? $t("Descargar 1 ficheiro") : tr("Descargar {n} ficheiros", { n: count })) : $t("Descargar")}
+          {items.length > 1 ? (count === 1 ? $t("Descargar 1 ficheiro") : tr("Descargar {n} {n:ficheiro|ficheiros}", { n: count })) : $t("Descargar")}
         </button>
       {:else}
         <Segmented
@@ -377,7 +377,7 @@
         {/if}
 
         <button class="btn primary block" on:click={run} disabled={!looksLikeUrl(url.trim()) || checking || $busy || (!!info?.playlist && !count)} data-testid="download-go">
-          {info?.playlist ? (count === 1 ? $t("Descargar 1 vídeo") : tr("Descargar {n} vídeos", { n: count })) : $t("Descargar")}
+          {info?.playlist ? (count === 1 ? $t("Descargar 1 vídeo") : tr("Descargar {n} {n:vídeo|vídeos}", { n: count })) : $t("Descargar")}
         </button>
       {/if}
     </div>

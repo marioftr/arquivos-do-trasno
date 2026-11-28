@@ -77,7 +77,7 @@
       joins = r.joins;
       const lost = v.removeOverlap ? r.joins.filter((j) => j === null).length : 0;
       const base = tr("Listo! Xunteinas nunha imaxe de {w}×{h} px ({size}): {name}.", { w: r.size[0], h: r.size[1], size: formatBytes(r.bytes_written), name: fileNameOf(r.output_path) });
-      return lost ? `${base} ${lost === 1 ? tr("Nunha unión non atopei onde coinciden e xunteinas tal cal.") : tr("En {n} unións non atopei onde coinciden e xunteinas tal cal.", { n: lost })}` : base;
+      return lost ? `${base} ${lost === 1 ? tr("Nunha unión non atopei onde coinciden e xunteinas tal cal.") : tr("En {n} {n:unión|unións} non atopei onde coinciden e xunteinas tal cal.", { n: lost })}` : base;
     });
   }
 </script>
@@ -124,7 +124,7 @@
     <Toggle label={$t("Quitar tramos repetidos")} bind:checked={$form.removeOverlap} hint={$t("Para capturas feitas ao baixar polo contido dunha páxina: únense sen repetir o tramo común, cabeceiras e pés fixos incluídos.")} />
   </div>
 
-  <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Xuntar {n} imaxes", { n: items.length })}</button>
+  <button class="btn primary block" on:click={run} disabled={$busy}>{$t("Xuntar {n} {n:imaxe|imaxes}", { n: items.length })}</button>
 
   {#if joins.length}
     <ul class="results">

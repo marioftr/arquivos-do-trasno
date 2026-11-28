@@ -64,6 +64,12 @@ export async function autoUpdate(): Promise<void> {
   if (get(updState) === "found") await applyUpdate();
 }
 
+/** Busca a petición do usuario (botón): vale aínda que a actualización automática estea apagada. */
+export async function updateNow(): Promise<void> {
+  await checkForUpdate();
+  if (get(updState) === "found") await applyUpdate();
+}
+
 async function checkForUpdate(): Promise<void> {
   if (get(updState) === "checking" || get(updState) === "downloading" || get(updState) === "ready") return;
   updState.set("checking");

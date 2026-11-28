@@ -137,7 +137,7 @@
           quality: outExt === "jpg" ? v.quality : null,
           background: [255, 255, 255],
         });
-        return tr("Listo! Deixei {n} partes de {w}×{h} px en {dir} ({size}).", { n: r.outputs.length, w: r.piece[0], h: r.piece[1], dir: fileNameOf(dir), size: formatBytes(r.bytes_written) });
+        return tr("Listo! Deixei {n} {n:parte|partes} de {w}×{h} px en {dir} ({size}).", { n: r.outputs.length, w: r.piece[0], h: r.piece[1], dir: fileNameOf(dir), size: formatBytes(r.bytes_written) });
       });
     } catch (e) {
       job.say(false, `${fallo("editando")}\n${errText(e)}`);
@@ -206,7 +206,7 @@
     {#if problem}<p class="warn selectable">{problem}</p>{/if}
 
     <button class="btn primary block" on:click={run} disabled={$busy || animated || !zone || !!problem}>
-      {$t("Dividir en {n} partes", { n: parts })}
+      {$t("Dividir en {n} {n:parte|partes}", { n: parts })}
     </button>
   </div>
   <JobStatus {job} />

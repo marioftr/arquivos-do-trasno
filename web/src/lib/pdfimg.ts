@@ -55,7 +55,7 @@ export async function pdfToImages(file: File, mime: "image/jpeg" | "image/png", 
     if (!blob) throw new UserError(tr("Algo fallou ao procesar. Proba con outro ficheiro."));
     out.push({ name: uniqueName(`${stemOf(file.name)}-p${n}.${ext}`, taken), blob, note: `${tr("Páxina {n}", { n })}` });
   }
-  if (doc.numPages > MAX_PAGES) out[out.length - 1].note += ` · ${tr("O PDF ten {n} páxinas: só se fixeron as primeiras {max}.", { n: doc.numPages, max: MAX_PAGES })}`;
+  if (doc.numPages > MAX_PAGES) out[out.length - 1].note += ` · ${tr("O PDF ten {n} {n:páxina|páxinas}: só se fixeron as primeiras {max}.", { n: doc.numPages, max: MAX_PAGES })}`;
   return out;
 }
 
@@ -75,7 +75,7 @@ export async function pdfToText(file: File, ctx: Ctx): Promise<Output> {
   const text = parts.filter(Boolean).join("\n\n");
   if (!text) throw new UserError(tr("Non atopei texto neste PDF. Se é unha dixitalización, saca as imaxes e usa Recoñecer texto."));
   const words = text.split(/\s+/).filter(Boolean).length;
-  return { name: `${stemOf(file.name)}.txt`, blob: new Blob([text], { type: "text/plain;charset=utf-8" }), text, note: tr("{n} palabras", { n: words }) };
+  return { name: `${stemOf(file.name)}.txt`, blob: new Blob([text], { type: "text/plain;charset=utf-8" }), text, note: tr("{n} {n:palabra|palabras}", { n: words }) };
 }
 
 /** Comprime un PDF volvendo gardar cada páxina como imaxe JPG: pesa moito menos (sobre todo dixitalizacións), pero perde o texto seleccionable. */

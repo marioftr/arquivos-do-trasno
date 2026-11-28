@@ -4,7 +4,7 @@ import { render } from "./image";
 import { stemOf, uniqueName, UserError, type Ctx, type Output } from "./files";
 
 const lib = () => import("pdf-lib");
-const pagesText = (n: number) => (n === 1 ? tr("1 páxina") : tr("{n} páxinas", { n }));
+const pagesText = (n: number) => (n === 1 ? tr("1 páxina") : tr("{n} {n:páxina|páxinas}", { n }));
 
 async function load(file: File) {
   const { PDFDocument } = await lib();
@@ -42,7 +42,7 @@ export function parseRanges(text: string, pages: number): [number, number][] {
     if (!m) throw new UserError(tr("O intervalo «{r}» non é válido. Exemplo: 1-3, 5, 8-", { r: raw }));
     const a = m.length === 2 ? Number(m[1]) : m[1] ? Number(m[1]) : 1;
     const b = m.length === 2 ? Number(m[1]) : m[2] ? Number(m[2]) : pages;
-    if (a < 1 || b < a || b > pages) throw new UserError(tr("O intervalo «{r}» sae do documento, que ten {n} páxinas.", { r: raw, n: pages }));
+    if (a < 1 || b < a || b > pages) throw new UserError(tr("O intervalo «{r}» sae do documento, que ten {n} {n:páxina|páxinas}.", { r: raw, n: pages }));
     out.push([a - 1, b - 1]);
   }
   if (!out.length) throw new UserError(tr("Escribe as páxinas que queres. Exemplo: 1-3, 5, 8-"));

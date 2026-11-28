@@ -140,7 +140,7 @@ function narrate(before: Shape[], after: Shape[]) {
   if (added.length === 1 && !removed.length) return noteHere("O trasno debuxou {what}", { what: tr(NOUN[added[0].type]) }, undo);
   if (!after.length && removed.length > 1) return noteHere("O trasno borrou todas as anotacións", undefined, undo);
   if (removed.length === 1 && !added.length) return noteHere("O trasno borrou {what}", { what: tr(NOUN[removed[0].type]) }, undo);
-  if (removed.length > 1) return noteHere("O trasno borrou {n} anotacións", { n: removed.length }, undo);
+  if (removed.length > 1) return noteHere("O trasno borrou {n} {n:anotación|anotacións}", { n: removed.length }, undo);
   for (const s of after) {
     const o = b.get(s.id);
     if (!o) continue;

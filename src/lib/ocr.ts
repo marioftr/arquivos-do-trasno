@@ -757,14 +757,14 @@ const OCR_FEW = [
   "Só unhas palabras en «{name}», pero non deixei escapar ningunha.",
 ];
 const OCR_SOME = [
-  "Atopei texto en «{name}» ({n} palabras) e xa o podes seleccionar e copiar.",
+  "Atopei texto en «{name}» ({n} {n:palabra|palabras}) e xa o podes seleccionar e copiar.",
   "Ben! Lin o texto de «{name}»: selecciónao co rato ou cópiao todo dun golpe.",
-  "Saqueille as letras a «{name}» ({n} palabras): xa son túas para copiar.",
+  "Saqueille as letras a «{name}» ({n} {n:palabra|palabras}): xa son túas para copiar.",
 ];
 const OCR_LOT = [
-  "Boh, canto texto! Lin unha parrafada enorme en «{name}» ({n} palabras). Revísao antes de fiarte de cada letra.",
-  "Acabo de ler un montón de texto en «{name}»: {n} palabras. Cópiao todo dun golpe co botón.",
-  "Que parrafada! Quedei sen folgos lendo «{name}» ({n} palabras), pero aí tes o texto.",
+  "Boh, canto texto! Lin unha parrafada enorme en «{name}» ({n} {n:palabra|palabras}). Revísao antes de fiarte de cada letra.",
+  "Acabo de ler un montón de texto en «{name}»: {n} {n:palabra|palabras}. Cópiao todo dun golpe co botón.",
+  "Que parrafada! Quedei sen folgos lendo «{name}» ({n} {n:palabra|palabras}), pero aí tes o texto.",
 ];
 let lastOcrLine = "";
 /** Que di o trasno (e que queda no historial) segundo canto texto atopou: nada, un pouco, bastante ou moito. */
@@ -776,7 +776,7 @@ export function ocrVerdict(res: { text: string; lines: unknown[] }, name: string
   lastOcrLine = pick;
   return {
     say: tr(pick, { name, n }),
-    note: n ? tr("O trasno leu o texto de «{name}»: {n} palabras", { name, n }) : tr("O trasno non atopou texto en «{name}»", { name }),
+    note: n ? tr("O trasno leu o texto de «{name}»: {n} {n:palabra|palabras}", { name, n }) : tr("O trasno non atopou texto en «{name}»", { name }),
     found: n > 0,
   };
 }

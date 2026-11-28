@@ -52,7 +52,7 @@ export const buildExtraTools = (): Tool[] => [
       },
     ],
     defaults: { ratio: "1:1", align: "0.5" },
-    action: (n) => (n === 1 ? tr("Recortar 1 imaxe") : tr("Recortar {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Recortar 1 imaxe") : tr("Recortar {n} {n:imaxe|imaxes}", { n })),
     each: async (file, v, taken) => {
       const { crop } = await import("./imgtools");
       const [a, b] = v.ratio.split(":").map(Number);
@@ -112,7 +112,7 @@ export const buildExtraTools = (): Tool[] => [
       { id: "format", type: "seg", label: tr("Formato"), choices: formats },
     ],
     defaults: { dir: "v", format: "image/jpeg" },
-    action: (n) => tr("Xuntar {n} imaxes", { n }),
+    action: (n) => tr("Xuntar {n} {n:imaxe|imaxes}", { n }),
     all: async (files, v, ctx) => {
       const { stitch } = await import("./imgtools");
       const mime = v.format as Mime;
@@ -153,7 +153,7 @@ export const buildExtraTools = (): Tool[] => [
     multiple: true,
     options: [],
     defaults: {},
-    action: (n) => (n === 1 ? tr("Ver a información") : tr("Ver a información de {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Ver a información") : tr("Ver a información de {n} {n:imaxe|imaxes}", { n })),
     each: async (file, _v, taken) => {
       const { readExif } = await import("./exif");
       const { open } = await import("./image");
@@ -404,7 +404,7 @@ export const buildExtraTools = (): Tool[] => [
     min: 2,
     options: [{ id: "format", type: "seg", label: tr("Formato"), choices: () => [{ value: "mp3", label: "MP3" }, { value: "m4a", label: "M4A" }, { value: "wav", label: "WAV", sub: tr("sen perdas") }] }],
     defaults: { format: "mp3" },
-    action: (n) => tr("Unir {n} audios", { n }),
+    action: (n) => tr("Unir {n} {n:audio|audios}", { n }),
     all: async (files, v, ctx) => {
       const { runMany } = await import("./media");
       const codec = v.format === "wav" ? ["-c:a", "pcm_s16le"] : ["-c:a", v.format === "m4a" ? "aac" : "libmp3lame", "-b:a", "192k"];
@@ -455,13 +455,13 @@ export const buildExtraTools = (): Tool[] => [
     multiple: true,
     options: [{ id: "format", type: "seg", label: tr("Formato"), choices: () => [{ value: "srt", label: "SRT" }, { value: "vtt", label: "VTT" }, { value: "txt", label: tr("Só texto") }] }],
     defaults: { format: "srt" },
-    action: (n) => (n === 1 ? tr("Converter 1 ficheiro") : tr("Converter {n} ficheiros", { n })),
+    action: (n) => (n === 1 ? tr("Converter 1 ficheiro") : tr("Converter {n} {n:ficheiro|ficheiros}", { n })),
     each: async (file, v, taken) => {
       const subs = await import("./subs");
       const cues = subs.parseSubs(await file.text());
       if (!cues.length) throw new UserError(tr("Non atopei subtítulos neste ficheiro."));
       const text = v.format === "vtt" ? subs.toVtt(cues) : v.format === "txt" ? subs.toTxt(cues) : subs.toSrt(cues);
-      return { name: uniqueName(`${stemOf(file.name)}.${v.format}`, taken), blob: txt(text), text, note: tr("{n} subtítulos", { n: cues.length }) };
+      return { name: uniqueName(`${stemOf(file.name)}.${v.format}`, taken), blob: txt(text), text, note: tr("{n} {n:subtítulo|subtítulos}", { n: cues.length }) };
     },
   },
   {
@@ -489,7 +489,7 @@ export const buildExtraTools = (): Tool[] => [
       },
     ],
     defaults: { shift: "", fps: "1" },
-    action: (n) => (n === 1 ? tr("Resincronizar 1 ficheiro") : tr("Resincronizar {n} ficheiros", { n })),
+    action: (n) => (n === 1 ? tr("Resincronizar 1 ficheiro") : tr("Resincronizar {n} {n:ficheiro|ficheiros}", { n })),
     each: async (file, v: Values, taken) => {
       const subs = await import("./subs");
       const shift = v.shift.trim() ? num(v.shift) : 0;
@@ -501,7 +501,7 @@ export const buildExtraTools = (): Tool[] => [
       if (!cues.length) throw new UserError(tr("Non atopei subtítulos neste ficheiro."));
       const done = subs.retime(cues, shift, ratio);
       const vtt = /\.vtt$/i.test(file.name);
-      return { name: uniqueName(`${stemOf(file.name)}-sincro.${vtt ? "vtt" : "srt"}`, taken), blob: txt(vtt ? subs.toVtt(done) : subs.toSrt(done)), text: subs.toTxt(done), note: tr("{n} subtítulos", { n: done.length }) };
+      return { name: uniqueName(`${stemOf(file.name)}-sincro.${vtt ? "vtt" : "srt"}`, taken), blob: txt(vtt ? subs.toVtt(done) : subs.toSrt(done)), text: subs.toTxt(done), note: tr("{n} {n:subtítulo|subtítulos}", { n: done.length }) };
     },
   },
 ];

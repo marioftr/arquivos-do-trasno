@@ -62,7 +62,7 @@
       const v = values();
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
         const r = await engine.cutSilence(file.path, out, v, true);
-        return `${listo()} ${fileNameOf(r.output_path)}\n${tr("Cortáronse {n} silencios: de {a} a {b} (−{p} %).", { n: r.cuts, a: clock(r.before), b: clock(r.after), p: percent(r.before, r.after) })}`;
+        return `${listo()} ${fileNameOf(r.output_path)}\n${tr("Cortáronse {n} {n:silencio|silencios}: de {a} a {b} (−{p} %).", { n: r.cuts, a: clock(r.before), b: clock(r.after), p: percent(r.before, r.after) })}`;
       });
     } catch (e) {
       job.say(false, `${fallo("editando")}\n${errText(e)}`);
@@ -92,7 +92,7 @@
     {:else if current}
       {#if current.cuts.length}
         <span class="est-main">{clock(current.result_duration)}</span>
-        <span class="muted">{$t("orixinal {b}, −{p} % · {n} silencios", { b: clock(current.duration), p: percent(current.duration, current.result_duration), n: current.cuts.length })}</span>
+        <span class="muted">{$t("orixinal {b}, −{p} % · {n} {n:silencio|silencios}", { b: clock(current.duration), p: percent(current.duration, current.result_duration), n: current.cuts.length })}</span>
       {:else}
         <span class="muted">{$t("Non hai silencios con estes valores.")}</span>
       {/if}

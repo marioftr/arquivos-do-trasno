@@ -83,7 +83,7 @@
         const out = await join(dir, `${base}-${tr("parte")}-${String(i + 1).padStart(String(list.length).length, "0")}.pdf`);
         await engine.pdfExtractPages(file.path, list[i], out, false);
       }
-      job.say(true, `${listo()} ${tr("Cortei o PDF en {n} partes en {dir}.", { n: list.length, dir: fileNameOf(dir) })}`);
+      job.say(true, `${listo()} ${tr("Cortei o PDF en {n} {n:parte|partes} en {dir}.", { n: list.length, dir: fileNameOf(dir) })}`);
     } catch (e) {
       job.say(false, `${fallo("editando")}\n${errText(e)}`);
     } finally {
@@ -107,7 +107,7 @@
     {:else if $form.mode !== "each"}
       <TextField label={$t("Intervalos")} placeholder={$t("ex: 1-3; 4-6; 7")} bind:value={$form.ranges} hint={$t("Cada parte, separada por «;», vai a un PDF.")} />
     {/if}
-    {#if preview !== null}<p class="group-note">{$t("Resultado: {n} PDF", { n: preview })} · {$t("O PDF ten {n} páxinas.", { n: total })}</p>{/if}
+    {#if preview !== null}<p class="group-note">{$t("Resultado: {n} PDF", { n: preview })} · {$t("O PDF ten {n} {n:páxina|páxinas}.", { n: total })}</p>{/if}
   </div>
   <button class="btn primary block" on:click={run} disabled={$busy || preview === null}>{$t("Dividir PDF")}</button>
   <JobStatus {job} />

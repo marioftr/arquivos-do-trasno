@@ -19,6 +19,23 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.2.5",
+    date: "2026-11-28",
+    title: {
+      gl: "Primeira execución guiada e textos en singular e plural",
+      es: "Primera ejecución guiada y textos en singular y plural",
+      en: "Guided first run and singular/plural texts",
+    },
+    changes: [
+      { kind: "new", gl: "Na primeira execución, despois da benvida, pódese elixir o tamaño da letra e o tema antes do titorial.", es: "En la primera ejecución, tras la bienvenida, se puede elegir el tamaño de la letra y el tema antes del tutorial.", en: "On first run, after the welcome, you can choose the text size and theme before the tutorial." },
+      { kind: "better", gl: "O titorial móstrase máis animado: a lista, as ferramentas, os niveis, as descargas e Axustes van cambiando soas.", es: "El tutorial se muestra más animado: la lista, las herramientas, los niveles, las descargas y los Ajustes van cambiando solos.", en: "The tutorial is livelier: the list, tools, levels, downloads and Settings change on their own." },
+      { kind: "better", gl: "Os textos con número concordan: «1 ficheiro», «3 ficheiros».", es: "Los textos con número concuerdan: «1 archivo», «3 archivos».", en: "Texts with a number now agree: “1 file”, “3 files”." },
+      { kind: "better", gl: "«Ao premer o trasno» ofrece todos os botóns do seu menú.", es: "«Al pulsar el trasno» ofrece todos los botones de su menú.", en: "“When clicking the trasno” offers every button of its menu." },
+      { kind: "fixed", gl: "O trasno xa non sae dúas veces á vez no titorial nin na pantalla de «Arrastra os ficheiros aquí».", es: "El trasno ya no sale dos veces a la vez en el tutorial ni en la pantalla de «Arrastra los archivos aquí».", en: "The trasno no longer shows up twice at once in the tutorial or on the drop screen." },
+      { kind: "fixed", gl: "Volve o botón de buscar actualizacións en Novidades.", es: "Vuelve el botón de buscar actualizaciones en Novedades.", en: "The check-for-updates button is back in What's new." },
+    ],
+  },
+  {
     version: "0.2.4",
     date: "2026-11-28",
     title: {

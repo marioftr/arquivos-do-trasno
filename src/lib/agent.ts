@@ -76,12 +76,29 @@ export function revertTo(idx: number): number {
     }
   }
   actions.set(l.slice(idx + 1));
-  noteAction(n === 1 ? "O trasno retrocedeu un cambio" : "O trasno retrocedeu {n} cambios", { n });
+  noteAction(n === 1 ? "O trasno retrocedeu un cambio" : "O trasno retrocedeu {n} {n:cambio|cambios}", { n });
   return n;
 }
 
-/** Que fai o trasno ao premelo: abrir procesos, abrir o buscador ou soltar un comentario. */
-export type ClickAction = "procs" | "palette" | "settings" | "say";
+/**
+ * Os botóns do menú que sae ao pasar o rato polo trasno. É a única lista: o menú, as opcións de «Ao premer o trasno»
+ * e o titorial saen dela, así que un botón novo aparece en todos eses sitios sen tocar máis.
+ * `a` e `r`: ángulo (graos) e raio (px) arredor do trasno. O anel interior vai de arriba a abaixo; o exterior queda
+ * nos ocos entre cada dous botóns do interior.
+ */
+export const DOCK_R1 = 118;
+export const DOCK_R2 = 166;
+export type ClickAction = "add" | "link" | "procs" | "settings" | "torrent" | "say" | "palette";
+export type DockItem = { id: ClickAction; icon: string; label: string; action: string; tone: string; a: number; r: number; actionId?: string };
+export const DOCK: readonly DockItem[] = [
+  { id: "add", icon: "plus", label: "Engadir ficheiros", action: "Engadir ficheiros", tone: "var(--accent-imaxe)", a: 91.5, r: DOCK_R1 },
+  { id: "link", icon: "link", label: "Descargar por ligazón", action: "Descargar por ligazón", tone: "var(--accent-video)", a: 61.5, r: DOCK_R1 },
+  { id: "procs", icon: "layers", label: "Procesos", action: "Abrir os procesos", tone: "var(--accent-conversor)", a: 31.5, r: DOCK_R1 },
+  { id: "settings", icon: "gear", label: "Axustes", action: "Abrir os axustes", tone: "var(--text-muted)", a: 1.5, r: DOCK_R1 },
+  { id: "torrent", icon: "magnet", label: "Descargar torrent", action: "Descargar torrent", tone: "var(--accent-audio)", a: 76.5, r: DOCK_R2 },
+  { id: "say", icon: "chat", label: "Comentario do trasno", action: "Soltar un comentario", tone: "var(--accent-pdf)", a: 46.5, r: DOCK_R2 },
+  { id: "palette", icon: "search", label: "Buscar", action: "Abrir o buscador", tone: "var(--accent)", a: 16.5, r: DOCK_R2, actionId: "g.palette" },
+];
 function persistedText<T extends string>(key: string, allowed: T[], fallback: T) {
   let v = fallback;
   try {
@@ -100,13 +117,9 @@ function persistedText<T extends string>(key: string, allowed: T[], fallback: T)
   });
   return store;
 }
-export const CLICK_ITEMS: { id: ClickAction; icon: string; label: string; action: string; tone: string; actionId?: string }[] = [
-  { id: "palette", icon: "search", label: "Buscar", action: "Abrir o buscador", tone: "var(--accent)", actionId: "g.palette" },
-  { id: "procs", icon: "layers", label: "Procesos", action: "Abrir os procesos", tone: "var(--accent-conversor)" },
-  { id: "say", icon: "chat", label: "Comentario do trasno", action: "Soltar un comentario", tone: "var(--accent-pdf)" },
-  { id: "settings", icon: "gear", label: "Axustes", action: "Abrir os axustes", tone: "var(--text-muted)" },
-];
-export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", ["procs", "palette", "settings", "say"], "procs");
+/** Opcións de «Ao premer o trasno»: todos os botóns do menú. */
+export const CLICK_ITEMS: readonly DockItem[] = DOCK;
+export const trasnoClick = persistedText<ClickAction>("arquivos-do-trasno.trasno-click", DOCK.map((x) => x.id), "procs");
 
 // ---- o globo do trasno (un só á vez)
 export interface Bubble {

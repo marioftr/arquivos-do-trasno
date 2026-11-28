@@ -23,7 +23,7 @@
   import { pausedId } from "./lib/jobui";
   import JobBar from "./lib/components/ui/JobBar.svelte";
   import Bubble from "./lib/components/ui/Bubble.svelte";
-  import { actions, tipsOn, liveProgress, jobEnd, bubble, hideBubble, trasnoCovered, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, type ClickAction } from "./lib/agent";
+  import { actions, tipsOn, liveProgress, jobEnd, bubble, hideBubble, trasnoCovered, trasnoSay, pickComment, trasnoClick, trasnoAway, viewCtx, DOCK, type ClickAction } from "./lib/agent";
   import { reportProgress } from "./lib/job";
   import { requestTool } from "./lib/toolinstall";
   import ToolNeedDialog from "./lib/components/ToolNeedDialog.svelte";
@@ -66,29 +66,14 @@
   $: if (!$tipsOn) hideBubble();
 
   // ---- menú radial do trasno: sae ao pasar o rato (ou co teclado) e péchase en canto o punteiro deixa as súas ruxas
-  // Dous aneis de botóns arredor do trasno (esquina de abaixo á esquerda). O interior vai de arriba a abaixo;
-  // o exterior queda nos ocos entre cada dous botóns do interior (o oco do medio está reservado).
+  // Os botóns e a súa posición están en agent.ts (DOCK), compartidos coas opcións de «Ao premer o trasno».
   const HALF = 48; // metade do trasno (96 px)
   const BTN = 52;
-  const BTN_R1 = 118;
-  const BTN_R2 = 166;
-  interface DockItem { id: string; icon: string; label: string; tone: string; a: number; r: number; actionId?: string }
-  const DOCK: DockItem[] = [
-    { id: "add", icon: "plus", label: "Engadir ficheiros", tone: "var(--accent-imaxe)", a: 91.5, r: BTN_R1 },
-    { id: "link", icon: "link", label: "Descargar por ligazón", tone: "var(--accent-video)", a: 61.5, r: BTN_R1 },
-    { id: "procs", icon: "layers", label: "Procesos", tone: "var(--accent-conversor)", a: 31.5, r: BTN_R1 },
-    { id: "settings", icon: "gear", label: "Axustes", tone: "var(--text-muted)", a: 1.5, r: BTN_R1 },
-    { id: "torrent", icon: "magnet", label: "Descargar torrent", tone: "var(--accent-audio)", a: 76.5, r: BTN_R2 },
-    { id: "say", icon: "chat", label: "Comentario do trasno", tone: "var(--accent-pdf)", a: 46.5, r: BTN_R2 },
-    { id: "palette", icon: "search", label: "Buscar", tone: "var(--accent)", a: 16.5, r: BTN_R2, actionId: "g.palette" },
-  ];
   const allPos = DOCK.map((q) => ({ x: q.r * Math.cos((q.a * Math.PI) / 180), y: q.r * Math.sin((q.a * Math.PI) / 180) }));
-  function pickDock(id: string) {
+  function pickDock(id: ClickAction) {
     dockClose();
     (document.activeElement as HTMLElement | null)?.blur?.();
-    if (id === "add") void escoller();
-    else if (id === "link" || id === "torrent") openDownloads(id);
-    else runItem(id as ClickAction);
+    runItem(id);
   }
   function openDownloads(tab: "link" | "torrent") {
     downloadTab.set(tab);
@@ -125,7 +110,9 @@
     } else trasnoSay($t("O portapapeis non ten ligazóns, rutas nin imaxes."), "warn");
   }
   function runItem(id: ClickAction) {
-    if (id === "palette") dialog.set("palette");
+    if (id === "add") void escoller();
+    else if (id === "link" || id === "torrent") openDownloads(id);
+    else if (id === "palette") dialog.set("palette");
     else if (id === "procs") openHub("procs.running");
     else if (id === "settings") openHub("settings.general");
     else sayNow();
@@ -400,7 +387,6 @@
   {#if $files.length === 0}
     <main class="home">
       <div class="drop">
-        <TrasnoSprite state="idle" size={64} />
         <h1>{$t("Arrastra os ficheiros aquí")}</h1>
         <button class="btn primary" on:click={escoller}><Icon name="folder" size={16} /> {$t("Escoller ficheiros")}</button>
         <p class="muted formatos">

@@ -1,8 +1,9 @@
 <script lang="ts">
     import { t, lang } from "../i18n";
   import { CHANGELOG, type Kind } from "../changelog";
-  import { appVersion, autoCheck, updState, updFound, updError, updProgress, notesFor } from "../updates";
+  import { appVersion, autoCheck, updState, updFound, updError, updProgress, notesFor, updateNow } from "../updates";
   import Toggle from "./ui/Toggle.svelte";
+  import Icon from "./Icon.svelte";
 
   export let part: "changelog" | "updates" = "changelog";
 
@@ -53,10 +54,9 @@
           <span class="muted pct">{Math.round($updProgress * 100)} %</span>
         {/if}
       </div>
-    {:else if $autoCheck}
-      <p class="muted" role="status">{$updState === "checking" ? $t("Buscando…") : $updState === "none" ? $t("Tes a última versión.") : $updState === "error" ? (noRelease ? $t("Aínda non hai ningunha versión publicada en GitHub.") : $t("Non se puido comprobar as actualizacións. Revisa a conexión a internet e proba de novo.")) : ""}</p>
     {:else}
-      <p class="muted">{$t("Co axuste apagado non busco versións novas. Podes baixalas desde GitHub.")}</p>
+      <p class="muted" role="status">{$updState === "checking" ? $t("Buscando…") : $updState === "none" ? $t("Tes a última versión.") : $updState === "error" ? (noRelease ? $t("Aínda non hai ningunha versión publicada en GitHub.") : $t("Non se puido comprobar as actualizacións. Revisa a conexión a internet e proba de novo.")) : !$autoCheck ? $t("Co axuste apagado non se buscan versións novas. Podes baixalas desde GitHub.") : ""}</p>
+      <div class="act"><button class="btn" on:click={() => updateNow()} disabled={$updState === "checking"}><Icon name="reset" size={14} /> {$updState === "checking" ? $t("Buscando…") : $t("Buscar actualizacións")}</button></div>
     {/if}
     <p class="muted note">{$t("As versións publícanse en GitHub. Só descargo ficheiros asinados coa clave do seu autor.")}</p>
   </section>
@@ -83,5 +83,6 @@
   .bar { height: 7px; border-radius: 99px; background: var(--bg-hover); overflow: hidden; }
   .fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
   .pct { font-size: var(--fs-sm); text-align: right; }
+  .act { display: flex; }
   .note { margin: 0; font-size: var(--fs-sm); }
 </style>

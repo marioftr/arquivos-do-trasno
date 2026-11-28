@@ -135,7 +135,7 @@
   </div>
   {#if $checked.size}
     <div class="sel" role="toolbar" aria-label={$t("Ficheiros marcados")}>
-      <span class="sc">{$t("{n} marcados", { n: $checked.size })}</span>
+      <span class="sc">{$t("{n} {n:marcado|marcados}", { n: $checked.size })}</span>
       <span class="hact">
         <button class="ib" on:click={() => setChecked($files.map((f) => f.path))} disabled={allChecked} title={$t("Marcar todo")} aria-label={$t("Marcar todo")}><Icon name="checks" size={16} /></button>
         <button class="ib" on:click={() => setChecked([])} title={$t("Desmarcar todo")} aria-label={$t("Desmarcar todo")}><Icon name="square" size={16} /></button>

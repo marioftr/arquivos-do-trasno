@@ -87,7 +87,7 @@
       <button class="btn" on:click={selectNone}>{$t("Ningunha")}</button>
     </div>
     <PageGrid {file} selected={sel ?? []} on:toggle={(e) => togglePage(e.detail)} on:total={(e) => (gridTotal = e.detail)} />
-    <TextField label={$t("Páxinas")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} páxinas.", { n: file.pages }) : ""} />
+    <TextField label={$t("Páxinas")} placeholder={$t("ex: 1,3,5-7")} bind:value={$form.pageSpec} hint={file.pages ? $t("O PDF ten {n} {n:páxina|páxinas}.", { n: file.pages }) : ""} />
     <button class="btn block" on:click={extract} disabled={$busy || !$form.pageSpec}>{$t("Extraer a PDF novo")}</button>
   </div>
 

@@ -95,7 +95,7 @@
         const lines = await translate(texts, f.from, f.to, ctx);
         const path = await engine.subtitleReplaceTexts(file.path, out, lines, true);
         return `${listo()} ${fileNameOf(path)}
-${tr("{n} falas.", { n: lines.length })} ${tr("Tradución automática: convén revisala antes de usala.")}`;
+${tr("{n} {n:fala|falas}.", { n: lines.length })} ${tr("Tradución automática: convén revisala antes de usala.")}`;
       });
     } catch (e) {
       job.say(false, `${fallo("editando")}
@@ -110,8 +110,8 @@ ${errText(e)}`);
       if (!out) return;
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
         const done = await engine.retimeSubtitle(file.path, out, r, true);
-        const dropped = done.dropped ? " " + tr("{n} falas quedaron antes do principio e descartáronse.", { n: done.dropped }) : "";
-        return `${listo()} ${fileNameOf(done.output_path)}\n${tr("{n} falas.", { n: done.cues })}${dropped}`;
+        const dropped = done.dropped ? " " + tr("{n} {n:fala quedou|falas quedaron} antes do principio e {n:descartouse|descartáronse}.", { n: done.dropped }) : "";
+        return `${listo()} ${fileNameOf(done.output_path)}\n${tr("{n} {n:fala|falas}.", { n: done.cues })}${dropped}`;
       });
     } catch (e) {
       job.say(false, `${fallo("editando")}\n${errText(e)}`);
@@ -129,7 +129,7 @@ ${errText(e)}`);
     {:else}
     {#if info}
       <p class="muted info">
-        {$t("{n} falas · a primeira empeza en {a} e a última en {b}.", { n: info.cues, a: clock(info.first_start), b: clock(info.last_start) })}
+        {$t("{n} {n:fala|falas} · a primeira empeza en {a} e a última en {b}.", { n: info.cues, a: clock(info.first_start), b: clock(info.last_start) })}
       </p>
       {#if info.encoding !== "UTF-8"}
         <p class="warn">{$t("Estes subtítulos están en {enc}, non en UTF-8: nalgúns reprodutores os acentos e os «ñ» saen mal. Ao gardalos aquí quedan en UTF-8.", { enc: info.encoding })}</p>

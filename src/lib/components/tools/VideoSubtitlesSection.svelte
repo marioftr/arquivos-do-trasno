@@ -70,7 +70,7 @@
         if (!out) return;
         await job.run(TRASNO.traballando, fallo("editando"), async () => {
           const r = await engine.subtitleExtract(file.path, position, out, true);
-          return `${listo()} ${fileNameOf(r.output)}\n${tr("{n} falas.", { n: r.cues })}`;
+          return `${listo()} ${fileNameOf(r.output)}\n${tr("{n} {n:fala|falas}.", { n: r.cues })}`;
         });
         return;
       }
@@ -80,7 +80,7 @@
       if (!out) return;
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
         const r = embed ? await engine.subtitleEmbed(file.path, subsPath, out, language.trim().toLowerCase(), true) : await engine.subtitleBurn(file.path, subsPath, out, true);
-        return `${listo()} ${fileNameOf(r.output)}\n${tr("{n} falas.", { n: r.cues })}`;
+        return `${listo()} ${fileNameOf(r.output)}\n${tr("{n} {n:fala|falas}.", { n: r.cues })}`;
       });
     } catch (e) {
       job.say(false, `${fallo("editando")}\n${errText(e)}`);
@@ -129,7 +129,7 @@
       />
       <button class="btn block" on:click={chooseSubs} disabled={$busy}>{subsPath ? fileNameOf(subsPath) : $t("Escoller subtítulos…")}</button>
       {#if subsInfo}
-        <p class="muted small">{$t("{n} falas · {enc}", { n: subsInfo.cues, enc: subsInfo.encoding })}</p>
+        <p class="muted small">{$t("{n} {n:fala|falas} · {enc}", { n: subsInfo.cues, enc: subsInfo.encoding })}</p>
       {:else if subsErr}
         <p class="warn">{subsErr}</p>
       {/if}

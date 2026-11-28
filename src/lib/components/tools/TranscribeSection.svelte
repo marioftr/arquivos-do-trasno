@@ -66,7 +66,7 @@
       await job.run(TRASNO.traballando, fallo("editando"), async () => {
         const r = await engine.transcribeMedia(file.path, out, options, true);
         const lang = f.language === "auto" && r.language ? ` ${tr("Idioma detectado: {lang}.", { lang: langName(r.language) })}` : "";
-        return `${listo()} ${fileNameOf(r.output_path)}\n${tr("Transcritos {time} de audio en {n} frases.", { time: formatClock(r.duration, 0), n: r.segments })}${lang}`;
+        return `${listo()} ${fileNameOf(r.output_path)}\n${tr("Transcritos {time} de audio en {n} {n:frase|frases}.", { time: formatClock(r.duration, 0), n: r.segments })}${lang}`;
       });
     } catch (e) {
       job.say(false, `${fallo("editando")}\n${errText(e)}`);

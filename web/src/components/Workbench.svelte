@@ -206,7 +206,7 @@
         <span class="drag">{$t("Tamén podes arrastralos aquí ou pegalos.")}</span>
       </button>
     {/if}
-    {#if skipped}<p class="warn" role="status">{skipped === 1 ? $t("Saltouse un ficheiro que non vale para esta ferramenta.") : $t("Saltáronse {n} ficheiros que non valen para esta ferramenta.", { n: skipped })}</p>{/if}
+    {#if skipped}<p class="warn" role="status">{skipped === 1 ? $t("Saltouse un ficheiro que non vale para esta ferramenta.") : $t("Saltáronse {n} {n:ficheiro|ficheiros} que non valen para esta ferramenta.", { n: skipped })}</p>{/if}
 
     {#if items.length}
       <ul class="list">
@@ -222,7 +222,7 @@
           </li>
         {/each}
       </ul>
-      {#if items.length < min}<p class="warn" role="status">{$t("Engade polo menos {n} ficheiros.", { n: min })}</p>{/if}
+      {#if items.length < min}<p class="warn" role="status">{$t("Engade polo menos {n} {n:ficheiro|ficheiros}.", { n: min })}</p>{/if}
       <button type="button" class="btn add" on:click={() => input.click()}>
         <Icon name="plus" size={20} />
         <span>{tool.multiple ? $t("Engadir máis") : $t("Cambiar ficheiro")}</span>
@@ -253,7 +253,7 @@
       </div>
     {/if}
     {#if results.length}
-      <h2>{$t("Feito")} <span class="count">{results.length === 1 ? $t("1 ficheiro") : $t("{n} ficheiros", { n: results.length })} · {formatBytes(total(results))}</span></h2>
+      <h2>{$t("Feito")} <span class="count">{results.length === 1 ? $t("1 ficheiro") : $t("{n} {n:ficheiro|ficheiros}", { n: results.length })} · {formatBytes(total(results))}</span></h2>
       <ul class="list">
         {#each results as r (r.name)}
           <li class="res">
@@ -295,7 +295,7 @@
 </dialog>
 
 <div class="sr-only" role="status" aria-live="polite">
-  {#if busy}{$t("Procesando…")}{:else if results.length}{$t("Feito")}: {results.length === 1 ? $t("1 ficheiro") : $t("{n} ficheiros", { n: results.length })}{/if}
+  {#if busy}{$t("Procesando…")}{:else if results.length}{$t("Feito")}: {results.length === 1 ? $t("1 ficheiro") : $t("{n} {n:ficheiro|ficheiros}", { n: results.length })}{/if}
 </div>
 
 <style>

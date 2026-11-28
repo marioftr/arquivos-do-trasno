@@ -66,7 +66,7 @@
   $: blocked = selection.filter((f) => blockedWhy(f, animated));
   $: usable = selection.filter((f) => !blockedWhy(f, animated));
   $: allBlocked = usable.length === 0;
-  $: blockedText = blocked.length === 1 ? (blockedWhy(blocked[0], animated) ?? "") : tr("{n} ficheiros non se redimensionan: ou só se poden ler, ou son animados e non se poden gardar así. Convérteos antes a PNG ou JPG, en Converter.", { n: blocked.length });
+  $: blockedText = blocked.length === 1 ? (blockedWhy(blocked[0], animated) ?? "") : tr("{n} {n:ficheiro|ficheiros} non se redimensionan: ou só se poden ler, ou son animados e non se poden gardar así. Convérteos antes a PNG ou JPG, en Converter.", { n: blocked.length });
 
   const lossy = (f: FileEntry) => ["jpg", "jpeg", "webp", "avif", "jxl", "jp2"].includes(f.ext.toLowerCase());
   $: hasLossy = usable.some(lossy);
@@ -195,8 +195,8 @@
     job.say(
       !bad,
       bad
-        ? tr("Vaites! {bad} de {total} imaxes escapáronseme.", { bad, total: list.length })
-        : tr("Feito! Redimensionei {n} imaxes en {dir}: de {from} a {to}.", { n: list.length, dir: fileNameOf(dir), from: formatBytes(before), to: formatBytes(after) }),
+        ? tr("Vaites! {bad} de {total} {total:imaxe|imaxes} {bad:escapóuseme|escapáronseme}.", { bad, total: list.length })
+        : tr("Feito! Redimensionei {n} {n:imaxe|imaxes} en {dir}: de {from} a {to}.", { n: list.length, dir: fileNameOf(dir), from: formatBytes(before), to: formatBytes(after) }),
     );
     job.busy.set(false);
   }
@@ -255,7 +255,7 @@
     {/if}
 
     <button class="btn primary block" on:click={multi ? runBatch : runSingle} disabled={$busy || allBlocked || !ready}>
-      {multi ? $t("Redimensionar {n} imaxes", { n: usable.length }) : $t("Redimensionar imaxe")}
+      {multi ? $t("Redimensionar {n} {n:imaxe|imaxes}", { n: usable.length }) : $t("Redimensionar imaxe")}
     </button>
   </div>
   {#if hasMeta}

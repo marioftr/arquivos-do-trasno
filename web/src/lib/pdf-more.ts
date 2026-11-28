@@ -15,7 +15,7 @@ async function load(file: File, opts: { updateMetadata?: boolean } = {}) {
   }
 }
 const toBlob = async (doc: { save: () => Promise<Uint8Array> }) => new Blob([(await doc.save()) as BlobPart], { type: "application/pdf" });
-const pagesText = (n: number) => (n === 1 ? tr("1 páxina") : tr("{n} páxinas", { n }));
+const pagesText = (n: number) => (n === 1 ? tr("1 páxina") : tr("{n} {n:páxina|páxinas}", { n }));
 const expand = (ranges: [number, number][]) => ranges.flatMap(([a, b]) => Array.from({ length: b - a + 1 }, (_, k) => a + k));
 
 /** Quita páxinas, dálle a volta á orde ou escribe unha orde nova (pódense repetir). */

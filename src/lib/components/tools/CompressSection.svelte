@@ -111,7 +111,7 @@
     if (!keepsFormat(f)) return noCompressionNotice(f.ext);
     return animatedNotice(f.ext, "comprimir");
   }
-  $: blockedText = blocked.length === 1 ? whyBlocked(blocked[0]) : tr("{n} ficheiros non se comprimen: ou o seu formato non ten compresión propia, ou só se saben ler, ou son imaxes animadas que non son GIF. Convérteos antes a PNG ou JPG na pestana Converter.", { n: blocked.length }) + " " + [...new Set(blocked.map((f) => f.ext.toUpperCase()))].join(", ");
+  $: blockedText = blocked.length === 1 ? whyBlocked(blocked[0]) : tr("{n} {n:ficheiro|ficheiros} non se comprimen: ou o seu formato non ten compresión propia, ou só se saben ler, ou son imaxes animadas que non son GIF. Convérteos antes a PNG ou JPG na pestana Converter.", { n: blocked.length }) + " " + [...new Set(blocked.map((f) => f.ext.toUpperCase()))].join(", ");
   $: hasPng = isImage && usable.some((f) => isPngExt(f.ext));
   $: hasLossy = isImage && usable.some((f) => !isPngExt(f.ext));
   $: hasGif = isImage && usable.some((f) => f.ext.toLowerCase() === "gif");
@@ -287,8 +287,8 @@
     await Promise.all(Array.from({ length: Math.min(isImage ? 3 : 1, files.length) }, worker));
     const bad = results.filter((r) => r.state === "erro").length;
     job.say(!bad, bad
-      ? tr("Vaites! {bad} de {total} ficheiros escapáronseme.", { bad, total: files.length })
-      : tr("Feito! Comprimín {n} ficheiros en {dir}: de {from} a {to}.", { n: files.length, dir: fileNameOf(dir), from: formatBytes(before), to: formatBytes(after) }));
+      ? tr("Vaites! {bad} de {total} {total:ficheiro|ficheiros} {bad:escapóuseme|escapáronseme}.", { bad, total: files.length })
+      : tr("Feito! Comprimín {n} {n:ficheiro|ficheiros} en {dir}: de {from} a {to}.", { n: files.length, dir: fileNameOf(dir), from: formatBytes(before), to: formatBytes(after) }));
     job.busy.set(false);
   }
 </script>
@@ -410,7 +410,7 @@
 
   {#if multi}
     <button class="btn primary block" on:click={runBatch} disabled={$busy || allBlocked}>
-      {isImage ? $t("Comprimir {n} imaxes", { n: usable.length }) : $t("Converter {n} vídeos a MP4", { n: selection.length })}
+      {isImage ? $t("Comprimir {n} {n:imaxe|imaxes}", { n: usable.length }) : $t("Converter {n} {n:vídeo|vídeos} a MP4", { n: selection.length })}
     </button>
   {:else}
     <button class="btn primary block" on:click={runSingle} disabled={$busy || allBlocked}>

@@ -96,7 +96,7 @@ export const buildTools = (): Tool[] => [
       { id: "quality", type: "seg", label: tr("Calidade"), info: tr("Máis calidade pesa máis. A calidade 85 case non se distingue do orixinal."), choices: QUALITY, when: (v) => v.format !== "image/png" },
     ],
     defaults: { format: "image/jpeg", quality: "85" },
-    action: (n) => (n === 1 ? tr("Converter 1 imaxe") : tr("Converter {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Converter 1 imaxe") : tr("Converter {n} {n:imaxe|imaxes}", { n })),
     each: async (file, v, taken) => {
       const mime = mimeOf(v, file);
       const r = await render(file, { mime, quality: qualityOf(v) });
@@ -148,7 +148,7 @@ export const buildTools = (): Tool[] => [
       },
     ],
     defaults: { mode: "side", side: "1280", percent: "50" },
-    action: (n) => (n === 1 ? tr("Redimensionar 1 imaxe") : tr("Redimensionar {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Redimensionar 1 imaxe") : tr("Redimensionar {n} {n:imaxe|imaxes}", { n })),
     each: async (file, v, taken) => {
       const mime = sameMime(file);
       const r = await render(file, { mime, quality: 0.9, ...(v.mode === "percent" ? { percent: Number(v.percent) } : { maxSide: Number(v.side) }) });
@@ -169,7 +169,7 @@ export const buildTools = (): Tool[] => [
       { id: "quality", type: "seg", label: tr("Calidade"), choices: QUALITY },
     ],
     defaults: { format: "same", quality: "70" },
-    action: (n) => (n === 1 ? tr("Comprimir 1 imaxe") : tr("Comprimir {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Comprimir 1 imaxe") : tr("Comprimir {n} {n:imaxe|imaxes}", { n })),
     each: async (file, v, taken) => {
       let mime = mimeOf(v, file);
       if (mime === "image/png") mime = "image/jpeg"; // o PNG non perde calidade: comprimir é pasar a JPG
@@ -214,7 +214,7 @@ export const buildTools = (): Tool[] => [
       },
     ],
     defaults: { mode: "auto", amount: "normal" },
-    action: (n) => (n === 1 ? tr("Restaurar imaxe") : tr("Restaurar {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Restaurar imaxe") : tr("Restaurar {n} {n:imaxe|imaxes}", { n })),
     each: async (file, v, taken) => {
       const { enhance, MAX_AREA } = await import("./enhance");
       const mime = v.mode === "doc" || v.mode === "bw" ? (sameMime(file) === "image/png" ? "image/png" : "image/jpeg") : sameMime(file);
@@ -246,7 +246,7 @@ export const buildTools = (): Tool[] => [
       },
     ],
     defaults: { turn: "cw" },
-    action: (n) => (n === 1 ? tr("Xirar 1 imaxe") : tr("Xirar {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Xirar 1 imaxe") : tr("Xirar {n} {n:imaxe|imaxes}", { n })),
     each: async (file, v, taken) => {
       const mime = sameMime(file);
       const r = await render(file, {
@@ -277,13 +277,13 @@ export const buildTools = (): Tool[] => [
       },
     ],
     defaults: { lang: DEFAULT_LANG() },
-    action: (n) => (n === 1 ? tr("Recoñecer texto") : tr("Recoñecer texto en {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Recoñecer texto") : tr("Recoñecer texto en {n} {n:imaxe|imaxes}", { n })),
     each: async (file, v, taken, ctx) => {
       const { readText } = await import("./ocr");
       const r = await readText(file, v.lang, ctx, tr("Lendo o texto…"));
       if (!r.text) throw new UserError(tr("Non atopei texto nesta imaxe."));
       const words = r.text.split(/\s+/).filter(Boolean).length;
-      return { name: uniqueName(`${stemOf(file.name)}.txt`, taken), blob: new Blob([r.text], { type: "text/plain;charset=utf-8" }), text: r.text, note: tr("{n} palabras", { n: words }) };
+      return { name: uniqueName(`${stemOf(file.name)}.txt`, taken), blob: new Blob([r.text], { type: "text/plain;charset=utf-8" }), text: r.text, note: tr("{n} {n:palabra|palabras}", { n: words }) };
     },
   },
   {
@@ -317,7 +317,7 @@ export const buildTools = (): Tool[] => [
       },
     ],
     defaults: { quality: "fast", backdrop: "clear" },
-    action: (n) => (n === 1 ? tr("Quitar o fondo") : tr("Quitar o fondo a {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Quitar o fondo") : tr("Quitar o fondo a {n} {n:imaxe|imaxes}", { n })),
     each: async (file, v, taken, ctx) => {
       const { removeBackground } = await import("./cutout");
       const blob = await removeBackground(file, v.quality as "fast" | "best", v.backdrop as "clear" | "white" | "black", ctx);
@@ -360,7 +360,7 @@ export const buildTools = (): Tool[] => [
       },
     ],
     defaults: { format: "mp3", kbps: "192" },
-    action: (n) => (n === 1 ? tr("Converter 1 audio") : tr("Converter {n} audios", { n })),
+    action: (n) => (n === 1 ? tr("Converter 1 audio") : tr("Converter {n} {n:audio|audios}", { n })),
     each: async (file, v, taken, ctx) => {
       const { run } = await import("./media");
       const codec = v.format === "wav" ? ["-c:a", "pcm_s16le"] : [`-c:a`, v.format === "m4a" ? "aac" : v.format === "opus" ? "libopus" : "libmp3lame", "-b:a", `${v.kbps}k`];
@@ -476,7 +476,7 @@ export const buildTools = (): Tool[] => [
       const cues = await ai.transcribe(pcm, v.lang as Lang, v.model as "tiny" | "base", ctx);
       if (!cues.length) throw new UserError(tr("Non atopei voz neste ficheiro."));
       const write = (list: typeof cues) => (v.format === "vtt" ? subs.toVtt(list) : v.format === "txt" ? subs.toTxt(list) : subs.toSrt(list));
-      const out: Output[] = [{ name: `${stemOf(file.name)}.${v.format}`, blob: new Blob([write(cues)], { type: "text/plain;charset=utf-8" }), text: subs.toTxt(cues), note: tr("{n} subtítulos", { n: cues.length }) }];
+      const out: Output[] = [{ name: `${stemOf(file.name)}.${v.format}`, blob: new Blob([write(cues)], { type: "text/plain;charset=utf-8" }), text: subs.toTxt(cues), note: tr("{n} {n:subtítulo|subtítulos}", { n: cues.length }) }];
       if (v.to !== "none" && v.to !== v.lang) {
         const lines = await ai.translate(cues.map((c) => c.text.replace(/\s+/g, " ")), v.lang as Lang, v.to as Lang, ctx);
         const done = cues.map((c, i) => ({ ...c, text: lines[i] ?? c.text }));
@@ -508,7 +508,7 @@ export const buildTools = (): Tool[] => [
       const lines = await ai.translate(cues.map((c) => c.text.replace(/\s+/g, " ")), v.from as Lang, v.to as Lang, ctx);
       const done = cues.map((c, i) => ({ ...c, text: lines[i] ?? c.text }));
       const vtt = /\.vtt$/i.test(file.name);
-      return [{ name: `${stemOf(file.name)}.${v.to}.${vtt ? "vtt" : "srt"}`, blob: new Blob([vtt ? subs.toVtt(done) : subs.toSrt(done)], { type: "text/plain;charset=utf-8" }), text: subs.toTxt(done), note: tr("{n} subtítulos", { n: done.length }) }];
+      return [{ name: `${stemOf(file.name)}.${v.to}.${vtt ? "vtt" : "srt"}`, blob: new Blob([vtt ? subs.toVtt(done) : subs.toSrt(done)], { type: "text/plain;charset=utf-8" }), text: subs.toTxt(done), note: tr("{n} {n:subtítulo|subtítulos}", { n: done.length }) }];
     },
   },
   {
@@ -600,7 +600,7 @@ export const buildTools = (): Tool[] => [
       },
     ],
     defaults: { page: "a4" },
-    action: (n) => (n === 1 ? tr("Crear PDF cunha imaxe") : tr("Crear PDF con {n} imaxes", { n })),
+    action: (n) => (n === 1 ? tr("Crear PDF cunha imaxe") : tr("Crear PDF con {n} {n:imaxe|imaxes}", { n })),
     all: async (files, v, ctx) => (await import("./pdf")).imagesToPdf(files, v.page as "image" | "a4", ctx),
   },
   {

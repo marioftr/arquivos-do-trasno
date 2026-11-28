@@ -187,8 +187,8 @@
     await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT, selection.length) }, worker));
     const bad = results.filter((r) => r.state === "erro").length;
     job.say(!bad, bad
-      ? tr("Vaites! {bad} de {total} ficheiros escapáronseme.", { bad, total: selection.length })
-      : tr("Feito! Gardei os {n} ficheiros en {dir} sen perder nin un.", { n: selection.length, dir: fileNameOf(dir) }));
+      ? tr("Vaites! {bad} de {total} {total:ficheiro|ficheiros} {bad:escapóuseme|escapáronseme}.", { bad, total: selection.length })
+      : tr("Feito! Gardei os {n} {n:ficheiro|ficheiros} en {dir} sen perder nin un.", { n: selection.length, dir: fileNameOf(dir) }));
     job.busy.set(false);
   }
 </script>
@@ -209,7 +209,7 @@
     {#if losing.length}
       <LockNote
         label={losing.length === 1 ? $t("Só o primeiro fotograma") : $t("{n} perden a animación", { n: losing.length })}
-        text={firstFrameNotice(losing[0].ext, $form.targetExt) + (losing.length > 1 ? " " + tr("Afecta a {n} ficheiros.", { n: losing.length }) : "")}
+        text={firstFrameNotice(losing[0].ext, $form.targetExt) + (losing.length > 1 ? " " + tr("Afecta a {n} {n:ficheiro|ficheiros}.", { n: losing.length }) : "")}
       />
     {/if}
 
@@ -257,7 +257,7 @@
 
   {#if multi}
     <button class="btn primary block" on:click={convertBatch} disabled={$busy || !$form.targetExt}>
-      {$t("Converter {n} ficheiros", { n: selection.length })}
+      {$t("Converter {n} {n:ficheiro|ficheiros}", { n: selection.length })}
     </button>
   {:else}
     <button class="btn primary block" on:click={convertSingle} disabled={$busy || !$form.targetExt}>

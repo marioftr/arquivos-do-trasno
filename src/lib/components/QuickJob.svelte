@@ -127,7 +127,7 @@
     // A xanela naceu agochada: móstrase xa co tamaño bo e co contido pintado.
     await win.show();
 
-    tracker = track({ title: items.length === 1 ? fileNameOf(items[0].path) : tr("{n} ficheiros", { n: items.length }), subtitle: what, source: "quick" });
+    tracker = track({ title: items.length === 1 ? fileNameOf(items[0].path) : tr("{n} {n:ficheiro|ficheiros}", { n: items.length }), subtitle: what, source: "quick" });
     // A aplicación principal pode pedir cancelar este traballo desde a lista de procesos.
     poll = setInterval(async () => {
       if (!cancelMode && tracker && (await cancelRequested(tracker.id).catch(() => false))) doCancel("partial");

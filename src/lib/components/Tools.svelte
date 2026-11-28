@@ -166,7 +166,7 @@
   $: mode = modes.length ? sub[current] : "";
   // O historial conta cada cambio co ficheiro e o menú onde se fixo.
   $: where.set({
-    file: multi ? $t("{n} ficheiros", { n: selection.length }) : (first?.name ?? ""),
+    file: multi ? $t("{n} {n:ficheiro|ficheiros}", { n: selection.length }) : (first?.name ?? ""),
     menu: [tabs.find((x) => x.id === current)?.label, modes.find((x) => x.value === mode)?.label].filter(Boolean).join(" · "),
   });
 
@@ -201,7 +201,7 @@
     <header>
       <div class="ttl">
         <div class="tt"><h2>{tabs.find((x) => x.id === current)?.label ?? ""}</h2>{#if $panelInfo}<InfoTip text={$panelInfo} />{/if}</div>
-        {#if multi}<p class="muted sub">{$t("{n} ficheiros", { n: selection.length })}&nbsp;·&nbsp;{$t(CATEGORY_LABELS[category])}</p>{/if}
+        {#if multi}<p class="muted sub">{$t("{n} {n:ficheiro|ficheiros}", { n: selection.length })}&nbsp;·&nbsp;{$t(CATEGORY_LABELS[category])}</p>{/if}
       </div>
       {#if current === "annotate" && category === "imaxe"}
         <FormBar custom={{ canUndo, canRedo, dirty: hasShapes, undo, redo, reset: resetAnno }} />

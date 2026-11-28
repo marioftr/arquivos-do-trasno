@@ -13,15 +13,43 @@ export default {
     c.ok(await app.ev(`!!document.querySelector('.panel.welcome') && !document.querySelector('.say')`), "primeiro é a benvida, non os pasos");
     c.ok(await app.ev(`document.querySelector('.welcome .big img')?.width === 192`), "o trasno vai en grande");
     shots.push(await app.shot("titorial-benvida.png"));
-    c.ok(await app.ev(`document.activeElement?.classList.contains('primary')`), "o foco está en Ver o titorial");
+    c.ok(await app.ev(`document.activeElement?.classList.contains('primary')`), "o foco está no botón principal da benvida");
+    // Antes do titorial, as ventás de personalización: tamaño da letra e tema.
+    await app.click("Comezar");
+    await app.sleep(500);
+    c.ok(await app.ev(`document.querySelector('#tut-title')?.textContent.trim() === 'Tamaño da letra' && !!document.querySelector('.welcome [role=radiogroup], .welcome .seg, .welcome button[aria-pressed], .welcome button[role=radio]')`), "despois da benvida sae o tamaño da letra");
+    shots.push(await app.shot("titorial-letra.png"));
+    await app.click("Seguinte");
+    await app.sleep(500);
+    c.ok(await app.ev(`document.querySelector('#tut-title')?.textContent.trim() === 'Tema' && document.querySelectorAll('.welcome .theme').length === 3`), "despois sae o tema, con tres opcións");
+    shots.push(await app.shot("titorial-tema.png"));
+    c.ok(await app.ev(`document.querySelectorAll('.trasno:not(.away)').length === 0`), "con estas ventás tampouco hai dous trasnos");
     await app.click("Ver o titorial");
     await app.sleep(800);
     c.ok((await counter()) === "1 / 9", "empeza no paso 1 de 9", await counter());
+    await app.sleep(1200);
+    c.ok(await app.ev(`document.querySelectorAll('.tr .sprite').length === 1 && !document.querySelector('.zone .sprite') && document.querySelector('.trasno')?.classList.contains('away')`), "no paso 1 só hai un trasno en pantalla (o do titorial)");
+    c.ok(await app.ev(`getComputedStyle(document.querySelector('.tr')).width === '64px'`), "o trasno do titorial mide un múltiplo de 32 (píxeles nítidos)");
+    // Cada paso ten a súa animación: o que se ve na maqueta cambia co tempo (ficheiro elixido, ferramenta, nivel, cursor, páxina…).
+    const snap = {
+      2: `[...document.querySelectorAll('.row')].findIndex((r) => r.classList.contains('sel'))`,
+      3: `[...document.querySelectorAll('.menu span')].findIndex((r) => r.classList.contains('hot'))`,
+      4: `document.querySelector('.rail')?.children.length + ':' + document.querySelector('.vh b')?.textContent`,
+      5: `[...document.querySelectorAll('.seg span')].findIndex((r) => r.classList.contains('on'))`,
+      6: `document.querySelector('.jtext em')?.textContent`,
+      7: `document.querySelector('.cur')?.getAttribute('style')`,
+      8: `document.querySelector('.dlg')?.innerText`,
+      9: `document.querySelector('.pt')?.textContent`,
+    };
     for (let k = 2; k <= 9; k++) {
       await app.click("Seguinte");
       await app.sleep(1200);
       c.ok((await counter()) === `${k} / 9`, `paso ${k} de 9`, await counter());
       shots.push(await app.shot(`titorial-paso-${k}.png`));
+      const x = await app.ev(snap[k]);
+      await app.sleep(k === 6 ? 2600 : 3000);
+      const y = await app.ev(snap[k]);
+      c.ok(x !== y, `o paso ${k} anima a maqueta`, `${x} → ${y}`);
     }
     c.ok(await app.ev(`document.querySelector('.go .primary')?.textContent.trim() === 'Rematar'`), "o último paso ten o botón Rematar");
     c.ok(await app.ev(`!/repet/i.test(document.querySelector('.say')?.textContent ?? '')`), "o último texto non fala de repetir");

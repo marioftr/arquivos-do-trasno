@@ -74,7 +74,7 @@
             const out = await engine.uniquePath(await join(dir, `${stem}${tr("-taboa")}-${i + 1}.csv`));
             await engine.saveBytes(out, enc(chosen[i].rows));
           }
-          return `${listo()} ${tr("Deixei {n} ficheiros CSV en {dir}.", { n: chosen.length, dir: fileNameOf(dir) })}`;
+          return `${listo()} ${tr("Deixei {n} {n:ficheiro|ficheiros} CSV en {dir}.", { n: chosen.length, dir: fileNameOf(dir) })}`;
         });
       }
     } catch (e) {
@@ -127,7 +127,7 @@
       bind:value={$form.sep}
     />
     <button class="btn primary block" on:click={save} disabled={$busy || !chosen.length}>
-      {chosen.length > 1 ? $t("Gardar {n} táboas en CSV", { n: chosen.length }) : $t("Gardar táboa en CSV")}
+      {chosen.length > 1 ? $t("Gardar {n} {n:táboa|táboas} en CSV", { n: chosen.length }) : $t("Gardar táboa en CSV")}
     </button>
   {:else if searched}
     <p class="muted">{$t("Non hai táboas que gardar.")}</p>

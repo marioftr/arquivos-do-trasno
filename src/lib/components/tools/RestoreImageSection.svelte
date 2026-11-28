@@ -91,7 +91,7 @@
   $: blocked = selection.filter((f) => blockedWhy(f, animated));
   $: usable = selection.filter((f) => !blockedWhy(f, animated));
   $: allBlocked = usable.length === 0;
-  $: blockedText = blocked.length === 1 ? (blockedWhy(blocked[0], animated) ?? "") : tr("{n} ficheiros non se restauran: ou só se poden ler, ou son animados.", { n: blocked.length });
+  $: blockedText = blocked.length === 1 ? (blockedWhy(blocked[0], animated) ?? "") : tr("{n} {n:ficheiro|ficheiros} non se restauran: ou só se poden ler, ou son animados.", { n: blocked.length });
   const lossy = (f: FileEntry) => ["jpg", "jpeg", "webp", "avif", "jxl", "jp2"].includes(f.ext.toLowerCase());
   $: hasMeta = usable.some((f) => engine.META_EXTS.includes(f.ext.toLowerCase()));
 
@@ -183,8 +183,8 @@
           bad.push(`${f.name}: ${errText(e)}`);
         }
       }
-      if (bad.length) throw new Error(tr("Vaites! {bad} de {total} imaxes escapáronseme.", { bad: bad.length, total: usable.length }) + "\n" + bad.join("\n"));
-      return tr("Feito! Restaurei {n} imaxes en {dir}.", { n: done, dir: fileNameOf(dir) });
+      if (bad.length) throw new Error(tr("Vaites! {bad} de {total} {total:imaxe|imaxes} {bad:escapóuseme|escapáronseme}.", { bad: bad.length, total: usable.length }) + "\n" + bad.join("\n"));
+      return tr("Feito! Restaurei {n} {n:imaxe|imaxes} en {dir}.", { n: done, dir: fileNameOf(dir) });
     });
   }
 </script>
@@ -240,7 +240,7 @@
       </div>
     {/if}
     <button class="btn primary block" on:click={multi ? runBatch : runSingle} disabled={$busy || allBlocked || !changed}>
-      {multi ? $t("Restaurar {n} imaxes", { n: usable.length }) : $t("Restaurar imaxe")}
+      {multi ? $t("Restaurar {n} {n:imaxe|imaxes}", { n: usable.length }) : $t("Restaurar imaxe")}
     </button>
   </div>
   {#if hasMeta}

@@ -41,9 +41,13 @@ lang.subscribe((l) => {
 
 export type Params = Record<string, string | number>;
 
+/** Plural: «{n:ficheiro|ficheiros}» dá o primeiro se `n` é 1 e o segundo en calquera outro caso (0, 2, 3…). */
+const PLURAL = /\{(\w+):([^{}|]*)\|([^{}]*)\}/g;
+
 export function translate(l: Lang, key: string, params?: Params): string {
   let text = DICTS[l][key] ?? key;
   if (params) {
+    text = text.replace(PLURAL, (m, k: string, one: string, many: string) => (k in params ? (Number(params[k]) === 1 ? one : many) : m));
     for (const [k, v] of Object.entries(params)) text = text.split(`{${k}}`).join(String(v));
   }
   return text;
